@@ -52,13 +52,35 @@ func main() {
 	redisClient := database.ConnectRedis(cfg.RedisURL)
 	defer redisClient.Close()
 
-	// Initialize services
+	// Initialize core services
 	authService := services.NewAuthService(db, cfg.JWTSecret)
 	userService := services.NewUserService(db)
 	chatService := services.NewChatService(db)
 	messageService := services.NewMessageService(db, redisClient)
 	translationService := services.NewTranslationService(cfg.GoogleTranslateAPIKey, redisClient)
 	wsHub := services.NewWebSocketHub(redisClient)
+
+	// Phase 2: Initialize Pub/Sub service
+	pubsubService := services.NewPubSubService(redisClient, wsHub)
+	pubsubService.Start()
+	defer pubsubService.Stop()
+
+	// Phase 2: Initialize Inbox service for offline message delivery
+	inboxService := services.NewInboxService(db, redisClient)
+	inboxService.StartCleanupScheduler()
+
+	// Phase 2: Initialize Presence service
+	presenceService := services.NewPresenceService(db, redisClient, pubsubService)
+	presenceService.StartPresenceCleanup()
+
+	// Phase 2: Initialize Search service
+	searchService := services.NewSearchService(db, redisClient)
+
+	// Phase 3: Initialize Grammar service
+	grammarService := services.NewGrammarService(redisClient)
+
+	// Phase 3: Initialize Vocabulary service
+	vocabularyService := services.NewVocabularyService(db, redisClient)
 
 	// Start WebSocket hub
 	go wsHub.Run()
@@ -69,6 +91,12 @@ func main() {
 	messageHandler := handlers.NewMessageHandler(messageService, chatService, translationService, wsHub)
 	wsHandler := handlers.NewWebSocketHandler(wsHub, authService)
 
+	// Phase 2 & 3 handlers
+	searchHandler := handlers.NewSearchHandler(searchService)
+	presenceHandler := handlers.NewPresenceHandler(presenceService)
+	grammarHandler := handlers.NewGrammarHandler(grammarService, messageService)
+	vocabularyHandler := handlers.NewVocabularyHandler(vocabularyService, messageService, translationService)
+
 	// Setup Gin router
 	if cfg.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -78,7 +106,7 @@ func main() {
 
 	// CORS configuration
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:5173"},
+		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:5173", "http://10.0.2.2:5173"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -87,7 +115,7 @@ func main() {
 
 	// Health check
 	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "healthy", "version": "1.0.0"})
+		c.JSON(200, gin.H{"status": "healthy", "version": "2.0.0"})
 	})
 
 	// Public routes
@@ -120,7 +148,41 @@ func main() {
 		protected.GET("/chats/:chatId/messages", messageHandler.GetMessages)
 		protected.POST("/chats/:chatId/messages", messageHandler.SendMessage)
 		protected.PUT("/chats/:chatId/read", messageHandler.MarkAsRead)
-		protected.GET("/messages/search", messageHandler.SearchMessages)
+
+		// Phase 2: Search routes
+		protected.GET("/messages/search", searchHandler.SearchMessages)
+		protected.GET("/chats/:chatId/search", searchHandler.SearchInChat)
+		protected.GET("/search/suggestions", searchHandler.GetSearchSuggestions)
+		protected.GET("/search/recent", searchHandler.GetRecentSearches)
+		protected.DELETE("/search/history", searchHandler.ClearSearchHistory)
+
+		// Phase 2: Presence routes
+		protected.GET("/presence/:userId", presenceHandler.GetPresence)
+		protected.POST("/presence/batch", presenceHandler.GetMultiplePresence)
+		protected.PUT("/presence", presenceHandler.UpdatePresence)
+		protected.POST("/presence/heartbeat", presenceHandler.Heartbeat)
+		protected.GET("/presence/online/count", presenceHandler.GetOnlineCount)
+
+		// Phase 3: Grammar analysis routes
+		protected.POST("/grammar/analyze", grammarHandler.AnalyzeGrammar)
+		protected.POST("/grammar/analyze-text", grammarHandler.AnalyzeText)
+		protected.POST("/grammar/difficulty", grammarHandler.GetDifficultyLevel)
+
+		// Phase 3: Vocabulary routes
+		protected.POST("/vocabulary", vocabularyHandler.SaveWord)
+		protected.GET("/vocabulary", vocabularyHandler.GetVocabulary)
+		protected.GET("/vocabulary/due", vocabularyHandler.GetDueVocabulary)
+		protected.POST("/vocabulary/practice", vocabularyHandler.RecordPractice)
+		protected.GET("/vocabulary/progress", vocabularyHandler.GetProgress)
+		protected.DELETE("/vocabulary/:id", vocabularyHandler.DeleteVocabulary)
+		protected.GET("/vocabulary/search", searchHandler.SearchVocabulary)
+	}
+
+	// Admin routes (for monitoring)
+	admin := r.Group("/api/v1/admin")
+	admin.Use(middleware.AuthMiddleware(authService))
+	{
+		admin.GET("/presence/stats", presenceHandler.GetPresenceStats)
 	}
 
 	// WebSocket endpoint
@@ -132,7 +194,7 @@ func main() {
 		port = "8080"
 	}
 
-	log.Printf("Server starting on port %s", port)
+	log.Printf("Server starting on port %s (Phase 2 & 3 features enabled)", port)
 	if err := r.Run(":" + port); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}

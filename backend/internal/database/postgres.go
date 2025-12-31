@@ -26,6 +26,7 @@ func Connect(databaseURL string) (*sql.DB, error) {
 
 func Migrate(db *sql.DB) error {
 	migrations := []string{
+		// Phase 1: Core tables
 		`CREATE TABLE IF NOT EXISTS users (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			username VARCHAR(30) UNIQUE NOT NULL,
@@ -86,10 +87,131 @@ func Migrate(db *sql.DB) error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON refresh_tokens(token)`,
+
+		// Phase 2: Multi-device support - Clients table
+		`CREATE TABLE IF NOT EXISTS clients (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			device_type VARCHAR(20) NOT NULL CHECK (device_type IN ('mobile', 'web', 'desktop')),
+			device_info JSONB DEFAULT '{}',
+			connection_status VARCHAR(20) NOT NULL DEFAULT 'offline' CHECK (connection_status IN ('online', 'offline')),
+			last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_clients_user_id ON clients(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_clients_user_status ON clients(user_id, connection_status)`,
+
+		// Phase 2: Offline message delivery - Inbox table
+		`CREATE TABLE IF NOT EXISTS inbox (
+			client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+			message_id UUID NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+			chat_id UUID NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+			delivery_attempts INTEGER DEFAULT 0,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			ttl TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL '30 days'),
+			PRIMARY KEY (client_id, message_id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_inbox_client_pending ON inbox(client_id, created_at) WHERE ttl > CURRENT_TIMESTAMP`,
+
+		// Phase 2: User settings extensions
+		`CREATE TABLE IF NOT EXISTS user_settings (
+			user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+			grammar_enabled BOOLEAN DEFAULT true,
+			vocabulary_enabled BOOLEAN DEFAULT true,
+			difficulty_level VARCHAR(20) DEFAULT 'intermediate' CHECK (difficulty_level IN ('beginner', 'intermediate', 'advanced')),
+			transcript_recording BOOLEAN DEFAULT true,
+			message_retention_days INTEGER DEFAULT 365,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// Phase 2: Media attachments
+		`CREATE TABLE IF NOT EXISTS media_attachments (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			message_id UUID NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+			type VARCHAR(20) NOT NULL CHECK (type IN ('image', 'video', 'audio', 'document')),
+			file_name VARCHAR(255) NOT NULL,
+			file_size BIGINT NOT NULL,
+			mime_type VARCHAR(100) NOT NULL,
+			url TEXT NOT NULL,
+			thumbnail_url TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_media_message_id ON media_attachments(message_id)`,
+
+		// Phase 3: Vocabulary management
+		`CREATE TABLE IF NOT EXISTS vocabulary (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			term VARCHAR(255) NOT NULL,
+			language VARCHAR(10) NOT NULL,
+			translation VARCHAR(500) NOT NULL,
+			definition TEXT,
+			context_message_id UUID REFERENCES messages(id),
+			context_sentence TEXT,
+			context_chat_id UUID REFERENCES chats(id),
+			review_count INTEGER DEFAULT 0,
+			correct_count INTEGER DEFAULT 0,
+			next_review TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			interval_days INTEGER DEFAULT 1,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(user_id, term, language)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_vocabulary_user_id ON vocabulary(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_vocabulary_user_due ON vocabulary(user_id, next_review)`,
+		`CREATE INDEX IF NOT EXISTS idx_vocabulary_user_language ON vocabulary(user_id, language)`,
+
+		// Phase 3: Call sessions
+		`CREATE TABLE IF NOT EXISTS call_sessions (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			chat_id UUID NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+			type VARCHAR(10) NOT NULL CHECK (type IN ('audio', 'video')),
+			status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'ended')),
+			started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			ended_at TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_calls_chat_id ON call_sessions(chat_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_calls_status ON call_sessions(status) WHERE status = 'active'`,
+
+		// Phase 3: Call participants
+		`CREATE TABLE IF NOT EXISTS call_participants (
+			call_id UUID NOT NULL REFERENCES call_sessions(id) ON DELETE CASCADE,
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			left_at TIMESTAMP,
+			PRIMARY KEY (call_id, user_id)
+		)`,
+
+		// Phase 3: Call transcripts
+		`CREATE TABLE IF NOT EXISTS call_transcripts (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			call_id UUID NOT NULL REFERENCES call_sessions(id) ON DELETE CASCADE,
+			segments JSONB DEFAULT '[]',
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_transcripts_call_id ON call_transcripts(call_id)`,
+
+		// Phase 2: Presence tracking (using Redis primarily, but backup in DB)
+		`CREATE TABLE IF NOT EXISTS presence_log (
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			status VARCHAR(20) NOT NULL,
+			device_type VARCHAR(20),
+			timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_presence_user_time ON presence_log(user_id, timestamp DESC)`,
+
+		// Phase 2: Rate limiting tracking
+		`CREATE TABLE IF NOT EXISTS rate_limits (
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			action_type VARCHAR(50) NOT NULL,
+			count INTEGER DEFAULT 1,
+			window_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (user_id, action_type)
+		)`,
 	}
 
 	for _, migration := range migrations {
 		if _, err := db.Exec(migration); err != nil {
+			log.Printf("Migration error: %v", err)
 			return err
 		}
 	}
