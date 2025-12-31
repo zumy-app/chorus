@@ -21,9 +21,9 @@ type Client struct {
 type WebSocketHub struct {
 	clients    map[string]*Client // clientID -> Client
 	userConns  map[string]map[string]*Client // userID -> clientID -> Client
-	register   chan *Client
-	unregister chan *Client
-	broadcast  chan *BroadcastMessage
+	Register   chan *Client
+	Unregister chan *Client
+	Broadcast  chan *BroadcastMessage
 	redis      *redis.Client
 	mu         sync.RWMutex
 }
@@ -39,9 +39,9 @@ func NewWebSocketHub(redis *redis.Client) *WebSocketHub {
 	return &WebSocketHub{
 		clients:    make(map[string]*Client),
 		userConns:  make(map[string]map[string]*Client),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
-		broadcast:  make(chan *BroadcastMessage, 256),
+		Register:   make(chan *Client),
+		Unregister: make(chan *Client),
+		Broadcast:  make(chan *BroadcastMessage, 256),
 		redis:      redis,
 	}
 }
@@ -49,13 +49,13 @@ func NewWebSocketHub(redis *redis.Client) *WebSocketHub {
 func (h *WebSocketHub) Run() {
 	for {
 		select {
-		case client := <-h.register:
+		case client := <-h.Register:
 			h.registerClient(client)
 
-		case client := <-h.unregister:
+		case client := <-h.Unregister:
 			h.unregisterClient(client)
 
-		case message := <-h.broadcast:
+		case message := <-h.Broadcast:
 			h.broadcastMessage(message)
 		}
 	}
@@ -135,7 +135,7 @@ func (h *WebSocketHub) broadcastMessage(msg *BroadcastMessage) {
 }
 
 func (h *WebSocketHub) SendToUser(userID string, msgType string, data interface{}) {
-	h.broadcast <- &BroadcastMessage{
+	h.Broadcast <- &BroadcastMessage{
 		Type:       msgType,
 		Data:       data,
 		TargetUser: userID,
@@ -149,7 +149,7 @@ func (h *WebSocketHub) SendToChat(chatID string, userIDs []string, msgType strin
 }
 
 func (h *WebSocketHub) BroadcastToAll(msgType string, data interface{}) {
-	h.broadcast <- &BroadcastMessage{
+	h.Broadcast <- &BroadcastMessage{
 		Type: msgType,
 		Data: data,
 	}
@@ -177,7 +177,7 @@ func (h *WebSocketHub) GetOnlineUsers() []string {
 // Client read/write methods
 func (c *Client) ReadPump() {
 	defer func() {
-		c.Hub.unregister <- c
+		c.Hub.Unregister <- c
 		c.Conn.Close()
 	}()
 
@@ -228,7 +228,7 @@ func (c *Client) handleTypingEvent(msg models.WebSocketMessage) {
 	isTyping := msg.Type == "typing_start"
 
 	// Broadcast typing event to other users in the chat
-	c.Hub.broadcast <- &BroadcastMessage{
+	c.Hub.Broadcast <- &BroadcastMessage{
 		Type: "user_typing",
 		Data: models.TypingEvent{
 			ChatID:   chatID,

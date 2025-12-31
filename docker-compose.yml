@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database
   postgres:
@@ -48,6 +46,10 @@ services:
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
       - GOOGLE_TRANSLATE_API_KEY=${GOOGLE_TRANSLATE_API_KEY:-}
       - PORT=8080
+      - APPWRITE_ENDPOINT=${APPWRITE_ENDPOINT:-https://appwrite.zumy.app/v1}
+      - APPWRITE_PROJECT_ID=${APPWRITE_PROJECT_ID:-6955733a001c10e7c020}
+      - APPWRITE_API_KEY=${APPWRITE_API_KEY:-}
+      - APPWRITE_DATABASE_ID=${APPWRITE_DATABASE_ID:-6955749200181b13d9d6}
     depends_on:
       postgres:
         condition: service_healthy
@@ -60,6 +62,11 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - VITE_APPWRITE_ENDPOINT=${VITE_APPWRITE_ENDPOINT:-https://appwrite.zumy.app/v1}
+        - VITE_APPWRITE_PROJECT_ID=${VITE_APPWRITE_PROJECT_ID:-6955733a001c10e7c020}
+        - VITE_APPWRITE_DATABASE_ID=${VITE_APPWRITE_DATABASE_ID:-6955749200181b13d9d6}
+        - VITE_APPWRITE_CLIENT_API_KEY=${VITE_APPWRITE_CLIENT_API_KEY:-}
     container_name: chorus-frontend
     ports:
       - "3000:3000"

@@ -8,7 +8,7 @@ export default function ChatArea() {
   const [inputText, setInputText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const typingTimeoutRef = useRef<NodeJS.Timeout>()
+  const typingTimeoutRef = useRef<number>()
 
   const chatMessages = activeChat ? messages[activeChat.id] || [] : []
 

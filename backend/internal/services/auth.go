@@ -8,6 +8,7 @@ import (
 	"github.com/chorus/messenger/internal/models"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -126,14 +127,14 @@ func (s *AuthService) Register(req models.RegisterRequest) (*models.User, error)
 		passwordHash,
 		req.DisplayName,
 		req.NativeLanguage,
-		req.TargetLanguages,
+		pq.Array(req.TargetLanguages),
 	).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Email,
 		&user.DisplayName,
 		&user.NativeLanguage,
-		&user.TargetLanguages,
+		pq.Array(&user.TargetLanguages),
 		&user.CreatedAt,
 		&user.LastActiveAt,
 	)
@@ -150,7 +151,7 @@ func (s *AuthService) Login(username, password string) (*models.User, error) {
 	query := `
 		SELECT id, username, email, password_hash, display_name, native_language, target_languages, created_at, last_active_at
 		FROM users
-		WHERE username = $1
+		WHERE username = $1 OR email = $1
 	`
 
 	err := s.db.QueryRow(query, username).Scan(
@@ -160,7 +161,7 @@ func (s *AuthService) Login(username, password string) (*models.User, error) {
 		&user.PasswordHash,
 		&user.DisplayName,
 		&user.NativeLanguage,
-		&user.TargetLanguages,
+		pq.Array(&user.TargetLanguages),
 		&user.CreatedAt,
 		&user.LastActiveAt,
 	)

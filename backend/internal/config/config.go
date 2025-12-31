@@ -9,6 +9,10 @@ type Config struct {
 	JWTSecret             string
 	GoogleTranslateAPIKey string
 	Port                  string
+	AppwriteEndpoint      string
+	AppwriteProjectID     string
+	AppwriteAPIKey        string
+	AppwriteDatabaseID    string
 }
 
 func Load() *Config {
@@ -19,6 +23,10 @@ func Load() *Config {
 		JWTSecret:             getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
 		GoogleTranslateAPIKey: getEnv("GOOGLE_TRANSLATE_API_KEY", ""),
 		Port:                  getEnv("PORT", "8080"),
+		AppwriteEndpoint:      getEnv("APPWRITE_ENDPOINT", ""),
+		AppwriteProjectID:     getEnv("APPWRITE_PROJECT_ID", ""),
+		AppwriteAPIKey:        getEnv("APPWRITE_API_KEY", ""),
+		AppwriteDatabaseID:    getEnv("APPWRITE_DATABASE_ID", ""),
 	}
 }
 

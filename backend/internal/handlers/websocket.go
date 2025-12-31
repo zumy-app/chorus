@@ -51,7 +51,7 @@ func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
 		Hub:    h.hub,
 	}
 
-	h.hub.register <- client
+	h.hub.Register <- client
 
 	// Start client read/write pumps
 	go client.WritePump()

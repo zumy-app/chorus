@@ -27,7 +27,7 @@ func (s *MessageService) Create(chatID, senderID, text string, replyToID *string
 	query := `
 		INSERT INTO messages (chat_id, sender_id, text, delivery_status, reply_to_id)
 		VALUES ($1, $2, $3, 'sent', $4)
-		RETURNING id, chat_id, sender_id, text, original_language, translations, delivery_status, reply_to_id, created_at
+		RETURNING id, chat_id, sender_id, text, COALESCE(original_language, ''), COALESCE(translations, '{}'::jsonb), delivery_status, reply_to_id, created_at
 	`
 
 	var translationsBytes []byte
@@ -61,7 +61,7 @@ func (s *MessageService) GetMessages(chatID string, limit int, before *string) (
 
 	if before != nil {
 		query = `
-			SELECT id, chat_id, sender_id, text, original_language, translations, delivery_status, reply_to_id, created_at
+			SELECT id, chat_id, sender_id, text, COALESCE(original_language, ''), COALESCE(translations, '{}'::jsonb), delivery_status, reply_to_id, created_at
 			FROM messages
 			WHERE chat_id = $1 AND created_at < (SELECT created_at FROM messages WHERE id = $2)
 			ORDER BY created_at DESC
@@ -70,7 +70,7 @@ func (s *MessageService) GetMessages(chatID string, limit int, before *string) (
 		rows, err = s.db.Query(query, chatID, *before, limit)
 	} else {
 		query = `
-			SELECT id, chat_id, sender_id, text, original_language, translations, delivery_status, reply_to_id, created_at
+			SELECT id, chat_id, sender_id, text, COALESCE(original_language, ''), COALESCE(translations, '{}'::jsonb), delivery_status, reply_to_id, created_at
 			FROM messages
 			WHERE chat_id = $1
 			ORDER BY created_at DESC

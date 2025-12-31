@@ -23,6 +23,19 @@ func main() {
 	// Load configuration
 	cfg := config.Load()
 
+	// Initialize Appwrite (if configured)
+	if cfg.AppwriteEndpoint != "" && cfg.AppwriteProjectID != "" {
+		_, err := database.ConnectAppwrite(
+			cfg.AppwriteEndpoint,
+			cfg.AppwriteProjectID,
+			cfg.AppwriteAPIKey,
+			cfg.AppwriteDatabaseID,
+		)
+		if err != nil {
+			log.Printf("Warning: Failed to connect to Appwrite: %v", err)
+		}
+	}
+
 	// Initialize database
 	db, err := database.Connect(cfg.DatabaseURL)
 	if err != nil {
