@@ -67,7 +67,7 @@ func main() {
 	defer pubsubService.Stop()
 
 	// Phase 2: Initialize Inbox service for offline message delivery
-	_ = services.NewInboxService(db)
+	_ = services.NewInboxService(db, redisClient)
 
 	// Phase 2: Initialize Presence service
 	presenceService := services.NewPresenceService(db, redisClient, pubsubService)
@@ -77,10 +77,10 @@ func main() {
 	searchService := services.NewSearchService(db, redisClient)
 
 	// Phase 3: Initialize Grammar service
-	grammarService := services.NewGrammarService(translationService)
+	grammarService := services.NewGrammarService(redisClient)
 
 	// Phase 3: Initialize Vocabulary service
-	vocabularyService := services.NewVocabularyService(db, translationService)
+	vocabularyService := services.NewVocabularyService(db, redisClient)
 
 	// Phase 3: Initialize Speech-to-Text service
 	ctx := context.Background()
@@ -105,7 +105,7 @@ func main() {
 	searchHandler := handlers.NewSearchHandler(searchService)
 	presenceHandler := handlers.NewPresenceHandler(presenceService)
 	grammarHandler := handlers.NewGrammarHandler(grammarService, messageService)
-	vocabularyHandler := handlers.NewVocabularyHandler(vocabularyService, messageService)
+	vocabularyHandler := handlers.NewVocabularyHandler(vocabularyService, messageService, translationService)
 	callHandler := handlers.NewCallHandler(callService)
 
 	// Setup Gin router
@@ -178,11 +178,11 @@ func main() {
 
 		// Phase 3: Vocabulary routes
 		protected.POST("/vocabulary", vocabularyHandler.SaveVocabulary)
-		protected.GET("/vocabulary", vocabularyHandler.GetUserVocabulary)
-		protected.GET("/vocabulary/due", vocabularyHandler.GetVocabularyDue)
+		protected.GET("/vocabulary", vocabularyHandler.GetVocabulary)
+		protected.GET("/vocabulary/due", vocabularyHandler.GetDueVocabulary)
 		protected.GET("/vocabulary/:id", vocabularyHandler.GetVocabularyByID)
 		protected.POST("/vocabulary/practice", vocabularyHandler.UpdatePracticeResult)
-		protected.GET("/vocabulary/progress", vocabularyHandler.GetLearningProgress)
+		protected.GET("/vocabulary/progress", vocabularyHandler.GetProgress)
 		protected.DELETE("/vocabulary/:id", vocabularyHandler.DeleteVocabulary)
 		protected.GET("/vocabulary/search", vocabularyHandler.SearchVocabulary)
 
