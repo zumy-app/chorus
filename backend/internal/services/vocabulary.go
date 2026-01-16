@@ -5,116 +5,136 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/chorus/messenger/internal/models"
-	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 )
 
+// VocabularyService handles vocabulary management and spaced repetition
 type VocabularyService struct {
-	db                 *sql.DB
-	translationService *TranslationService
+	db    *sql.DB
+	redis *redis.Client
 }
 
-func NewVocabularyService(db *sql.DB, translationService *TranslationService) *VocabularyService {
+// NewVocabularyService creates a new Vocabulary service
+func NewVocabularyService(db *sql.DB, redis *redis.Client) *VocabularyService {
 	return &VocabularyService{
-		db:                 db,
-		translationService: translationService,
+		db:    db,
+		redis: redis,
 	}
 }
 
-// SaveVocabulary saves a new vocabulary entry from a message
-func (s *VocabularyService) SaveVocabulary(ctx context.Context, userID string, req models.SaveVocabularyRequest, messageText string, chatID string) (*models.VocabularyEntry, error) {
-	// Get translation
-	translation, err := s.translationService.Translate(req.Term, "en")
+// SaveWord saves a word to the user's vocabulary
+func (s *VocabularyService) SaveWord(userID string, req models.SaveVocabularyRequest, messageService *MessageService, translationService *TranslationService) (*models.VocabularyEntry, error) {
+	// Get the message for context
+	message, err := messageService.GetMessageByID(req.MessageID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to translate term: %w", err)
+		return nil, fmt.Errorf("failed to get message: %w", err)
 	}
-	
-	// Generate definition (in real implementation, use dictionary API)
-	definition := fmt.Sprintf("Definition of '%s' in %s", req.Term, req.Language)
-	
-	vocabID := uuid.New().String()
-	
-	query := `
+
+	// Get translation
+	translation, err := translationService.TranslateText(req.Term, req.Language, "en") // Translate to English
+	if err != nil {
+		translation = "" // Continue without translation
+	}
+
+	// Get definition (could use an external dictionary API in production)
+	definition := s.generateDefinition(req.Term, req.Language)
+
+	var entry models.VocabularyEntry
+	err = s.db.QueryRow(`
 		INSERT INTO vocabulary (
-			id, user_id, term, language, translation, definition, 
+			user_id, term, language, translation, definition,
+			context_message_id, context_sentence, context_chat_id,
+			next_review
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP + INTERVAL '1 day')
+		ON CONFLICT (user_id, term, language) 
+		DO UPDATE SET 
+			translation = EXCLUDED.translation,
+			definition = EXCLUDED.definition,
+			context_message_id = EXCLUDED.context_message_id,
+			context_sentence = EXCLUDED.context_sentence,
+			context_chat_id = EXCLUDED.context_chat_id
+		RETURNING id, user_id, term, language, translation, definition,
 			context_message_id, context_sentence, context_chat_id,
 			review_count, correct_count, next_review, interval_days, created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-	`
-	
-	_, err = s.db.ExecContext(ctx, query,
-		vocabID, userID, req.Term, req.Language, translation, definition,
-		req.MessageID, messageText, chatID,
-		0, 0, time.Now().Add(24 * time.Hour), 1, time.Now(),
+	`, userID, req.Term, req.Language, translation, definition,
+		message.ID, message.Text, message.ChatID).Scan(
+		&entry.ID, &entry.UserID, &entry.Term, &entry.Language,
+		&entry.Translation, &entry.Definition,
+		&entry.Context.MessageID, &entry.Context.Sentence, &entry.Context.ChatID,
+		&entry.LearningData.ReviewCount, &entry.LearningData.CorrectCount,
+		&entry.LearningData.NextReview, &entry.LearningData.Interval, &entry.CreatedAt,
 	)
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to save vocabulary: %w", err)
 	}
-	
-	return &models.VocabularyEntry{
-		ID:          vocabID,
-		UserID:      userID,
-		Term:        req.Term,
-		Language:    req.Language,
-		Translation: translation,
-		Definition:  definition,
-		Context: models.VocabContext{
-			MessageID: req.MessageID,
-			Sentence:  messageText,
-			ChatID:    chatID,
-		},
-		LearningData: &models.LearningData{
-			ReviewCount:  0,
-			CorrectCount: 0,
-			NextReview:   time.Now().Add(24 * time.Hour),
-			Interval:     1,
-		},
-		CreatedAt:    time.Now(),
-	}, nil
+
+	// Invalidate cache
+	ctx := context.Background()
+	s.redis.Del(ctx, fmt.Sprintf("vocab:%s:due", userID))
+	s.redis.Del(ctx, fmt.Sprintf("vocab:%s:all", userID))
+
+	return &entry, nil
 }
 
-// GetVocabularyDueForReview retrieves vocabulary items due for review
-func (s *VocabularyService) GetVocabularyDueForReview(ctx context.Context, userID string, limit int) ([]models.VocabularyEntry, error) {
+// GetUserVocabulary returns all vocabulary entries for a user
+func (s *VocabularyService) GetUserVocabulary(userID string, language string, limit, offset int) ([]models.VocabularyEntry, int, error) {
+	ctx := context.Background()
+	cacheKey := fmt.Sprintf("vocab:%s:all:%s:%d:%d", userID, language, limit, offset)
+
+	// Try cache first
+	cached, err := s.redis.Get(ctx, cacheKey).Result()
+	if err == nil {
+		var entries []models.VocabularyEntry
+		if json.Unmarshal([]byte(cached), &entries) == nil {
+			// Get total count
+			var total int
+			s.db.QueryRow(`SELECT COUNT(*) FROM vocabulary WHERE user_id = $1 AND ($2 = '' OR language = $2)`, userID, language).Scan(&total)
+			return entries, total, nil
+		}
+	}
+
+	// Query database
 	query := `
-		SELECT id, user_id, term, language, translation, definition, 
-		       context_message_id, context_sentence, context_chat_id,
-		       review_count, correct_count, next_review, interval_days, created_at
+		SELECT id, user_id, term, language, translation, definition,
+			context_message_id, context_sentence, context_chat_id,
+			review_count, correct_count, next_review, interval_days, created_at
 		FROM vocabulary
-		WHERE user_id = $1 
-		  AND next_review <= $2
-		ORDER BY next_review ASC
-		LIMIT $3
+		WHERE user_id = $1 AND ($2 = '' OR language = $2)
+		ORDER BY created_at DESC
+		LIMIT $3 OFFSET $4
 	`
-	
-	rows, err := s.db.QueryContext(ctx, query, userID, time.Now(), limit)
+
+	rows, err := s.db.Query(query, userID, language, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query due vocabulary: %w", err)
+		return nil, 0, fmt.Errorf("failed to get vocabulary: %w", err)
 	}
 	defer rows.Close()
-	
-	entries := []models.VocabularyEntry{}
+
+	var entries []models.VocabularyEntry
 	for rows.Next() {
 		var entry models.VocabularyEntry
-		var contextMessageID sql.NullString
-		var contextSentence sql.NullString
-		var contextChatID sql.NullString
-		var learningData models.LearningData
-		
-		err := rows.Scan(
+		entry.LearningData = &models.LearningData{}
+
+		var contextMsgID, contextSentence, contextChatID sql.NullString
+
+		if err := rows.Scan(
 			&entry.ID, &entry.UserID, &entry.Term, &entry.Language,
 			&entry.Translation, &entry.Definition,
-			&contextMessageID, &contextSentence, &contextChatID,
-			&learningData.ReviewCount, &learningData.CorrectCount,
-			&learningData.NextReview, &learningData.Interval, &entry.CreatedAt,
-		)
-		if err != nil {
-			return nil, err
+			&contextMsgID, &contextSentence, &contextChatID,
+			&entry.LearningData.ReviewCount, &entry.LearningData.CorrectCount,
+			&entry.LearningData.NextReview, &entry.LearningData.Interval, &entry.CreatedAt,
+		); err != nil {
+			return nil, 0, err
 		}
-		
-		if contextMessageID.Valid {
-			entry.Context.MessageID = contextMessageID.String
+
+		if contextMsgID.Valid {
+			entry.Context.MessageID = contextMsgID.String
 		}
 		if contextSentence.Valid {
 			entry.Context.Sentence = contextSentence.String
@@ -122,336 +142,334 @@ func (s *VocabularyService) GetVocabularyDueForReview(ctx context.Context, userI
 		if contextChatID.Valid {
 			entry.Context.ChatID = contextChatID.String
 		}
-		
-		entry.LearningData = &learningData
+
 		entries = append(entries, entry)
 	}
-	
+
+	// Get total count
+	var total int
+	s.db.QueryRow(`SELECT COUNT(*) FROM vocabulary WHERE user_id = $1 AND ($2 = '' OR language = $2)`, userID, language).Scan(&total)
+
+	// Cache result
+	if jsonData, err := json.Marshal(entries); err == nil {
+		s.redis.Set(ctx, cacheKey, jsonData, 5*time.Minute)
+	}
+
+	return entries, total, nil
+}
+
+// GetDueVocabulary returns vocabulary entries due for review
+func (s *VocabularyService) GetDueVocabulary(userID string, limit int) ([]models.VocabularyEntry, error) {
+	rows, err := s.db.Query(`
+		SELECT id, user_id, term, language, translation, definition,
+			context_message_id, context_sentence, context_chat_id,
+			review_count, correct_count, next_review, interval_days, created_at
+		FROM vocabulary
+		WHERE user_id = $1 AND next_review <= CURRENT_TIMESTAMP
+		ORDER BY next_review ASC
+		LIMIT $2
+	`, userID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get due vocabulary: %w", err)
+	}
+	defer rows.Close()
+
+	var entries []models.VocabularyEntry
+	for rows.Next() {
+		var entry models.VocabularyEntry
+		entry.LearningData = &models.LearningData{}
+
+		var contextMsgID, contextSentence, contextChatID sql.NullString
+
+		if err := rows.Scan(
+			&entry.ID, &entry.UserID, &entry.Term, &entry.Language,
+			&entry.Translation, &entry.Definition,
+			&contextMsgID, &contextSentence, &contextChatID,
+			&entry.LearningData.ReviewCount, &entry.LearningData.CorrectCount,
+			&entry.LearningData.NextReview, &entry.LearningData.Interval, &entry.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+
+		if contextMsgID.Valid {
+			entry.Context.MessageID = contextMsgID.String
+		}
+		if contextSentence.Valid {
+			entry.Context.Sentence = contextSentence.String
+		}
+		if contextChatID.Valid {
+			entry.Context.ChatID = contextChatID.String
+		}
+
+		entries = append(entries, entry)
+	}
+
 	return entries, nil
 }
 
-// UpdatePracticeResult updates learning progress based on practice result
-func (s *VocabularyService) UpdatePracticeResult(ctx context.Context, userID string, vocabularyID string, correct bool) error {
-	// Get current entry
-	var learningDataJSON []byte
-	query := `SELECT learning_data FROM vocabulary_entries WHERE id = $1 AND user_id = $2`
-	err := s.db.QueryRowContext(ctx, query, vocabularyID, userID).Scan(&learningDataJSON)
+// RecordPracticeResult records the result of a practice session
+func (s *VocabularyService) RecordPracticeResult(userID, vocabularyID string, correct bool) error {
+	ctx := context.Background()
+
+	// Get current learning data
+	var reviewCount, correctCount, intervalDays int
+	err := s.db.QueryRow(`
+		SELECT review_count, correct_count, interval_days
+		FROM vocabulary
+		WHERE id = $1 AND user_id = $2
+	`, vocabularyID, userID).Scan(&reviewCount, &correctCount, &intervalDays)
+
 	if err != nil {
-		return fmt.Errorf("vocabulary entry not found: %w", err)
+		return fmt.Errorf("failed to get vocabulary: %w", err)
 	}
-	
-	var learningData models.LearningData
-	json.Unmarshal(learningDataJSON, &learningData)
-	
-	// Update learning data using spaced repetition algorithm (SM-2)
-	learningData.ReviewCount++
-	
+
+	// Apply spaced repetition algorithm (SM-2 simplified)
+	reviewCount++
 	if correct {
-		learningData.CorrectCount++
-		// Increase interval (spaced repetition)
-		learningData.Interval = calculateNextInterval(learningData.Interval, true)
+		correctCount++
+		// Increase interval using exponential growth
+		intervalDays = s.calculateNextInterval(intervalDays, float64(correctCount)/float64(reviewCount))
 	} else {
-		// Reset interval on incorrect answer
-		learningData.Interval = 1
+		// Reset to shorter interval on incorrect
+		intervalDays = 1
 	}
-	
-	// Calculate next review date
-	learningData.NextReview = time.Now().Add(time.Duration(learningData.Interval) * 24 * time.Hour)
-	
+
 	// Update database
-	updatedJSON, _ := json.Marshal(learningData)
-	updateQuery := `UPDATE vocabulary_entries SET learning_data = $1 WHERE id = $2 AND user_id = $3`
-	_, err = s.db.ExecContext(ctx, updateQuery, updatedJSON, vocabularyID, userID)
+	_, err = s.db.Exec(`
+		UPDATE vocabulary
+		SET review_count = $1, correct_count = $2, interval_days = $3,
+			next_review = CURRENT_TIMESTAMP + ($3 || ' days')::INTERVAL
+		WHERE id = $4 AND user_id = $5
+	`, reviewCount, correctCount, intervalDays, vocabularyID, userID)
+
 	if err != nil {
-		return fmt.Errorf("failed to update practice result: %w", err)
+		return fmt.Errorf("failed to update vocabulary: %w", err)
 	}
-	
+
+	// Invalidate cache
+	s.redis.Del(ctx, fmt.Sprintf("vocab:%s:due", userID))
+
 	return nil
 }
 
-// calculateNextInterval implements simplified SM-2 spaced repetition algorithm
-func calculateNextInterval(currentInterval int, correct bool) int {
-	if !correct {
-		return 1
-	}
-	
-	// Simplified SM-2 intervals
-	switch currentInterval {
-	case 1:
-		return 3
-	case 3:
-		return 7
-	case 7:
-		return 14
-	case 14:
-		return 30
-	case 30:
-		return 60
-	default:
-		return currentInterval * 2
-	}
-}
-
-// GetUserVocabulary retrieves all vocabulary for a user
-func (s *VocabularyService) GetUserVocabulary(ctx context.Context, userID string, language string, limit int, offset int) ([]models.VocabularyEntry, error) {
-	var query string
-	var args []interface{}
-	
-	if language != "" {
-		query = `
-			SELECT id, user_id, term, language, translation, definition, 
-			       context, learning_data, created_at
-			FROM vocabulary_entries
-			WHERE user_id = $1 AND language = $2
-			ORDER BY created_at DESC
-			LIMIT $3 OFFSET $4
-		`
-		args = []interface{}{userID, language, limit, offset}
+// calculateNextInterval calculates the next review interval using SM-2 algorithm
+func (s *VocabularyService) calculateNextInterval(currentInterval int, accuracy float64) int {
+	// Base multiplier based on accuracy
+	var multiplier float64
+	if accuracy >= 0.9 {
+		multiplier = 2.5
+	} else if accuracy >= 0.7 {
+		multiplier = 2.0
+	} else if accuracy >= 0.5 {
+		multiplier = 1.5
 	} else {
-		query = `
-			SELECT id, user_id, term, language, translation, definition, 
-			       context, learning_data, created_at
-			FROM vocabulary_entries
-			WHERE user_id = $1
-			ORDER BY created_at DESC
-			LIMIT $2 OFFSET $3
-		`
-		args = []interface{}{userID, limit, offset}
+		multiplier = 1.0
 	}
-	
-	rows, err := s.db.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query vocabulary: %w", err)
+
+	newInterval := float64(currentInterval) * multiplier
+
+	// Cap at 365 days
+	if newInterval > 365 {
+		newInterval = 365
 	}
-	defer rows.Close()
-	
-	entries := []models.VocabularyEntry{}
-	for rows.Next() {
-		var entry models.VocabularyEntry
-		var contextJSON, learningDataJSON []byte
-		
-		err := rows.Scan(
-			&entry.ID, &entry.UserID, &entry.Term, &entry.Language,
-			&entry.Translation, &entry.Definition, &contextJSON,
-			&learningDataJSON, &entry.CreatedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-		
-		json.Unmarshal(contextJSON, &entry.Context)
-		
-		var learningData models.LearningData
-		json.Unmarshal(learningDataJSON, &learningData)
-		entry.LearningData = &learningData
-		
-		entries = append(entries, entry)
-	}
-	
-	return entries, nil
+
+	return int(math.Ceil(newInterval))
 }
 
-// DeleteVocabulary removes a vocabulary entry
-func (s *VocabularyService) DeleteVocabulary(ctx context.Context, userID string, vocabularyID string) error {
-	query := `DELETE FROM vocabulary_entries WHERE id = $1 AND user_id = $2`
-	result, err := s.db.ExecContext(ctx, query, vocabularyID, userID)
+// DeleteVocabulary deletes a vocabulary entry
+func (s *VocabularyService) DeleteVocabulary(userID, vocabularyID string) error {
+	ctx := context.Background()
+
+	result, err := s.db.Exec(`
+		DELETE FROM vocabulary WHERE id = $1 AND user_id = $2
+	`, vocabularyID, userID)
+
 	if err != nil {
 		return fmt.Errorf("failed to delete vocabulary: %w", err)
 	}
-	
+
 	rowsAffected, _ := result.RowsAffected()
 	if rowsAffected == 0 {
-		return fmt.Errorf("vocabulary entry not found")
+		return fmt.Errorf("vocabulary not found")
 	}
-	
+
+	// Invalidate cache
+	s.redis.Del(ctx, fmt.Sprintf("vocab:%s:due", userID))
+	s.redis.Del(ctx, fmt.Sprintf("vocab:%s:all", userID))
+
 	return nil
 }
 
-// GetLearningProgress generates learning statistics
-type LearningProgress struct {
-	TotalWords       int            `json:"totalWords"`
-	WordsLearned     int            `json:"wordsLearned"`
-	WordsDueToday    int            `json:"wordsDueToday"`
-	CurrentStreak    int            `json:"currentStreak"`
-	LongestStreak    int            `json:"longestStreak"`
-	ByLanguage       map[string]int `json:"byLanguage"`
-	SuccessRate      float64        `json:"successRate"`
-	TotalReviews     int            `json:"totalReviews"`
-	CorrectReviews   int            `json:"correctReviews"`
-}
+// GetLearningProgress returns learning statistics for a user
+func (s *VocabularyService) GetLearningProgress(userID string) (map[string]interface{}, error) {
+	var totalWords, wordsReviewed, wordsMastered int
+	var languages []string
 
-func (s *VocabularyService) GetLearningProgress(ctx context.Context, userID string) (*LearningProgress, error) {
-	progress := &LearningProgress{
-		ByLanguage: make(map[string]int),
-	}
-	
-	// Count total words
-	query := `SELECT COUNT(*) FROM vocabulary_entries WHERE user_id = $1`
-	err := s.db.QueryRowContext(ctx, query, userID).Scan(&progress.TotalWords)
+	// Get total words and reviewed words
+	err := s.db.QueryRow(`
+		SELECT 
+			COUNT(*),
+			COUNT(CASE WHEN review_count > 0 THEN 1 END),
+			COUNT(CASE WHEN interval_days >= 30 THEN 1 END)
+		FROM vocabulary WHERE user_id = $1
+	`, userID).Scan(&totalWords, &wordsReviewed, &wordsMastered)
 	if err != nil {
 		return nil, err
 	}
-	
-	// Count words with at least one correct review (considered "learned")
-	query = `
-		SELECT COUNT(*) 
-		FROM vocabulary_entries 
-		WHERE user_id = $1 
-		  AND (learning_data->>'correctCount')::int > 0
-	`
-	err = s.db.QueryRowContext(ctx, query, userID).Scan(&progress.WordsLearned)
-	if err != nil {
-		return nil, err
-	}
-	
-	// Count words due today
-	query = `
-		SELECT COUNT(*) 
-		FROM vocabulary_entries 
-		WHERE user_id = $1 
-		  AND (learning_data->>'nextReview')::timestamp <= $2
-	`
-	err = s.db.QueryRowContext(ctx, query, userID, time.Now()).Scan(&progress.WordsDueToday)
-	if err != nil {
-		return nil, err
-	}
-	
-	// Get count by language
-	query = `
-		SELECT language, COUNT(*) as count
-		FROM vocabulary_entries
-		WHERE user_id = $1
-		GROUP BY language
-	`
-	rows, err := s.db.QueryContext(ctx, query, userID)
+
+	// Get languages
+	rows, err := s.db.Query(`
+		SELECT DISTINCT language FROM vocabulary WHERE user_id = $1
+	`, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	for rows.Next() {
-		var language string
-		var count int
-		rows.Scan(&language, &count)
-		progress.ByLanguage[language] = count
+		var lang string
+		if err := rows.Scan(&lang); err == nil {
+			languages = append(languages, lang)
+		}
 	}
-	
-	// Calculate success rate
-	query = `
-		SELECT 
-			SUM((learning_data->>'reviewCount')::int) as total_reviews,
-			SUM((learning_data->>'correctCount')::int) as correct_reviews
-		FROM vocabulary_entries
+
+	// Get due today
+	var dueToday int
+	s.db.QueryRow(`
+		SELECT COUNT(*) FROM vocabulary 
+		WHERE user_id = $1 AND next_review <= CURRENT_TIMESTAMP
+	`, userID).Scan(&dueToday)
+
+	// Get streak (consecutive days with activity)
+	var streak int
+	s.db.QueryRow(`
+		WITH daily_activity AS (
+			SELECT DATE(created_at) as activity_date
+			FROM vocabulary WHERE user_id = $1
+			UNION
+			SELECT DATE(next_review - (interval_days || ' days')::INTERVAL)
+			FROM vocabulary WHERE user_id = $1 AND review_count > 0
+		)
+		SELECT COUNT(DISTINCT activity_date)
+		FROM daily_activity
+		WHERE activity_date >= CURRENT_DATE - INTERVAL '30 days'
+	`, userID).Scan(&streak)
+
+	return map[string]interface{}{
+		"totalWords":    totalWords,
+		"wordsReviewed": wordsReviewed,
+		"wordsMastered": wordsMastered,
+		"dueToday":      dueToday,
+		"streak":        streak,
+		"languages":     languages,
+	}, nil
+}
+
+// SearchVocabulary finds entries matching a query with optional language filter.
+func (s *VocabularyService) SearchVocabulary(userID, query, language string, limit int) ([]models.VocabularyEntry, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+
+	sqlQuery := `
+		SELECT id, user_id, term, language, translation, definition,
+		       context_message_id, context_sentence, context_chat_id,
+		       review_count, correct_count, next_review, interval_days, created_at
+		FROM vocabulary
 		WHERE user_id = $1
+		  AND (term ILIKE $2 OR translation ILIKE $2 OR definition ILIKE $2)
 	`
-	var totalReviews, correctReviews sql.NullInt64
-	err = s.db.QueryRowContext(ctx, query, userID).Scan(&totalReviews, &correctReviews)
-	if err == nil && totalReviews.Valid {
-		progress.TotalReviews = int(totalReviews.Int64)
-		progress.CorrectReviews = int(correctReviews.Int64)
-		if progress.TotalReviews > 0 {
-			progress.SuccessRate = float64(progress.CorrectReviews) / float64(progress.TotalReviews) * 100
-		}
-	}
-	
-	// Calculate streak (simplified - would need review history table for accurate tracking)
-	progress.CurrentStreak = 0
-	progress.LongestStreak = 0
-	
-	return progress, nil
-}
+	args := []interface{}{userID, "%" + query + "%"}
 
-// GetVocabularyByID retrieves a specific vocabulary entry
-func (s *VocabularyService) GetVocabularyByID(ctx context.Context, userID string, vocabularyID string) (*models.VocabularyEntry, error) {
-	query := `
-		SELECT id, user_id, term, language, translation, definition, 
-		       context, learning_data, created_at
-		FROM vocabulary_entries
-		WHERE id = $1 AND user_id = $2
-	`
-	
-	var entry models.VocabularyEntry
-	var contextJSON, learningDataJSON []byte
-	
-	err := s.db.QueryRowContext(ctx, query, vocabularyID, userID).Scan(
-		&entry.ID, &entry.UserID, &entry.Term, &entry.Language,
-		&entry.Translation, &entry.Definition, &contextJSON,
-		&learningDataJSON, &entry.CreatedAt,
-	)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("vocabulary entry not found")
-		}
-		return nil, err
-	}
-	
-	json.Unmarshal(contextJSON, &entry.Context)
-	
-	var learningData models.LearningData
-	json.Unmarshal(learningDataJSON, &learningData)
-	entry.LearningData = &learningData
-	
-	return &entry, nil
-}
-
-// SearchVocabulary searches user's vocabulary
-func (s *VocabularyService) SearchVocabulary(ctx context.Context, userID string, searchTerm string, language string) ([]models.VocabularyEntry, error) {
-	var query string
-	var args []interface{}
-	
 	if language != "" {
-		query = `
-			SELECT id, user_id, term, language, translation, definition, 
-			       context, learning_data, created_at
-			FROM vocabulary_entries
-			WHERE user_id = $1 
-			  AND language = $2
-			  AND (term ILIKE $3 OR translation ILIKE $3 OR definition ILIKE $3)
-			ORDER BY created_at DESC
-			LIMIT 50
-		`
-		args = []interface{}{userID, language, "%" + searchTerm + "%"}
-	} else {
-		query = `
-			SELECT id, user_id, term, language, translation, definition, 
-			       context, learning_data, created_at
-			FROM vocabulary_entries
-			WHERE user_id = $1 
-			  AND (term ILIKE $2 OR translation ILIKE $2 OR definition ILIKE $2)
-			ORDER BY created_at DESC
-			LIMIT 50
-		`
-		args = []interface{}{userID, "%" + searchTerm + "%"}
+		sqlQuery += " AND language = $3"
+		args = append(args, language)
 	}
-	
-	rows, err := s.db.QueryContext(ctx, query, args...)
+
+	sqlQuery += " ORDER BY created_at DESC LIMIT $" + fmt.Sprintf("%d", len(args)+1)
+	args = append(args, limit)
+
+	rows, err := s.db.Query(sqlQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search vocabulary: %w", err)
 	}
 	defer rows.Close()
-	
-	entries := []models.VocabularyEntry{}
+
+	var entries []models.VocabularyEntry
 	for rows.Next() {
 		var entry models.VocabularyEntry
-		var contextJSON, learningDataJSON []byte
-		
-		err := rows.Scan(
+		entry.LearningData = &models.LearningData{}
+
+		var contextMsgID, contextSentence, contextChatID sql.NullString
+		if err := rows.Scan(
 			&entry.ID, &entry.UserID, &entry.Term, &entry.Language,
-			&entry.Translation, &entry.Definition, &contextJSON,
-			&learningDataJSON, &entry.CreatedAt,
-		)
-		if err != nil {
+			&entry.Translation, &entry.Definition,
+			&contextMsgID, &contextSentence, &contextChatID,
+			&entry.LearningData.ReviewCount, &entry.LearningData.CorrectCount,
+			&entry.LearningData.NextReview, &entry.LearningData.Interval, &entry.CreatedAt,
+		); err != nil {
 			return nil, err
 		}
-		
-		json.Unmarshal(contextJSON, &entry.Context)
-		
-		var learningData models.LearningData
-		json.Unmarshal(learningDataJSON, &learningData)
-		entry.LearningData = &learningData
-		
+
+		if contextMsgID.Valid {
+			entry.Context.MessageID = contextMsgID.String
+		}
+		if contextSentence.Valid {
+			entry.Context.Sentence = contextSentence.String
+		}
+		if contextChatID.Valid {
+			entry.Context.ChatID = contextChatID.String
+		}
+
 		entries = append(entries, entry)
 	}
-	
+
 	return entries, nil
+}
+
+// generateDefinition generates a simple definition (placeholder for dictionary API)
+func (s *VocabularyService) generateDefinition(term, language string) string {
+	// In production, this would call an external dictionary API
+	return fmt.Sprintf("Definition for '%s' in %s", term, language)
+}
+
+// GetVocabularyByID returns a single vocabulary entry
+func (s *VocabularyService) GetVocabularyByID(userID, vocabularyID string) (*models.VocabularyEntry, error) {
+	var entry models.VocabularyEntry
+	entry.LearningData = &models.LearningData{}
+
+	var contextMsgID, contextSentence, contextChatID sql.NullString
+
+	err := s.db.QueryRow(`
+		SELECT id, user_id, term, language, translation, definition,
+			context_message_id, context_sentence, context_chat_id,
+			review_count, correct_count, next_review, interval_days, created_at
+		FROM vocabulary
+		WHERE id = $1 AND user_id = $2
+	`, vocabularyID, userID).Scan(
+		&entry.ID, &entry.UserID, &entry.Term, &entry.Language,
+		&entry.Translation, &entry.Definition,
+		&contextMsgID, &contextSentence, &contextChatID,
+		&entry.LearningData.ReviewCount, &entry.LearningData.CorrectCount,
+		&entry.LearningData.NextReview, &entry.LearningData.Interval, &entry.CreatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("vocabulary not found")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get vocabulary: %w", err)
+	}
+
+	if contextMsgID.Valid {
+		entry.Context.MessageID = contextMsgID.String
+	}
+	if contextSentence.Valid {
+		entry.Context.Sentence = contextSentence.String
+	}
+	if contextChatID.Valid {
+		entry.Context.ChatID = contextChatID.String
+	}
+
+	return &entry, nil
 }

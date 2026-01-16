@@ -13,113 +13,202 @@ type GrammarHandler struct {
 	messageService *services.MessageService
 }
 
-func NewGrammarHandler(grammarService *services.GrammarService, messageService *services.MessageService) *GrammarHandler {
+func NewGrammarHandler(gs *services.GrammarService, ms *services.MessageService) *GrammarHandler {
 	return &GrammarHandler{
-		grammarService: grammarService,
-		messageService: messageService,
+		grammarService: gs,
+		messageService: ms,
 	}
 }
 
-// AnalyzeMessageGrammar analyzes grammar for a specific message
+// AnalyzeMessageGrammar analyzes grammar for a specific message using optional target language
 // POST /api/v1/grammar/analyze
 func (h *GrammarHandler) AnalyzeMessageGrammar(c *gin.Context) {
-	var req models.GrammarAnalysisRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	userID := c.GetString("userID")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
-	
-	// Get the message
-	message, err := h.messageService.GetMessageByID(c.Request.Context(), req.MessageID)
+
+	var req models.GrammarAnalysisRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	message, err := h.messageService.GetMessageByID(req.MessageID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Message not found"})
 		return
 	}
-	
-	// Determine which text to analyze
-	textToAnalyze := message.Text
-	languageToAnalyze := message.OriginalLanguage
-	
-	// If target language is specified and different from original, use translation
+
+	text := message.Text
+	language := message.OriginalLanguage
 	if req.TargetLanguage != "" && req.TargetLanguage != message.OriginalLanguage {
-		if translation, exists := message.Translations[req.TargetLanguage]; exists {
-			textToAnalyze = translation
-			languageToAnalyze = req.TargetLanguage
+		if translation, ok := message.Translations[req.TargetLanguage]; ok {
+			text = translation
+			language = req.TargetLanguage
 		}
 	}
-	
-	// Perform grammar analysis
-	analysis, err := h.grammarService.AnalyzeGrammar(c.Request.Context(), textToAnalyze, languageToAnalyze)
+
+	analysis, err := h.grammarService.AnalyzeGrammar(text, language)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to analyze grammar"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Grammar analysis failed"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, analysis)
 }
 
-// AnalyzeText analyzes grammar for arbitrary text
+// AnalyzeGrammar analyzes grammar of a message
+// POST /api/v1/grammar/analyze
+func (h *GrammarHandler) AnalyzeGrammar(c *gin.Context) {
+	userID := c.GetString("userID")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var req models.GrammarAnalysisRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	// Get the message
+	message, err := h.messageService.GetMessageByID(req.MessageID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Message not found"})
+		return
+	}
+
+	// Perform grammar analysis
+	analysis, err := h.grammarService.AnalyzeGrammar(message.Text, req.TargetLanguage)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Grammar analysis failed"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": gin.H{
+			"messageId": req.MessageID,
+			"text":      message.Text,
+			"language":  req.TargetLanguage,
+			"analysis":  analysis,
+		},
+	})
+}
+
+// AnalyzeText analyzes grammar of arbitrary text
 // POST /api/v1/grammar/analyze-text
 func (h *GrammarHandler) AnalyzeText(c *gin.Context) {
+	userID := c.GetString("userID")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
 	var req struct {
 		Text     string `json:"text" binding:"required"`
 		Language string `json:"language" binding:"required"`
 	}
-	
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
-	
-	analysis, err := h.grammarService.AnalyzeGrammar(c.Request.Context(), req.Text, req.Language)
+
+	// Perform grammar analysis
+	analysis, err := h.grammarService.AnalyzeGrammar(req.Text, req.Language)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to analyze grammar"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Grammar analysis failed"})
 		return
 	}
-	
-	c.JSON(http.StatusOK, analysis)
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": gin.H{
+			"text":     req.Text,
+			"language": req.Language,
+			"analysis": analysis,
+		},
+	})
 }
 
-// GetGrammarSuggestions provides learning suggestions based on user level
+// GetDifficultyLevel gets the difficulty level of text
+// POST /api/v1/grammar/difficulty
+func (h *GrammarHandler) GetDifficultyLevel(c *gin.Context) {
+	userID := c.GetString("userID")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var req struct {
+		Text     string `json:"text" binding:"required"`
+		Language string `json:"language" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	analysis, err := h.grammarService.AnalyzeGrammar(req.Text, req.Language)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Analysis failed"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": gin.H{
+			"difficulty": analysis.Difficulty,
+			"patterns":   analysis.Patterns,
+		},
+	})
+}
+
+// GetGrammarSuggestions returns learning suggestions for a language and level
 // GET /api/v1/grammar/suggestions
 func (h *GrammarHandler) GetGrammarSuggestions(c *gin.Context) {
-	userLevel := c.Query("level")
-	targetLanguage := c.Query("language")
-	
-	if userLevel == "" {
-		userLevel = "B1" // Default to intermediate
-	}
-	
-	if targetLanguage == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Language parameter required"})
-		return
-	}
-	
-	suggestions, err := h.grammarService.GetGrammarSuggestions(c.Request.Context(), userLevel, targetLanguage)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get suggestions"})
-		return
-	}
-	
-	c.JSON(http.StatusOK, gin.H{"suggestions": suggestions})
-}
-
-// GetGrammarReport generates a grammar learning report for the user
-// GET /api/v1/grammar/report
-func (h *GrammarHandler) GetGrammarReport(c *gin.Context) {
 	userID := c.GetString("userID")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	level := c.DefaultQuery("level", "B1")
 	language := c.Query("language")
-	
 	if language == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Language parameter required"})
 		return
 	}
-	
-	report, err := h.grammarService.GenerateGrammarReport(c.Request.Context(), userID, language)
+
+	suggestions, err := h.grammarService.GetGrammarSuggestions(level, language)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get suggestions"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"suggestions": suggestions})
+}
+
+// GetGrammarReport returns a grammar progress report for the user
+// GET /api/v1/grammar/report
+func (h *GrammarHandler) GetGrammarReport(c *gin.Context) {
+	userID := c.GetString("userID")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	language := c.Query("language")
+	if language == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Language parameter required"})
+		return
+	}
+
+	report, err := h.grammarService.GenerateGrammarReport(userID, language)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate report"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, report)
 }

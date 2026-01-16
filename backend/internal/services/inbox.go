@@ -3,348 +3,319 @@ package services
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/chorus/messenger/internal/models"
+	"github.com/redis/go-redis/v9"
 )
 
+// InboxService handles offline message delivery and client management
 type InboxService struct {
-	db *sql.DB
+	db    *sql.DB
+	redis *redis.Client
 }
 
-func NewInboxService(db *sql.DB) *InboxService {
+// NewInboxService creates a new Inbox service
+func NewInboxService(db *sql.DB, redis *redis.Client) *InboxService {
 	return &InboxService{
-		db: db,
+		db:    db,
+		redis: redis,
 	}
 }
 
-// QueueMessageForClient queues a message for delivery to an offline client
-func (s *InboxService) QueueMessageForClient(ctx context.Context, clientID string, messageID string, chatID string) error {
-	query := `
-		INSERT INTO inbox (client_id, message_id, chat_id, delivery_attempts, created_at, ttl)
-		VALUES ($1, $2, $3, 0, $4, $5)
-		ON CONFLICT (client_id, message_id) DO NOTHING
-	`
-	
-	now := time.Now()
-	ttl := now.Add(30 * 24 * time.Hour) // 30 days
-	
-	_, err := s.db.ExecContext(ctx, query, clientID, messageID, chatID, now, ttl)
-	if err != nil {
-		return fmt.Errorf("failed to queue message: %w", err)
-	}
-	
-	return nil
-}
+// RegisterClient registers a new client device
+func (s *InboxService) RegisterClient(userID, deviceType string, deviceInfo models.DeviceInfo) (*models.Client, error) {
+	ctx := context.Background()
 
-// QueueMessageForUser queues a message for all offline clients of a user
-func (s *InboxService) QueueMessageForUser(ctx context.Context, userID string, messageID string, chatID string) error {
-	// Get all offline clients for this user
-	query := `
-		SELECT id FROM clients 
-		WHERE user_id = $1 AND connection_status = 'offline'
-	`
-	
-	rows, err := s.db.QueryContext(ctx, query, userID)
-	if err != nil {
-		return fmt.Errorf("failed to query offline clients: %w", err)
-	}
-	defer rows.Close()
-	
-	for rows.Next() {
-		var clientID string
-		if err := rows.Scan(&clientID); err != nil {
-			continue
-		}
-		
-		if err := s.QueueMessageForClient(ctx, clientID, messageID, chatID); err != nil {
-			// Log error but continue with other clients
-			continue
-		}
-	}
-	
-	return nil
-}
-
-// GetPendingMessages retrieves all pending messages for a client
-func (s *InboxService) GetPendingMessages(ctx context.Context, clientID string) ([]models.InboxEntry, error) {
-	query := `
-		SELECT client_id, message_id, chat_id, delivery_attempts, created_at, ttl
-		FROM inbox
-		WHERE client_id = $1 AND ttl > $2
-		ORDER BY created_at ASC
-		LIMIT 1000
-	`
-	
-	rows, err := s.db.QueryContext(ctx, query, clientID, time.Now())
-	if err != nil {
-		return nil, fmt.Errorf("failed to query pending messages: %w", err)
-	}
-	defer rows.Close()
-	
-	entries := []models.InboxEntry{}
-	for rows.Next() {
-		var entry models.InboxEntry
-		
-		err := rows.Scan(
-			&entry.ClientID, &entry.MessageID, &entry.ChatID,
-			&entry.DeliveryAttempts, &entry.CreatedAt, &entry.TTL,
-		)
-		if err != nil {
-			continue
-		}
-		
-		entries = append(entries, entry)
-	}
-	
-	return entries, nil
-}
-
-// MarkMessageDelivered marks a message as delivered and removes from inbox
-func (s *InboxService) MarkMessageDelivered(ctx context.Context, clientID string, messageID string) error {
-	query := `DELETE FROM inbox WHERE client_id = $1 AND message_id = $2`
-	
-	result, err := s.db.ExecContext(ctx, query, clientID, messageID)
-	if err != nil {
-		return fmt.Errorf("failed to mark message delivered: %w", err)
-	}
-	
-	rowsAffected, _ := result.RowsAffected()
-	if rowsAffected == 0 {
-		// Message not in inbox (might have been already delivered)
-		return nil
-	}
-	
-	return nil
-}
-
-// IncrementDeliveryAttempt increments the delivery attempt counter
-func (s *InboxService) IncrementDeliveryAttempt(ctx context.Context, clientID string, messageID string) error {
-	query := `
-		UPDATE inbox
-		SET delivery_attempts = delivery_attempts + 1
-		WHERE client_id = $1 AND message_id = $2
-	`
-	
-	_, err := s.db.ExecContext(ctx, query, clientID, messageID)
-	if err != nil {
-		return fmt.Errorf("failed to increment delivery attempt: %w", err)
-	}
-	
-	return nil
-}
-
-// CleanupExpiredMessages removes expired messages from inbox (TTL passed)
-func (s *InboxService) CleanupExpiredMessages(ctx context.Context) (int, error) {
-	query := `DELETE FROM inbox WHERE ttl <= $1`
-	
-	result, err := s.db.ExecContext(ctx, query, time.Now())
-	if err != nil {
-		return 0, fmt.Errorf("failed to cleanup expired messages: %w", err)
-	}
-	
-	rowsAffected, _ := result.RowsAffected()
-	return int(rowsAffected), nil
-}
-
-// GetPendingMessageCount returns the count of pending messages for a client
-func (s *InboxService) GetPendingMessageCount(ctx context.Context, clientID string) (int, error) {
-	query := `
-		SELECT COUNT(*) 
-		FROM inbox 
-		WHERE client_id = $1 AND ttl > $2
-	`
-	
+	// Check if user already has 3 clients
 	var count int
-	err := s.db.QueryRowContext(ctx, query, clientID, time.Now()).Scan(&count)
+	err := s.db.QueryRow(`SELECT COUNT(*) FROM clients WHERE user_id = $1`, userID).Scan(&count)
 	if err != nil {
-		return 0, fmt.Errorf("failed to count pending messages: %w", err)
+		return nil, fmt.Errorf("failed to check client count: %w", err)
 	}
-	
-	return count, nil
-}
 
-// GetOldestPendingMessage retrieves the oldest pending message for a client
-func (s *InboxService) GetOldestPendingMessage(ctx context.Context, clientID string) (*models.InboxEntry, error) {
-	query := `
-		SELECT client_id, message_id, chat_id, delivery_attempts, created_at, ttl
-		FROM inbox
-		WHERE client_id = $1 AND ttl > $2
-		ORDER BY created_at ASC
-		LIMIT 1
-	`
-	
-	var entry models.InboxEntry
-	err := s.db.QueryRowContext(ctx, query, clientID, time.Now()).Scan(
-		&entry.ClientID, &entry.MessageID, &entry.ChatID,
-		&entry.DeliveryAttempts, &entry.CreatedAt, &entry.TTL,
+	if count >= 3 {
+		// Remove oldest client
+		_, err = s.db.Exec(`
+			DELETE FROM clients 
+			WHERE id = (
+				SELECT id FROM clients WHERE user_id = $1 
+				ORDER BY last_active ASC LIMIT 1
+			)
+		`, userID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to remove old client: %w", err)
+		}
+	}
+
+	// Create new client
+	deviceInfoJSON, _ := json.Marshal(deviceInfo)
+	var client models.Client
+	err = s.db.QueryRow(`
+		INSERT INTO clients (user_id, device_type, device_info, connection_status)
+		VALUES ($1, $2, $3, 'online')
+		RETURNING id, user_id, device_type, connection_status, last_active, created_at
+	`, userID, deviceType, deviceInfoJSON).Scan(
+		&client.ID, &client.UserID, &client.DeviceType,
+		&client.ConnectionStatus, &client.LastActive, &client.CreatedAt,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("failed to get oldest pending message: %w", err)
+		return nil, fmt.Errorf("failed to create client: %w", err)
 	}
-	
-	return &entry, nil
+
+	client.DeviceInfo = deviceInfo
+
+	// Update Redis with online status
+	s.redis.HSet(ctx, fmt.Sprintf("user:%s:clients", userID), client.ID, "online")
+
+	return &client, nil
 }
 
-// GetPendingMessagesByChatID retrieves pending messages for a specific chat
-func (s *InboxService) GetPendingMessagesByChatID(ctx context.Context, clientID string, chatID string) ([]models.InboxEntry, error) {
-	query := `
-		SELECT client_id, message_id, chat_id, delivery_attempts, created_at, ttl
-		FROM inbox
-		WHERE client_id = $1 AND chat_id = $2 AND ttl > $3
-		ORDER BY created_at ASC
-	`
-	
-	rows, err := s.db.QueryContext(ctx, query, clientID, chatID, time.Now())
+// UpdateClientStatus updates a client's connection status
+func (s *InboxService) UpdateClientStatus(clientID, status string) error {
+	ctx := context.Background()
+
+	var userID string
+	err := s.db.QueryRow(`
+		UPDATE clients SET connection_status = $1, last_active = CURRENT_TIMESTAMP
+		WHERE id = $2 RETURNING user_id
+	`, status, clientID).Scan(&userID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query pending messages by chat: %w", err)
+		return fmt.Errorf("failed to update client status: %w", err)
+	}
+
+	// Update Redis
+	s.redis.HSet(ctx, fmt.Sprintf("user:%s:clients", userID), clientID, status)
+
+	return nil
+}
+
+// GetUserClients returns all clients for a user
+func (s *InboxService) GetUserClients(userID string) ([]models.Client, error) {
+	rows, err := s.db.Query(`
+		SELECT id, user_id, device_type, device_info, connection_status, last_active, created_at
+		FROM clients WHERE user_id = $1
+		ORDER BY last_active DESC
+	`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user clients: %w", err)
 	}
 	defer rows.Close()
-	
-	entries := []models.InboxEntry{}
+
+	var clients []models.Client
 	for rows.Next() {
-		var entry models.InboxEntry
-		
-		err := rows.Scan(
-			&entry.ClientID, &entry.MessageID, &entry.ChatID,
-			&entry.DeliveryAttempts, &entry.CreatedAt, &entry.TTL,
-		)
-		if err != nil {
+		var client models.Client
+		var deviceInfoJSON []byte
+		if err := rows.Scan(
+			&client.ID, &client.UserID, &client.DeviceType,
+			&deviceInfoJSON, &client.ConnectionStatus,
+			&client.LastActive, &client.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+
+		json.Unmarshal(deviceInfoJSON, &client.DeviceInfo)
+		clients = append(clients, client)
+	}
+
+	return clients, nil
+}
+
+// GetOnlineClients returns all online clients for a user
+func (s *InboxService) GetOnlineClients(userID string) ([]models.Client, error) {
+	rows, err := s.db.Query(`
+		SELECT id, user_id, device_type, device_info, connection_status, last_active, created_at
+		FROM clients WHERE user_id = $1 AND connection_status = 'online'
+	`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get online clients: %w", err)
+	}
+	defer rows.Close()
+
+	var clients []models.Client
+	for rows.Next() {
+		var client models.Client
+		var deviceInfoJSON []byte
+		if err := rows.Scan(
+			&client.ID, &client.UserID, &client.DeviceType,
+			&deviceInfoJSON, &client.ConnectionStatus,
+			&client.LastActive, &client.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+
+		json.Unmarshal(deviceInfoJSON, &client.DeviceInfo)
+		clients = append(clients, client)
+	}
+
+	return clients, nil
+}
+
+// QueueMessageForOfflineClients queues a message for offline clients
+func (s *InboxService) QueueMessageForOfflineClients(message *models.Message, participantUserIDs []string) error {
+	for _, userID := range participantUserIDs {
+		// Skip the sender
+		if userID == message.SenderID {
 			continue
 		}
-		
+
+		// Get offline clients for this user
+		clients, err := s.GetUserClients(userID)
+		if err != nil {
+			log.Printf("Error getting clients for user %s: %v", userID, err)
+			continue
+		}
+
+		for _, client := range clients {
+			if client.ConnectionStatus == "offline" {
+				err = s.AddToInbox(client.ID, message.ID, message.ChatID)
+				if err != nil {
+					log.Printf("Error adding to inbox for client %s: %v", client.ID, err)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// AddToInbox adds a message to a client's inbox
+func (s *InboxService) AddToInbox(clientID, messageID, chatID string) error {
+	_, err := s.db.Exec(`
+		INSERT INTO inbox (client_id, message_id, chat_id)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (client_id, message_id) DO NOTHING
+	`, clientID, messageID, chatID)
+
+	if err != nil {
+		return fmt.Errorf("failed to add to inbox: %w", err)
+	}
+
+	return nil
+}
+
+// GetPendingMessages returns pending messages for a client
+func (s *InboxService) GetPendingMessages(clientID string) ([]models.InboxEntry, error) {
+	rows, err := s.db.Query(`
+		SELECT client_id, message_id, chat_id, delivery_attempts, created_at, ttl
+		FROM inbox
+		WHERE client_id = $1 AND ttl > CURRENT_TIMESTAMP
+		ORDER BY created_at ASC
+	`, clientID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pending messages: %w", err)
+	}
+	defer rows.Close()
+
+	var entries []models.InboxEntry
+	for rows.Next() {
+		var entry models.InboxEntry
+		if err := rows.Scan(
+			&entry.ClientID, &entry.MessageID, &entry.ChatID,
+			&entry.DeliveryAttempts, &entry.CreatedAt, &entry.TTL,
+		); err != nil {
+			return nil, err
+		}
 		entries = append(entries, entry)
 	}
-	
+
 	return entries, nil
 }
 
-// RetryFailedDeliveries attempts to redeliver messages that have failed < 3 times
-func (s *InboxService) RetryFailedDeliveries(ctx context.Context, maxAttempts int) ([]models.InboxEntry, error) {
-	query := `
-		SELECT client_id, message_id, chat_id, delivery_attempts, created_at, ttl
-		FROM inbox
-		WHERE delivery_attempts < $1 AND ttl > $2
-		ORDER BY created_at ASC
-		LIMIT 100
-	`
-	
-	rows, err := s.db.QueryContext(ctx, query, maxAttempts, time.Now())
+// MarkAsDelivered removes a message from a client's inbox
+func (s *InboxService) MarkAsDelivered(clientID, messageID string) error {
+	_, err := s.db.Exec(`
+		DELETE FROM inbox WHERE client_id = $1 AND message_id = $2
+	`, clientID, messageID)
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to query failed deliveries: %w", err)
+		return fmt.Errorf("failed to mark as delivered: %w", err)
 	}
-	defer rows.Close()
-	
-	entries := []models.InboxEntry{}
-	for rows.Next() {
-		var entry models.InboxEntry
-		
-		err := rows.Scan(
-			&entry.ClientID, &entry.MessageID, &entry.ChatID,
-			&entry.DeliveryAttempts, &entry.CreatedAt, &entry.TTL,
-		)
+
+	return nil
+}
+
+// IncrementDeliveryAttempts increments the delivery attempt counter
+func (s *InboxService) IncrementDeliveryAttempts(clientID, messageID string) error {
+	_, err := s.db.Exec(`
+		UPDATE inbox SET delivery_attempts = delivery_attempts + 1
+		WHERE client_id = $1 AND message_id = $2
+	`, clientID, messageID)
+
+	if err != nil {
+		return fmt.Errorf("failed to increment delivery attempts: %w", err)
+	}
+
+	return nil
+}
+
+// CleanupExpiredEntries removes expired inbox entries
+func (s *InboxService) CleanupExpiredEntries() (int64, error) {
+	result, err := s.db.Exec(`DELETE FROM inbox WHERE ttl < CURRENT_TIMESTAMP`)
+	if err != nil {
+		return 0, fmt.Errorf("failed to cleanup expired entries: %w", err)
+	}
+
+	return result.RowsAffected()
+}
+
+// SyncMessagesOnReconnect delivers pending messages when a client reconnects
+func (s *InboxService) SyncMessagesOnReconnect(clientID string, messageService *MessageService) ([]models.Message, error) {
+	entries, err := s.GetPendingMessages(clientID)
+	if err != nil {
+		return nil, err
+	}
+
+	var messages []models.Message
+	for _, entry := range entries {
+		message, err := messageService.GetMessageByID(entry.MessageID)
 		if err != nil {
+			log.Printf("Error getting message %s: %v", entry.MessageID, err)
 			continue
 		}
-		
-		entries = append(entries, entry)
+		messages = append(messages, *message)
 	}
-	
-	return entries, nil
+
+	return messages, nil
+}
+
+// StartCleanupScheduler starts a background job to cleanup expired entries
+func (s *InboxService) StartCleanupScheduler() {
+	go func() {
+		ticker := time.NewTicker(6 * time.Hour)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			deleted, err := s.CleanupExpiredEntries()
+			if err != nil {
+				log.Printf("Error cleaning up inbox: %v", err)
+			} else if deleted > 0 {
+				log.Printf("Cleaned up %d expired inbox entries", deleted)
+			}
+		}
+	}()
 }
 
 // GetInboxStats returns statistics about the inbox
-type InboxStats struct {
-	TotalPending       int            `json:"totalPending"`
-	ExpiringSoon       int            `json:"expiringSoon"`      // < 24 hours
-	ByClient           map[string]int `json:"byClient"`
-	OldestMessageAge   int64          `json:"oldestMessageAge"` // seconds
-	AverageAttempts    float64        `json:"averageAttempts"`
-}
+func (s *InboxService) GetInboxStats() (map[string]interface{}, error) {
+	var totalEntries, expiredEntries int
 
-func (s *InboxService) GetInboxStats(ctx context.Context) (*InboxStats, error) {
-	stats := &InboxStats{
-		ByClient: make(map[string]int),
-	}
-	
-	// Total pending
-	query := `SELECT COUNT(*) FROM inbox WHERE ttl > $1`
-	err := s.db.QueryRowContext(ctx, query, time.Now()).Scan(&stats.TotalPending)
+	err := s.db.QueryRow(`SELECT COUNT(*) FROM inbox`).Scan(&totalEntries)
 	if err != nil {
 		return nil, err
 	}
-	
-	// Expiring soon (< 24 hours)
-	query = `SELECT COUNT(*) FROM inbox WHERE ttl > $1 AND ttl < $2`
-	tomorrow := time.Now().Add(24 * time.Hour)
-	err = s.db.QueryRowContext(ctx, query, time.Now(), tomorrow).Scan(&stats.ExpiringSoon)
+
+	err = s.db.QueryRow(`SELECT COUNT(*) FROM inbox WHERE ttl < CURRENT_TIMESTAMP`).Scan(&expiredEntries)
 	if err != nil {
 		return nil, err
 	}
-	
-	// By client
-	query = `SELECT client_id, COUNT(*) FROM inbox WHERE ttl > $1 GROUP BY client_id`
-	rows, err := s.db.QueryContext(ctx, query, time.Now())
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	
-	for rows.Next() {
-		var clientID string
-		var count int
-		rows.Scan(&clientID, &count)
-		stats.ByClient[clientID] = count
-	}
-	
-	// Oldest message age
-	query = `SELECT MIN(created_at) FROM inbox WHERE ttl > $1`
-	var oldestTime sql.NullTime
-	err = s.db.QueryRowContext(ctx, query, time.Now()).Scan(&oldestTime)
-	if err == nil && oldestTime.Valid {
-		stats.OldestMessageAge = int64(time.Since(oldestTime.Time).Seconds())
-	}
-	
-	// Average attempts
-	query = `SELECT AVG(delivery_attempts) FROM inbox WHERE ttl > $1`
-	var avgAttempts sql.NullFloat64
-	err = s.db.QueryRowContext(ctx, query, time.Now()).Scan(&avgAttempts)
-	if err == nil && avgAttempts.Valid {
-		stats.AverageAttempts = avgAttempts.Float64
-	}
-	
-	return stats, nil
-}
 
-// ClearClientInbox removes all messages from a client's inbox
-func (s *InboxService) ClearClientInbox(ctx context.Context, clientID string) error {
-	query := `DELETE FROM inbox WHERE client_id = $1`
-	
-	_, err := s.db.ExecContext(ctx, query, clientID)
-	if err != nil {
-		return fmt.Errorf("failed to clear client inbox: %w", err)
-	}
-	
-	return nil
-}
-
-// BatchMarkDelivered marks multiple messages as delivered
-func (s *InboxService) BatchMarkDelivered(ctx context.Context, clientID string, messageIDs []string) error {
-	if len(messageIDs) == 0 {
-		return nil
-	}
-	
-	// Use IN clause for batch deletion
-	query := `DELETE FROM inbox WHERE client_id = $1 AND message_id = ANY($2)`
-	
-	_, err := s.db.ExecContext(ctx, query, clientID, messageIDs)
-	if err != nil {
-		return fmt.Errorf("failed to batch mark delivered: %w", err)
-	}
-	
-	return nil
+	return map[string]interface{}{
+		"totalEntries":   totalEntries,
+		"expiredEntries": expiredEntries,
+		"pendingEntries": totalEntries - expiredEntries,
+	}, nil
 }
