@@ -3,6 +3,7 @@ module github.com/chorus/messenger
 go 1.23
 
 require (
+	cloud.google.com/go/speech v1.21.0
 	cloud.google.com/go/translate v1.10.1
 	github.com/gin-contrib/cors v1.7.2
 	github.com/gin-gonic/gin v1.10.0

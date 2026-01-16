@@ -115,6 +115,41 @@ func (s *MessageService) GetMessages(chatID string, limit int, before *string) (
 	return messages, nil
 }
 
+func (s *MessageService) GetMessageByID(ctx context.Context, messageID string) (*models.Message, error) {
+	message := &models.Message{}
+	query := `
+		SELECT id, chat_id, sender_id, text, COALESCE(original_language, ''), COALESCE(translations, '{}'::jsonb), delivery_status, reply_to_id, created_at
+		FROM messages
+		WHERE id = $1
+	`
+
+	var translationsBytes []byte
+	err := s.db.QueryRowContext(ctx, query, messageID).Scan(
+		&message.ID,
+		&message.ChatID,
+		&message.SenderID,
+		&message.Text,
+		&message.OriginalLanguage,
+		&translationsBytes,
+		&message.DeliveryStatus,
+		&message.ReplyToID,
+		&message.CreatedAt,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	if len(translationsBytes) > 0 {
+		json.Unmarshal(translationsBytes, &message.Translations)
+	}
+
+	return message, nil
+}
+
 func (s *MessageService) UpdateTranslations(messageID string, translations map[string]string) error {
 	translationsJSON, err := json.Marshal(translations)
 	if err != nil {

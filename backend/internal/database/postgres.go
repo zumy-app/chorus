@@ -111,7 +111,7 @@ func Migrate(db *sql.DB) error {
 			ttl TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL '30 days'),
 			PRIMARY KEY (client_id, message_id)
 		)`,
-		`CREATE INDEX IF NOT EXISTS idx_inbox_client_pending ON inbox(client_id, created_at) WHERE ttl > CURRENT_TIMESTAMP`,
+		`CREATE INDEX IF NOT EXISTS idx_inbox_client_created ON inbox(client_id, created_at)`,
 
 		// Phase 2: User settings extensions
 		`CREATE TABLE IF NOT EXISTS user_settings (
@@ -170,7 +170,7 @@ func Migrate(db *sql.DB) error {
 			ended_at TIMESTAMP
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_calls_chat_id ON call_sessions(chat_id)`,
-		`CREATE INDEX IF NOT EXISTS idx_calls_status ON call_sessions(status) WHERE status = 'active'`,
+		`CREATE INDEX IF NOT EXISTS idx_calls_status_active ON call_sessions(status, started_at) WHERE status = 'active'`,
 
 		// Phase 3: Call participants
 		`CREATE TABLE IF NOT EXISTS call_participants (

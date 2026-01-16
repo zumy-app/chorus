@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 
@@ -66,8 +67,7 @@ func main() {
 	defer pubsubService.Stop()
 
 	// Phase 2: Initialize Inbox service for offline message delivery
-	inboxService := services.NewInboxService(db, redisClient)
-	inboxService.StartCleanupScheduler()
+	_ = services.NewInboxService(db)
 
 	// Phase 2: Initialize Presence service
 	presenceService := services.NewPresenceService(db, redisClient, pubsubService)
@@ -77,10 +77,20 @@ func main() {
 	searchService := services.NewSearchService(db, redisClient)
 
 	// Phase 3: Initialize Grammar service
-	grammarService := services.NewGrammarService(redisClient)
+	grammarService := services.NewGrammarService(translationService)
 
 	// Phase 3: Initialize Vocabulary service
-	vocabularyService := services.NewVocabularyService(db, redisClient)
+	vocabularyService := services.NewVocabularyService(db, translationService)
+
+	// Phase 3: Initialize Speech-to-Text service
+	ctx := context.Background()
+	sttService, err := services.NewSpeechToTextService(ctx)
+	if err != nil {
+		log.Printf("Warning: Speech-to-Text service initialization failed: %v", err)
+	}
+
+	// Phase 3: Initialize Call service
+	callService := services.NewCallService(db, translationService, sttService)
 
 	// Start WebSocket hub
 	go wsHub.Run()
@@ -95,7 +105,8 @@ func main() {
 	searchHandler := handlers.NewSearchHandler(searchService)
 	presenceHandler := handlers.NewPresenceHandler(presenceService)
 	grammarHandler := handlers.NewGrammarHandler(grammarService, messageService)
-	vocabularyHandler := handlers.NewVocabularyHandler(vocabularyService, messageService, translationService)
+	vocabularyHandler := handlers.NewVocabularyHandler(vocabularyService, messageService)
+	callHandler := handlers.NewCallHandler(callService)
 
 	// Setup Gin router
 	if cfg.Environment == "production" {
@@ -151,39 +162,47 @@ func main() {
 
 		// Phase 2: Search routes
 		protected.GET("/messages/search", searchHandler.SearchMessages)
-		protected.GET("/chats/:chatId/search", searchHandler.SearchInChat)
-		protected.GET("/search/suggestions", searchHandler.GetSearchSuggestions)
-		protected.GET("/search/recent", searchHandler.GetRecentSearches)
-		protected.DELETE("/search/history", searchHandler.ClearSearchHistory)
+		protected.GET("/chats/search", searchHandler.SearchChats)
+		protected.GET("/contacts/search", searchHandler.SearchContacts)
 
 		// Phase 2: Presence routes
 		protected.GET("/presence/:userId", presenceHandler.GetPresence)
-		protected.POST("/presence/batch", presenceHandler.GetMultiplePresence)
 		protected.PUT("/presence", presenceHandler.UpdatePresence)
-		protected.POST("/presence/heartbeat", presenceHandler.Heartbeat)
-		protected.GET("/presence/online/count", presenceHandler.GetOnlineCount)
+		protected.POST("/presence/activity", presenceHandler.UpdateActivity)
 
 		// Phase 3: Grammar analysis routes
-		protected.POST("/grammar/analyze", grammarHandler.AnalyzeGrammar)
+		protected.POST("/grammar/analyze", grammarHandler.AnalyzeMessageGrammar)
 		protected.POST("/grammar/analyze-text", grammarHandler.AnalyzeText)
-		protected.POST("/grammar/difficulty", grammarHandler.GetDifficultyLevel)
+		protected.GET("/grammar/suggestions", grammarHandler.GetGrammarSuggestions)
+		protected.GET("/grammar/report", grammarHandler.GetGrammarReport)
 
 		// Phase 3: Vocabulary routes
-		protected.POST("/vocabulary", vocabularyHandler.SaveWord)
-		protected.GET("/vocabulary", vocabularyHandler.GetVocabulary)
-		protected.GET("/vocabulary/due", vocabularyHandler.GetDueVocabulary)
-		protected.POST("/vocabulary/practice", vocabularyHandler.RecordPractice)
-		protected.GET("/vocabulary/progress", vocabularyHandler.GetProgress)
+		protected.POST("/vocabulary", vocabularyHandler.SaveVocabulary)
+		protected.GET("/vocabulary", vocabularyHandler.GetUserVocabulary)
+		protected.GET("/vocabulary/due", vocabularyHandler.GetVocabularyDue)
+		protected.GET("/vocabulary/:id", vocabularyHandler.GetVocabularyByID)
+		protected.POST("/vocabulary/practice", vocabularyHandler.UpdatePracticeResult)
+		protected.GET("/vocabulary/progress", vocabularyHandler.GetLearningProgress)
 		protected.DELETE("/vocabulary/:id", vocabularyHandler.DeleteVocabulary)
-		protected.GET("/vocabulary/search", searchHandler.SearchVocabulary)
+		protected.GET("/vocabulary/search", vocabularyHandler.SearchVocabulary)
+
+		// Phase 3: Call routes
+		protected.POST("/calls/initiate", callHandler.InitiateCall)
+		protected.POST("/calls/:callId/end", callHandler.EndCall)
+		protected.GET("/calls/:callId", callHandler.GetCallSession)
+		protected.GET("/calls/:callId/transcript", callHandler.GetCallTranscript)
+		protected.GET("/calls/history", callHandler.GetCallHistory)
+		protected.DELETE("/calls/:callId/transcript", callHandler.DeleteCallTranscript)
+		protected.GET("/calls/transcripts/search", callHandler.SearchTranscripts)
+		protected.POST("/calls/:callId/signal", callHandler.HandleWebRTCSignaling)
 	}
 
-	// Admin routes (for monitoring)
-	admin := r.Group("/api/v1/admin")
-	admin.Use(middleware.AuthMiddleware(authService))
-	{
-		admin.GET("/presence/stats", presenceHandler.GetPresenceStats)
-	}
+	// Admin routes (for monitoring) - Commented out for now
+	// admin := r.Group("/api/v1/admin")
+	// admin.Use(middleware.AuthMiddleware(authService))
+	// {
+	// 	admin.GET("/presence/stats", presenceHandler.GetPresenceStats)
+	// }
 
 	// WebSocket endpoint
 	r.GET("/ws", middleware.AuthMiddleware(authService), wsHandler.HandleWebSocket)

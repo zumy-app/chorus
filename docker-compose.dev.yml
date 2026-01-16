@@ -1,0 +1,147 @@
+version: '3.8'
+
+# Development/Testing Docker Compose Configuration
+# Uses separate network and container names to avoid conflicts with production
+
+networks:
+  chorus-dev:
+    driver: bridge
+    name: chorus-dev-network
+
+services:
+  # PostgreSQL Database - Development
+  postgres-dev:
+    image: postgres:15-alpine
+    container_name: chorus-dev-postgres
+    networks:
+      - chorus-dev
+    environment:
+      POSTGRES_DB: chorus_dev
+      POSTGRES_USER: chorus_dev
+      POSTGRES_PASSWORD: dev_password_123
+    ports:
+      - "5433:5432"  # Different port to avoid conflicts
+    volumes:
+      - chorus_dev_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chorus_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis Cache - Development
+  redis-dev:
+    image: redis:7-alpine
+    container_name: chorus-dev-redis
+    networks:
+      - chorus-dev
+    ports:
+      - "6380:6379"  # Different port to avoid conflicts
+    volumes:
+      - chorus_dev_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # Go Backend API - Development
+  backend-dev:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: chorus-dev-backend
+    networks:
+      - chorus-dev
+    ports:
+      - "8081:8080"  # Different port to avoid conflicts
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgres://chorus_dev:dev_password_123@postgres-dev:5432/chorus_dev?sslmode=disable
+      - REDIS_URL=redis-dev:6379
+      - JWT_SECRET=dev-jwt-secret-key-for-testing-only
+      - GOOGLE_TRANSLATE_API_KEY=${GOOGLE_TRANSLATE_API_KEY:-}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
+      - PORT=8080
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
+      redis-dev:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/bin  # Prevent overwriting binary
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # React Frontend - Development
+  frontend-dev:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: chorus-dev-frontend
+    networks:
+      - chorus-dev
+    ports:
+      - "3001:3000"  # Different port to avoid conflicts
+    environment:
+      - VITE_API_URL=http://localhost:8081
+      - VITE_WS_URL=ws://localhost:8081
+    depends_on:
+      backend-dev:
+        condition: service_healthy
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+  # Database Admin Tool (pgAdmin) - Optional
+  pgadmin-dev:
+    image: dpage/pgadmin4:latest
+    container_name: chorus-dev-pgadmin
+    networks:
+      - chorus-dev
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@chorus.dev
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - chorus_dev_pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres-dev
+    restart: unless-stopped
+    profiles:
+      - tools
+
+  # Redis Commander - Optional
+  redis-commander-dev:
+    image: rediscommander/redis-commander:latest
+    container_name: chorus-dev-redis-commander
+    networks:
+      - chorus-dev
+    environment:
+      - REDIS_HOSTS=local:redis-dev:6379
+    ports:
+      - "8082:8081"
+    depends_on:
+      - redis-dev
+    restart: unless-stopped
+    profiles:
+      - tools
+
+volumes:
+  chorus_dev_postgres_data:
+    name: chorus_dev_postgres_data
+  chorus_dev_redis_data:
+    name: chorus_dev_redis_data
+  chorus_dev_pgadmin_data:
+    name: chorus_dev_pgadmin_data
