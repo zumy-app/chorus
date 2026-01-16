@@ -60,7 +60,6 @@ func (s *GrammarService) assessDifficulty(text, language string) string {
 
 	wordCount := len(strings.Fields(text))
 	avgWordLength := float64(len(strings.ReplaceAll(text, " ", ""))) / float64(wordCount)
-	sentenceCount := countSentences(text)
 
 	// Check for complex structures
 	hasSubordinates := containsSubordinateClause(text, language)

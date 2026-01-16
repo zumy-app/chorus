@@ -271,7 +271,7 @@ func (s *InboxService) SyncMessagesOnReconnect(clientID string, messageService *
 
 	var messages []models.Message
 	for _, entry := range entries {
-		message, err := messageService.GetMessageByID(entry.MessageID)
+		message, err := messageService.GetMessageByID(context.Background(), entry.MessageID)
 		if err != nil {
 			log.Printf("Error getting message %s: %v", entry.MessageID, err)
 			continue

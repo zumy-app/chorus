@@ -35,7 +35,7 @@ func (h *GrammarHandler) AnalyzeMessageGrammar(c *gin.Context) {
 		return
 	}
 
-	message, err := h.messageService.GetMessageByID(req.MessageID)
+	message, err := h.messageService.GetMessageByID(c.Request.Context(), req.MessageID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Message not found"})
 		return
@@ -75,7 +75,7 @@ func (h *GrammarHandler) AnalyzeGrammar(c *gin.Context) {
 	}
 
 	// Get the message
-	message, err := h.messageService.GetMessageByID(req.MessageID)
+	message, err := h.messageService.GetMessageByID(c.Request.Context(), req.MessageID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Message not found"})
 		return

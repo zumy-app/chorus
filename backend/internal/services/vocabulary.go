@@ -28,14 +28,15 @@ func NewVocabularyService(db *sql.DB, redis *redis.Client) *VocabularyService {
 
 // SaveWord saves a word to the user's vocabulary
 func (s *VocabularyService) SaveWord(userID string, req models.SaveVocabularyRequest, messageService *MessageService, translationService *TranslationService) (*models.VocabularyEntry, error) {
+	ctx := context.Background()
 	// Get the message for context
-	message, err := messageService.GetMessageByID(req.MessageID)
+	message, err := messageService.GetMessageByID(ctx, req.MessageID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get message: %w", err)
 	}
 
 	// Get translation
-	translation, err := translationService.TranslateText(req.Term, req.Language, "en") // Translate to English
+	translation, err := translationService.Translate(req.Term, "en") // Translate to English
 	if err != nil {
 		translation = "" // Continue without translation
 	}
@@ -75,7 +76,6 @@ func (s *VocabularyService) SaveWord(userID string, req models.SaveVocabularyReq
 	}
 
 	// Invalidate cache
-	ctx := context.Background()
 	s.redis.Del(ctx, fmt.Sprintf("vocab:%s:due", userID))
 	s.redis.Del(ctx, fmt.Sprintf("vocab:%s:all", userID))
 
@@ -473,3 +473,4 @@ func (s *VocabularyService) GetVocabularyByID(userID, vocabularyID string) (*mod
 
 	return &entry, nil
 }
+

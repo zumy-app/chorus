@@ -113,6 +113,146 @@ Services will be available at:
 - PostgreSQL: localhost:5432
 - Redis: localhost:6379
 
+## Running Services Locally
+
+### Prerequisites Checklist
+- ✅ Docker Desktop running
+- ✅ PostgreSQL 15+ installed and running
+- ✅ Redis 7+ installed and running
+- ✅ Go 1.21+ installed
+- ✅ Node.js 18+ installed
+
+### Step-by-Step Service Startup
+
+#### 1. Start PostgreSQL
+```powershell
+# Check if PostgreSQL is running
+Get-Service postgresql*
+
+# If not running, start it
+Start-Service postgresql-x64-15  # Adjust version as needed
+
+# Create database (first time only)
+psql -U postgres -c "CREATE DATABASE messenger_dev;"
+psql -U postgres -c "CREATE USER messenger WITH PASSWORD 'password';"
+psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE messenger_dev TO messenger;"
+```
+
+#### 2. Start Redis
+```powershell
+# If installed via Chocolatey or MSI
+redis-server
+
+# Or if using Docker for Redis only
+docker run -d -p 6379:6379 redis:7-alpine
+
+# Verify Redis is running
+redis-cli ping  # Should return "PONG"
+```
+
+#### 3. Start Backend Server
+```powershell
+# Navigate to backend directory
+cd backend
+
+# Ensure .env file exists with correct settings
+# Copy from .env.example if needed
+if (-Not (Test-Path .env)) { Copy-Item .env.example .env }
+
+# Install dependencies (first time)
+go mod download
+
+# Run backend server
+go run cmd/server/main.go
+```
+
+The backend will:
+- Auto-create database tables on first run
+- Start HTTP server on `:8080`
+- Start WebSocket server on `/ws`
+- Connect to PostgreSQL and Redis
+
+#### 4. Start Frontend Development Server
+```powershell
+# Open new terminal, navigate to frontend
+cd frontend
+
+# Install dependencies (first time only)
+npm install
+
+# Start Vite dev server
+npm run dev
+```
+
+Frontend will be available at http://localhost:3000
+
+#### 5. (Optional) Start Mobile App
+```powershell
+# Navigate to mobile directory
+cd ChorusMobile
+
+# Install dependencies (first time only)
+npm install
+
+# For iOS (macOS only)
+npm run ios
+
+# For Android (requires Android Studio & emulator/device)
+npm run android
+
+# For Web
+npm run web
+```
+
+### Verify All Services Are Running
+
+```powershell
+# Check PostgreSQL
+psql -U messenger -d messenger_dev -c "SELECT version();"
+
+# Check Redis
+redis-cli ping
+
+# Check Backend
+curl http://localhost:8080/health  # Or visit in browser
+
+# Check Frontend
+# Visit http://localhost:3000 in browser
+```
+
+### Common Startup Issues
+
+**PostgreSQL Connection Failed:**
+```powershell
+# Check if PostgreSQL is running
+Get-Service postgresql*
+# Check connection string in backend/.env
+# Verify credentials: psql -U messenger -d messenger_dev
+```
+
+**Redis Connection Failed:**
+```powershell
+# Check if Redis is running
+redis-cli ping
+# If not installed, use Docker: docker run -d -p 6379:6379 redis:7-alpine
+```
+
+**Backend Port Already in Use:**
+```powershell
+# Find process using port 8080
+netstat -ano | findstr :8080
+# Kill the process
+taskkill /PID <PID> /F
+```
+
+**Frontend Build Errors:**
+```powershell
+# Clear node_modules and reinstall
+rm -r node_modules
+rm package-lock.json
+npm install
+```
+
 ## Usage
 
 ### 1. Register a New Account
