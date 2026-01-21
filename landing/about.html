@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Chorus - Breaking Language Barriers Worldwide</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .about-hero {
+            padding: 150px 0 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+        }
+
+        .mission-section {
+            padding: 100px 0;
+        }
+
+        .mission-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+
+        .mission-text h2 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 24px;
+        }
+
+        .mission-text p {
+            font-size: 1.1rem;
+            color: var(--text-light);
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+
+        .mission-image {
+            width: 100%;
+            height: 400px;
+            background: linear-gradient(135deg, #e0e7ff 0%, #fce7f3 100%);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8rem;
+        }
+
+        .values-section {
+            padding: 100px 0;
+            background: var(--bg-light);
+        }
+
+        .values-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+            margin-top: 60px;
+        }
+
+        .value-card {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+        }
+
+        .value-icon {
+            font-size: 4rem;
+            margin-bottom: 24px;
+        }
+
+        .value-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .value-description {
+            color: var(--text-light);
+            line-height: 1.7;
+        }
+
+        .stats-section {
+            padding: 100px 0;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 60px;
+            text-align: center;
+            margin-top: 60px;
+        }
+
+        .stat-item {
+            padding: 20px;
+        }
+
+        .stat-number {
+            font-size: 4rem;
+            font-weight: 800;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 1.2rem;
+            opacity: 0.95;
+        }
+
+        .team-section {
+            padding: 100px 0;
+        }
+
+        .story-section {
+            padding: 100px 0;
+            background: var(--bg-light);
+        }
+
+        .story-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .story-content h2 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .story-content p {
+            font-size: 1.1rem;
+            color: var(--text-light);
+            line-height: 1.9;
+            margin-bottom: 24px;
+        }
+
+        .story-content blockquote {
+            border-left: 4px solid var(--primary);
+            padding-left: 30px;
+            margin: 40px 0;
+            font-size: 1.3rem;
+            font-style: italic;
+            color: var(--primary);
+        }
+
+        @media (max-width: 968px) {
+            .mission-content {
+                grid-template-columns: 1fr;
+            }
+
+            .mission-image {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-wrapper">
+                <a href="index.html" class="logo">
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="18" fill="url(#gradient1)"/>
+                        <path d="M20 8C13.37 8 8 13.37 8 20C8 23.09 9.17 25.93 11.08 28.08L9.5 32.5L14.22 31.03C16.23 32.36 18.57 33.13 21 33.13C27.63 33.13 33 27.76 33 21.13C33 14.5 27.63 8 20 8Z" fill="white"/>
+                        <defs>
+                            <linearGradient id="gradient1" x1="2" y1="2" x2="38" y2="38">
+                                <stop offset="0%" stop-color="#667eea"/>
+                                <stop offset="100%" stop-color="#764ba2"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <span class="logo-text">Chorus</span>
+                </a>
+                <ul class="nav-menu" id="navMenu">
+                    <li><a href="index.html#features">Features</a></li>
+                    <li><a href="index.html#how-it-works">How It Works</a></li>
+                    <li><a href="index.html#languages">Languages</a></li>
+                    <li><a href="download.html">Download</a></li>
+                    <li><a href="http://localhost:3000" class="btn-primary-sm">Launch App</a></li>
+                </ul>
+                <div class="hamburger" id="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- About Hero -->
+    <section class="about-hero">
+        <div class="container">
+            <h1 style="font-size: 3rem; font-weight: 800; margin-bottom: 20px;">About Chorus</h1>
+            <p style="font-size: 1.3rem; opacity: 0.95; max-width: 700px; margin: 0 auto;">
+                We're on a mission to make global communication effortless by breaking down language barriers through technology.
+            </p>
+        </div>
+    </section>
+
+    <!-- Mission Section -->
+    <section class="mission-section">
+        <div class="container">
+            <div class="mission-content">
+                <div class="mission-text">
+                    <h2>Our Mission</h2>
+                    <p>
+                        At Chorus, we believe language should never be a barrier to human connection. 
+                        In an increasingly connected world, we're building technology that enables anyone 
+                        to communicate naturally in their native language while being understood by everyone.
+                    </p>
+                    <p>
+                        Our platform combines real-time translation with intuitive messaging, creating 
+                        seamless conversations across cultures and continents. Whether you're making friends 
+                        abroad, conducting international business, or learning a new language, Chorus makes 
+                        it effortless.
+                    </p>
+                    <p>
+                        We're not just translating words—we're building bridges between people, fostering 
+                        understanding, and creating opportunities for collaboration on a global scale.
+                    </p>
+                </div>
+                <div class="mission-image">
+                    🌍
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Values Section -->
+    <section class="values-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Our Values</h2>
+                <p class="section-subtitle">The principles that guide everything we do</p>
+            </div>
+            <div class="values-grid">
+                <div class="value-card">
+                    <div class="value-icon">🌐</div>
+                    <h3 class="value-title">Global Connection</h3>
+                    <p class="value-description">
+                        We believe in a world where everyone can connect, regardless of the language they speak.
+                    </p>
+                </div>
+                <div class="value-card">
+                    <div class="value-icon">🔒</div>
+                    <h3 class="value-title">Privacy First</h3>
+                    <p class="value-description">
+                        Your conversations are yours. We prioritize security and never compromise on privacy.
+                    </p>
+                </div>
+                <div class="value-card">
+                    <div class="value-icon">💡</div>
+                    <h3 class="value-title">Innovation</h3>
+                    <p class="value-description">
+                        We constantly push boundaries to make communication more natural and effective.
+                    </p>
+                </div>
+                <div class="value-card">
+                    <div class="value-icon">📚</div>
+                    <h3 class="value-title">Learning</h3>
+                    <p class="value-description">
+                        Communication is also about growth. We help you learn languages while you chat.
+                    </p>
+                </div>
+                <div class="value-card">
+                    <div class="value-icon">🤝</div>
+                    <h3 class="value-title">Inclusivity</h3>
+                    <p class="value-description">
+                        Everyone deserves to be heard. We build tools that work for people of all backgrounds.
+                    </p>
+                </div>
+                <div class="value-card">
+                    <div class="value-icon">⚡</div>
+                    <h3 class="value-title">Simplicity</h3>
+                    <p class="value-description">
+                        Complex technology should feel simple. We make powerful features easy to use.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title" style="color: white;">Chorus in Numbers</h2>
+                <p class="section-subtitle" style="color: rgba(255,255,255,0.9);">
+                    Making a global impact, one conversation at a time
+                </p>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-number">9</span>
+                    <span class="stat-label">Languages Supported</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">100+</span>
+                    <span class="stat-label">Countries Reached</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">1M+</span>
+                    <span class="stat-label">Messages Translated</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">24/7</span>
+                    <span class="stat-label">Always Available</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Story Section -->
+    <section class="story-section">
+        <div class="container">
+            <div class="story-content">
+                <h2>Our Story</h2>
+                <p>
+                    Chorus was born from a simple observation: billions of people around the world want 
+                    to connect, but language barriers hold them back. Traditional translation tools are 
+                    clunky, interrupt conversations, and feel unnatural.
+                </p>
+                <p>
+                    We asked ourselves: what if translation was invisible? What if you could chat naturally 
+                    in your language while the other person reads in theirs, seamlessly and in real-time?
+                </p>
+                <blockquote>
+                    "Language should connect us, not divide us."
+                </blockquote>
+                <p>
+                    That vision led to Chorus. Built with modern technology, powered by AI, and designed 
+                    with a human-first approach, we've created a platform where conversations flow naturally 
+                    across language boundaries.
+                </p>
+                <p>
+                    Today, people use Chorus to make friends across continents, learn new languages through 
+                    immersion, conduct international business, and stay connected with loved ones abroad. 
+                    We're just getting started.
+                </p>
+                <p>
+                    As we expand to more languages, add more features, and reach more people, our core 
+                    mission remains unchanged: to make the world a more connected place, one conversation 
+                    at a time.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <div class="container">
+            <div class="cta-content">
+                <h2 class="cta-title">Join Our Global Community</h2>
+                <p class="cta-subtitle">Be part of the conversation that's breaking language barriers worldwide</p>
+                <a href="http://localhost:3000" class="btn-primary-large">Get Started Free</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-col">
+                    <div class="footer-logo">
+                        <svg width="32" height="32" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="20" cy="20" r="18" fill="url(#gradient2)"/>
+                            <path d="M20 8C13.37 8 8 13.37 8 20C8 23.09 9.17 25.93 11.08 28.08L9.5 32.5L14.22 31.03C16.23 32.36 18.57 33.13 21 33.13C27.63 33.13 33 27.76 33 21.13C33 14.5 27.63 8 20 8Z" fill="white"/>
+                            <defs>
+                                <linearGradient id="gradient2" x1="2" y1="2" x2="38" y2="38">
+                                    <stop offset="0%" stop-color="#667eea"/>
+                                    <stop offset="100%" stop-color="#764ba2"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <span>Chorus</span>
+                    </div>
+                    <p class="footer-description">Break language barriers and connect with people worldwide through real-time translation.</p>
+                </div>
+                <div class="footer-col">
+                    <h4 class="footer-heading">Product</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html#features">Features</a></li>
+                        <li><a href="download.html">Download</a></li>
+                        <li><a href="http://localhost:3000">Web App</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4 class="footer-heading">Company</h4>
+                    <ul class="footer-links">
+                        <li><a href="about.html">About</a></li>
+                        <li><a href="index.html#languages">Languages</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4 class="footer-heading">Support</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html#how-it-works">How It Works</a></li>
+                        <li><a href="http://localhost:8080/health">API Status</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Chorus. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

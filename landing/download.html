@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download Chorus - Available on All Platforms</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .download-hero {
+            padding: 150px 0 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+        }
+
+        .download-options {
+            padding: 80px 0;
+        }
+
+        .platform-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+            margin-top: 60px;
+        }
+
+        .platform-card {
+            background: white;
+            padding: 50px;
+            border-radius: 24px;
+            text-align: center;
+            border: 2px solid var(--border);
+            transition: all 0.3s;
+        }
+
+        .platform-card:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary);
+        }
+
+        .platform-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 24px;
+            background: var(--bg-light);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+        }
+
+        .platform-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .platform-description {
+            color: var(--text-light);
+            margin-bottom: 32px;
+            line-height: 1.7;
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 14px 40px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .download-btn.secondary {
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .download-btn.secondary:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .qr-section {
+            padding: 80px 0;
+            background: var(--bg-light);
+            text-align: center;
+        }
+
+        .qr-container {
+            max-width: 600px;
+            margin: 40px auto 0;
+            padding: 40px;
+            background: white;
+            border-radius: 24px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .qr-code {
+            width: 250px;
+            height: 250px;
+            margin: 0 auto 24px;
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 6rem;
+        }
+
+        .system-requirements {
+            padding: 80px 0;
+        }
+
+        .requirements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .requirement-card {
+            padding: 30px;
+            background: var(--bg-light);
+            border-radius: 16px;
+        }
+
+        .requirement-card h4 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--primary);
+        }
+
+        .requirement-card ul {
+            list-style: none;
+        }
+
+        .requirement-card li {
+            padding: 8px 0;
+            color: var(--text-light);
+            position: relative;
+            padding-left: 24px;
+        }
+
+        .requirement-card li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-wrapper">
+                <a href="index.html" class="logo">
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="18" fill="url(#gradient1)"/>
+                        <path d="M20 8C13.37 8 8 13.37 8 20C8 23.09 9.17 25.93 11.08 28.08L9.5 32.5L14.22 31.03C16.23 32.36 18.57 33.13 21 33.13C27.63 33.13 33 27.76 33 21.13C33 14.5 27.63 8 20 8Z" fill="white"/>
+                        <defs>
+                            <linearGradient id="gradient1" x1="2" y1="2" x2="38" y2="38">
+                                <stop offset="0%" stop-color="#667eea"/>
+                                <stop offset="100%" stop-color="#764ba2"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <span class="logo-text">Chorus</span>
+                </a>
+                <ul class="nav-menu" id="navMenu">
+                    <li><a href="index.html#features">Features</a></li>
+                    <li><a href="index.html#how-it-works">How It Works</a></li>
+                    <li><a href="index.html#languages">Languages</a></li>
+                    <li><a href="download.html">Download</a></li>
+                    <li><a href="http://localhost:3000" class="btn-primary-sm">Launch App</a></li>
+                </ul>
+                <div class="hamburger" id="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Download Hero -->
+    <section class="download-hero">
+        <div class="container">
+            <h1 style="font-size: 3rem; font-weight: 800; margin-bottom: 20px;">Download Chorus</h1>
+            <p style="font-size: 1.3rem; opacity: 0.95; max-width: 600px; margin: 0 auto;">
+                Available on Web, Desktop, iOS, and Android. Choose your platform and start connecting globally.
+            </p>
+        </div>
+    </section>
+
+    <!-- Download Options -->
+    <section class="download-options">
+        <div class="container">
+            <div class="platform-grid">
+                <div class="platform-card">
+                    <div class="platform-icon">🌐</div>
+                    <h3 class="platform-name">Web App</h3>
+                    <p class="platform-description">
+                        Use Chorus directly in your browser. No installation required. Works on all modern browsers.
+                    </p>
+                    <a href="http://localhost:3000" class="download-btn">Launch Web App</a>
+                </div>
+
+                <div class="platform-card">
+                    <div class="platform-icon">🖥️</div>
+                    <h3 class="platform-name">Windows</h3>
+                    <p class="platform-description">
+                        Native desktop app for Windows 10 and 11. Fast, lightweight, and feature-rich.
+                    </p>
+                    <a href="#" class="download-btn secondary">Coming Soon</a>
+                </div>
+
+                <div class="platform-card">
+                    <div class="platform-icon">🍎</div>
+                    <h3 class="platform-name">macOS</h3>
+                    <p class="platform-description">
+                        Desktop app for macOS 11 Big Sur and later. Optimized for Apple Silicon and Intel Macs.
+                    </p>
+                    <a href="#" class="download-btn secondary">Coming Soon</a>
+                </div>
+
+                <div class="platform-card">
+                    <div class="platform-icon">🐧</div>
+                    <h3 class="platform-name">Linux</h3>
+                    <p class="platform-description">
+                        Supports Ubuntu, Debian, Fedora, and more. Available as AppImage, Snap, and Flatpak.
+                    </p>
+                    <a href="#" class="download-btn secondary">Coming Soon</a>
+                </div>
+
+                <div class="platform-card">
+                    <div class="platform-icon">📱</div>
+                    <h3 class="platform-name">iOS</h3>
+                    <p class="platform-description">
+                        Download from the App Store for iPhone and iPad. Requires iOS 14 or later.
+                    </p>
+                    <a href="#" class="download-btn secondary">Coming Soon</a>
+                </div>
+
+                <div class="platform-card">
+                    <div class="platform-icon">🤖</div>
+                    <h3 class="platform-name">Android</h3>
+                    <p class="platform-description">
+                        Get it on Google Play for Android phones and tablets. Requires Android 8.0 or later.
+                    </p>
+                    <a href="#" class="download-btn secondary">Coming Soon</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- QR Code Section -->
+    <section class="qr-section">
+        <div class="container">
+            <h2 class="section-title">Scan to Download</h2>
+            <p class="section-subtitle">Use your mobile device to scan and access Chorus</p>
+            <div class="qr-container">
+                <div class="qr-code">📱</div>
+                <h3 style="font-size: 1.3rem; font-weight: 600; margin-bottom: 8px;">Scan with your phone</h3>
+                <p style="color: var(--text-light);">Point your camera at the QR code to open Chorus web app</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- System Requirements -->
+    <section class="system-requirements">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">System Requirements</h2>
+                <p class="section-subtitle">Make sure your device meets these requirements</p>
+            </div>
+            <div class="requirements-grid">
+                <div class="requirement-card">
+                    <h4>🌐 Web Browser</h4>
+                    <ul>
+                        <li>Chrome 90+</li>
+                        <li>Firefox 88+</li>
+                        <li>Safari 14+</li>
+                        <li>Edge 90+</li>
+                        <li>Stable internet connection</li>
+                    </ul>
+                </div>
+                <div class="requirement-card">
+                    <h4>🖥️ Desktop</h4>
+                    <ul>
+                        <li>Windows 10/11</li>
+                        <li>macOS 11+</li>
+                        <li>Linux (64-bit)</li>
+                        <li>4GB RAM minimum</li>
+                        <li>500MB disk space</li>
+                    </ul>
+                </div>
+                <div class="requirement-card">
+                    <h4>📱 Mobile</h4>
+                    <ul>
+                        <li>iOS 14 or later</li>
+                        <li>Android 8.0 or later</li>
+                        <li>2GB RAM minimum</li>
+                        <li>100MB storage space</li>
+                        <li>Active internet connection</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <div class="container">
+            <div class="cta-content">
+                <h2 class="cta-title">Ready to Get Started?</h2>
+                <p class="cta-subtitle">Join Chorus today and break language barriers</p>
+                <a href="http://localhost:3000" class="btn-primary-large">Launch Web App Now</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-col">
+                    <div class="footer-logo">
+                        <svg width="32" height="32" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="20" cy="20" r="18" fill="url(#gradient2)"/>
+                            <path d="M20 8C13.37 8 8 13.37 8 20C8 23.09 9.17 25.93 11.08 28.08L9.5 32.5L14.22 31.03C16.23 32.36 18.57 33.13 21 33.13C27.63 33.13 33 27.76 33 21.13C33 14.5 27.63 8 20 8Z" fill="white"/>
+                            <defs>
+                                <linearGradient id="gradient2" x1="2" y1="2" x2="38" y2="38">
+                                    <stop offset="0%" stop-color="#667eea"/>
+                                    <stop offset="100%" stop-color="#764ba2"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <span>Chorus</span>
+                    </div>
+                    <p class="footer-description">Break language barriers and connect with people worldwide through real-time translation.</p>
+                </div>
+                <div class="footer-col">
+                    <h4 class="footer-heading">Product</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html#features">Features</a></li>
+                        <li><a href="download.html">Download</a></li>
+                        <li><a href="http://localhost:3000">Web App</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4 class="footer-heading">Company</h4>
+                    <ul class="footer-links">
+                        <li><a href="about.html">About</a></li>
+                        <li><a href="index.html#languages">Languages</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4 class="footer-heading">Support</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html#how-it-works">How It Works</a></li>
+                        <li><a href="http://localhost:8080/health">API Status</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Chorus. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
