@@ -244,7 +244,7 @@ Frontend will be available at http://localhost:3000
 # Navigate to mobile directory
 cd ChorusMobile
 
-# Install dependencies (first time only)
+# Install dependencies (first time only, requires internet connection)
 npm install
 
 # For Web Browser (no device needed)
@@ -257,6 +257,13 @@ npm run ios
 # For Android (requires Android Studio & emulator/device)
 npm run android
 ```
+
+**Note**: The mobile app requires the following packages that need to be installed with internet connection:
+- `@react-navigation/native`
+- `@react-navigation/stack`
+- `axios`
+
+If running offline, the web version may not work until these dependencies are installed.
 
 Mobile web app will be available at http://localhost:8081
 
