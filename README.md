@@ -96,20 +96,72 @@ The frontend will start on `http://localhost:3000`
 
 ## Quick Start (With Docker)
 
+### Build Services
+
 ```powershell
-# Build and start all services
+# Build all services (first time or after code changes)
+docker-compose build
+
+# Build specific service
+docker-compose build backend
+docker-compose build frontend
+```
+
+### Start Services
+
+```powershell
+# Start all services
 docker-compose up -d
 
-# View logs
+# Start specific services
+docker-compose up -d postgres redis
+docker-compose up -d backend frontend
+
+# Start with logs visible (without detached mode)
+docker-compose up
+```
+
+### Stop Services
+
+```powershell
+# Stop all services (preserves data)
+docker-compose stop
+
+# Stop and remove containers (preserves volumes/data)
+docker-compose down
+
+# Stop and remove everything including volumes (WARNING: deletes data)
+docker-compose down -v
+```
+
+### View Logs
+
+```powershell
+# View all logs
 docker-compose logs -f
 
-# Stop services
-docker-compose down
+# View specific service logs
+docker-compose logs -f backend
+docker-compose logs -f frontend
+
+# View last 50 lines
+docker-compose logs --tail=50 backend
+```
+
+### Restart Services
+
+```powershell
+# Restart all services
+docker-compose restart
+
+# Restart specific service
+docker-compose restart backend
 ```
 
 Services will be available at:
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8080
+- Backend Health: http://localhost:8080/health
 - PostgreSQL: localhost:5432
 - Redis: localhost:6379
 
@@ -186,7 +238,8 @@ npm run dev
 
 Frontend will be available at http://localhost:3000
 
-#### 5. (Optional) Start Mobile App
+#### 5. Start Mobile App
+
 ```powershell
 # Navigate to mobile directory
 cd ChorusMobile
@@ -194,14 +247,67 @@ cd ChorusMobile
 # Install dependencies (first time only)
 npm install
 
-# For iOS (macOS only)
+# For Web Browser (no device needed)
+npm run web
+# Then open http://localhost:8081 in your browser
+
+# For iOS (macOS only, requires Xcode)
 npm run ios
 
 # For Android (requires Android Studio & emulator/device)
 npm run android
+```
+
+Mobile web app will be available at http://localhost:8081
+
+### Build Commands
+
+#### Build Backend Binary
+
+```powershell
+cd backend
+go build -o chorus.exe ./cmd/server
+```
+
+#### Build Frontend for Production
+
+```powershell
+cd frontend
+npm run build
+# Output will be in dist/ folder
+```
+
+#### Build Mobile App
+
+```powershell
+cd ChorusMobile
+
+# For Android APK
+npx expo build:android
+
+# For iOS (macOS only)
+npx expo build:ios
 
 # For Web
-npm run web
+npm run build
+```
+
+### Stop Services
+
+```powershell
+# Stop backend (Ctrl+C in the terminal where it's running)
+
+# Stop frontend (Ctrl+C in the terminal where it's running)
+
+# Stop mobile app (Ctrl+C in the terminal where it's running)
+
+# Stop PostgreSQL service
+Stop-Service postgresql-x64-15  # Adjust version as needed
+
+# Stop Redis
+# If running in terminal: Ctrl+C
+# If running as Docker container:
+docker stop <redis-container-id>
 ```
 
 ### Verify All Services Are Running
