@@ -2,7 +2,13 @@
 
 A real-time messaging application with built-in translation features for multilingual conversations.
 
-## Features (Phase 1)
+## 🌐 Live Demo
+
+- **Marketing Website**: http://localhost:5000 (Landing page showcasing features)
+- **Web Application**: http://localhost:3000 (Chat application)
+- **API Backend**: http://localhost:8080 (RESTful API + WebSocket)
+
+## Features (Phase 1-3)
 
 - ✅ **User Authentication** - Secure JWT-based authentication
 - ✅ **Direct & Group Chats** - Support for one-on-one and group conversations (2-100 participants)
@@ -93,6 +99,20 @@ npm run dev
 ```
 
 The frontend will start on `http://localhost:3000`
+
+### 5. Run Marketing Website (Optional)
+
+```powershell
+cd landing
+
+# Using Node.js
+node server.js
+
+# Or using Python
+python -m http.server 5000
+```
+
+The marketing website will start on `http://localhost:5000`
 
 ## Quick Start (With Docker)
 
