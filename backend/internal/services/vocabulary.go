@@ -473,4 +473,3 @@ func (s *VocabularyService) GetVocabularyByID(userID, vocabularyID string) (*mod
 
 	return &entry, nil
 }
-

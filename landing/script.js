@@ -110,12 +110,13 @@ function validateEmail(email) {
     return re.test(email);
 }
 
-// Add loading animation
+// Ensure content is visible immediately; optionally add a subtle fade-in
 window.addEventListener('load', () => {
-    document.body.style.opacity = '0';
-    document.body.style.transition = 'opacity 0.5s ease';
-    
-    setTimeout(() => {
+    try {
+        // Make sure body is visible in case of previous styles
         document.body.style.opacity = '1';
-    }, 100);
+        document.body.style.transition = 'opacity 0.3s ease';
+    } catch (e) {
+        // No-op if DOM not ready; content should still render
+    }
 });
