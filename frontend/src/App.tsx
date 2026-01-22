@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Chat from './pages/Chat'
@@ -65,6 +66,12 @@ function App() {
   return (
     <Routes>
       <Route
+        path="/"
+        element={
+          isAuthenticated ? <Navigate to="/chat" /> : <Landing />
+        }
+      />
+      <Route
         path="/login"
         element={
           isAuthenticated ? <Navigate to="/chat" /> : <Login onLogin={handleLogin} />
@@ -82,7 +89,6 @@ function App() {
           isAuthenticated ? <Chat onLogout={handleLogout} /> : <Navigate to="/login" />
         }
       />
-      <Route path="/" element={<Navigate to="/chat" />} />
     </Routes>
   )
 }
