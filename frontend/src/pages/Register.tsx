@@ -1,66 +1,80 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { authAPI } from '../services/api'
-import type { RegisterRequest } from '../types'
+import { detectBrowserLanguage, getNativeLanguageName } from '../services/language'
 
 interface RegisterProps {
   onRegister: (tokens: { accessToken: string; refreshToken: string }) => void
 }
 
 export default function Register({ onRegister }: RegisterProps) {
-  const [formData, setFormData] = useState<RegisterRequest>({
-    username: '',
-    email: '',
-    password: '',
-    displayName: '',
-    nativeLanguage: 'en',
-    targetLanguages: [],
-  })
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  const languages = [
-    { code: 'en', name: 'English' },
-    { code: 'es', name: 'Spanish' },
-    { code: 'fr', name: 'French' },
-    { code: 'de', name: 'German' },
-    { code: 'it', name: 'Italian' },
-    { code: 'pt', name: 'Portuguese' },
-    { code: 'ja', name: 'Japanese' },
-    { code: 'ko', name: 'Korean' },
-    { code: 'zh', name: 'Chinese' },
-  ]
+  const detectedLang = detectBrowserLanguage()
+  const nativeLangName = getNativeLanguageName(detectedLang)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setIsLoading(true)
+    const normalizedEmail = email.trim().toLowerCase()
 
     try {
-      const response = await authAPI.register(formData)
+      const response = await authAPI.register({
+        email: normalizedEmail,
+        password,
+        username: normalizedEmail,
+        displayName: normalizedEmail.split('@')[0],
+        nativeLanguage: detectedLang,
+        targetLanguages: [],
+      })
       onRegister(response.tokens)
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Registration failed')
+      const status = err?.response?.status
+      const errorMessage =
+        (typeof err?.response?.data === 'string'
+          ? err.response.data
+          : err?.response?.data?.error) ||
+        'Registration failed'
+
+      if (status === 409 || errorMessage.toLowerCase().includes('already')) {
+        try {
+          const loginResponse = await authAPI.login({
+            username: normalizedEmail,
+            password,
+          })
+          onRegister(loginResponse.tokens)
+          return
+        } catch {
+          setError('Account exists but login failed. Please try Login.')
+          return
+        }
+      }
+
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const toggleTargetLanguage = (code: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      targetLanguages: prev.targetLanguages.includes(code)
-        ? prev.targetLanguages.filter((l) => l !== code)
-        : [...prev.targetLanguages, code],
-    }))
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary to-secondary py-8">
-      <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">
-          Join Chorus
-        </h1>
+      <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5z"></path>
+              <path d="M7.5 7.5a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z"></path>
+            </svg>
+          </div>
+          <h1 className="text-3xl font-bold text-gray-800">Join Chorus</h1>
+          <p className="text-gray-500 mt-2">
+            We detected your language as <strong>{nativeLangName}</strong>
+          </p>
+        </div>
 
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -68,125 +82,55 @@ export default function Register({ onRegister }: RegisterProps) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Username
-            </label>
-            <input
-              type="text"
-              value={formData.username}
-              onChange={(e) =>
-                setFormData({ ...formData, username: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              required
-              minLength={3}
-            />
-          </div>
-
-          <div className="mb-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
             <label className="block text-gray-700 text-sm font-bold mb-2">
               Email
             </label>
             <input
               type="email"
-              value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
               required
+              autoFocus
             />
           </div>
 
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Display Name
-            </label>
-            <input
-              type="text"
-              value={formData.displayName}
-              onChange={(e) =>
-                setFormData({ ...formData, displayName: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              required
-            />
-          </div>
-
-          <div className="mb-4">
+          <div>
             <label className="block text-gray-700 text-sm font-bold mb-2">
               Password
             </label>
             <input
               type="password"
-              value={formData.password}
-              onChange={(e) =>
-                setFormData({ ...formData, password: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="At least 8 characters"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
               required
               minLength={8}
             />
           </div>
 
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Native Language
-            </label>
-            <select
-              value={formData.nativeLanguage}
-              onChange={(e) =>
-                setFormData({ ...formData, nativeLanguage: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              required
-            >
-              {languages.map((lang) => (
-                <option key={lang.code} value={lang.code}>
-                  {lang.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Target Languages (Select languages you want to learn)
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {languages.map((lang) => (
-                <label
-                  key={lang.code}
-                  className="flex items-center space-x-2 cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={formData.targetLanguages.includes(lang.code)}
-                    onChange={() => toggleTargetLanguage(lang.code)}
-                    className="rounded text-primary focus:ring-primary"
-                  />
-                  <span className="text-sm">{lang.name}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-primary text-white font-bold py-2 px-4 rounded-lg hover:bg-primary/90 transition disabled:opacity-50"
+            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition disabled:opacity-50 text-lg"
           >
-            {isLoading ? 'Registering...' : 'Register'}
+            {isLoading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
 
         <p className="text-center text-gray-600 mt-6">
           Already have an account?{' '}
-          <Link to="/login" className="text-primary font-semibold hover:underline">
-            Login
+          <Link to="/login" className="text-indigo-600 font-semibold hover:underline">
+            Log in
           </Link>
+        </p>
+
+        <p className="text-center text-xs text-gray-400 mt-4">
+          You can set up your display name and learning languages later.
         </p>
       </div>
     </div>

@@ -162,11 +162,11 @@ type AuthTokens struct {
 }
 
 type RegisterRequest struct {
-	Username        string   `json:"username" binding:"required,min=3,max=30"`
+	Username        string   `json:"username" binding:"omitempty,min=3,max=255"`
 	Email           string   `json:"email" binding:"required,email"`
 	Password        string   `json:"password" binding:"required,min=8"`
-	DisplayName     string   `json:"displayName" binding:"required,min=1,max=100"`
-	NativeLanguage  string   `json:"nativeLanguage" binding:"required"`
+	DisplayName     string   `json:"displayName" binding:"omitempty,min=1,max=100"`
+	NativeLanguage  string   `json:"nativeLanguage" binding:"omitempty"`
 	TargetLanguages []string `json:"targetLanguages"`
 }
 

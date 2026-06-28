@@ -3,6 +3,7 @@ package services
 import (
 	"database/sql"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/chorus/messenger/internal/models"
@@ -16,6 +17,11 @@ type AuthService struct {
 	db        *sql.DB
 	jwtSecret string
 }
+
+var (
+	ErrEmailAlreadyRegistered    = errors.New("email already registered")
+	ErrUsernameAlreadyRegistered = errors.New("username already registered")
+)
 
 func NewAuthService(db *sql.DB, jwtSecret string) *AuthService {
 	return &AuthService{
@@ -140,6 +146,19 @@ func (s *AuthService) Register(req models.RegisterRequest) (*models.User, error)
 	)
 
 	if err != nil {
+		if pqErr, ok := err.(*pq.Error); ok {
+			if pqErr.Code == "23505" {
+				constraint := strings.ToLower(pqErr.Constraint)
+				switch {
+				case strings.Contains(constraint, "users_email"):
+					return nil, ErrEmailAlreadyRegistered
+				case strings.Contains(constraint, "users_username"):
+					return nil, ErrUsernameAlreadyRegistered
+				default:
+					return nil, errors.New("account already exists")
+				}
+			}
+		}
 		return nil, err
 	}
 

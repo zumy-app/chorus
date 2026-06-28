@@ -2,28 +2,60 @@
 
 A real-time messaging application with built-in translation features for multilingual conversations.
 
+## 📌 Current Development Snapshot (Feb 2026)
+
+### Architecture
+- **Backend**: Go + Gin monolith with layered structure (`handlers` → `services` → `database/models`) and REST + WebSocket interfaces.
+- **Data layer**: PostgreSQL for durable state and Redis for cache/pub-sub/presence runtime state.
+- **Frontend (Web)**: React + TypeScript SPA (Vite, Zustand, Axios) with route-based auth flow.
+- **Frontend (Mobile)**: Capacitor Android shell around the React app; emulator API access uses `10.0.2.2`.
+- **Deployment**: Docker Compose orchestration for `frontend`, `backend`, `postgres`, and `redis`.
+
+### Design & Implementation Shape
+- Backend exposes **Phase 1–3 APIs** (auth, chat, messaging, search, presence, grammar, vocabulary, calls).
+- Web UI currently focuses on **core messaging UX**: login/register, chat list, chat area, new chat creation, message send/read flow.
+- Registration UX is simplified: UI does **not** ask for username; backend derives `username` from `email` when omitted.
+- Translation, typing indicators, and chat updates are integrated through HTTP + WebSocket store handlers.
+
+### Data Model (Current)
+- **Core entities**: `users`, `chats`, `chat_participants`, `messages`, `refresh_tokens`.
+- **Phase 2 entities**: `clients`, `inbox`, `user_settings`, `presence_log`, `rate_limits`, `media_attachments`.
+- **Phase 3 entities**: `vocabulary`, `call_sessions`, `call_participants`, `call_transcripts`.
+- Migrations are automatic on backend startup (`database.Migrate`).
+
+### Feature Implementation Status
+- ✅ **Running stack**: backend + frontend + postgres + redis via Docker Compose.
+- ✅ **Core app**: auth, chats, realtime messaging, translation display, typing indicators.
+- ✅ **Extended APIs**: search/presence/grammar/vocabulary/calls available on backend.
+- ⚠️ **Frontend parity gap**: many Phase 2/3 APIs are backend-ready but not fully exposed in current React UI.
+
 ## 🌐 Live Demo
 
 - **Marketing Website**: http://localhost:5000 (Landing page showcasing features)
 - **Web Application**: http://localhost:3000 (Chat application)
 - **API Backend**: http://localhost:8080 (RESTful API + WebSocket)
 
-## Features (Phase 1-3)
+## Features
 
-- ✅ **User Authentication** - Secure JWT-based authentication
-- ✅ **Direct & Group Chats** - Support for one-on-one and group conversations (2-100 participants)
-- ✅ **Real-time Messaging** - WebSocket-based instant messaging
-- ✅ **Automatic Translation** - Messages automatically translated to user's target languages
-- ✅ **Multi-language Support** - Support for English, Spanish, French, German, Italian, Portuguese, Japanese, Korean, Chinese
-- ✅ **User Profiles** - Customizable display names and language preferences
-- ✅ **Message Search** - Full-text search across messages
-- ✅ **Typing Indicators** - See when others are typing
-- ✅ **Responsive UI** - Modern React-based interface
+### User-Facing (Current UI)
+- ✅ **User Authentication** - JWT-based register/login/refresh flow
+- ✅ **Direct & Group Chats** - One-on-one and group conversations (2-100 participants)
+- ✅ **Real-time Messaging** - WebSocket-driven updates in chat flows
+- ✅ **Translation Display** - Message translation support rendered in message bubbles
+- ✅ **Typing Indicators** - Typing start/stop events wired through WebSocket
+- ✅ **User Profiles** - Display name and language preference support
+
+### Backend-Available (Not Fully Surfaced in UI Yet)
+- ✅ **Search APIs** - Message/chat/contact search endpoints
+- ✅ **Presence APIs** - Presence status and activity update endpoints
+- ✅ **Grammar APIs** - Text/message grammar analysis endpoints
+- ✅ **Vocabulary APIs** - Vocabulary save/review/progress endpoints
+- ✅ **Call APIs** - Call session and transcript endpoints
 
 ## Tech Stack
 
 ### Backend
-- **Go 1.21+** with Gin framework
+- **Go 1.23+** with Gin framework
 - **PostgreSQL 15** for data persistence
 - **Redis 7** for caching and session management
 - **WebSocket** for real-time communication
@@ -39,8 +71,8 @@ A real-time messaging application with built-in translation features for multili
 
 ## Prerequisites
 
-- Go 1.21 or higher
-- Node.js 18 or higher
+- Go 1.23 or higher
+- Node.js 20 or higher (**Node 22+ recommended** for Capacitor 8 tooling)
 - PostgreSQL 15 or higher
 - Redis 7 or higher
 - Docker & Docker Compose (optional, for containerized deployment)
@@ -191,8 +223,8 @@ Services will be available at:
 - ✅ Docker Desktop running
 - ✅ PostgreSQL 15+ installed and running
 - ✅ Redis 7+ installed and running
-- ✅ Go 1.21+ installed
-- ✅ Node.js 18+ installed
+- ✅ Go 1.23+ installed
+- ✅ Node.js 20+ installed (22+ recommended for Capacitor 8)
 
 ### Step-by-Step Service Startup
 
@@ -258,34 +290,28 @@ npm run dev
 
 Frontend will be available at http://localhost:3000
 
-#### 5. Start Mobile App
+#### 5. Start Android Mobile App (Capacitor)
 
 ```powershell
-# Navigate to mobile directory
-cd ChorusMobile
+# Navigate to frontend app (mobile shell uses this web app)
+cd frontend
 
-# Install dependencies (first time only, requires internet connection)
+# Install dependencies (first time only)
 npm install
 
-# For Web Browser (no device needed)
-npm run web
-# Then open http://localhost:8081 in your browser
+# Build web assets
+npm run build
 
-# For iOS (macOS only, requires Xcode)
-npm run ios
+# Sync assets/plugins to Android project
+npx cap sync android
 
-# For Android (requires Android Studio & emulator/device)
-npm run android
+# Run on connected emulator/device
+npx cap run android --target=<deviceId>
 ```
 
-**Note**: The mobile app requires the following packages that need to be installed with internet connection:
-- `@react-navigation/native`
-- `@react-navigation/stack`
-- `axios`
-
-If running offline, the web version may not work until these dependencies are installed.
-
-Mobile web app will be available at http://localhost:8081
+Notes:
+- Use `adb devices` to list target IDs.
+- For Android emulator networking, API host mapping uses `10.0.2.2`.
 
 ### Build Commands
 
@@ -304,19 +330,16 @@ npm run build
 # Output will be in dist/ folder
 ```
 
-#### Build Mobile App
+#### Build Android Mobile App
 
 ```powershell
-cd ChorusMobile
-
-# For Android APK
-npx expo build:android
-
-# For iOS (macOS only)
-npx expo build:ios
-
-# For Web
+cd frontend
 npm run build
+npx cap sync android
+
+# Build debug APK
+cd android
+.\gradlew.bat assembleDebug
 ```
 
 ### Stop Services
@@ -393,7 +416,6 @@ npm install
 1. Open http://localhost:3000
 2. Click "Register"
 3. Fill in your details:
-   - Username (min 3 characters)
    - Email
    - Display Name
    - Password (min 8 characters)
@@ -425,6 +447,8 @@ npm install
 
 ## API Documentation
 
+Core auth/chat/message APIs are used by the current frontend. Additional Phase 2/3 APIs are implemented on backend and available for integration.
+
 ### Authentication
 
 ```http
@@ -455,6 +479,56 @@ GET /api/v1/chats/:chatId/messages?limit=50&before=messageId
 POST /api/v1/chats/:chatId/messages
 PUT /api/v1/chats/:chatId/read
 GET /api/v1/messages/search?q=query&chatId=chatId
+```
+
+### Search (Phase 2)
+
+```http
+GET /api/v1/chats/search
+GET /api/v1/contacts/search
+```
+
+### Presence (Phase 2)
+
+```http
+GET /api/v1/presence/:userId
+PUT /api/v1/presence
+POST /api/v1/presence/activity
+```
+
+### Grammar (Phase 3)
+
+```http
+POST /api/v1/grammar/analyze
+POST /api/v1/grammar/analyze-text
+GET /api/v1/grammar/suggestions
+GET /api/v1/grammar/report
+```
+
+### Vocabulary (Phase 3)
+
+```http
+POST /api/v1/vocabulary
+GET /api/v1/vocabulary
+GET /api/v1/vocabulary/due
+GET /api/v1/vocabulary/:id
+POST /api/v1/vocabulary/practice
+GET /api/v1/vocabulary/progress
+DELETE /api/v1/vocabulary/:id
+GET /api/v1/vocabulary/search
+```
+
+### Calls (Phase 3)
+
+```http
+POST /api/v1/calls/initiate
+POST /api/v1/calls/:callId/end
+GET /api/v1/calls/:callId
+GET /api/v1/calls/:callId/transcript
+GET /api/v1/calls/history
+DELETE /api/v1/calls/:callId/transcript
+GET /api/v1/calls/transcripts/search
+POST /api/v1/calls/:callId/signal
 ```
 
 ### WebSocket
@@ -584,21 +658,12 @@ npm run build
 - Check backend logs for translation errors
 - Without API key, mock translations will be used for common phrases
 
-## Future Phases
+## Roadmap (Next Priorities)
 
-### Phase 2: Multi-Device & Scaling
-- Horizontal scaling with Kubernetes
-- Redis Pub/Sub for cross-instance messaging
-- Offline message delivery
-- Advanced monitoring and metrics
-
-### Phase 3: Advanced Features
-- Grammar analysis and corrections
-- Vocabulary management for language learning
-- Voice and video calls
-- Message reactions and emoji support
-- File sharing (images, documents)
-- Desktop application (Tauri)
+- Frontend parity for backend-available features (presence/search/grammar/vocabulary/calls)
+- Mobile UX hardening and emulator/device runtime polish
+- Better observability and health/diagnostic reporting
+- Optional scale-out and infrastructure automation improvements
 
 ## License
 

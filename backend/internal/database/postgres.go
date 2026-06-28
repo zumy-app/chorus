@@ -29,7 +29,7 @@ func Migrate(db *sql.DB) error {
 		// Phase 1: Core tables
 		`CREATE TABLE IF NOT EXISTS users (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-			username VARCHAR(30) UNIQUE NOT NULL,
+			username VARCHAR(255) UNIQUE NOT NULL,
 			email VARCHAR(255) UNIQUE NOT NULL,
 			password_hash VARCHAR(255) NOT NULL,
 			display_name VARCHAR(100) NOT NULL,
@@ -38,6 +38,7 @@ func Migrate(db *sql.DB) error {
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
+		`ALTER TABLE users ALTER COLUMN username TYPE VARCHAR(255)`,
 		`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)`,
 		`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`,
 
