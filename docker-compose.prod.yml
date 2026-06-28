@@ -84,6 +84,13 @@ services:
         - VITE_APPWRITE_DATABASE_ID=${VITE_APPWRITE_DATABASE_ID:-}
         - VITE_APPWRITE_CLIENT_API_KEY=${VITE_APPWRITE_CLIENT_API_KEY:-}
     container_name: chorus-frontend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.chorus.rule=Host(`chorus.talk`)"
+      - "traefik.http.routers.chorus.entrypoints=websecure"
+      - "traefik.http.routers.chorus.tls=true"
+      - "traefik.http.routers.chorus.tls.certresolver=letsencrypt"
+      - "traefik.http.services.chorus.loadbalancer.server.port=3000"
     # Dokploy/Traefik handles external access
     depends_on:
       - backend

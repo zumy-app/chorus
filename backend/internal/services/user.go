@@ -47,7 +47,8 @@ func (s *UserService) Update(userID string, req models.UpdateUserRequest) (*mode
 	query := `
 		UPDATE users
 		SET display_name = COALESCE(NULLIF($2, ''), display_name),
-		    target_languages = COALESCE($3, target_languages)
+		    native_language = COALESCE(NULLIF($3, ''), native_language),
+		    target_languages = COALESCE($4, target_languages)
 		WHERE id = $1
 		RETURNING id, username, email, display_name, native_language, target_languages, created_at, last_active_at
 	`
@@ -56,8 +57,12 @@ func (s *UserService) Update(userID string, req models.UpdateUserRequest) (*mode
 	if req.DisplayName != "" {
 		displayName = &req.DisplayName
 	}
+	var nativeLanguage *string
+	if req.NativeLanguage != "" {
+		nativeLanguage = &req.NativeLanguage
+	}
 
-	err := s.db.QueryRow(query, userID, displayName, pq.Array(req.TargetLanguages)).Scan(
+	err := s.db.QueryRow(query, userID, displayName, nativeLanguage, pq.Array(req.TargetLanguages)).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Email,
