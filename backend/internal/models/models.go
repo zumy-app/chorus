@@ -188,6 +188,7 @@ type SendMessageRequest struct {
 
 type UpdateUserRequest struct {
 	DisplayName     string   `json:"displayName"`
+	NativeLanguage  string   `json:"nativeLanguage"`
 	TargetLanguages []string `json:"targetLanguages"`
 }
 

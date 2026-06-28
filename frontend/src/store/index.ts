@@ -16,8 +16,10 @@ interface AppState {
   loadMessages: (chatId: string) => Promise<void>
   addMessage: (message: Message) => void
   updateMessage: (message: Message) => void
+  updateChatLastMessage: (chatId: string, message: Message) => void
   sendMessage: (chatId: string, text: string) => Promise<void>
   createChat: (type: 'direct' | 'group', participants: string[], name?: string) => Promise<Chat>
+  updateUser: (updates: Partial<User>) => void
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -61,6 +63,10 @@ export const useStore = create<AppState>((set, get) => ({
   addMessage: (message) => {
     set((state) => {
       const chatMessages = state.messages[message.chatId] || []
+      // Avoid duplicates
+      if (chatMessages.some(m => m.id === message.id)) {
+        return state
+      }
       return {
         messages: {
           ...state.messages,
@@ -68,6 +74,8 @@ export const useStore = create<AppState>((set, get) => ({
         },
       }
     })
+    // Also update the chat's last message and reorder
+    get().updateChatLastMessage(message.chatId, message)
   },
 
   updateMessage: (message) => {
@@ -85,6 +93,25 @@ export const useStore = create<AppState>((set, get) => ({
         }
       }
       return state
+    })
+  },
+
+  updateChatLastMessage: (chatId, message) => {
+    set((state) => {
+      const chatIndex = state.chats.findIndex(c => c.id === chatId)
+      if (chatIndex === -1) return state
+      
+      const updatedChats = [...state.chats]
+      updatedChats[chatIndex] = {
+        ...updatedChats[chatIndex],
+        lastMessage: message,
+      }
+      
+      // Move chat to top of list
+      const chat = updatedChats.splice(chatIndex, 1)[0]
+      updatedChats.unshift(chat)
+      
+      return { chats: updatedChats }
     })
   },
 
@@ -110,6 +137,12 @@ export const useStore = create<AppState>((set, get) => ({
       throw error
     }
   },
+
+  updateUser: (updates) => {
+    set((state) => ({
+      user: state.user ? { ...state.user, ...updates } : null,
+    }))
+  },
 }))
 
 // Setup WebSocket listeners
@@ -124,7 +157,6 @@ wsService.onMessage((message) => {
       store.updateMessage(message.data)
       break
     case 'chat_updated':
-      // Reload chats
       store.loadChats()
       break
   }
