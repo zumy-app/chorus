@@ -46,10 +46,10 @@ export default function ChatArea() {
     }
 
     // Stop typing after 2 seconds of inactivity
-    typingTimeoutRef.current = setTimeout(() => {
+    typingTimeoutRef.current = (setTimeout(() => {
       setIsTyping(false)
       wsService.sendTyping(activeChat.id, false)
-    }, 2000)
+    }, 2000) as unknown) as number
   }
 
   if (!activeChat) {

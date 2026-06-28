@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"errors"
+	"strings"
+
 	"github.com/chorus/messenger/internal/models"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/gin-gonic/gin"
@@ -21,13 +24,33 @@ func NewAuthHandler(authService *services.AuthService, userService *services.Use
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req models.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": "Invalid request: " + err.Error()})
+		c.JSON(400, gin.H{"error": "Invalid registration data. Check email format and required fields."})
 		return
+	}
+
+	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
+	if strings.TrimSpace(req.Username) == "" {
+		req.Username = req.Email
+	}
+	if strings.TrimSpace(req.DisplayName) == "" {
+		// Use email prefix as display name
+		parts := strings.Split(req.Email, "@")
+		req.DisplayName = parts[0]
+	}
+	if strings.TrimSpace(req.NativeLanguage) == "" {
+		req.NativeLanguage = "en"
 	}
 
 	user, err := h.authService.Register(req)
 	if err != nil {
-		c.JSON(400, gin.H{"error": "Registration failed: " + err.Error()})
+		switch {
+		case errors.Is(err, services.ErrEmailAlreadyRegistered):
+			c.JSON(409, gin.H{"error": "Email is already registered"})
+		case errors.Is(err, services.ErrUsernameAlreadyRegistered):
+			c.JSON(409, gin.H{"error": "Username is already registered"})
+		default:
+			c.JSON(400, gin.H{"error": "Registration failed. Please try again."})
+		}
 		return
 	}
 

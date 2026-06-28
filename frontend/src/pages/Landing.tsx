@@ -1,6 +1,24 @@
 import { Link } from 'react-router-dom'
+import { detectBrowserLanguage, getNativeLanguageName, SUPPORTED_LANGUAGES } from '../services/language'
+
+// Simple translations for the landing page hero section
+const HERO_TRANSLATIONS: Record<string, { title: string; subtitle: string; cta: string }> = {
+  en: { title: 'Break Language Barriers, Connect Globally', subtitle: 'Real-time messaging with instant translation in 9 languages. Chat naturally in your language while others read in theirs.', cta: 'Get Started Free' },
+  es: { title: 'Rompe Barreras Lingüísticas, Conecta Globalmente', subtitle: 'Mensajería en tiempo real con traducción instantánea en 9 idiomas. Chatea naturalmente en tu idioma mientras otros leen en el suyo.', cta: 'Comienza Gratis' },
+  fr: { title: 'Brisez les Barrières Linguistiques, Connectez-vous Globalement', subtitle: 'Messagerie en temps réel avec traduction instantanée en 9 langues. Discutez naturellement dans votre langue pendant que les autres lisent dans la leur.', cta: 'Commencer Gratuitement' },
+  de: { title: 'Überwinde Sprachbarrieren, Verbinde Dich Global', subtitle: 'Echtzeit-Messaging mit sofortiger Übersetzung in 9 Sprachen. Chatte natürlich in deiner Sprache, während andere in ihrer lesen.', cta: 'Kostenlos Starten' },
+  it: { title: 'Abbatti le Barriere Linguistiche, Connettiti Globalmente', subtitle: 'Messaggistica in tempo reale con traduzione istantanea in 9 lingue. Chatta naturalmente nella tua lingua mentre altri leggono nella loro.', cta: 'Inizia Gratis' },
+  pt: { title: 'Quebre Barreiras Linguísticas, Conecte-se Globalmente', subtitle: 'Mensagens em tempo real com tradução instantânea em 9 idiomas. Converse naturalmente no seu idioma enquanto outros leem no deles.', cta: 'Comece Grátis' },
+  ja: { title: '言語の壁を壊し、グローバルにつながろう', subtitle: '9言語に対応したリアルタイム翻訳付きメッセージング。あなたの言語で自然にチャットしながら、相手は自分の言語で読み取れます。', cta: '無料で始める' },
+  ko: { title: '언어 장벽을 허물고, 글로벌로 연결하세요', subtitle: '9개 언어로 즉시 번역되는 실시간 메시징. 당신의 언어로 자연스럽게 채팅하고 상대방은 그들의 언어로 읽습니다.', cta: '무료로 시작하기' },
+  zh: { title: '打破语言障碍，连接全球', subtitle: '支持9种语言的实时消息即时翻译。用你的语言自然聊天，对方用他们的语言阅读。', cta: '免费开始' },
+}
 
 export default function Landing() {
+  const lang = detectBrowserLanguage()
+  const hero = HERO_TRANSLATIONS[lang] || HERO_TRANSLATIONS.en
+  const nativeName = getNativeLanguageName(lang)
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       {/* Navigation */}
@@ -29,15 +47,19 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div>
+              <div className="inline-block bg-indigo-100 text-indigo-700 text-sm font-semibold px-3 py-1 rounded-full mb-4">
+                🌍 {nativeName}
+              </div>
               <h1 className="text-5xl md:text-6xl font-bold mb-6">
-                Break Language <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Barriers</span>, Connect Globally
+                {hero.title.split(',')[0]},<br />
+                <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">{hero.title.split(',')[1] || hero.title.split(',')[0]}</span>
               </h1>
               <p className="text-xl text-gray-600 mb-8">
-                Real-time messaging with instant translation in 9 languages. Chat naturally in your language while others read in theirs.
+                {hero.subtitle}
               </p>
               <div className="flex gap-4 mb-12 flex-wrap">
                 <Link to="/register" className="px-8 py-4 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition text-lg">
-                  Get Started Free
+                  {hero.cta}
                 </Link>
                 <a href="#how-it-works" className="px-8 py-4 border-2 border-indigo-600 text-indigo-600 rounded-lg font-semibold hover:bg-indigo-50 transition text-lg">
                   See How It Works
@@ -141,20 +163,11 @@ export default function Landing() {
             <p className="text-xl text-gray-600">Connect with people across 9 major languages</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-4">
-            {[
-              { flag: '🇬🇧', name: 'English' },
-              { flag: '🇪🇸', name: 'Spanish' },
-              { flag: '🇫🇷', name: 'French' },
-              { flag: '🇩🇪', name: 'German' },
-              { flag: '🇮🇹', name: 'Italian' },
-              { flag: '🇵🇹', name: 'Portuguese' },
-              { flag: '🇯🇵', name: 'Japanese' },
-              { flag: '🇰🇷', name: 'Korean' },
-              { flag: '🇨🇳', name: 'Chinese' },
-            ].map((lang, i) => (
+            {SUPPORTED_LANGUAGES.map((lang, i) => (
               <div key={i} className="bg-white p-6 rounded-xl text-center shadow hover:shadow-lg transition">
                 <div className="text-4xl mb-2">{lang.flag}</div>
                 <p className="font-semibold text-gray-800">{lang.name}</p>
+                <p className="text-xs text-gray-400 mt-1">{lang.nativeName}</p>
               </div>
             ))}
           </div>

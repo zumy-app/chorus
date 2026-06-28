@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -13,6 +13,28 @@ function App() {
   const [isLoading, setIsLoading] = useState(true)
   const { setUser } = useStore()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const handleBack = () => {
+    if (location.pathname === '/' && window.location.hash) {
+      navigate('/', { replace: true })
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
+
+    if (window.history.length > 1) {
+      navigate(-1)
+      return
+    }
+
+    navigate('/')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleHome = () => {
+    navigate('/')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -64,32 +86,48 @@ function App() {
   }
 
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          isAuthenticated ? <Navigate to="/chat" /> : <Landing />
-        }
-      />
-      <Route
-        path="/login"
-        element={
-          isAuthenticated ? <Navigate to="/chat" /> : <Login onLogin={handleLogin} />
-        }
-      />
-      <Route
-        path="/register"
-        element={
-          isAuthenticated ? <Navigate to="/chat" /> : <Register onRegister={handleLogin} />
-        }
-      />
-      <Route
-        path="/chat"
-        element={
-          isAuthenticated ? <Chat onLogout={handleLogout} /> : <Navigate to="/login" />
-        }
-      />
-    </Routes>
+    <>
+      <div className="fixed bottom-5 right-5 z-[70] flex gap-2">
+        <button
+          type="button"
+          onClick={handleBack}
+          className="px-4 py-3 rounded-full bg-white border border-gray-300 text-gray-800 shadow-lg hover:bg-gray-50 font-semibold"
+          aria-label="Go back"
+        >
+          ← Back
+        </button>
+        <button
+          type="button"
+          onClick={handleHome}
+          className="px-4 py-3 rounded-full bg-primary text-white shadow-lg hover:bg-primary/90 font-semibold"
+          aria-label="Go home"
+        >
+          🏠 Home
+        </button>
+      </div>
+
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route
+          path="/login"
+          element={
+            isAuthenticated ? <Navigate to="/chat" /> : <Login onLogin={handleLogin} />
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            isAuthenticated ? <Navigate to="/chat" /> : <Register onRegister={handleLogin} />
+          }
+        />
+        <Route
+          path="/chat"
+          element={
+            isAuthenticated ? <Chat onLogout={handleLogout} /> : <Navigate to="/login" />
+          }
+        />
+      </Routes>
+    </>
   )
 }
 

@@ -1,0 +1,104 @@
+# Chorus Messenger — Production Docker Compose for Dokploy
+# Usage: Deploy this via Dokploy dashboard or CLI.
+# Dokploy handles:
+#   - SSL/TLS via Let's Encrypt (Traefik)
+#   - Domain routing (chorus.talk → frontend:3000)
+#   - Internal networking between containers
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: chorus-postgres
+    environment:
+      POSTGRES_DB: messenger_prod
+      POSTGRES_USER: messenger
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-ChangeMe123}
+    ports:
+      # Expose only if you need external DB access (remove in production)
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U messenger"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+    networks:
+      - chorus-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: chorus-redis
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: always
+    networks:
+      - chorus-network
+
+  # Go Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: chorus-backend
+    # No host port — Dokploy routes internally
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgres://messenger:${DB_PASSWORD:-ChangeMe123}@postgres:5432/messenger_prod?sslmode=disable
+      - REDIS_URL=redis:6379
+      - JWT_SECRET=${JWT_SECRET}
+      - GOOGLE_TRANSLATE_API_KEY=${GOOGLE_TRANSLATE_API_KEY:-}
+      - PORT=8080
+      - APPWRITE_ENDPOINT=${APPWRITE_ENDPOINT:-}
+      - APPWRITE_PROJECT_ID=${APPWRITE_PROJECT_ID:-}
+      - APPWRITE_API_KEY=${APPWRITE_API_KEY:-}
+      - APPWRITE_DATABASE_ID=${APPWRITE_DATABASE_ID:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: always
+    networks:
+      - chorus-network
+
+  # React Frontend (served via Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NGINX_CONFIG=nginx.prod.conf
+        - VITE_APPWRITE_ENDPOINT=${VITE_APPWRITE_ENDPOINT:-}
+        - VITE_APPWRITE_PROJECT_ID=${VITE_APPWRITE_PROJECT_ID:-}
+        - VITE_APPWRITE_DATABASE_ID=${VITE_APPWRITE_DATABASE_ID:-}
+        - VITE_APPWRITE_CLIENT_API_KEY=${VITE_APPWRITE_CLIENT_API_KEY:-}
+    container_name: chorus-frontend
+    # Dokploy/Traefik handles external access
+    depends_on:
+      - backend
+    restart: always
+    networks:
+      - chorus-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  chorus-network:
+    driver: bridge
+  dokploy-network:
+    external: true

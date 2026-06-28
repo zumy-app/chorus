@@ -8,6 +8,7 @@ ARG VITE_APPWRITE_ENDPOINT
 ARG VITE_APPWRITE_PROJECT_ID
 ARG VITE_APPWRITE_DATABASE_ID
 ARG VITE_APPWRITE_CLIENT_API_KEY
+ARG NGINX_CONFIG=nginx.conf
 
 # Set as environment variables
 ENV VITE_APPWRITE_ENDPOINT=$VITE_APPWRITE_ENDPOINT
@@ -30,11 +31,14 @@ RUN npm run build
 # Production stage
 FROM nginx:alpine
 
+# Accept NGINX_CONFIG arg again (ARG doesn't carry between multi-stage builds)
+ARG NGINX_CONFIG=nginx.conf
+
 # Copy built files
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY $NGINX_CONFIG /etc/nginx/conf.d/default.conf
 
 # Expose port
 EXPOSE 3000

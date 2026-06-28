@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { Capacitor } from '@capacitor/core'
 import type {
   User,
   Chat,
@@ -10,7 +11,23 @@ import type {
   SendMessageRequest,
 } from '../types'
 
-const API_URL = '/api/v1'
+// Get API URL based on environment
+const getAPIUrl = () => {
+  const platform = Capacitor.getPlatform()
+  const isNative = Capacitor.isNativePlatform()
+
+  if (isNative && platform === 'android') {
+    return 'http://10.0.2.2:8080/api/v1'
+  }
+
+  if (isNative && platform === 'ios') {
+    return 'http://localhost:8080/api/v1'
+  }
+
+  return '/api/v1'
+}
+
+const API_URL = getAPIUrl()
 
 const api = axios.create({
   baseURL: API_URL,

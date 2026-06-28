@@ -1,4 +1,6 @@
-# Backend
+# Environment files
+.env.prod
+.env.local
 backend/.env
 backend/chorus
 backend/chorus.exe
