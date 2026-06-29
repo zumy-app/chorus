@@ -87,7 +87,6 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 	// Get participant languages for translation
 	participantLangs, err := h.chatService.GetParticipantLanguages(chatID)
 	if err == nil && len(participantLangs) > 0 {
-		// Collect unique target languages
 		targetLangs := make(map[string]bool)
 		for _, langs := range participantLangs {
 			for _, lang := range langs {
@@ -99,13 +98,11 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 		go h.translateAndBroadcast(message, targetLangs, chatID)
 	}
 
-	// Broadcast new message to chat participants
+	// Broadcast new message to ALL chat participants (including sender for multi-device)
 	participants, _ := h.chatService.GetParticipants(chatID)
 	userIDs := make([]string, 0, len(participants))
 	for _, p := range participants {
-		if p.UserID != userID { // Don't send back to sender
-			userIDs = append(userIDs, p.UserID)
-		}
+		userIDs = append(userIDs, p.UserID)
 	}
 
 	h.wsHub.SendToChat(chatID, userIDs, "new_message", message)

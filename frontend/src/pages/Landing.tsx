@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
 import { detectBrowserLanguage, getNativeLanguageName, SUPPORTED_LANGUAGES } from '../services/language'
+import LanguageSelector from '../components/LanguageSelector'
 
 // Simple translations for the landing page hero section
 const HERO_TRANSLATIONS: Record<string, { title: string; subtitle: string; cta: string }> = {
@@ -15,9 +17,15 @@ const HERO_TRANSLATIONS: Record<string, { title: string; subtitle: string; cta: 
 }
 
 export default function Landing() {
-  const lang = detectBrowserLanguage()
+  const [selectedLang, setSelectedLang] = useState(() => localStorage.getItem('preferredLanguage') || detectBrowserLanguage())
+  const lang = selectedLang
   const hero = HERO_TRANSLATIONS[lang] || HERO_TRANSLATIONS.en
   const nativeName = getNativeLanguageName(lang)
+
+  const handleLanguageChange = (code: string) => {
+    setSelectedLang(code)
+    localStorage.setItem('preferredLanguage', code)
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
@@ -33,12 +41,19 @@ export default function Landing() {
             </div>
             <span className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Chorus</span>
           </div>
-          <ul className="hidden md:flex gap-8 items-center">
-            <li><a href="#features" className="text-gray-700 hover:text-indigo-600 transition">Features</a></li>
-            <li><a href="#how-it-works" className="text-gray-700 hover:text-indigo-600 transition">How It Works</a></li>
-            <li><a href="#languages" className="text-gray-700 hover:text-indigo-600 transition">Languages</a></li>
-            <li><Link to="/login" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">Launch App</Link></li>
-          </ul>
+          <div className="flex items-center gap-4">
+            <ul className="hidden md:flex gap-8 items-center">
+              <li><a href="#features" className="text-gray-700 hover:text-indigo-600 transition">Features</a></li>
+              <li><a href="#how-it-works" className="text-gray-700 hover:text-indigo-600 transition">How It Works</a></li>
+              <li><a href="#languages" className="text-gray-700 hover:text-indigo-600 transition">Languages</a></li>
+            </ul>
+            <LanguageSelector
+              currentLang={lang}
+              onLanguageChange={handleLanguageChange}
+              variant="navbar"
+            />
+            <Link to="/login" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition whitespace-nowrap">Launch App</Link>
+          </div>
         </div>
       </nav>
 

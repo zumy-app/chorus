@@ -31,7 +31,22 @@ func NewWebSocketHandler(hub *services.WebSocketHub, authService *services.AuthS
 }
 
 func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
+	// Try to get userID from middleware first (Authorization header)
 	userID := c.GetString("userID")
+
+	// If not found, try query parameter token (for WebSocket connections)
+	if userID == "" {
+		token := c.Query("token")
+		if token != "" {
+			var err error
+			userID, err = h.authService.ValidateAccessToken(token)
+			if err != nil {
+				c.JSON(401, gin.H{"error": "Invalid token"})
+				return
+			}
+		}
+	}
+
 	if userID == "" {
 		c.JSON(401, gin.H{"error": "Unauthorized"})
 		return

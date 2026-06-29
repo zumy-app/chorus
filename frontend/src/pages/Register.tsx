@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { authAPI } from '../services/api'
 import { detectBrowserLanguage, getNativeLanguageName } from '../services/language'
+import LanguageSelector from '../components/LanguageSelector'
 
 interface RegisterProps {
   onRegister: (tokens: { accessToken: string; refreshToken: string }) => void
@@ -12,9 +13,14 @@ export default function Register({ onRegister }: RegisterProps) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [selectedLang, setSelectedLang] = useState(() => localStorage.getItem('preferredLanguage') || detectBrowserLanguage())
 
-  const detectedLang = detectBrowserLanguage()
-  const nativeLangName = getNativeLanguageName(detectedLang)
+  const nativeLangName = getNativeLanguageName(selectedLang)
+
+  const handleLanguageChange = (code: string) => {
+    setSelectedLang(code)
+    localStorage.setItem('preferredLanguage', code)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -28,7 +34,7 @@ export default function Register({ onRegister }: RegisterProps) {
         password,
         username: normalizedEmail,
         displayName: normalizedEmail.split('@')[0],
-        nativeLanguage: detectedLang,
+        nativeLanguage: selectedLang,
         targetLanguages: [],
       })
       onRegister(response.tokens)
@@ -62,6 +68,15 @@ export default function Register({ onRegister }: RegisterProps) {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary to-secondary py-8">
+      {/* Language selector top-right */}
+      <div className="fixed top-4 right-4 z-50">
+        <LanguageSelector
+          currentLang={selectedLang}
+          onLanguageChange={handleLanguageChange}
+          variant="navbar"
+        />
+      </div>
+
       <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -72,7 +87,7 @@ export default function Register({ onRegister }: RegisterProps) {
           </div>
           <h1 className="text-3xl font-bold text-gray-800">Join Chorus</h1>
           <p className="text-gray-500 mt-2">
-            We detected your language as <strong>{nativeLangName}</strong>
+            Your language: <strong>{nativeLangName}</strong>
           </p>
         </div>
 
