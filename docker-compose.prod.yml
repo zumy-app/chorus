@@ -101,6 +101,7 @@ services:
     restart: always
     networks:
       - chorus-network
+      - dokploy-network
 
   # Ollama Translation Service
   ollama:
