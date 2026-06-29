@@ -189,4 +189,31 @@ export const vocabularyAPI = {
   },
 }
 
+export const grammarAPI = {
+  analyze: async (text: string, language: string) => {
+    const response = await api.post('/grammar/analyze-text', { text, language })
+    return response.data.data
+  },
+
+  analyzeAI: async (text: string, language: string, nativeLanguage?: string) => {
+    const response = await api.post('/grammar/analyze-ai', { text, language, nativeLanguage })
+    return response.data.data
+  },
+
+  learn: async (text: string, language: string, nativeLanguage: string, action: string, customQuery?: string) => {
+    const response = await api.post('/grammar/learn', { text, language, nativeLanguage, action, customQuery })
+    return response.data.data
+  },
+
+  getSuggestions: async (level: string, language: string) => {
+    const response = await api.get(`/grammar/suggestions?level=${level}&language=${language}`)
+    return response.data.suggestions
+  },
+
+  getReport: async (language: string) => {
+    const response = await api.get(`/grammar/report?language=${language}`)
+    return response.data
+  },
+}
+
 export default api

@@ -89,6 +89,12 @@ function App() {
             isAuthenticated ? <Chat onLogout={handleLogout} /> : <Navigate to="/login" />
           }
         />
+        <Route
+          path="/chat/:slug"
+          element={
+            isAuthenticated ? <Chat onLogout={handleLogout} /> : <Navigate to="/login" />
+          }
+        />
       </Routes>
     </>
   )

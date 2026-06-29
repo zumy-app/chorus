@@ -8,6 +8,8 @@ type Config struct {
 	RedisURL              string
 	JWTSecret             string
 	GoogleTranslateAPIKey string
+	OllamaURL             string
+	OllamaModel           string
 	Port                  string
 	AppwriteEndpoint      string
 	AppwriteProjectID     string
@@ -22,6 +24,8 @@ func Load() *Config {
 		RedisURL:              getEnv("REDIS_URL", "localhost:6379"),
 		JWTSecret:             getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
 		GoogleTranslateAPIKey: getEnv("GOOGLE_TRANSLATE_API_KEY", ""),
+		OllamaURL:             getEnv("OLLAMA_URL", "http://localhost:11434"),
+		OllamaModel:           getEnv("OLLAMA_MODEL", "qwen2.5:3b"),
 		Port:                  getEnv("PORT", "8080"),
 		AppwriteEndpoint:      getEnv("APPWRITE_ENDPOINT", ""),
 		AppwriteProjectID:     getEnv("APPWRITE_PROJECT_ID", ""),

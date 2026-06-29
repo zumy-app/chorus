@@ -210,5 +210,70 @@ func (h *GrammarHandler) GetGrammarReport(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, report)
+	c.JSON(http.StatusOK, gin.H{"data": report})
+}
+
+// AnalyzeTextWithAI performs AI-powered grammar analysis on arbitrary text
+// POST /api/v1/grammar/analyze-ai
+func (h *GrammarHandler) AnalyzeTextWithAI(c *gin.Context) {
+	userID := c.GetString("userID")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var req struct {
+		Text           string `json:"text" binding:"required"`
+		Language       string `json:"language" binding:"required"`
+		NativeLanguage string `json:"nativeLanguage"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	nativeLang := req.NativeLanguage
+	if nativeLang == "" {
+		nativeLang = "en"
+	}
+
+	analysis, err := h.grammarService.GenerateAIAnalysis(req.Text, req.Language, nativeLang)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "AI grammar analysis failed"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": gin.H{
+			"text":     req.Text,
+			"language": req.Language,
+			"analysis": analysis,
+		},
+	})
+}
+
+// LearnGrammar generates interactive learning content (breakdown, examples, flashcards, custom)
+// POST /api/v1/grammar/learn
+func (h *GrammarHandler) LearnGrammar(c *gin.Context) {
+	userID := c.GetString("userID")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var req models.LearnRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	content, err := h.grammarService.GenerateLearningContent(req.Text, req.Language, req.NativeLanguage, req.Action, req.CustomQuery)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate learning content"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": content,
+	})
 }

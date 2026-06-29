@@ -45,6 +45,8 @@ services:
       - REDIS_URL=redis:6379
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
       - GOOGLE_TRANSLATE_API_KEY=${GOOGLE_TRANSLATE_API_KEY:-}
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_MODEL=qwen2.5:3b
       - PORT=8080
       - APPWRITE_ENDPOINT=${APPWRITE_ENDPOINT:-https://appwrite.zumy.app/v1}
       - APPWRITE_PROJECT_ID=${APPWRITE_PROJECT_ID:-6955733a001c10e7c020}
@@ -55,6 +57,29 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    restart: unless-stopped
+
+  # Ollama Translation Service
+  ollama:
+    image: ollama/ollama:latest
+    container_name: chorus-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+    entrypoint: >
+      sh -c "ollama serve &
+      sleep 3 &&
+      ollama pull qwen2.5:3b &&
+      wait"
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
     restart: unless-stopped
 
   # React Frontend
@@ -77,3 +102,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  ollama_data:

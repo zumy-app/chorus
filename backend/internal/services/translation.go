@@ -1,10 +1,13 @@
 package services
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
 	"time"
 
@@ -14,14 +17,29 @@ import (
 	"google.golang.org/api/option"
 )
 
-type TranslationService struct {
-	client     *translate.Client
-	redis      *redis.Client
-	apiKey     string
-	ctx        context.Context
+type OllamaGenerateRequest struct {
+	Model   string `json:"model"`
+	Prompt  string `json:"prompt"`
+	Stream  bool   `json:"stream"`
 }
 
-func NewTranslationService(apiKey string, redis *redis.Client) *TranslationService {
+type OllamaGenerateResponse struct {
+	Model     string `json:"model"`
+	Response  string `json:"response"`
+	Done      bool   `json:"done"`
+}
+
+type TranslationService struct {
+	client      *translate.Client
+	redis       *redis.Client
+	apiKey      string
+	ollamaURL   string
+	ollamaModel string
+	httpClient  *http.Client
+	ctx         context.Context
+}
+
+func NewTranslationService(apiKey, ollamaURL, ollamaModel string, redis *redis.Client) *TranslationService {
 	ctx := context.Background()
 	var client *translate.Client
 	
@@ -35,19 +53,17 @@ func NewTranslationService(apiKey string, redis *redis.Client) *TranslationServi
 	}
 
 	return &TranslationService{
-		client: client,
-		redis:  redis,
-		apiKey: apiKey,
-		ctx:    ctx,
+		client:      client,
+		redis:       redis,
+		apiKey:      apiKey,
+		ollamaURL:   ollamaURL,
+		ollamaModel: ollamaModel,
+		httpClient:  &http.Client{Timeout: 60 * time.Second},
+		ctx:         ctx,
 	}
 }
 
 func (s *TranslationService) Translate(text, targetLang string) (string, error) {
-	if s.client == nil {
-		// Return mock translation if no API key is configured
-		return s.mockTranslate(text, targetLang), nil
-	}
-
 	// Check cache first
 	cacheKey := fmt.Sprintf("translation:%s:%s", targetLang, text)
 	if s.redis != nil {
@@ -57,29 +73,145 @@ func (s *TranslationService) Translate(text, targetLang string) (string, error) 
 		}
 	}
 
-	// Translate using Google Translate API
-	lang, err := language.Parse(targetLang)
-	if err != nil {
-		return "", err
+	// Try Ollama first if URL is configured
+	if s.ollamaURL != "" {
+		result, err := s.translateWithOllama(text, targetLang)
+		if err == nil && result != "" {
+			// Cache the result
+			if s.redis != nil {
+				s.redis.Set(s.ctx, cacheKey, result, 24*time.Hour)
+			}
+			return result, nil
+		}
+		fmt.Printf("Ollama translation failed, falling back: %v\n", err)
 	}
 
-	translations, err := s.client.Translate(s.ctx, []string{text}, lang, nil)
-	if err != nil {
-		return "", err
+	// Fall back to Google Translate if configured
+	if s.client != nil {
+		lang, err := language.Parse(targetLang)
+		if err != nil {
+			return "", err
+		}
+
+		translations, err := s.client.Translate(s.ctx, []string{text}, lang, nil)
+		if err != nil {
+			return "", err
+		}
+
+		if len(translations) == 0 {
+			return "", errors.New("no translation returned")
+		}
+
+		result := translations[0].Text
+
+		// Cache the result
+		if s.redis != nil {
+			s.redis.Set(s.ctx, cacheKey, result, 24*time.Hour)
+		}
+
+		return result, nil
 	}
 
-	if len(translations) == 0 {
-		return "", errors.New("no translation returned")
-	}
-
-	result := translations[0].Text
-
-	// Cache the result
+	// Final fallback: mock translation
+	result := s.mockTranslate(text, targetLang)
 	if s.redis != nil {
 		s.redis.Set(s.ctx, cacheKey, result, 24*time.Hour)
 	}
+	return result, nil
+}
+
+// translateWithOllama calls the local Ollama instance to translate text.
+func (s *TranslationService) translateWithOllama(text, targetLang string) (string, error) {
+	langName := languageCodeToName(targetLang)
+	if langName == "" {
+		langName = targetLang
+	}
+
+	prompt := fmt.Sprintf(`Translate the following text to %s. Only return the translated text, nothing else.
+
+Text: %s
+Translation:`, langName, text)
+
+	reqBody := OllamaGenerateRequest{
+		Model:  s.ollamaModel,
+		Prompt: prompt,
+		Stream: false,
+	}
+
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(s.ctx, "POST", s.ollamaURL+"/api/generate", bytes.NewReader(body))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to call Ollama: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("Ollama returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var ollamaResp OllamaGenerateResponse
+	if err := json.NewDecoder(resp.Body).Decode(&ollamaResp); err != nil {
+		return "", fmt.Errorf("failed to decode Ollama response: %w", err)
+	}
+
+	if ollamaResp.Response == "" {
+		return "", errors.New("Ollama returned empty response")
+	}
+
+	// Clean up the response — trim whitespace and quotes
+	result := strings.TrimSpace(ollamaResp.Response)
+	result = strings.Trim(result, "\"'「」『』")
 
 	return result, nil
+}
+
+// languageCodeToName maps ISO 639-1 codes to full language names for better Ollama prompt quality.
+func languageCodeToName(code string) string {
+	names := map[string]string{
+		"af": "Afrikaans", "sq": "Albanian", "am": "Amharic", "ar": "Arabic",
+		"hy": "Armenian", "az": "Azerbaijani", "eu": "Basque", "be": "Belarusian",
+		"bn": "Bengali", "bs": "Bosnian", "bg": "Bulgarian", "ca": "Catalan",
+		"ceb": "Cebuano", "ny": "Chichewa", "zh": "Chinese", "zh-CN": "Chinese (Simplified)",
+		"zh-TW": "Chinese (Traditional)", "co": "Corsican", "hr": "Croatian", "cs": "Czech",
+		"da": "Danish", "nl": "Dutch", "en": "English", "eo": "Esperanto",
+		"et": "Estonian", "tl": "Filipino", "fi": "Finnish", "fr": "French",
+		"fy": "Frisian", "gl": "Galician", "ka": "Georgian", "de": "German",
+		"el": "Greek", "gu": "Gujarati", "ht": "Haitian Creole", "ha": "Hausa",
+		"haw": "Hawaiian", "he": "Hebrew", "hi": "Hindi", "hmn": "Hmong",
+		"hu": "Hungarian", "is": "Icelandic", "ig": "Igbo", "id": "Indonesian",
+		"ga": "Irish", "it": "Italian", "ja": "Japanese", "jw": "Javanese",
+		"kn": "Kannada", "kk": "Kazakh", "km": "Khmer", "rw": "Kinyarwanda",
+		"ko": "Korean", "ku": "Kurdish", "ky": "Kyrgyz", "lo": "Lao",
+		"la": "Latin", "lv": "Latvian", "lt": "Lithuanian", "lb": "Luxembourgish",
+		"mk": "Macedonian", "mg": "Malagasy", "ms": "Malay", "ml": "Malayalam",
+		"mt": "Maltese", "mi": "Maori", "mr": "Marathi", "mn": "Mongolian",
+		"my": "Myanmar (Burmese)", "ne": "Nepali", "no": "Norwegian", "or": "Odia",
+		"ps": "Pashto", "fa": "Persian", "pl": "Polish", "pt": "Portuguese",
+		"pa": "Punjabi", "ro": "Romanian", "ru": "Russian", "sm": "Samoan",
+		"gd": "Scots Gaelic", "sr": "Serbian", "st": "Sesotho", "sn": "Shona",
+		"sd": "Sindhi", "si": "Sinhala", "sk": "Slovak", "sl": "Slovenian",
+		"so": "Somali", "es": "Spanish", "su": "Sundanese", "sw": "Swahili",
+		"sv": "Swedish", "tg": "Tajik", "ta": "Tamil", "tt": "Tatar",
+		"te": "Telugu", "th": "Thai", "tr": "Turkish", "tk": "Turkmen",
+		"uk": "Ukrainian", "ur": "Urdu", "ug": "Uyghur", "uz": "Uzbek",
+		"vi": "Vietnamese", "cy": "Welsh", "xh": "Xhosa", "yi": "Yiddish",
+		"yo": "Yoruba", "zu": "Zulu",
+	}
+	if name, ok := names[code]; ok {
+		return name
+	}
+	return code
 }
 
 func (s *TranslationService) TranslateMultiple(text string, targetLangs []string) (map[string]string, error) {

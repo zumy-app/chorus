@@ -1,8 +1,10 @@
-import { useStore } from '../store'
+import { useNavigate } from 'react-router-dom'
+import { useStore, getChatSlug } from '../store'
 import { formatDistanceToNow } from 'date-fns'
 
 export default function ChatList() {
-  const { chats, activeChat, setActiveChat } = useStore()
+  const navigate = useNavigate()
+  const { chats, activeChat, user, setActiveChat } = useStore()
 
   if (chats.length === 0) {
     return (
@@ -12,12 +14,18 @@ export default function ChatList() {
     )
   }
 
+  const handleSelectChat = (chat: any) => {
+    setActiveChat(chat)
+    const slug = getChatSlug(chat, user?.id)
+    navigate(`/chat/${slug}`, { replace: true })
+  }
+
   return (
     <div className="flex-1 overflow-y-auto">
       {chats.map((chat) => {
         const isActive = activeChat?.id === chat.id
         const otherParticipant = chat.type === 'direct' 
-          ? chat.participants?.find(p => p.user?.id !== useStore.getState().user?.id)?.user
+          ? chat.participants?.find(p => p.user?.id !== user?.id)?.user
           : null
 
         const chatName = chat.type === 'group' 
@@ -27,7 +35,7 @@ export default function ChatList() {
         return (
           <div
             key={chat.id}
-            onClick={() => setActiveChat(chat)}
+            onClick={() => handleSelectChat(chat)}
             className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition ${
               isActive ? 'bg-primary/10 border-l-4 border-l-primary' : ''
             }`}

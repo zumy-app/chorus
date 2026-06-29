@@ -84,8 +84,21 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 		return
 	}
 
-	// Get participant languages for translation
+	// Detect and store the original language based on sender's native language
 	participantLangs, err := h.chatService.GetParticipantLanguages(chatID)
+	if err == nil {
+		if senderLangs, ok := participantLangs[userID]; ok && len(senderLangs) > 0 {
+			nativeLang := senderLangs[0]
+			if nativeLang != "" {
+				// Update the message's original language in DB
+				h.messageService.UpdateOriginalLanguage(message.ID, nativeLang)
+				message.OriginalLanguage = nativeLang
+			}
+		}
+	}
+
+	// Get participant languages for translation
+	participantLangs, err = h.chatService.GetParticipantLanguages(chatID)
 	if err == nil && len(participantLangs) > 0 {
 		targetLangs := make(map[string]bool)
 		for _, langs := range participantLangs {

@@ -91,6 +91,41 @@ type GrammarAnalysis struct {
 	Explanations []string `json:"explanations"`
 }
 
+// AI-powered grammar analysis (enriched via Ollama)
+type AIGrammarAnalysis struct {
+	Difficulty       string                   `json:"difficulty"`
+	Patterns         []GrammarPattern         `json:"patterns"`
+	Summary          string                   `json:"summary"`
+	DetailedBreakdown []BreakdownItem         `json:"detailedBreakdown,omitempty"`
+}
+
+type GrammarPattern struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Example     string `json:"example"`
+}
+
+type BreakdownItem struct {
+	Text        string `json:"text"`
+	Explanation string `json:"explanation"`
+	Type        string `json:"type"` // verb, tense, noun, preposition, article, etc.
+}
+
+type LearningContent struct {
+	Action           string   `json:"action"`
+	Content          string   `json:"content"`
+	Details          []string `json:"details"`
+	SuggestedActions []string `json:"suggestedActions"`
+}
+
+type LearnRequest struct {
+	Text           string `json:"text" binding:"required"`
+	Language       string `json:"language" binding:"required"`
+	NativeLanguage string `json:"nativeLanguage" binding:"required"`
+	Action         string `json:"action" binding:"required"` // breakdown, examples, flashcards, custom
+	CustomQuery    string `json:"customQuery,omitempty"`
+}
+
 // Phase 3: Call session for voice/video
 type CallSession struct {
 	ID           string    `json:"id" db:"id"`

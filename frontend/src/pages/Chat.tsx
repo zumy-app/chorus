@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
-import { useStore } from '../store'
+import { useParams, useNavigate } from 'react-router-dom'
+import { useStore, getChatSlug } from '../store'
 import ChatList from '../components/ChatList'
 import ChatArea from '../components/ChatArea'
 import NewChatModal from '../components/NewChatModal'
@@ -14,7 +15,9 @@ interface ChatProps {
 }
 
 export default function Chat({ onLogout }: ChatProps) {
-  const { user, loadChats, activeChat, setActiveChat, updateUser } = useStore()
+  const { slug } = useParams<{ slug: string }>()
+  const navigate = useNavigate()
+  const { user, loadChats, activeChat, chats, setActiveChat, navigateToSlug, updateUser } = useStore()
   const [showNewChatModal, setShowNewChatModal] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
@@ -23,10 +26,36 @@ export default function Chat({ onLogout }: ChatProps) {
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [showMobileChat, setShowMobileChat] = useState(false)
   const profileMenuRef = useRef<HTMLDivElement>(null)
+  const [, setSlugError] = useState(false)
 
   useEffect(() => {
     loadChats()
   }, [loadChats])
+
+  // Deep link: when slug is in the URL and chats have loaded, resolve it to a chat
+  useEffect(() => {
+    if (slug && chats.length > 0) {
+      const found = navigateToSlug(slug)
+      if (!found) {
+        // For direct chats, the other user might have just created an account
+        // and we haven't loaded their chat yet. Show a fallback message.
+        setSlugError(true)
+      } else {
+        setSlugError(false)
+      }
+    }
+  }, [slug, chats, navigateToSlug])
+
+  // Sync URL when activeChat changes (e.g. from clicking a chat in the list)
+  useEffect(() => {
+    if (activeChat && user) {
+      const currentSlug = getChatSlug(activeChat, user.id)
+      const expectedPath = `/chat/${currentSlug}`
+      if (window.location.pathname !== expectedPath) {
+        navigate(expectedPath, { replace: true })
+      }
+    }
+  }, [activeChat, user, navigate])
 
   // Close profile menu when clicking outside
   useEffect(() => {
@@ -49,6 +78,7 @@ export default function Chat({ onLogout }: ChatProps) {
   const handleBackToList = () => {
     setShowMobileChat(false)
     setActiveChat(null)
+    navigate('/chat', { replace: true })
   }
 
   const handleLanguageChange = (code: string) => {
@@ -56,6 +86,33 @@ export default function Chat({ onLogout }: ChatProps) {
     if (user) {
       updateUser({ nativeLanguage: code })
     }
+  }
+
+  if (!activeChat && slug) {
+    return (
+      <div className="h-screen flex flex-col bg-gray-50">
+        <header className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center shrink-0">
+          <button onClick={() => { setSlugError(false); navigate('/chat', { replace: true }) }}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition mr-2">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Chorus</h1>
+        </header>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center max-w-md p-8">
+            <p className="text-5xl mb-4">🔗</p>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Chat not found</h2>
+            <p className="text-gray-500 mb-6">This link doesn't match any of your chats. It may be expired or you might not have access.</p>
+            <button onClick={() => navigate('/chat', { replace: true })}
+                    className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:opacity-90 transition font-semibold">
+              Go to Chats
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (showAbout) {

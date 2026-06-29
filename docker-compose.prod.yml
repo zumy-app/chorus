@@ -58,6 +58,8 @@ services:
       - REDIS_URL=redis:6379
       - JWT_SECRET=${JWT_SECRET}
       - GOOGLE_TRANSLATE_API_KEY=${GOOGLE_TRANSLATE_API_KEY:-}
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_MODEL=qwen2.5:3b
       - PORT=8080
       - APPWRITE_ENDPOINT=${APPWRITE_ENDPOINT:-}
       - APPWRITE_PROJECT_ID=${APPWRITE_PROJECT_ID:-}
@@ -68,6 +70,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      ollama:
+        condition: service_started
     restart: always
     networks:
       - chorus-network
@@ -98,10 +102,37 @@ services:
     networks:
       - chorus-network
 
+  # Ollama Translation Service
+  ollama:
+    image: ollama/ollama:latest
+    container_name: chorus-ollama
+    networks:
+      - chorus-network
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+    entrypoint: >
+      sh -c "ollama serve &
+      sleep 3 &&
+      ollama pull qwen2.5:3b &&
+      wait"
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    restart: always
+
 volumes:
   postgres_data:
     driver: local
   redis_data:
+    driver: local
+  ollama_data:
     driver: local
 
 networks:
