@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/translate"
@@ -115,12 +116,54 @@ func (s *TranslationService) DetectLanguage(text string) (string, error) {
 
 // Mock translation for development without API key
 func (s *TranslationService) mockTranslate(text, targetLang string) string {
+	// Comprehensive bidirectional mock dictionary
 	mockTranslations := map[string]map[string]string{
 		"es": {
 			"Hello": "Hola",
+			"Hi": "Hola",
 			"How are you?": "¿Cómo estás?",
 			"Good morning": "Buenos días",
+			"Good day": "Buenos días",
+			"Good afternoon": "Buenas tardes",
+			"Good evening": "Buenas noches",
+			"Good night": "Buenas noches",
 			"Thank you": "Gracias",
+			"Thanks": "Gracias",
+			"Please": "Por favor",
+			"Sorry": "Lo siento",
+			"Excuse me": "Disculpe",
+			"Yes": "Sí",
+			"No": "No",
+			"Friend": "Amigo",
+			"How are you doing?": "¿Cómo te va?",
+			"See you later": "Hasta luego",
+			"Goodbye": "Adiós",
+			"Welcome": "Bienvenido",
+			"What's up?": "¿Qué tal?",
+		},
+		"en": {
+			"Hola": "Hello",
+			"¿Cómo estás?": "How are you?",
+			"Buenos días": "Good morning",
+			"Buenas tardes": "Good afternoon",
+			"Buenas noches": "Good evening",
+			"Gracias": "Thank you",
+			"Por favor": "Please",
+			"Lo siento": "Sorry",
+			"Disculpe": "Excuse me",
+			"Sí": "Yes",
+			"No": "No",
+			"Amigo": "Friend",
+			"Amiga": "Friend",
+			"¿Cómo te va?": "How are you doing?",
+			"Hasta luego": "See you later",
+			"Adiós": "Goodbye",
+			"Bienvenido": "Welcome",
+			"¿Qué tal?": "What's up?",
+			"Buenas": "Good day",
+			"Bueno": "Good",
+			"Mucho gusto": "Nice to meet you",
+			"De nada": "You're welcome",
 		},
 		"fr": {
 			"Hello": "Bonjour",
@@ -140,8 +183,16 @@ func (s *TranslationService) mockTranslate(text, targetLang string) string {
 		if translation, ok := langMap[text]; ok {
 			return translation
 		}
+		// Also try case-insensitive match
+		lowerText := strings.ToLower(text)
+		for key, val := range langMap {
+			if strings.ToLower(key) == lowerText {
+				return val
+			}
+		}
 	}
 
+	// If no exact match, return a friendly mock
 	return fmt.Sprintf("[%s] %s", targetLang, text)
 }
 

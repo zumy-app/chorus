@@ -113,7 +113,8 @@ export default function ChatArea() {
               key={message.id}
               message={message}
               isOwn={message.senderId === user?.id}
-              userLanguage={user?.targetLanguages?.[0] || user?.nativeLanguage || 'en'}
+              nativeLanguage={user?.nativeLanguage || 'en'}
+              targetLanguage={user?.targetLanguages?.[0]}
             />
           ))
         )}

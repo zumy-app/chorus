@@ -9,7 +9,8 @@ class WebSocketService {
 
   connect(token: string) {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = `${protocol}//${window.location.host}/ws`
+    // Pass token as query parameter since WebSocket API doesn't support custom headers
+    const wsUrl = `${protocol}//${window.location.host}/ws?token=${encodeURIComponent(token)}`
 
     this.ws = new WebSocket(wsUrl)
 

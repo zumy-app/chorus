@@ -157,4 +157,36 @@ export const messageAPI = {
   },
 }
 
+export const vocabularyAPI = {
+  getAll: async (language?: string) => {
+    const params = new URLSearchParams()
+    if (language) params.append('language', language)
+    const response = await api.get(`/vocabulary?${params}`)
+    return response.data.data?.entries || []
+  },
+
+  getDue: async () => {
+    const response = await api.get('/vocabulary/due')
+    return response.data.data || []
+  },
+
+  save: async (term: string, language: string, messageId: string) => {
+    const response = await api.post('/vocabulary', { term, language, messageId })
+    return response.data.data
+  },
+
+  practice: async (vocabularyId: string, correct: boolean) => {
+    await api.post('/vocabulary/practice', { vocabularyId, correct })
+  },
+
+  getProgress: async () => {
+    const response = await api.get('/vocabulary/progress')
+    return response.data.data
+  },
+
+  delete: async (id: string) => {
+    await api.delete(`/vocabulary/${id}`)
+  },
+}
+
 export default api

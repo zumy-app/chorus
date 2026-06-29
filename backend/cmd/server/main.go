@@ -204,8 +204,8 @@ func main() {
 	// 	admin.GET("/presence/stats", presenceHandler.GetPresenceStats)
 	// }
 
-	// WebSocket endpoint
-	r.GET("/ws", middleware.AuthMiddleware(authService), wsHandler.HandleWebSocket)
+	// WebSocket endpoint (auth handled inside handler via query param or header)
+	r.GET("/ws", wsHandler.HandleWebSocket)
 
 	// Start server
 	port := os.Getenv("PORT")

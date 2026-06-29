@@ -1,0 +1,14 @@
+http:
+  routers:
+    chorus:
+      rule: "Host(`chorus.talk`)"
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      service: chorus
+  services:
+    chorus:
+      loadBalancer:
+        servers:
+          - url: "http://10.0.0.3:3000"

@@ -254,7 +254,7 @@ func (s *ChatService) IsParticipant(chatID, userID string) (bool, error) {
 
 func (s *ChatService) GetParticipantLanguages(chatID string) (map[string][]string, error) {
 	query := `
-		SELECT u.id, u.target_languages
+		SELECT u.id, u.native_language, u.target_languages
 		FROM users u
 		INNER JOIN chat_participants cp ON u.id = cp.user_id
 		WHERE cp.chat_id = $1
@@ -269,12 +269,16 @@ func (s *ChatService) GetParticipantLanguages(chatID string) (map[string][]strin
 	languages := make(map[string][]string)
 	for rows.Next() {
 		var userID string
-		var langs []string
-		err := rows.Scan(&userID, pq.Array(&langs))
+		var nativeLanguage string
+		var targetLangs []string
+		err := rows.Scan(&userID, &nativeLanguage, pq.Array(&targetLangs))
 		if err != nil {
 			continue
 		}
-		languages[userID] = langs
+		// Include native language for comprehension AND target languages for learning
+		allLangs := []string{nativeLanguage}
+		allLangs = append(allLangs, targetLangs...)
+		languages[userID] = allLangs
 	}
 
 	return languages, nil
