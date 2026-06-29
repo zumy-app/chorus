@@ -2,7 +2,38 @@
 
 A real-time messaging application with built-in translation features for multilingual conversations.
 
-## 📌 Current Development Snapshot (Feb 2026)
+### Option 1: Hot Reload (Recommended for Frontend) ⚡
+
+Run the frontend in **Vite dev mode** with Hot Module Replacement — changes appear instantly in the browser, no rebuild or redeploy needed.
+
+**Prerequisites:** Backend + DB must be running in Docker.
+
+```powershell
+# Terminal 1: Start backend services (one time)
+docker-compose up -d
+
+# Terminal 2: Start frontend in dev mode with hot reload
+cd frontend
+npm run dev
+```
+
+Now open http://localhost:5173 — every time you save a `.tsx`/`.ts` file, the browser updates instantly.
+
+### Option 2: Docker Rebuild (Slower, Full Production Build)
+```powershell
+# Frontend changes (.tsx, .ts, .css):
+docker-compose up -d --build frontend
+
+# Backend changes (.go):
+docker-compose up -d --build backend
+
+# Both:
+docker-compose up -d --build
+```
+
+Then refresh your browser at http://localhost:3000
+
+## �📌 Current Development Snapshot (Feb 2026)
 
 ### Architecture
 - **Backend**: Go + Gin monolith with layered structure (`handlers` → `services` → `database/models`) and REST + WebSocket interfaces.
@@ -147,6 +178,68 @@ python -m http.server 5000
 The marketing website will start on `http://localhost:5000`
 
 ## Quick Start (With Docker)
+
+### First Time Setup
+
+```powershell
+# Build all services
+docker-compose build
+
+# Start everything
+docker-compose up -d
+```
+
+### 🔄 Development Workflow — Reloading After Code Changes
+
+When you edit a `.tsx`, `.ts`, `.go`, or any source file, you need to rebuild and restart the affected service. Here's how:
+
+#### Frontend Changes (`.tsx`, `.ts`, `.css` files)
+
+```powershell
+# 1. Rebuild the frontend image with your changes
+docker-compose build frontend
+
+# 2. Restart just the frontend container
+docker-compose up -d frontend
+
+# 3. Verify it's running
+docker-compose ps
+
+# Or do it in one command:
+docker-compose up -d --build frontend
+```
+
+#### Backend Changes (`.go` files)
+
+```powershell
+# 1. Rebuild the backend image
+docker-compose build backend
+
+# 2. Restart the backend container
+docker-compose up -d backend
+
+# 3. Check the logs to make sure it started correctly
+docker-compose logs --tail=10 backend
+
+# One command:
+docker-compose up -d --build backend
+```
+
+#### Both Frontend + Backend
+
+```powershell
+# Rebuild and restart everything
+docker-compose up -d --build
+```
+
+#### Quick Reload (No Rebuild Needed)
+
+If you only changed static assets or nginx config (not TypeScript/Go source):
+
+```powershell
+# Just restart the container (uses existing image)
+docker-compose restart frontend
+```
 
 ### Build Services
 
