@@ -316,3 +316,10 @@ func (s *MessageService) GetCachedMessage(messageID string) (*models.Message, er
 	err = json.Unmarshal(data, &message)
 	return &message, err
 }
+
+// UpdateOriginalLanguage sets the original language on an existing message.
+func (s *MessageService) UpdateOriginalLanguage(messageID, language string) error {
+	query := `UPDATE messages SET original_language = $1 WHERE id = $2`
+	_, err := s.db.Exec(query, language, messageID)
+	return err
+}

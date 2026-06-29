@@ -3,6 +3,50 @@ import type { User, Chat, Message } from '../types'
 import { chatAPI, messageAPI } from '../services/api'
 import { wsService } from '../services/websocket'
 
+// --- Slug helpers ---
+
+/** Generate a human-readable URL slug for a chat. */
+export function getChatSlug(chat: Chat, currentUserId?: string): string {
+  if (chat.type === 'direct') {
+    const other = chat.participants?.find(p => p.user?.id !== currentUserId)?.user
+    if (other?.username) return `@${other.username}`
+    if (other?.displayName) return `@${other.displayName.replace(/\s+/g, '-').toLowerCase()}`
+    return `dm-${chat.id.slice(0, 8)}`
+  }
+  // Group chat
+  if (chat.name) {
+    return `group/${chat.name.replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'unnamed'}`
+  }
+  return `group/${chat.id.slice(0, 8)}`
+}
+
+/** Find a chat by its slug. Returns null if not found. */
+export function findChatBySlug(chats: Chat[], slug: string, currentUserId?: string): Chat | null {
+  // Direct chat: /chat/@username
+  if (slug.startsWith('@')) {
+    const identifier = slug.slice(1).toLowerCase()
+    return chats.find(c => {
+      if (c.type !== 'direct') return false
+      const other = c.participants?.find(p => p.user?.id !== currentUserId)?.user
+      if (!other) return false
+      return other.username?.toLowerCase() === identifier ||
+             other.displayName?.toLowerCase().replace(/\s+/g, '-') === identifier
+    }) || null
+  }
+  // Group chat: /chat/group/some-name
+  if (slug.startsWith('group/')) {
+    const namePart = slug.slice(6)
+    return chats.find(c =>
+      c.type === 'group' &&
+      c.name?.toLowerCase().replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '') === namePart
+    ) || null
+  }
+  // Fallback: try raw chat ID (old bookmark compatibility)
+  return chats.find(c => c.id === slug) || null
+}
+
+// --- Store ---
+
 interface AppState {
   user: User | null
   chats: Chat[]
@@ -20,6 +64,8 @@ interface AppState {
   sendMessage: (chatId: string, text: string) => Promise<void>
   createChat: (type: 'direct' | 'group', participants: string[], name?: string) => Promise<Chat>
   updateUser: (updates: Partial<User>) => void
+  // Slug-based navigation
+  navigateToSlug: (slug: string) => boolean
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -123,6 +169,16 @@ export const useStore = create<AppState>((set, get) => ({
       console.error('Failed to send message:', error)
       throw error
     }
+  },
+
+  navigateToSlug: (slug: string) => {
+    const { chats, user, setActiveChat } = get()
+    const chat = findChatBySlug(chats, slug, user?.id)
+    if (chat) {
+      setActiveChat(chat)
+      return true
+    }
+    return false
   },
 
   createChat: async (type, participants, name) => {

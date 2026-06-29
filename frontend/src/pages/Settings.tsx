@@ -19,7 +19,7 @@ export default function Settings({ onClose }: SettingsProps) {
     setIsLoading(true)
     setMessage('')
     try {
-      await authAPI.updateMe({ displayName, targetLanguages })
+      await authAPI.updateMe({ displayName, nativeLanguage, targetLanguages })
       updateUser({ displayName, nativeLanguage, targetLanguages })
       setMessage('Settings saved successfully!')
       setTimeout(() => onClose(), 1500)

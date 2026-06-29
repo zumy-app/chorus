@@ -1,9 +1,12 @@
 package services
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"regexp"
 	"strings"
 	"time"
@@ -14,13 +17,19 @@ import (
 
 // GrammarService handles grammar analysis for language learning
 type GrammarService struct {
-	redis *redis.Client
+	redis       *redis.Client
+	ollamaURL   string
+	ollamaModel string
+	httpClient  *http.Client
 }
 
 // NewGrammarService creates a new Grammar service
-func NewGrammarService(redis *redis.Client) *GrammarService {
+func NewGrammarService(redis *redis.Client, ollamaURL, ollamaModel string) *GrammarService {
 	return &GrammarService{
-		redis: redis,
+		redis:       redis,
+		ollamaURL:   ollamaURL,
+		ollamaModel: ollamaModel,
+		httpClient:  &http.Client{Timeout: 120 * time.Second},
 	}
 }
 
@@ -440,4 +449,414 @@ func (s *GrammarService) GenerateGrammarReport(userID, language string) (map[str
 		"focusAreas":       []string{"conditional clauses", "passive voice"},
 		"recommendedLevel": "B1",
 	}, nil
+}
+
+// ---------------------------------------------------------------------------
+// AI-Powered Grammar Analysis & Learning (via Ollama)
+// ---------------------------------------------------------------------------
+
+// GenerateAIAnalysis uses Ollama to produce a rich grammar analysis,
+// enriched with pattern names, descriptions, examples, and a plain‑language summary.
+// Falls back to the regex-based analysis if Ollama is unavailable.
+func (s *GrammarService) GenerateAIAnalysis(text, language, nativeLanguage string) (*models.AIGrammarAnalysis, error) {
+	if s.ollamaURL == "" {
+		return s.fallbackAIAnalysis(text, language)
+	}
+
+	cacheKey := fmt.Sprintf("ai_grammar:%s:%s:%s", language, nativeLanguage, hashText(text))
+	if s.redis != nil {
+		cached, err := s.redis.Get(context.Background(), cacheKey).Result()
+		if err == nil && cached != "" {
+			var result models.AIGrammarAnalysis
+			if json.Unmarshal([]byte(cached), &result) == nil {
+				return &result, nil
+			}
+		}
+	}
+
+	langName := languageCodeToName(language)
+	nativeLangName := languageCodeToName(nativeLanguage)
+	if langName == "" {
+		langName = language
+	}
+	if nativeLangName == "" {
+		nativeLangName = nativeLanguage
+	}
+
+	prompt := fmt.Sprintf(`You are a language tutor. Your student's native language is %s.
+
+Analyze this text and EXPLAIN EVERYTHING IN %s.
+
+Text: "%s"
+
+IDENTIFY THE LANGUAGE: Look at the text and determine what language it is written in (e.g. "I love Spanish" = English, "De repente ya no eras el mismo" = Spanish, etc.).
+
+CRITICAL INSTRUCTION — You MUST write ALL of the following in %s (the student's native language):
+- The summary
+- Every pattern description
+- Every word explanation
+- The entire response except for the original text words
+
+Write in SIMPLE, BEGINNER-FRIENDLY language. Avoid complex linguistic terms. Use everyday words.
+
+Return a JSON object (no markdown, no code fences) with these fields:
+{
+  "difficulty": "CEFR level A1-C2",
+  "summary": "First show the FULL SENTENCE TRANSLATION in %s. Then in 1-2 simple sentences explain the grammar.",
+  "patterns": [
+    {
+      "name": "simple grammar name in %s (e.g. 'Acción pasada' for Spanish students, 'Passato prossimo' for Italian students, 'Past tense' for English students)",
+      "description": "ONE short sentence in %s explaining when to use this. Keep it simple.",
+      "example": "an example sentence in the SAME language as the original text"
+    }
+  ],
+  "detailedBreakdown": [
+    {
+      "text": "each word from the original text, one at a time",
+      "explanation": "Write a SIMPLE explanation in %s. Format: 'means [TRANSLATION] — [SIMPLE GRAMMAR NOTE]'. Example for 'eras': 'significa 'eras' — verbo en tiempo pasado, como 'you were''.",
+      "type": "verb|noun|pronoun|preposition|article|adjective|adverb|conjunction|phrase|other"
+    }
+  ]
+}
+
+Remember: ALL explanations MUST be in %s.`, nativeLangName, nativeLangName, text, nativeLangName, nativeLangName, nativeLangName, nativeLangName, nativeLangName, nativeLangName)
+
+	result, err := s.callOllama(prompt)
+	if err != nil {
+		return s.fallbackAIAnalysis(text, language)
+	}
+
+	// Strip markdown code fences and leading/trailing whitespace
+	cleaned := strings.TrimSpace(result)
+	if strings.HasPrefix(cleaned, "```") {
+		if idx := strings.Index(cleaned, "\n"); idx != -1 {
+			cleaned = cleaned[idx+1:]
+		}
+	}
+	if idx := strings.LastIndex(cleaned, "```"); idx != -1 {
+		cleaned = strings.TrimSpace(cleaned[:idx])
+	}
+	// Find the first '{' character to strip any non-JSON prefix
+	if idx := strings.Index(cleaned, "{"); idx != -1 {
+		cleaned = cleaned[idx:]
+	}
+	// Find the last '}' to strip any non-JSON suffix
+	if idx := strings.LastIndex(cleaned, "}"); idx != -1 {
+		cleaned = cleaned[:idx+1]
+	}
+
+	// Parse the structured response using a flexible approach
+	aiResult, err := s.parseAIGrammarAnalysis(cleaned)
+	if err != nil {
+		return s.fallbackAIAnalysis(text, language)
+	}
+
+	// Fill in any missing patterns from regex analysis
+	// Note: intentional skip of regex fallback patterns — they're internal identifiers,
+	// not useful for users. If AI patterns are empty, we simply don't show patterns.
+
+	// Cache the result
+	if s.redis != nil {
+		if jsonData, err := json.Marshal(aiResult); err == nil {
+			s.redis.Set(context.Background(), cacheKey, jsonData, 24*time.Hour)
+		}
+	}
+
+	return aiResult, nil
+}
+
+// fallbackAIAnalysis returns a minimal analysis with just difficulty level.
+// Regex-based pattern names are internal identifiers, not useful for learners,
+// so we omit them and let the user trigger "Learn More" for AI-powered help.
+func (s *GrammarService) fallbackAIAnalysis(text, language string) (*models.AIGrammarAnalysis, error) {
+	basic, err := s.AnalyzeGrammar(text, language)
+	if err != nil {
+		return nil, err
+	}
+	return &models.AIGrammarAnalysis{
+		Difficulty: basic.Difficulty,
+		Summary:    "",
+		Patterns:   nil,
+	}, nil
+}
+
+// parseAIGrammarAnalysis parses the Ollama JSON response flexibly,
+// handling cases where detailedBreakdown items have nested objects instead of flat strings.
+func (s *GrammarService) parseAIGrammarAnalysis(rawJSON string) (*models.AIGrammarAnalysis, error) {
+	var raw map[string]interface{}
+	if err := json.Unmarshal([]byte(rawJSON), &raw); err != nil {
+		return nil, err
+	}
+
+	result := &models.AIGrammarAnalysis{}
+
+	if d, ok := raw["difficulty"].(string); ok {
+		result.Difficulty = d
+	}
+	if s, ok := raw["summary"].(string); ok {
+		result.Summary = s
+	}
+
+	// Parse patterns
+	if patternsRaw, ok := raw["patterns"].([]interface{}); ok {
+		for _, p := range patternsRaw {
+			if pm, ok := p.(map[string]interface{}); ok {
+				gp := models.GrammarPattern{}
+				if n, ok := pm["name"].(string); ok {
+					gp.Name = n
+				}
+				if d, ok := pm["description"].(string); ok {
+					gp.Description = d
+				}
+				if e, ok := pm["example"].(string); ok {
+					gp.Example = e
+				}
+				result.Patterns = append(result.Patterns, gp)
+			}
+		}
+	}
+
+	// Parse detailed breakdown
+	if breakdownRaw, ok := raw["detailedBreakdown"].([]interface{}); ok {
+		for _, b := range breakdownRaw {
+			if bm, ok := b.(map[string]interface{}); ok {
+				item := models.BreakdownItem{}
+
+				if t, ok := bm["text"].(string); ok {
+					item.Text = t
+				}
+				if t, ok := bm["type"].(string); ok {
+					item.Type = t
+				}
+
+				// Explanation can be a string OR a nested object — handle both
+				switch exp := bm["explanation"].(type) {
+				case string:
+					item.Explanation = exp
+				case map[string]interface{}:
+					// Flatten nested object into a readable string
+					parts := []string{}
+					for k, v := range exp {
+						parts = append(parts, fmt.Sprintf("%s: %v", k, v))
+					}
+					item.Explanation = strings.Join(parts, ", ")
+				default:
+					if bm["explanation"] != nil {
+						item.Explanation = fmt.Sprintf("%v", bm["explanation"])
+					}
+				}
+
+				result.DetailedBreakdown = append(result.DetailedBreakdown, item)
+			}
+		}
+	}
+
+	return result, nil
+}
+
+// regexPatternsToGrammarPatterns converts regex pattern names to GrammarPattern structs.
+func (s *GrammarService) regexPatternsToGrammarPatterns(text, language string) []models.GrammarPattern {
+	patterns := s.identifyPatterns(text, language)
+	var result []models.GrammarPattern
+	for _, p := range patterns {
+		desc := s.getPatternExplanation(p, language)
+		gp := models.GrammarPattern{
+			Name:        p,
+			Description: desc,
+		}
+		_ = gp // keep compiler happy—desc is already used
+		result = append(result, models.GrammarPattern{
+			Name:        p,
+			Description: desc,
+		})
+	}
+	return result
+}
+
+// GenerateLearningContent uses Ollama to generate interactive learning content
+// for a given text. Supported actions: breakdown, examples, flashcards, custom.
+func (s *GrammarService) GenerateLearningContent(text, language, nativeLanguage, action, customQuery string) (*models.LearningContent, error) {
+	if s.ollamaURL == "" {
+		return &models.LearningContent{
+			Action:           action,
+			Content:          "AI learning is not available. Please configure an Ollama instance.",
+			Details:          []string{},
+			SuggestedActions: []string{},
+		}, nil
+	}
+
+	langName := languageCodeToName(language)
+	nativeLangName := languageCodeToName(nativeLanguage)
+	if langName == "" {
+		langName = language
+	}
+	if nativeLangName == "" {
+		nativeLangName = nativeLanguage
+	}
+
+	var prompt string
+	switch action {
+	case "breakdown":
+		prompt = fmt.Sprintf(`You are a language tutor teaching %s to a %s speaker. Provide a detailed grammar breakdown.
+
+Text: "%s"
+
+Respond ONLY with a plain text paragraph (no JSON, no markdown, no code fences) explaining the grammar in %s. Cover: sentence structure, verb conjugations, tenses, and any special rules. Make it beginner-friendly.
+`, langName, nativeLangName, text, nativeLangName)
+
+	case "examples":
+		prompt = fmt.Sprintf(`You are a language tutor teaching %s to a %s speaker. Provide example sentences.
+
+Text: "%s"
+
+Respond ONLY with 3-5 example sentences in %s with their %s translations. Format as a plain text list. No JSON, no markdown, no code fences.
+`, langName, nativeLangName, text, langName, nativeLangName)
+
+	case "flashcards":
+		prompt = fmt.Sprintf(`You are a language tutor teaching %s to a %s speaker. Create flashcards.
+
+Text: "%s"
+
+Respond ONLY with 3-5 flashcards, one per line, formatted as "Q: question? A: answer". No JSON, no markdown, no code fences.
+`, langName, nativeLangName, text)
+
+	case "custom":
+		prompt = fmt.Sprintf(`You are a language tutor teaching %s to a %s speaker.
+
+Text: "%s"
+Student's question: "%s"
+
+Answer in %s in a helpful, educational way. Respond ONLY with plain text. No JSON, no markdown, no code fences.
+`, langName, nativeLangName, text, customQuery, nativeLangName)
+
+	default:
+		return nil, fmt.Errorf("unknown learning action: %s", action)
+	}
+
+	result, err := s.callOllama(prompt)
+	if err != nil {
+		return &models.LearningContent{
+			Action:           action,
+			Content:          "Sorry, I couldn't generate learning content right now. Please try again.",
+			Details:          []string{},
+			SuggestedActions: []string{"breakdown", "examples", "flashcards"},
+		}, nil
+	}
+
+	// Strip markdown code fences if the model wrapped the JSON
+	cleaned := strings.TrimSpace(result)
+	if strings.HasPrefix(cleaned, "```") {
+		if idx := strings.Index(cleaned, "\n"); idx != -1 {
+			cleaned = cleaned[idx+1:]
+		}
+		if idx := strings.LastIndex(cleaned, "```"); idx != -1 {
+			cleaned = strings.TrimSpace(cleaned[:idx])
+		}
+	}
+
+	// Phase 1: unmarshal into a generic map to handle flexible field types
+	var raw map[string]interface{}
+	if err := json.Unmarshal([]byte(cleaned), &raw); err != nil {
+		return &models.LearningContent{
+			Action:           action,
+			Content:          cleaned,
+			Details:          []string{},
+			SuggestedActions: []string{"breakdown", "examples", "flashcards"},
+		}, nil
+	}
+
+	content := models.LearningContent{Action: action}
+
+	// Extract content
+	if c, ok := raw["content"].(string); ok {
+		content.Content = c
+	} else {
+		content.Content = "Learning content generated."
+	}
+
+	// Extract suggestedActions
+	if actions, ok := raw["suggestedActions"].([]interface{}); ok {
+		for _, a := range actions {
+			if s, ok := a.(string); ok {
+				content.SuggestedActions = append(content.SuggestedActions, s)
+			}
+		}
+	}
+	if len(content.SuggestedActions) == 0 {
+		content.SuggestedActions = []string{"breakdown", "examples", "flashcards"}
+	}
+
+	// Extract details — they can be strings or objects (e.g. Q&A pairs)
+	if details, ok := raw["details"].([]interface{}); ok {
+		for _, d := range details {
+			switch v := d.(type) {
+			case string:
+				content.Details = append(content.Details, v)
+			case map[string]interface{}:
+				// Try Q&A format
+				if q, hasQ := v["question"]; hasQ {
+					if a, hasA := v["answer"]; hasA {
+						content.Details = append(content.Details, fmt.Sprintf("Q: %v\nA: %v", q, a))
+					} else {
+						content.Details = append(content.Details, fmt.Sprintf("%v", q))
+					}
+				} else if f, hasF := v["front"]; hasF {
+					if b, hasB := v["back"]; hasB {
+						content.Details = append(content.Details, fmt.Sprintf("Front: %v\nBack: %v", f, b))
+					} else {
+						content.Details = append(content.Details, fmt.Sprintf("%v", f))
+					}
+				} else {
+					// Flatten any other object as a readable string
+					parts := []string{}
+					for k, val := range v {
+						parts = append(parts, fmt.Sprintf("%s: %v", k, val))
+					}
+					content.Details = append(content.Details, strings.Join(parts, ", "))
+				}
+			default:
+				content.Details = append(content.Details, fmt.Sprintf("%v", d))
+			}
+		}
+	}
+
+	return &content, nil
+}
+
+// callOllama sends a prompt to Ollama and returns the raw text response.
+func (s *GrammarService) callOllama(prompt string) (string, error) {
+	reqBody := OllamaGenerateRequest{
+		Model:  s.ollamaModel,
+		Prompt: prompt,
+		Stream: false,
+	}
+
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(context.Background(), "POST", s.ollamaURL+"/api/generate", bytes.NewReader(body))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to call Ollama: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("Ollama returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var ollamaResp OllamaGenerateResponse
+	if err := json.NewDecoder(resp.Body).Decode(&ollamaResp); err != nil {
+		return "", fmt.Errorf("failed to decode Ollama response: %w", err)
+	}
+
+	return strings.TrimSpace(ollamaResp.Response), nil
 }

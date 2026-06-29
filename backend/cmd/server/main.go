@@ -58,7 +58,7 @@ func main() {
 	userService := services.NewUserService(db)
 	chatService := services.NewChatService(db)
 	messageService := services.NewMessageService(db, redisClient)
-	translationService := services.NewTranslationService(cfg.GoogleTranslateAPIKey, redisClient)
+	translationService := services.NewTranslationService(cfg.GoogleTranslateAPIKey, cfg.OllamaURL, cfg.OllamaModel, redisClient)
 	wsHub := services.NewWebSocketHub(redisClient)
 
 	// Phase 2: Initialize Pub/Sub service
@@ -77,7 +77,7 @@ func main() {
 	searchService := services.NewSearchService(db, redisClient)
 
 	// Phase 3: Initialize Grammar service
-	grammarService := services.NewGrammarService(redisClient)
+	grammarService := services.NewGrammarService(redisClient, cfg.OllamaURL, cfg.OllamaModel)
 
 	// Phase 3: Initialize Vocabulary service
 	vocabularyService := services.NewVocabularyService(db, redisClient)
@@ -173,6 +173,8 @@ func main() {
 		// Phase 3: Grammar analysis routes
 		protected.POST("/grammar/analyze", grammarHandler.AnalyzeMessageGrammar)
 		protected.POST("/grammar/analyze-text", grammarHandler.AnalyzeText)
+		protected.POST("/grammar/analyze-ai", grammarHandler.AnalyzeTextWithAI)
+		protected.POST("/grammar/learn", grammarHandler.LearnGrammar)
 		protected.GET("/grammar/suggestions", grammarHandler.GetGrammarSuggestions)
 		protected.GET("/grammar/report", grammarHandler.GetGrammarReport)
 

@@ -64,12 +64,16 @@ services:
       - JWT_SECRET=dev-jwt-secret-key-for-testing-only
       - GOOGLE_TRANSLATE_API_KEY=${GOOGLE_TRANSLATE_API_KEY:-}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
+      - OLLAMA_URL=http://ollama-dev:11434
+      - OLLAMA_MODEL=qwen2.5:3b
       - PORT=8080
     depends_on:
       postgres-dev:
         condition: service_healthy
       redis-dev:
         condition: service_healthy
+      ollama-dev:
+        condition: service_started
     volumes:
       - ./backend:/app
       - /app/bin  # Prevent overwriting binary
@@ -138,6 +142,31 @@ services:
     profiles:
       - tools
 
+  # Ollama Translation Service - Development
+  ollama-dev:
+    image: ollama/ollama:latest
+    container_name: chorus-dev-ollama
+    networks:
+      - chorus-dev
+    ports:
+      - "11435:11434"  # Different port to avoid conflicts
+    volumes:
+      - chorus_dev_ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+    entrypoint: >
+      sh -c "ollama serve &
+      sleep 3 &&
+      ollama pull qwen2.5:3b &&
+      wait"
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    restart: unless-stopped
+
 volumes:
   chorus_dev_postgres_data:
     name: chorus_dev_postgres_data
@@ -145,3 +174,5 @@ volumes:
     name: chorus_dev_redis_data
   chorus_dev_pgadmin_data:
     name: chorus_dev_pgadmin_data
+  chorus_dev_ollama_data:
+    name: chorus_dev_ollama_data
