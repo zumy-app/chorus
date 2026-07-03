@@ -178,16 +178,17 @@ type ChatParticipant struct {
 }
 
 type Message struct {
-	ID               string                 `json:"id" db:"id"`
-	ChatID           string                 `json:"chatId" db:"chat_id"`
-	SenderID         string                 `json:"senderId" db:"sender_id"`
-	Text             string                 `json:"text" db:"text"`
-	OriginalLanguage string                 `json:"originalLanguage" db:"original_language"`
-	Translations     map[string]string      `json:"translations,omitempty" db:"translations"`
-	DeliveryStatus   string                 `json:"deliveryStatus" db:"delivery_status"` // 'sent', 'delivered', 'failed'
-	ReplyToID        *string                `json:"replyToId,omitempty" db:"reply_to_id"`
-	CreatedAt        time.Time              `json:"timestamp" db:"created_at"`
-	Sender           *User                  `json:"sender,omitempty" db:"-"`
+	ID                 string                 `json:"id" db:"id"`
+	ChatID             string                 `json:"chatId" db:"chat_id"`
+	SenderID           string                 `json:"senderId" db:"sender_id"`
+	Text               string                 `json:"text" db:"text"`
+	OriginalLanguage   string                 `json:"originalLanguage" db:"original_language"`
+	Translations       map[string]string      `json:"translations,omitempty" db:"translations"`
+	TranslationEnhanced bool                 `json:"translationEnhanced"`
+	DeliveryStatus     string                 `json:"deliveryStatus" db:"delivery_status"`
+	ReplyToID          *string                `json:"replyToId,omitempty" db:"reply_to_id"`
+	CreatedAt          time.Time              `json:"timestamp" db:"created_at"`
+	Sender             *User                  `json:"sender,omitempty" db:"-"`
 }
 
 type AuthTokens struct {

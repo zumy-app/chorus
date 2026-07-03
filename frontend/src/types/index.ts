@@ -39,6 +39,7 @@ export interface Message {
   text: string
   originalLanguage?: string
   translations?: Record<string, string>
+  translationEnhanced?: boolean
   deliveryStatus: 'sent' | 'delivered' | 'failed'
   replyToId?: string
   timestamp: string

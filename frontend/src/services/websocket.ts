@@ -6,6 +6,7 @@ class WebSocketService {
   private maxReconnectAttempts = 5
   private reconnectDelay = 1000
   private messageHandlers: ((message: WebSocketMessage) => void)[] = []
+  private reconnectHandlers: (() => void)[] = []
 
   connect(token: string) {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -15,8 +16,13 @@ class WebSocketService {
     this.ws = new WebSocket(wsUrl)
 
     this.ws.onopen = () => {
+      const isReconnect = this.reconnectAttempts > 0
       console.log('WebSocket connected')
       this.reconnectAttempts = 0
+      // Re-fetch data after reconnect to catch any missed events
+      if (isReconnect) {
+        this.reconnectHandlers.forEach((handler) => handler())
+      }
     }
 
     this.ws.onmessage = (event) => {
@@ -65,6 +71,13 @@ class WebSocketService {
     this.messageHandlers.push(handler)
     return () => {
       this.messageHandlers = this.messageHandlers.filter((h) => h !== handler)
+    }
+  }
+
+  onReconnect(handler: () => void) {
+    this.reconnectHandlers.push(handler)
+    return () => {
+      this.reconnectHandlers = this.reconnectHandlers.filter((h) => h !== handler)
     }
   }
 
