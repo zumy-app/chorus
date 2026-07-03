@@ -131,10 +131,15 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
           {/* Translation in native language (for comprehension) */}
           {showNativeTranslation && (
             <div className={`mt-2 pt-2 border-t ${isOwn ? 'border-white/30' : 'border-gray-200'} text-sm`}>
-              <div className={`text-xs mb-1 ${isOwn ? 'text-white/75' : 'text-gray-500'}`}>
-                🌐 In your language:
+              <div className={`text-xs mb-1 flex items-center gap-1 ${isOwn ? 'text-white/75' : 'text-gray-500'}`}>
+                <span>🌐 In your language:</span>
+                {!isOwn && !message.translationEnhanced && (
+                  <span className="inline-flex items-center text-[10px] text-amber-500 animate-pulse" title="AI-enhanced translation pending">
+                    ✨
+                  </span>
+                )}
               </div>
-              <div className={`italic font-medium ${isOwn ? 'text-white' : 'text-gray-800'}`}>
+              <div className={`italic font-medium whitespace-pre-wrap break-words ${isOwn ? 'text-white' : 'text-gray-800'}`}>
                 {nativeTranslation}
               </div>
             </div>
@@ -146,7 +151,7 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
               <div className={`text-xs mb-1 ${isOwn ? 'text-white/75' : 'text-gray-500'}`}>
                 📖 Learning ({targetLanguage?.toUpperCase()}):
               </div>
-              <div className={`italic opacity-90 ${isOwn ? 'text-white/90' : 'text-gray-600'}`}>
+              <div className={`italic opacity-90 whitespace-pre-wrap break-words ${isOwn ? 'text-white/90' : 'text-gray-600'}`}>
                 {targetTranslation}
               </div>
             </div>
@@ -174,7 +179,7 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
                   onClick={() => setShowLearning(true)}
                   className="text-[11px] px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition font-medium"
                 >
-                  Learn More →
+                  🤖 AI Tutor
                 </button>
                 <button onClick={() => setShowGrammar(false)} className="text-amber-600 hover:text-amber-800 text-lg leading-none ml-1">×</button>
               </div>

@@ -58,13 +58,31 @@ func main() {
 	userService := services.NewUserService(db)
 	chatService := services.NewChatService(db)
 	messageService := services.NewMessageService(db, redisClient)
-	translationService := services.NewTranslationService(cfg.GoogleTranslateAPIKey, cfg.OllamaURL, cfg.OllamaModel, redisClient)
+	translationService := services.NewTranslationService(cfg.LibreTranslateURL, cfg.OllamaURL, cfg.OllamaModel, redisClient)
 	wsHub := services.NewWebSocketHub(redisClient)
 
 	// Phase 2: Initialize Pub/Sub service
 	pubsubService := services.NewPubSubService(redisClient, wsHub)
 	pubsubService.Start()
 	defer pubsubService.Stop()
+
+	// Start Ollama translation queue processor
+	go translationService.ProcessOllamaQueue(func(messageID string, translations map[string]string) {
+		msg, err := messageService.GetMessageByID(context.Background(), messageID)
+		if err != nil {
+			return
+		}
+		msg.Translations = translations
+		msg.TranslationEnhanced = true
+		messageService.UpdateTranslations(messageID, translations)
+
+		participants, _ := chatService.GetParticipants(msg.ChatID)
+		userIDs := make([]string, 0, len(participants))
+		for _, p := range participants {
+			userIDs = append(userIDs, p.UserID)
+		}
+		wsHub.SendToChat(msg.ChatID, userIDs, "message_updated", msg)
+	})
 
 	// Phase 2: Initialize Inbox service for offline message delivery
 	_ = services.NewInboxService(db, redisClient)

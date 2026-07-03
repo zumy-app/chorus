@@ -47,6 +47,7 @@ services:
       - GOOGLE_TRANSLATE_API_KEY=${GOOGLE_TRANSLATE_API_KEY:-}
       - OLLAMA_URL=http://ollama:11434
       - OLLAMA_MODEL=qwen2.5:3b
+      - LIBRETRANSLATE_URL=http://libretranslate:5000
       - PORT=8080
       - APPWRITE_ENDPOINT=${APPWRITE_ENDPOINT:-https://appwrite.zumy.app/v1}
       - APPWRITE_PROJECT_ID=${APPWRITE_PROJECT_ID:-6955733a001c10e7c020}
@@ -57,6 +58,25 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      libretranslate:
+        condition: service_started
+    restart: unless-stopped
+
+  # LibreTranslate (fast, lightweight translation — default)
+  libretranslate:
+    image: libretranslate/libretranslate:latest
+    container_name: chorus-libretranslate
+    ports:
+      - "127.0.0.1:5001:5000"
+    environment:
+      - LT_LOAD_ONLY=en,es,fr,de,it,pt,ja,ko,zh
+      - LT_API_KEYS=false
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/translate', data=b'{\"q\":\"hi\",\"source\":\"en\",\"target\":\"es\",\"format\":\"text\"}', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
     restart: unless-stopped
 
   # Ollama Translation Service
@@ -73,6 +93,8 @@ services:
       sh -c "ollama serve &
       sleep 3 &&
       ollama pull qwen2.5:3b &&
+      sleep 2 &&
+      echo 'Ollama ready' &&
       wait"
     healthcheck:
       test: ["CMD", "ollama", "list"]

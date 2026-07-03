@@ -217,3 +217,13 @@ wsService.onMessage((message) => {
       break
   }
 })
+
+// Re-fetch active chat messages on WebSocket reconnect
+// This ensures missed message_updated events are recovered
+wsService.onReconnect(() => {
+  const store = useStore.getState()
+  if (store.activeChat) {
+    store.loadMessages(store.activeChat.id)
+  }
+  store.loadChats()
+})

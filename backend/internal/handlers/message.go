@@ -107,7 +107,7 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 			}
 		}
 
-		// Translate message asynchronously
+		// Phase 1+2: Translate asynchronously (LibreTranslate fast, then Ollama enhancement)
 		go h.translateAndBroadcast(message, targetLangs, chatID)
 	}
 
@@ -130,26 +130,29 @@ func (h *MessageHandler) translateAndBroadcast(message *models.Message, targetLa
 		langs = append(langs, lang)
 	}
 
-	// Translate to all target languages
-	translations, err := h.translationService.TranslateMultiple(message.Text, langs)
-	if err != nil {
-		return
+	// Phase 1: Quick LibreTranslate — broadcast instantly
+	quickTranslations := make(map[string]string)
+	for _, lang := range langs {
+		trans, err := h.translationService.TranslateQuick(message.Text, lang, "auto")
+		if err == nil && trans != "" {
+			quickTranslations[lang] = trans
+		}
 	}
+	if len(quickTranslations) > 0 {
+		h.messageService.UpdateTranslations(message.ID, quickTranslations)
+		message.Translations = quickTranslations
+		message.TranslationEnhanced = false
 
-	// Update message with translations
-	if len(translations) > 0 {
-		h.messageService.UpdateTranslations(message.ID, translations)
-		message.Translations = translations
-
-		// Broadcast updated message
 		participants, _ := h.chatService.GetParticipants(chatID)
 		userIDs := make([]string, 0, len(participants))
 		for _, p := range participants {
 			userIDs = append(userIDs, p.UserID)
 		}
-
 		h.wsHub.SendToChat(chatID, userIDs, "message_updated", message)
 	}
+
+	// Phase 2: Enqueue Ollama for async enhancement
+	h.translationService.EnqueueOllamaTranslation(message.ID, message.Text, langs)
 }
 
 func (h *MessageHandler) MarkAsRead(c *gin.Context) {

@@ -29,7 +29,8 @@ func NewGrammarService(redis *redis.Client, ollamaURL, ollamaModel string) *Gram
 		redis:       redis,
 		ollamaURL:   ollamaURL,
 		ollamaModel: ollamaModel,
-		httpClient:  &http.Client{Timeout: 120 * time.Second},
+		// 90s is the outer safety net; individual calls use context deadlines (30s).
+		httpClient: &http.Client{Timeout: 90 * time.Second},
 	}
 }
 
@@ -565,19 +566,50 @@ Remember: ALL explanations MUST be in %s.`, nativeLangName, nativeLangName, text
 	return aiResult, nil
 }
 
-// fallbackAIAnalysis returns a minimal analysis with just difficulty level.
-// Regex-based pattern names are internal identifiers, not useful for learners,
-// so we omit them and let the user trigger "Learn More" for AI-powered help.
+// fallbackAIAnalysis returns a regex-based analysis when Ollama is unavailable.
+// It builds a human-readable summary from the identified patterns so the grammar
+// panel always has something useful to show, and populates GrammarPattern structs
+// so the Patterns section renders too.
 func (s *GrammarService) fallbackAIAnalysis(text, language string) (*models.AIGrammarAnalysis, error) {
 	basic, err := s.AnalyzeGrammar(text, language)
 	if err != nil {
 		return nil, err
 	}
+
+	// Build a readable summary from the identified patterns.
+	summary := ""
+	if len(basic.Explanations) > 0 {
+		summary = strings.Join(basic.Explanations[:min(3, len(basic.Explanations))], " ")
+	} else if basic.Difficulty != "" {
+		summary = fmt.Sprintf("This text is at a %s level. Click AI Tutor for a detailed explanation.", basic.Difficulty)
+	}
+
+	// Convert regex pattern names to GrammarPattern structs.
+	var patterns []models.GrammarPattern
+	for _, p := range basic.Patterns {
+		desc := s.getPatternExplanation(p, language)
+		if desc == "" {
+			desc = strings.ReplaceAll(p, "_", " ")
+		}
+		patterns = append(patterns, models.GrammarPattern{
+			Name:        strings.ReplaceAll(p, "_", " "),
+			Description: desc,
+		})
+	}
+
 	return &models.AIGrammarAnalysis{
 		Difficulty: basic.Difficulty,
-		Summary:    "",
-		Patterns:   nil,
+		Summary:    summary,
+		Patterns:   patterns,
 	}, nil
+}
+
+// min returns the smaller of two ints (Go 1.20 added a builtin, but keep compatible).
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // parseAIGrammarAnalysis parses the Ollama JSON response flexibly,
@@ -675,13 +707,15 @@ func (s *GrammarService) regexPatternsToGrammarPatterns(text, language string) [
 
 // GenerateLearningContent uses Ollama to generate interactive learning content
 // for a given text. Supported actions: breakdown, examples, flashcards, custom.
+// Prompts ask for plain text responses, so the result is returned as-is without
+// attempting JSON parsing.
 func (s *GrammarService) GenerateLearningContent(text, language, nativeLanguage, action, customQuery string) (*models.LearningContent, error) {
 	if s.ollamaURL == "" {
 		return &models.LearningContent{
 			Action:           action,
 			Content:          "AI learning is not available. Please configure an Ollama instance.",
 			Details:          []string{},
-			SuggestedActions: []string{},
+			SuggestedActions: []string{"breakdown", "examples", "flashcards"},
 		}, nil
 	}
 
@@ -733,7 +767,8 @@ Answer in %s in a helpful, educational way. Respond ONLY with plain text. No JSO
 		return nil, fmt.Errorf("unknown learning action: %s", action)
 	}
 
-	result, err := s.callOllama(prompt)
+	// Use a 30-second timeout so the AI Tutor panel doesn't hang indefinitely.
+	result, err := s.callOllamaWithTimeout(prompt, 30*time.Second)
 	if err != nil {
 		return &models.LearningContent{
 			Action:           action,
@@ -743,7 +778,7 @@ Answer in %s in a helpful, educational way. Respond ONLY with plain text. No JSO
 		}, nil
 	}
 
-	// Strip markdown code fences if the model wrapped the JSON
+	// Strip any markdown fences the model may have added despite being told not to.
 	cleaned := strings.TrimSpace(result)
 	if strings.HasPrefix(cleaned, "```") {
 		if idx := strings.Index(cleaned, "\n"); idx != -1 {
@@ -753,78 +788,47 @@ Answer in %s in a helpful, educational way. Respond ONLY with plain text. No JSO
 			cleaned = strings.TrimSpace(cleaned[:idx])
 		}
 	}
-
-	// Phase 1: unmarshal into a generic map to handle flexible field types
-	var raw map[string]interface{}
-	if err := json.Unmarshal([]byte(cleaned), &raw); err != nil {
-		return &models.LearningContent{
-			Action:           action,
-			Content:          cleaned,
-			Details:          []string{},
-			SuggestedActions: []string{"breakdown", "examples", "flashcards"},
-		}, nil
+	if cleaned == "" {
+		cleaned = "No response generated. Please try again."
 	}
 
-	content := models.LearningContent{Action: action}
-
-	// Extract content
-	if c, ok := raw["content"].(string); ok {
-		content.Content = c
-	} else {
-		content.Content = "Learning content generated."
-	}
-
-	// Extract suggestedActions
-	if actions, ok := raw["suggestedActions"].([]interface{}); ok {
-		for _, a := range actions {
-			if s, ok := a.(string); ok {
-				content.SuggestedActions = append(content.SuggestedActions, s)
-			}
-		}
-	}
-	if len(content.SuggestedActions) == 0 {
-		content.SuggestedActions = []string{"breakdown", "examples", "flashcards"}
-	}
-
-	// Extract details — they can be strings or objects (e.g. Q&A pairs)
-	if details, ok := raw["details"].([]interface{}); ok {
-		for _, d := range details {
-			switch v := d.(type) {
-			case string:
-				content.Details = append(content.Details, v)
-			case map[string]interface{}:
-				// Try Q&A format
-				if q, hasQ := v["question"]; hasQ {
-					if a, hasA := v["answer"]; hasA {
-						content.Details = append(content.Details, fmt.Sprintf("Q: %v\nA: %v", q, a))
-					} else {
-						content.Details = append(content.Details, fmt.Sprintf("%v", q))
-					}
-				} else if f, hasF := v["front"]; hasF {
-					if b, hasB := v["back"]; hasB {
-						content.Details = append(content.Details, fmt.Sprintf("Front: %v\nBack: %v", f, b))
-					} else {
-						content.Details = append(content.Details, fmt.Sprintf("%v", f))
-					}
-				} else {
-					// Flatten any other object as a readable string
-					parts := []string{}
-					for k, val := range v {
-						parts = append(parts, fmt.Sprintf("%s: %v", k, val))
-					}
-					content.Details = append(content.Details, strings.Join(parts, ", "))
-				}
-			default:
-				content.Details = append(content.Details, fmt.Sprintf("%v", d))
-			}
-		}
-	}
-
-	return &content, nil
+	// The prompts explicitly request plain text, so return the response directly
+	// without attempting JSON parsing. This avoids the "Learning content generated."
+	// placeholder that appeared when JSON parsing failed on valid plain-text responses.
+	nextActions := nextActionsFor(action)
+	return &models.LearningContent{
+		Action:           action,
+		Content:          cleaned,
+		Details:          []string{},
+		SuggestedActions: nextActions,
+	}, nil
 }
 
-// callOllama sends a prompt to Ollama and returns the raw text response.
+// nextActionsFor returns sensible follow-up action suggestions based on what was just done.
+func nextActionsFor(action string) []string {
+	switch action {
+	case "breakdown":
+		return []string{"examples", "flashcards", "custom"}
+	case "examples":
+		return []string{"breakdown", "flashcards", "custom"}
+	case "flashcards":
+		return []string{"breakdown", "examples", "custom"}
+	default:
+		return []string{"breakdown", "examples", "flashcards"}
+	}
+}
+
+// callOllama sends a prompt to Ollama with a 30-second deadline.
 func (s *GrammarService) callOllama(prompt string) (string, error) {
+	return s.callOllamaWithTimeout(prompt, 30*time.Second)
+}
+
+// callOllamaWithTimeout sends a prompt to Ollama and returns the raw text response.
+// The provided timeout is applied as a context deadline on the request.
+func (s *GrammarService) callOllamaWithTimeout(prompt string, timeout time.Duration) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
 	reqBody := OllamaGenerateRequest{
 		Model:  s.ollamaModel,
 		Prompt: prompt,
@@ -836,7 +840,7 @@ func (s *GrammarService) callOllama(prompt string) (string, error) {
 		return "", fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(context.Background(), "POST", s.ollamaURL+"/api/generate", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, "POST", s.ollamaURL+"/api/generate", bytes.NewReader(body))
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}

@@ -60,6 +60,7 @@ services:
       - GOOGLE_TRANSLATE_API_KEY=${GOOGLE_TRANSLATE_API_KEY:-}
       - OLLAMA_URL=http://ollama:11434
       - OLLAMA_MODEL=qwen2.5:3b
+      - LIBRETRANSLATE_URL=http://libretranslate:5000
       - PORT=8080
       - APPWRITE_ENDPOINT=${APPWRITE_ENDPOINT:-}
       - APPWRITE_PROJECT_ID=${APPWRITE_PROJECT_ID:-}
@@ -70,6 +71,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      libretranslate:
+        condition: service_started
       ollama:
         condition: service_started
     restart: always
@@ -104,6 +107,25 @@ services:
       - dokploy-network
 
   # Ollama Translation Service
+
+  # LibreTranslate (fast, lightweight translation — default)
+  libretranslate:
+    image: libretranslate/libretranslate:latest
+    container_name: chorus-libretranslate
+    networks:
+      - chorus-network
+    ports:
+      - "127.0.0.1:5001:5000"
+    environment:
+      - LT_LOAD_ONLY=en,es,fr,de,it,pt,ja,ko,zh
+      - LT_API_KEYS=false
+    healthcheck:
+      test: ["CMD", "curl", "-s", "-f", "http://localhost:5000/translate"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    restart: always
   ollama:
     image: ollama/ollama:latest
     container_name: chorus-ollama
