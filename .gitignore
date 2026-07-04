@@ -6,7 +6,7 @@ backend/chorus
 backend/chorus.exe
 backend/*.log
 .env
-
+.kiro
 # Frontend
 frontend/node_modules
 frontend/dist
