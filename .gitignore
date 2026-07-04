@@ -5,6 +5,7 @@ backend/.env
 backend/chorus
 backend/chorus.exe
 backend/*.log
+.env
 
 # Frontend
 frontend/node_modules
