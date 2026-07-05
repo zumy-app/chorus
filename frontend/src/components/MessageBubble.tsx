@@ -82,10 +82,10 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
   }
 
     // Use original message text for word extraction (language being learned)
-  const words = message.text
-    ?.split(/\s+/)
+  const words = (message.text || '')
+    .split(/\s+/)
     .filter((w: string) => w.length > 3)
-    .slice(0, 5) || []
+    .slice(0, 5)
 
   return (
     <div
