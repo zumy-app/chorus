@@ -98,6 +98,9 @@ services:
       - "traefik.http.routers.chorus.tls=true"
       - "traefik.http.routers.chorus.tls.certresolver=letsencrypt"
       - "traefik.http.services.chorus.loadbalancer.server.port=3000"
+      - "traefik.http.services.chorus.loadbalancer.server.scheme=http"
+    expose:
+      - "3000"
     # Dokploy/Traefik handles external access
     depends_on:
       - backend
@@ -108,7 +111,7 @@ services:
 
   # Ollama Translation Service
 
-  # LibreTranslate (fast, lightweight translation — default)
+  # LibreTranslate (fast, lightweight translation - default)
   libretranslate:
     image: libretranslate/libretranslate:latest
     container_name: chorus-libretranslate
