@@ -11,6 +11,11 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'ja', name: 'Japanese', nativeName: '日本語', flag: '🇯🇵' },
   { code: 'ko', name: 'Korean', nativeName: '한국어', flag: '🇰🇷' },
   { code: 'zh', name: 'Chinese', nativeName: '中文', flag: '🇨🇳' },
+  { code: 'ar', name: 'Arabic', nativeName: 'العربية', flag: '🇸🇦' },
+  { code: 'nl', name: 'Dutch', nativeName: 'Nederlands', flag: '🇳🇱' },
+  { code: 'pl', name: 'Polish', nativeName: 'Polski', flag: '🇵🇱' },
+  { code: 'ru', name: 'Russian', nativeName: 'Русский', flag: '🇷🇺' },
+  { code: 'sv', name: 'Swedish', nativeName: 'Svenska', flag: '🇸🇪' },
 ]
 
 // Map browser language codes to our supported codes
@@ -24,6 +29,11 @@ const LANGUAGE_MAP: Record<string, string> = {
   'ja': 'ja', 'ja-JP': 'ja',
   'ko': 'ko', 'ko-KR': 'ko',
   'zh': 'zh', 'zh-CN': 'zh', 'zh-TW': 'zh', 'zh-HK': 'zh',
+  'ar': 'ar', 'ar-SA': 'ar', 'ar-AE': 'ar', 'ar-EG': 'ar',
+  'nl': 'nl', 'nl-NL': 'nl', 'nl-BE': 'nl',
+  'pl': 'pl', 'pl-PL': 'pl',
+  'ru': 'ru', 'ru-RU': 'ru',
+  'sv': 'sv', 'sv-SE': 'sv',
 }
 
 /**

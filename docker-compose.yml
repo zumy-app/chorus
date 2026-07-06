@@ -69,7 +69,7 @@ services:
     ports:
       - "127.0.0.1:5001:5000"
     environment:
-      - LT_LOAD_ONLY=en,es,fr,de,it,pt,ja,ko,zh
+      - LT_LOAD_ONLY=en,es,fr,de,it,pt,ja,ko,zh,ar,nl,pl,ru,sv
       - LT_API_KEYS=false
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/translate', data=b'{\"q\":\"hi\",\"source\":\"en\",\"target\":\"es\",\"format\":\"text\"}', timeout=5)"]
