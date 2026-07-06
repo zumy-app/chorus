@@ -3,17 +3,15 @@ import logging
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import ctranslate2
-import sentencepiece as spm
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="NLLB Translation Service")
 
-model_dir = os.environ.get("MODEL_DIR", "/app/models/opus_nlp_models/nllb-200-distilled-600M-ct2-int8")
+model_dir = os.environ.get("MODEL_DIR", "/app/models/nllb-200-distilled-600M-ct2-int8")
 model = None
-sp_source = None
-sp_target = None
+tokenizer = None
 
 class TranslateRequest(BaseModel):
     text: str
@@ -25,13 +23,10 @@ class TranslateResponse(BaseModel):
 
 @app.on_event("startup")
 async def load_model():
-    global model, sp_source, sp_target
+    global model, tokenizer
     logger.info(f"Loading model from {model_dir}")
     model = ctranslate2.Translator(model_dir, device="cpu", intra_threads=4)
-    sp_source = spm.SentencePieceProcessor()
-    sp_source.Load(os.path.join(model_dir, "source.spm"))
-    sp_target = spm.SentencePieceProcessor()
-    sp_target.Load(os.path.join(model_dir, "target.spm"))
+    tokenizer = ctranslate2.sentencepiece.BPEProcessor(model_dir)
     logger.info("Model loaded successfully")
 
 @app.get("/health")
@@ -40,16 +35,16 @@ async def health():
 
 @app.post("/translate", response_model=TranslateResponse)
 async def translate(req: TranslateRequest):
-    if model is None or sp_source is None:
+    if model is None or tokenizer is None:
         raise HTTPException(status_code=503, detail="Model not loaded yet")
 
     try:
-        # Prepend source language token
-        source_text = f"__{req.source}__ {req.text}"
+        # NLLB uses language tokens like __eng_Latn__ and __spa_Latn__
+        source_with_lang = f"__{req.source}__ {req.text}"
         target_prefix = f"__{req.target}__"
 
-        # Tokenize with source tokenizer
-        source_tokens = sp_source.EncodeAsPieces(source_text)
+        # Tokenize
+        source_tokens = tokenizer.encode(source_with_lang)
         source_batch = [source_tokens]
 
         # Translate
@@ -61,9 +56,15 @@ async def translate(req: TranslateRequest):
             max_decoding_length=512
         )
 
-        # Detokenize with target tokenizer
-        translated_pieces = results[0].hypotheses[0]
-        translated = sp_target.DecodePieces(translated_pieces)
+        # Detokenize
+        translated_tokens = results[0].hypotheses[0]
+        translated = tokenizer.decode(translated_tokens)
+
+        # Remove the target language token prefix if it's still in the output
+        if translated.startswith(f"__"):
+            parts = translated.split("__", 2)
+            if len(parts) >= 3:
+                translated = parts[2].strip()
 
         return TranslateResponse(translatedText=translated)
     except Exception as e:
