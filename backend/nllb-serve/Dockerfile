@@ -1,5 +1,10 @@
 FROM python:3.11-slim
 
+# Install patchelf for fixing executable stack issue
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    patchelf \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Install Python dependencies
@@ -7,22 +12,18 @@ RUN pip install --no-cache-dir \
     ctranslate2==4.4.0 \
     fastapi==0.115.0 \
     uvicorn==0.31.0 \
-    huggingface-hub==0.26.0
+    huggingface-hub==0.26.0 \
+    sentencepiece==0.2.0
 
-# Copy the server script
+# Fix ctranslate2 native library executable stack issue
+RUN find /usr/local -name "libctranslate2*.so*" -exec patchelf --clear-execstack {} \; 2>/dev/null; echo "Library stack cleared"
+
+# Copy scripts
 COPY server.py .
+COPY download_model.py .
 
 # Download the model at build time
-RUN python -c "\
-import huggingface_hub; \
-from pathlib import Path; \
-model_name = 'nllb-200-distilled-600M-ct2-int8'; \
-repo_id = f'JustFrederik/{model_name}'; \
-local_dir = Path(f'/app/models/{model_name}'); \
-if not local_dir.exists(): \
-    huggingface_hub.snapshot_download(repo_id=repo_id, local_dir=str(local_dir)); \
-print('Model downloaded successfully'); \
-"
+RUN python download_model.py
 
 ENV MODEL_DIR=/app/models/nllb-200-distilled-600M-ct2-int8
 
