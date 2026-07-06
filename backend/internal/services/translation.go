@@ -15,25 +15,25 @@ import (
 )
 
 type OllamaGenerateRequest struct {
-	Model   string `json:"model"`
-	Prompt  string `json:"prompt"`
-	Stream  bool   `json:"stream"`
+	Model  string `json:"model"`
+	Prompt string `json:"prompt"`
+	Stream bool   `json:"stream"`
 }
 
 type OllamaGenerateResponse struct {
-	Model     string `json:"model"`
-	Response  string `json:"response"`
-	Done      bool   `json:"done"`
+	Model    string `json:"model"`
+	Response string `json:"response"`
+	Done     bool   `json:"done"`
 }
 
-type LibreTranslateRequest struct {
-	Q      string `json:"q"`
+// NLLB API request/response types
+type NLLBRequest struct {
+	Text   string `json:"text"`
 	Source string `json:"source"`
 	Target string `json:"target"`
-	Format string `json:"format"`
 }
 
-type LibreTranslateResponse struct {
+type NLLBResponse struct {
 	TranslatedText string `json:"translatedText"`
 }
 
@@ -47,18 +47,18 @@ type TranslationService struct {
 	redis        *redis.Client
 	ollamaURL    string
 	ollamaModel  string
-	libreURL     string
+	nllbURL      string
 	httpClient   *http.Client
 	queueEnabled bool
 	ctx          context.Context
 }
 
-func NewTranslationService(libreURL, ollamaURL, ollamaModel string, redis *redis.Client) *TranslationService {
+func NewTranslationService(nllbURL, ollamaURL, ollamaModel string, redis *redis.Client) *TranslationService {
 	return &TranslationService{
 		redis:        redis,
 		ollamaURL:    ollamaURL,
 		ollamaModel:  ollamaModel,
-		libreURL:     libreURL,
+		nllbURL:      nllbURL,
 		httpClient:   &http.Client{Timeout: 120 * time.Second},
 		queueEnabled: true,
 		ctx:          context.Background(),
@@ -69,44 +69,49 @@ func (s *TranslationService) Translate(text, targetLang string) (string, error) 
 	return s.TranslateQuick(text, targetLang, "auto")
 }
 
+// TranslateQuick translates text using NLLB (Phase 1 — fast, 200+ languages).
 func (s *TranslationService) TranslateQuick(text, targetLang, sourceLang string) (string, error) {
-	cacheKey := fmt.Sprintf("translation:libre:%s:%s", targetLang, text)
+	cacheKey := fmt.Sprintf("translation:nllb:%s:%s", targetLang, text)
 	if s.redis != nil {
 		cached, err := s.redis.Get(s.ctx, cacheKey).Result()
 		if err == nil && cached != "" {
 			return cached, nil
 		}
 	}
-	if s.libreURL == "" {
-		return "", errors.New("LibreTranslate URL not configured")
+	if s.nllbURL == "" {
+		return "", errors.New("NLLB URL not configured")
 	}
-	reqBody := LibreTranslateRequest{
-		Q:      text,
-		Source: sourceLang,
-		Target: targetLang,
-		Format: "text",
+
+	// Convert ISO codes to FLORES-200 codes for NLLB
+	sourceFlores := isoToFlores(sourceLang)
+	targetFlores := isoToFlores(targetLang)
+
+	reqBody := NLLBRequest{
+		Text:   text,
+		Source: sourceFlores,
+		Target: targetFlores,
 	}
 	body, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequestWithContext(s.ctx, "POST", s.libreURL+"/translate", bytes.NewReader(body))
+	req, _ := http.NewRequestWithContext(s.ctx, "POST", s.nllbURL+"/translate", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("libre call: %w", err)
+		return "", fmt.Errorf("nllb call: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("libre status %d: %s", resp.StatusCode, string(respBody))
+		return "", fmt.Errorf("nllb status %d: %s", resp.StatusCode, string(respBody))
 	}
-	var libreResp LibreTranslateResponse
-	json.NewDecoder(resp.Body).Decode(&libreResp)
-	if libreResp.TranslatedText == "" {
-		return "", errors.New("libre empty response")
+	var nllbResp NLLBResponse
+	json.NewDecoder(resp.Body).Decode(&nllbResp)
+	if nllbResp.TranslatedText == "" {
+		return "", errors.New("nllb empty response")
 	}
 	if s.redis != nil {
-		s.redis.Set(s.ctx, cacheKey, libreResp.TranslatedText, 24*time.Hour)
+		s.redis.Set(s.ctx, cacheKey, nllbResp.TranslatedText, 24*time.Hour)
 	}
-	return libreResp.TranslatedText, nil
+	return nllbResp.TranslatedText, nil
 }
 
 func (s *TranslationService) TranslateWithOllama(text, targetLang string) (string, error) {
@@ -114,8 +119,6 @@ func (s *TranslationService) TranslateWithOllama(text, targetLang string) (strin
 		return "", errors.New("Ollama URL not configured")
 	}
 	langName := languageCodeToName(targetLang)
-	// Explicitly instruct the model to preserve line breaks so multi-line messages
-	// are not concatenated into a single line in the translation.
 	prompt := fmt.Sprintf(
 		"Translate the following text to %s. Return ONLY the translated text, preserving all original line breaks and formatting. Do not add any explanation or prefix.\n\n%s",
 		langName, text,
@@ -131,11 +134,7 @@ func (s *TranslationService) TranslateWithOllama(text, targetLang string) (strin
 	defer resp.Body.Close()
 	var ollamaResp OllamaGenerateResponse
 	json.NewDecoder(resp.Body).Decode(&ollamaResp)
-	// Only trim outer whitespace — do NOT use strings.Trim with quote chars,
-	// which would also strip quotes that are part of the translated text.
 	result := strings.TrimSpace(ollamaResp.Response)
-	// Strip a single wrapping pair of quotes if the model wrapped the whole
-	// translation in them (e.g. `"Bonjour le monde"`), but leave internal quotes alone.
 	if len(result) >= 2 {
 		if (result[0] == '"' && result[len(result)-1] == '"') ||
 			(result[0] == '\'' && result[len(result)-1] == '\'') {
@@ -203,8 +202,63 @@ func (s *TranslationService) ProcessOllamaQueue(onComplete func(messageID string
 	}
 }
 
+// isoToFlores converts ISO 639-1 codes to FLORES-200 codes used by NLLB.
+func isoToFlores(code string) string {
+	if code == "" || code == "auto" {
+		return "eng_Latn"
+	}
+	code = strings.ToLower(strings.Split(code, "-")[0])
+	m := map[string]string{
+		"en": "eng_Latn", "es": "spa_Latn", "fr": "fra_Latn", "de": "deu_Latn",
+		"it": "ita_Latn", "pt": "por_Latn", "ja": "jpn_Jpan", "ko": "kor_Hang",
+		"zh": "zho_Hans", "ar": "arb_Arab", "nl": "nld_Latn", "pl": "pol_Latn",
+		"ru": "rus_Cyrl", "sv": "swe_Latn",
+		"af": "afr_Latn", "bg": "bul_Cyrl", "bn": "ben_Beng", "bs": "bos_Latn",
+		"ca": "cat_Latn", "cs": "ces_Latn", "cy": "cym_Latn", "da": "dan_Latn",
+		"el": "ell_Grek", "et": "est_Latn", "fa": "pes_Arab", "fi": "fin_Latn",
+		"ga": "gle_Latn", "gl": "glg_Latn", "gu": "guj_Gujr", "ha": "hau_Latn",
+		"he": "heb_Hebr", "hi": "hin_Deva", "hr": "hrv_Latn", "hu": "hun_Latn",
+		"id": "ind_Latn", "ig": "ibo_Latn", "is": "isl_Latn", "kk": "kaz_Cyrl",
+		"km": "khm_Khmr", "kn": "kan_Knda", "ky": "kir_Cyrl", "lo": "lao_Laoo",
+		"lt": "lit_Latn", "lv": "lav_Latn", "mg": "mlg_Latn", "mk": "mkd_Cyrl",
+		"ml": "mal_Mlym", "mn": "mon_Cyrl", "mr": "mar_Deva", "ms": "msa_Latn",
+		"mt": "mlt_Latn", "my": "mya_Mymr", "ne": "npi_Deva", "no": "nob_Latn",
+		"pa": "pan_Guru", "ps": "pbt_Arab", "ro": "ron_Latn", "rw": "kin_Latn",
+		"si": "sin_Sinh", "sk": "slk_Latn", "sl": "slv_Latn", "so": "som_Latn",
+		"sq": "sqi_Latn", "sr": "srp_Cyrl", "sw": "swh_Latn", "ta": "tam_Taml",
+		"te": "tel_Telu", "tg": "tgk_Cyrl", "th": "tha_Thai", "tk": "tuk_Latn",
+		"tr": "tur_Latn", "uk": "ukr_Cyrl", "ur": "urd_Arab", "uz": "uzn_Latn",
+		"vi": "vie_Latn", "xh": "xho_Latn", "yo": "yor_Latn", "zu": "zul_Latn",
+	}
+	if v, ok := m[code]; ok {
+		return v
+	}
+	return code + "_Latn"
+}
+
 func languageCodeToName(code string) string {
-	m := map[string]string{"en": "English", "es": "Spanish", "fr": "French", "de": "German", "it": "Italian", "pt": "Portuguese", "ja": "Japanese", "ko": "Korean", "zh": "Chinese", "ar": "Arabic", "nl": "Dutch", "pl": "Polish", "ru": "Russian", "sv": "Swedish"}
+	m := map[string]string{
+		"en": "English", "es": "Spanish", "fr": "French", "de": "German",
+		"it": "Italian", "pt": "Portuguese", "ja": "Japanese", "ko": "Korean",
+		"zh": "Chinese", "ar": "Arabic", "nl": "Dutch", "pl": "Polish",
+		"ru": "Russian", "sv": "Swedish", "af": "Afrikaans", "bg": "Bulgarian",
+		"bn": "Bengali", "bs": "Bosnian", "ca": "Catalan", "cs": "Czech",
+		"cy": "Welsh", "da": "Danish", "el": "Greek", "et": "Estonian",
+		"fa": "Persian", "fi": "Finnish", "ga": "Irish", "gl": "Galician",
+		"gu": "Gujarati", "ha": "Hausa", "he": "Hebrew", "hi": "Hindi",
+		"hr": "Croatian", "hu": "Hungarian", "id": "Indonesian", "ig": "Igbo",
+		"is": "Icelandic", "kk": "Kazakh", "km": "Khmer", "kn": "Kannada",
+		"ky": "Kyrgyz", "lo": "Lao", "lt": "Lithuanian", "lv": "Latvian",
+		"mg": "Malagasy", "mk": "Macedonian", "ml": "Malayalam", "mn": "Mongolian",
+		"mr": "Marathi", "ms": "Malay", "mt": "Maltese", "my": "Burmese",
+		"ne": "Nepali", "no": "Norwegian", "pa": "Punjabi", "ps": "Pashto",
+		"ro": "Romanian", "rw": "Kinyarwanda", "si": "Sinhala", "sk": "Slovak",
+		"sl": "Slovenian", "so": "Somali", "sq": "Albanian", "sr": "Serbian",
+		"sw": "Swahili", "ta": "Tamil", "te": "Telugu", "tg": "Tajik",
+		"th": "Thai", "tk": "Turkmen", "tr": "Turkish", "uk": "Ukrainian",
+		"ur": "Urdu", "uz": "Uzbek", "vi": "Vietnamese", "xh": "Xhosa",
+		"yo": "Yoruba", "zu": "Zulu",
+	}
 	if v, ok := m[code]; ok {
 		return v
 	}
