@@ -18,6 +18,9 @@ export default function LanguageSelector({ currentLang, onLanguageChange, varian
   const activeLang = currentLang || detectedLang
   const activeLanguage = SUPPORTED_LANGUAGES.find(l => l.code === activeLang) || SUPPORTED_LANGUAGES[0]
 
+  // Show language code text for English (avoids UK flag confusion), flag emoji for others
+  const displayLabel = activeLang === 'en' ? 'EN' : activeLanguage.flag
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -84,10 +87,10 @@ export default function LanguageSelector({ currentLang, onLanguageChange, varian
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition text-lg"
+        className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition text-sm font-bold"
         title={`Language: ${activeLanguage.nativeName}`}
       >
-        {activeLanguage.flag}
+        {displayLabel}
       </button>
 
       {isOpen && (

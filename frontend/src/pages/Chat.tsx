@@ -7,6 +7,7 @@ import NewChatModal from '../components/NewChatModal'
 import SearchMessages from '../components/SearchMessages'
 import Vocabulary from '../components/Vocabulary'
 import LanguageSelector from '../components/LanguageSelector'
+import { authAPI } from '../services/api'
 import Settings from './Settings'
 import About from './About'
 
@@ -81,10 +82,15 @@ export default function Chat({ onLogout }: ChatProps) {
     navigate('/chat', { replace: true })
   }
 
-  const handleLanguageChange = (code: string) => {
+  const handleLanguageChange = async (code: string) => {
     localStorage.setItem('preferredLanguage', code)
     if (user) {
       updateUser({ nativeLanguage: code })
+      try {
+        await authAPI.updateMe({ nativeLanguage: code })
+      } catch (err) {
+        console.error('Failed to persist language preference:', err)
+      }
     }
   }
 
