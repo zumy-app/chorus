@@ -70,6 +70,7 @@ func (s *TranslationService) Translate(text, targetLang string) (string, error) 
 }
 
 // TranslateQuick translates text using NLLB (Phase 1 — fast, 200+ languages).
+// Retries up to 3 times with backoff to handle NLLB container startup delay.
 func (s *TranslationService) TranslateQuick(text, targetLang, sourceLang string) (string, error) {
 	cacheKey := fmt.Sprintf("translation:nllb:%s:%s", targetLang, text)
 	if s.redis != nil {
@@ -92,26 +93,38 @@ func (s *TranslationService) TranslateQuick(text, targetLang, sourceLang string)
 		Target: targetFlores,
 	}
 	body, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequestWithContext(s.ctx, "POST", s.nllbURL+"/translate", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("nllb call: %w", err)
+
+	var lastErr error
+	for attempt := 0; attempt < 3; attempt++ {
+		if attempt > 0 {
+			time.Sleep(time.Duration(attempt) * 2 * time.Second)
+		}
+
+		req, _ := http.NewRequestWithContext(s.ctx, "POST", s.nllbURL+"/translate", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := s.httpClient.Do(req)
+		if err != nil {
+			lastErr = fmt.Errorf("nllb call (attempt %d): %w", attempt+1, err)
+			continue
+		}
+		if resp.StatusCode == http.StatusOK {
+			var nllbResp NLLBResponse
+			json.NewDecoder(resp.Body).Decode(&nllbResp)
+			resp.Body.Close()
+			if nllbResp.TranslatedText != "" {
+				if s.redis != nil {
+					s.redis.Set(s.ctx, cacheKey, nllbResp.TranslatedText, 24*time.Hour)
+				}
+				return nllbResp.TranslatedText, nil
+			}
+			resp.Body.Close()
+		} else {
+			respBody, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			lastErr = fmt.Errorf("nllb status %d (attempt %d): %s", resp.StatusCode, attempt+1, string(respBody))
+		}
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("nllb status %d: %s", resp.StatusCode, string(respBody))
-	}
-	var nllbResp NLLBResponse
-	json.NewDecoder(resp.Body).Decode(&nllbResp)
-	if nllbResp.TranslatedText == "" {
-		return "", errors.New("nllb empty response")
-	}
-	if s.redis != nil {
-		s.redis.Set(s.ctx, cacheKey, nllbResp.TranslatedText, 24*time.Hour)
-	}
-	return nllbResp.TranslatedText, nil
+	return "", lastErr
 }
 
 func (s *TranslationService) TranslateWithOllama(text, targetLang string) (string, error) {
