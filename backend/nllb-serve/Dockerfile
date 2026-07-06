@@ -2,19 +2,12 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies for sentencepiece
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    cmake \
-    && rm -rf /var/lib/apt/lists/*
-
 # Install Python dependencies
 RUN pip install --no-cache-dir \
     ctranslate2==4.4.0 \
     fastapi==0.115.0 \
     uvicorn==0.31.0 \
-    huggingface-hub==0.26.0 \
-    sentencepiece==0.2.0
+    huggingface-hub==0.26.0
 
 # Copy the server script
 COPY server.py .
