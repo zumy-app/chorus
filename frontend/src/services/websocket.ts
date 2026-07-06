@@ -40,16 +40,20 @@ class WebSocketService {
 
     this.ws.onclose = () => {
       console.log('WebSocket disconnected')
-      this.attemptReconnect(token)
+      this.attemptReconnect()
     }
   }
 
-  private attemptReconnect(token: string) {
+  private attemptReconnect() {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++
       setTimeout(() => {
         console.log(`Reconnecting... Attempt ${this.reconnectAttempts}`)
-        this.connect(token)
+        // Always get a fresh token from localStorage — the old one may have expired
+        const freshToken = localStorage.getItem('accessToken')
+        if (freshToken) {
+          this.connect(freshToken)
+        }
       }, this.reconnectDelay * this.reconnectAttempts)
     }
   }
