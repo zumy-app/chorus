@@ -19,23 +19,22 @@ ARG LLAMACPP_REV=b4331
 RUN git clone --depth 1 --branch "${LLAMACPP_REV}" \
     https://github.com/ggerganov/llama.cpp.git .
 
-# Build server binary with CPU-only optimisations (AVX2/AVX512)
-# Disable CUDA, Metal, and Vulkan to keep the image lean.
+# Build server binary statically with CPU-only optimisations (AVX2).
+# Disable CUDA and Metal to keep the image lean.
 RUN cmake -B build \
-    -DLLAMA_CUDA=OFF \
-    -DLLAMA_METAL=OFF \
-    -DLLAMA_VULKAN=OFF \
-    -DLLAMA_NATIVE=ON \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DLLAMA_STATIC=ON \
-    -DLLAMA_AVX2=ON \
-    -DLLAMA_AVX512=OFF && \
-    cmake --build build --config Release -j "$(nproc)" --target server
+    -DBUILD_SHARED_LIBS=OFF \
+    -DGGML_CUDA=OFF \
+    -DGGML_METAL=OFF \
+    -DGGML_NATIVE=ON \
+    -DGGML_AVX2=ON \
+    -DGGML_AVX512=OFF \
+    -DCMAKE_BUILD_TYPE=Release && \
+    cmake --build build --config Release -j "$(nproc)" --target llama-server
 
 # Strip the binary
-RUN ls -lh build/bin/server && \
-    strip build/bin/server && \
-    ls -lh build/bin/server
+RUN ls -lh build/bin/llama-server && \
+    strip build/bin/llama-server && \
+    ls -lh build/bin/llama-server
 
 # ---------------------------------------------------------------------------
 # Runtime stage
@@ -46,10 +45,11 @@ RUN apk add --no-cache \
     coreutils \
     curl \
     libgomp \
+    libstdc++ \
     ca-certificates
 
 # Copy the llama-server binary
-COPY --from=builder /build/build/bin/server /usr/local/bin/llama-server
+COPY --from=builder /build/build/bin/llama-server /usr/local/bin/llama-server
 
 # Copy the startup script
 COPY entrypoint.sh /entrypoint.sh

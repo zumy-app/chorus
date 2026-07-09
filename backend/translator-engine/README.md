@@ -5,26 +5,26 @@ High-performance translation container using `llama.cpp` server with a 7B-parame
 ## Architecture
 
 - **Isolation**: The LLM runtime runs in its own C++ Docker container to prevent large memory maps from disrupting the Go backend's runtime and garbage collector.
-- **RAM**: Allocates ~4.2–4.5 GB (fits a Q3_K_M 7B model comfortably on a 6 GB total system).
+- **RAM**: Allocates ~4.2–4.5 GB (fits a Q4_K_S 7B model comfortably on a 6 GB total system).
 - **API**: Exposes an OpenAI-compatible API (`/v1/chat/completions`) on port 5000.
 - **Hardware Acceleration**: Utilizes CPU AVX2/AVX512 instruction sets.
 
 ## Model
 
-Default model: **ALMA-7B** (Q3_K_M quantization, ~3.3 GB) from [TheBloke/ALMA-7B-GGUF](https://huggingface.co/TheBloke/ALMA-7B-GGUF).
+Default model: **Synatra-7B-v0.3-Translation** (Q4_K_S quantization, ~4.14 GB) from [mradermacher/Synatra-7B-v0.3-Translation-GGUF](https://huggingface.co/mradermacher/Synatra-7B-v0.3-Translation-GGUF).
 
 Override via environment variables:
-- `HF_REPO` — Hugging Face repo (default: `TheBloke/ALMA-7B-GGUF`)
-- `HF_FILE` — GGUF filename (default: `alma-7b.Q3_K_M.gguf`)
+- `HF_REPO` — Hugging Face repo (default: `mradermacher/Synatra-7B-v0.3-Translation-GGUF`)
+- `HF_FILE` — GGUF filename (default: `Synatra-7B-v0.3-Translation.Q4_K_S.gguf`)
 
 ### Alternative Models
 
 | Model | HF Repo | Quant | Size | Notes |
 |-------|---------|-------|------|-------|
-| ALMA-7B | TheBloke/ALMA-7B-GGUF | Q3_K_M | 3.3 GB | Default; good translation quality |
-| ALMA-7B | TheBloke/ALMA-7B-GGUF | Q4_K_M | 4.08 GB | Higher quality, more RAM |
+| Synatra-7B-Translation | mradermacher/Synatra-7B-v0.3-Translation-GGUF | Q4_K_S | 4.14 GB | Default; balanced quality/size |
+| ALMA-7B | TheBloke/ALMA-7B-GGUF | Q4_K_S | 3.86 GB | Alternative; if Synatra too large |
 | Synatra-7B-Translation | andreass123/Synatra-7B-v0.3-Translation-Q4_K_M-GGUF | Q4_K_M | 4.37 GB | Dedicated translation model |
-| Madlad-400-7B | *(check HF for GGUF variants)* | — | — | Google's multilingual translation model |
+| Madlad-400-7B | *(check HF for GGUF variants)* | — | — | Google's multilingual model |
 
 ## Server Flags
 

@@ -1,25 +1,46 @@
-# 🔥 Hot Reload Guide — Frontend Development
+# 🔥 Hot Reload Guide — Development
 
-Edit `.tsx`/`.ts` files and see changes **instantly** in the browser — no Docker rebuilds, no redeploys.
+Edit `.tsx`/`.ts` files and see changes **instantly** in the browser, and `.go` changes auto-rebuild the backend — no Docker rebuilds, no redeploys.
 
 ## How It Works
 
-Vite's dev server uses **Hot Module Replacement (HMR)**. When you save a file, Vite sends only the changed module to the browser, which swaps it in without a full page refresh. State is preserved.
+- **Frontend**: Vite's dev server uses **Hot Module Replacement (HMR)**. When you save a file, Vite sends only the changed module to the browser, which swaps it in without a full page refresh. State is preserved.
+- **Backend**: [`air`](https://github.com/air-verse/air) watches `.go` files and recompiles/restarts the server on every save (~1s rebuild).
 
-## Setup
+## One-Command Start
+
+From the repo root, run:
+
+```powershell
+.\start-dev.ps1
+```
+
+This opens 3 windows:
+- **Docker** (background): PostgreSQL, Redis, LibreTranslate (Phase 1), Ollama (Phase 2)
+- **Backend** (new terminal): Go server with `air` on port **8080**
+- **Frontend** (new terminal): Vite dev server on port **3000**
+
+## Manual Setup
 
 ### 1. Start Backend Services (Docker)
 
-Keep PostgreSQL, Redis, and the Go backend running in Docker:
-
 ```powershell
 cd C:\dev\chorus
-docker-compose up -d
+docker-compose -f docker-compose.dev.yml up -d postgres-dev redis-dev libretranslate-dev ollama-dev
 ```
 
-This starts: `postgres`, `redis`, `backend`, `frontend` (production nginx build — we'll ignore this).
+This starts the development Docker services (all on different ports to avoid conflicts with production).
 
-### 2. Start Frontend Dev Server (Local)
+### 2. Start Go Backend (with hot-reload)
+
+```powershell
+cd C:\dev\chorus\backend
+air
+```
+
+Every time you save a `.go` file, `air` recompiles and restarts the server automatically.
+
+### 3. Start Frontend Dev Server (with HMR)
 
 In a **separate terminal**:
 
@@ -31,26 +52,26 @@ npm run dev
 You'll see:
 ```
 VITE v5.x.x  ready in xxx ms
-➜  Local:   http://localhost:5173/
-➜  Network: http://192.168.x.x:5173/
+➜  Local:   http://localhost:3000/
 ```
 
-### 3. Open the App
+### 4. Open the App
 
-Open **http://localhost:5173** in your browser.
+Open **http://localhost:3000** in your browser.
 
-### 4. Edit Any File
+### 5. Edit Any File
 
-Try changing something in `frontend/src/pages/Landing.tsx` or any `.tsx` file. Save it — the browser updates instantly.
+- **Frontend** (`.tsx`/`.ts`/`.css`): Save — the browser updates instantly.
+- **Backend** (`.go`): Save — `air` rebuilds and restarts automatically.
 
 ## How the Proxy Works
 
-The Vite dev server at `localhost:5173` proxies API and WebSocket requests to the Docker backend:
+The Vite dev server at `localhost:3000` proxies API and WebSocket requests to the backend (running on port 8081 in dev mode):
 
 | Browser URL | Proxied To |
 |-------------|-----------|
-| `http://localhost:5173/api/*` | `http://localhost:8080/api/*` (Go backend) |
-| `ws://localhost:5173/ws` | `ws://localhost:8080/ws` (WebSocket) |
+| `http://localhost:3000/api/*` | `http://localhost:8081/api/*` (Go backend) |
+| `ws://localhost:3000/ws` | `ws://localhost:8081/ws` (WebSocket) |
 
 This is configured in `frontend/vite.config.ts`:
 ```typescript
@@ -66,26 +87,22 @@ proxy: {
 },
 ```
 
-## What About the Docker Frontend Container?
-
-The Docker `frontend` container (port 3000) is still running with the production nginx build. You can ignore it while using the dev server. When you're done with development, just stop the `npm run dev` process.
+> Note: The vite.config.ts targets port 8080 (production). When running in dev mode (port 8081), set `$env:VITE_API_URL=http://localhost:8081` or update the proxy target accordingly.
 
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
 | `npm run dev` fails with missing modules | Run `npm install` first |
-| API calls return 404 | Ensure `docker-compose up -d` is running (backend on 8080) |
-| WebSocket won't connect | Check that backend is healthy: `curl http://localhost:8080/health` |
-| Port 5173 already in use | Kill the process or change port in `vite.config.ts` |
-| Changes not showing | Make sure you're on http://localhost:5173, not http://localhost:3000 |
+| API calls return 404 | Check backend is running: `curl http://localhost:8081/health` |
+| WebSocket won't connect | Check backend logs for WebSocket setup |
+| Port 3000 already in use | Kill the process or change `server.port` in `vite.config.ts` |
+| `air` not found | Run `go install github.com/air-verse/air@latest` |
 
 ## Stopping
 
 ```powershell
-# Stop the dev server
-Ctrl+C in the terminal where npm run dev is running
-
-# Stop Docker services (when done developing)
-docker-compose down
+# Close the backend and frontend terminal windows (or Ctrl+C in each)
+# Stop Docker services
+docker-compose -f docker-compose.dev.yml down
 ```

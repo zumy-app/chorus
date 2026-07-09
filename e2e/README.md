@@ -86,13 +86,13 @@ npx playwright test 03-messaging-translation --debug
 |----------|---------|-------------|
 | `E2E_BASE_URL` | `http://localhost:3000` | Frontend URL |
 | `E2E_API_URL` | `http://localhost:8080/api/v1` | Backend API URL |
-| `E2E_SKIP_STARTUP` | `false` | Skip `docker-compose up` (use if services already running) |
+| `E2E_SKIP_STARTUP` | `false` | Skip `docker-compose up` (use if services already running via `start-dev.ps1`) |
 | `E2E_STOP_SERVICES` | `false` | Run `docker-compose down` after tests |
 
 ### Examples
 
 ```bash
-# If services are already running, skip startup
+# If services are already running (e.g., via start-dev.ps1), skip startup
 E2E_SKIP_STARTUP=true npm test
 
 # Run against a different frontend port (e.g., Vite dev mode)
@@ -101,6 +101,14 @@ E2E_BASE_URL=http://localhost:5173 npm test
 # Stop services after tests complete
 E2E_STOP_SERVICES=true npm test
 ```
+
+### Startup Behaviour
+
+The `global-setup.ts` script is now more resilient:
+1. **Checks if backend is already running** — if port :8080 responds with `healthy`, it skips all Docker startup entirely
+2. **Ensures Docker Desktop** — if Docker CLI doesn't respond, it attempts to launch Docker Desktop automatically and waits up to 60s
+3. **Tries dev compose first** — prefers `docker-compose.dev.yml` over `docker-compose.yml`, so it works with the development stack
+4. **Graceful fallback** — if no compose file works, it prints a helpful message suggesting `E2E_SKIP_STARTUP=true` and continues waiting for already-running services
 
 ## 🏗️ Architecture
 
@@ -154,8 +162,9 @@ Tests run sequentially (`workers: 1`) because they share state (users, chats). P
 - Check backend is running: `curl http://localhost:8080/health`
 
 ### Translation tests timeout
-- ALMA-7B GGUF model may be downloading on first run (can take 5+ minutes, ~3.3 GB)
+- Synatra-7B GGUF model may be downloading on first run (can take 5+ minutes, ~4.14 GB)
 - Check translator-engine container: `docker logs chorus-translator-engine`
+- Check dev translator-engine container: `docker logs chorus-dev-translator-engine`
 - Translation cache: unique messages (with `Date.now()`) avoid cache hits
 
 ### AI Tutor tests fail
