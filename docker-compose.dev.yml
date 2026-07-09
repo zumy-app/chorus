@@ -202,8 +202,8 @@ services:
     volumes:
       - chorus_dev_translator_model_cache:/models
     environment:
-      - HF_REPO=TheBloke/ALMA-7B-GGUF
-      - HF_FILE=alma-7b.Q3_K_M.gguf
+      - HF_REPO=mradermacher/Synatra-7B-v0.3-Translation-GGUF
+      - HF_FILE=Synatra-7B-v0.3-Translation.Q4_K_S.gguf
       - PORT=5000
       - CTX_SIZE=2048
       - THREADS=2

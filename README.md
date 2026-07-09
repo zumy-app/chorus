@@ -2,24 +2,83 @@
 
 A real-time messaging application with built-in translation features for multilingual conversations.
 
-### Option 1: Hot Reload (Recommended for Frontend) ⚡
 
-Run the frontend in **Vite dev mode** with Hot Module Replacement — changes appear instantly in the browser, no rebuild or redeploy needed.
+### Tests ###
 
-**Prerequisites:** Backend + DB must be running in Docker.
+#### Backend (Go)
+```powershell
+cd backend; go test ./... -vet=off -count=1
+```
+
+#### Frontend (Vitest)
+```powershell
+cd frontend; npm test
+```
+
+#### E2E (Playwright — 60 tests)
+
+**Option A:** If you already ran `.\start-dev.ps1` (stack is up), skip Docker startup:
+```powershell
+cd e2e
+$env:E2E_SKIP_STARTUP="true"; npx playwright test
+```
+
+**Option B:** Let the setup script manage everything (auto-starts Docker services):
+```powershell
+cd e2e
+npx playwright test
+```
+
+**Option C:** Run a specific test suite:
+```powershell
+cd e2e
+npx playwright test 01-auth
+npx playwright test 03-messaging-translation
+```
+
+
+
+## ⚡ One-Command Dev Start (Recommended)
+
+Run **everything** — Docker services, Go backend with auto-reload, and React frontend with HMR — from a single command:
 
 ```powershell
-# Terminal 1: Start backend services (one time)
-docker-compose up -d
+.\start-dev.ps1
+```
 
-# Terminal 2: Start frontend in dev mode with hot reload
+This opens 3 windows:
+| Window | What runs | Auto-reload |
+|--------|-----------|-------------|
+| **Docker** (background) | PostgreSQL, Redis, LibreTranslate (Phase 1), Ollama (Phase 2) | Always running |
+| **Backend** (new terminal) | Go server via `air` on port **8081** | ✅ Saves → rebuild + restart |
+| **Frontend** (new terminal) | Vite dev server on port **3000** | ✅ Saves → instant HMR |
+
+Then open **http://localhost:3000** — every edit to `.tsx`/`.ts` files updates instantly in the browser, and `.go` changes auto-rebuild the backend.
+
+> **Prerequisites:** Docker Desktop running, Go 1.23+, Node.js 20+, and `node_modules` installed (`cd frontend; npm install`).
+
+---
+
+### Option 2: Manual 3-Terminal Setup
+
+If you prefer to run each service yourself:
+
+```powershell
+# Terminal 1: Docker services (PostgreSQL, Redis, LibreTranslate, Ollama)
+docker-compose -f docker-compose.dev.yml up -d postgres-dev redis-dev libretranslate-dev ollama-dev
+
+# Terminal 2: Go backend with hot-reload
+cd backend
+air
+
+# Terminal 3: React frontend with HMR
 cd frontend
 npm run dev
 ```
 
-Now open http://localhost:5173 — every time you save a `.tsx`/`.ts` file, the browser updates instantly.
+Now open http://localhost:3000
 
-### Option 2: Docker Rebuild (Slower, Full Production Build)
+### Option 3: Docker Rebuild (Full Production Build)
 ```powershell
 # Frontend changes (.tsx, .ts, .css):
 docker-compose up -d --build frontend

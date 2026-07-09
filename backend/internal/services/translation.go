@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -105,15 +104,11 @@ func (s *TranslationService) TranslateQuick(text, targetLang, sourceLang string)
 	}
 
 	// Build the translation prompt
-	// ALMA-7B / Madlad-400 format: "Translate from {source} to {target}: {text}"
-	sourceName := languageCodeToName(sourceLang)
+	// Synatra-7B format: system="Translate to {target}:" user="{text}"
 	targetName := languageCodeToName(targetLang)
-	if sourceLang == "" || sourceLang == "auto" {
-		sourceName = "English"
-	}
 
-	systemPrompt := "You are a professional translator. Translate the user's text accurately and naturally. Return ONLY the translated text, without any explanations, prefixes, or quotes."
-	userPrompt := fmt.Sprintf("Translate from %s to %s: %s", sourceName, targetName, text)
+	systemPrompt := fmt.Sprintf("Translate to %s:", targetName)
+	userPrompt := text
 
 	reqBody := ChatCompletionRequest{
 		Model: "default",

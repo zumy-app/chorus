@@ -7,8 +7,8 @@
 set -euo pipefail
 
 # ---- Configuration (overridable via environment variables) ------------------
-HF_REPO="${HF_REPO:-TheBloke/ALMA-7B-GGUF}"
-HF_FILE="${HF_FILE:-alma-7b.Q3_K_M.gguf}"
+HF_REPO="${HF_REPO:-mradermacher/Synatra-7B-v0.3-Translation-GGUF}"
+HF_FILE="${HF_FILE:-Synatra-7B-v0.3-Translation.Q4_K_S.gguf}"
 MODEL_DIR="${MODEL_DIR:-/models}"
 MODEL_PATH="${MODEL_DIR}/${HF_FILE}"
 
@@ -86,6 +86,5 @@ exec llama-server \
     --n-gpu-layers "${N_GPU_LAYERS}" \
     --temp "${TEMPERATURE}" \
     --repeat-penalty 1.0 \
-    --mlock \
     --parallel 2 \
     --cont-batching
