@@ -85,13 +85,14 @@ services:
       - LIBRETRANSLATE_URL=http://libretranslate-dev:5000
       - OLLAMA_URL=http://ollama-dev:11434
       - OLLAMA_MODEL=qwen2.5:3b
+      - TRANSLATOR_ENGINE_URL=http://translator-engine-dev:5000
       - PORT=8080
     depends_on:
       postgres-dev:
         condition: service_healthy
       redis-dev:
         condition: service_healthy
-      libretranslate-dev:
+      translator-engine-dev:
         condition: service_started
       ollama-dev:
         condition: service_started
@@ -188,6 +189,39 @@ services:
       start_period: 120s
     restart: unless-stopped
 
+  # Translator Engine - Development (replaces NLLB from Phase 1)
+  translator-engine-dev:
+    build:
+      context: ./backend/translator-engine
+      dockerfile: Dockerfile
+    container_name: chorus-dev-translator-engine
+    networks:
+      - chorus-dev
+    ports:
+      - "127.0.0.1:5003:5000"  # Different port to avoid conflicts
+    volumes:
+      - chorus_dev_translator_model_cache:/models
+    environment:
+      - HF_REPO=TheBloke/ALMA-7B-GGUF
+      - HF_FILE=alma-7b.Q3_K_M.gguf
+      - PORT=5000
+      - CTX_SIZE=2048
+      - THREADS=2
+      - TEMPERATURE=0.1
+    deploy:
+      resources:
+        limits:
+          memory: 4.5G
+        reservations:
+          memory: 3.8G
+    healthcheck:
+      test: ["CMD", "curl", "-sSf", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 600s
+    restart: unless-stopped
+
 volumes:
   chorus_dev_postgres_data:
     name: chorus_dev_postgres_data
@@ -197,3 +231,5 @@ volumes:
     name: chorus_dev_pgadmin_data
   chorus_dev_ollama_data:
     name: chorus_dev_ollama_data
+  chorus_dev_translator_model_cache:
+    name: chorus_dev_translator_model_cache

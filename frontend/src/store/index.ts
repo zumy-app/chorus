@@ -184,9 +184,17 @@ export const useStore = create<AppState>((set, get) => ({
   createChat: async (type, participants, name) => {
     try {
       const chat = await chatAPI.createChat({ type, participants, name })
-      set((state) => ({
-        chats: [chat, ...state.chats],
-      }))
+      set((state) => {
+        // If the chat already exists (backend returns existing direct chats),
+        // move it to the top instead of adding a duplicate
+        const existingIndex = state.chats.findIndex(c => c.id === chat.id)
+        if (existingIndex !== -1) {
+          const updatedChats = [...state.chats]
+          const [existing] = updatedChats.splice(existingIndex, 1)
+          return { chats: [existing, ...updatedChats] }
+        }
+        return { chats: [chat, ...state.chats] }
+      })
       return chat
     } catch (error) {
       console.error('Failed to create chat:', error)

@@ -1,31 +1,25 @@
 FROM python:3.11-slim
 
-# Install patchelf for fixing executable stack issue
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    patchelf \
-    && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
 
-# Install Python dependencies
+# Install system dependencies for sentencepiece and torch
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies (use transformers for proper NLLB support)
+RUN pip install --no-cache-dir torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
 RUN pip install --no-cache-dir \
-    ctranslate2==4.4.0 \
+    transformers==4.46.0 \
+    sentencepiece==0.2.0 \
     fastapi==0.115.0 \
-    uvicorn==0.31.0 \
-    huggingface-hub==0.26.0 \
-    sentencepiece==0.2.0
+    uvicorn==0.31.0
 
-# Fix ctranslate2 native library executable stack issue
-RUN find /usr/local -name "libctranslate2*.so*" -exec patchelf --clear-execstack {} \; 2>/dev/null; echo "Library stack cleared"
-
-# Copy scripts
+# Copy server
 COPY server.py .
-COPY download_model.py .
 
-# Download the model at build time
-RUN python download_model.py
-
-ENV MODEL_DIR=/app/models/nllb-200-distilled-600M-ct2-int8
+# The model will be downloaded on first request via HuggingFace
+ENV HF_HOME=/app/hf_cache
 
 EXPOSE 5000
 

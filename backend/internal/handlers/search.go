@@ -61,9 +61,7 @@ func (h *SearchHandler) SearchMessages(c *gin.Context) {
 	// Record search for suggestions
 	h.searchService.RecordSearch(userID, query)
 
-	c.JSON(http.StatusOK, gin.H{
-		"data": result,
-	})
+	c.JSON(http.StatusOK, result)
 }
 
 // SearchChats searches chat metadata by name

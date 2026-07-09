@@ -9,12 +9,14 @@ import (
 type ChatHandler struct {
 	chatService *services.ChatService
 	userService *services.UserService
+	wsHub       *services.WebSocketHub
 }
 
-func NewChatHandler(chatService *services.ChatService, userService *services.UserService) *ChatHandler {
+func NewChatHandler(chatService *services.ChatService, userService *services.UserService, wsHub *services.WebSocketHub) *ChatHandler {
 	return &ChatHandler{
 		chatService: chatService,
 		userService: userService,
+		wsHub:       wsHub,
 	}
 }
 
@@ -90,6 +92,10 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 		}
 	}
 	chat.Participants = participants
+
+	// Broadcast chat_updated to all participants so their chat lists refresh
+	// (the other participant needs to know they were added to a new chat)
+	h.wsHub.SendToChat(chat.ID, userIDs, "chat_updated", chat)
 
 	c.JSON(201, chat)
 }

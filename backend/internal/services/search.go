@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/chorus/messenger/internal/models"
+	"github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -79,7 +80,7 @@ func (s *SearchService) SearchMessages(userID string, req models.SearchRequest) 
 	// Filter by chat IDs if provided
 	if len(req.ChatIDs) > 0 {
 		query += fmt.Sprintf(" AND m.chat_id = ANY($%d)", argNum)
-		args = append(args, req.ChatIDs)
+		args = append(args, pq.Array(req.ChatIDs))
 		argNum++
 	}
 
@@ -116,7 +117,7 @@ func (s *SearchService) SearchMessages(userID string, req models.SearchRequest) 
 	}
 	defer rows.Close()
 
-	var messages []models.Message
+	messages := []models.Message{}
 	for rows.Next() {
 		var msg models.Message
 		var translationsJSON string
@@ -176,7 +177,7 @@ func (s *SearchService) SearchByExactText(userID, text string, limit int) ([]mod
 	}
 	defer rows.Close()
 
-	var messages []models.Message
+	messages := []models.Message{}
 	for rows.Next() {
 		var msg models.Message
 		var translationsJSON string
@@ -232,7 +233,7 @@ func (s *SearchService) SearchInChat(userID, chatID, query string, limit int) ([
 	}
 	defer rows.Close()
 
-	var messages []models.Message
+	messages := []models.Message{}
 	for rows.Next() {
 		var msg models.Message
 		var translationsJSON string
