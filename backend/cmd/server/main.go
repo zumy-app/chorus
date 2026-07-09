@@ -58,7 +58,7 @@ func main() {
 	userService := services.NewUserService(db)
 	chatService := services.NewChatService(db)
 	messageService := services.NewMessageService(db, redisClient)
-	translationService := services.NewTranslationService(cfg.NLLBURL, cfg.OllamaURL, cfg.OllamaModel, redisClient)
+	translationService := services.NewTranslationService(cfg.TranslatorEngineURL, cfg.OllamaURL, cfg.OllamaModel, redisClient)
 	wsHub := services.NewWebSocketHub(redisClient)
 
 	// Phase 2: Initialize Pub/Sub service
@@ -115,7 +115,7 @@ func main() {
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService, userService)
-	chatHandler := handlers.NewChatHandler(chatService, userService)
+	chatHandler := handlers.NewChatHandler(chatService, userService, wsHub)
 	messageHandler := handlers.NewMessageHandler(messageService, chatService, translationService, wsHub)
 	wsHandler := handlers.NewWebSocketHandler(wsHub, authService)
 

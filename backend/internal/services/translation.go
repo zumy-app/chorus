@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -26,15 +27,32 @@ type OllamaGenerateResponse struct {
 	Done     bool   `json:"done"`
 }
 
-// NLLB API request/response types
-type NLLBRequest struct {
-	Text   string `json:"text"`
-	Source string `json:"source"`
-	Target string `json:"target"`
+// OpenAI-compatible Chat Completion types (used with llama.cpp server)
+type ChatCompletionRequest struct {
+	Model       string         `json:"model"`
+	Messages    []ChatMessage  `json:"messages"`
+	Temperature float64        `json:"temperature"`
+	MaxTokens   int            `json:"max_tokens"`
 }
 
-type NLLBResponse struct {
-	TranslatedText string `json:"translatedText"`
+type ChatMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+type ChatCompletionResponse struct {
+	Choices []ChatChoice `json:"choices"`
+}
+
+type ChatChoice struct {
+	Message  ChatResponseMessage `json:"message"`
+	Index    int                  `json:"index"`
+	FinishReason string           `json:"finish_reason"`
+}
+
+type ChatResponseMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
 }
 
 type TranslationQueueJob struct {
@@ -44,24 +62,24 @@ type TranslationQueueJob struct {
 }
 
 type TranslationService struct {
-	redis        *redis.Client
-	ollamaURL    string
-	ollamaModel  string
-	nllbURL      string
-	httpClient   *http.Client
-	queueEnabled bool
-	ctx          context.Context
+	redis               *redis.Client
+	ollamaURL           string
+	ollamaModel         string
+	translatorEngineURL string
+	httpClient          *http.Client
+	queueEnabled        bool
+	ctx                 context.Context
 }
 
-func NewTranslationService(nllbURL, ollamaURL, ollamaModel string, redis *redis.Client) *TranslationService {
+func NewTranslationService(translatorEngineURL, ollamaURL, ollamaModel string, redis *redis.Client) *TranslationService {
 	return &TranslationService{
-		redis:        redis,
-		ollamaURL:    ollamaURL,
-		ollamaModel:  ollamaModel,
-		nllbURL:      nllbURL,
-		httpClient:   &http.Client{Timeout: 120 * time.Second},
-		queueEnabled: true,
-		ctx:          context.Background(),
+		redis:               redis,
+		ollamaURL:           ollamaURL,
+		ollamaModel:         ollamaModel,
+		translatorEngineURL: translatorEngineURL,
+		httpClient:          &http.Client{Timeout: 120 * time.Second},
+		queueEnabled:        true,
+		ctx:                 context.Background(),
 	}
 }
 
@@ -69,28 +87,42 @@ func (s *TranslationService) Translate(text, targetLang string) (string, error) 
 	return s.TranslateQuick(text, targetLang, "auto")
 }
 
-// TranslateQuick translates text using NLLB (Phase 1 — fast, 200+ languages).
-// Retries up to 3 times with backoff to handle NLLB container startup delay.
+// TranslateQuick translates text using the llama.cpp translator engine.
+// Uses the OpenAI-compatible /v1/chat/completions endpoint.
+// Retries up to 3 times with backoff to handle container startup delay.
 func (s *TranslationService) TranslateQuick(text, targetLang, sourceLang string) (string, error) {
-	cacheKey := fmt.Sprintf("translation:nllb:%s:%s", targetLang, text)
+	// Check cache first
+	cacheKey := fmt.Sprintf("translation:engine:%s:%s:%s", sourceLang, targetLang, text)
 	if s.redis != nil {
 		cached, err := s.redis.Get(s.ctx, cacheKey).Result()
 		if err == nil && cached != "" {
 			return cached, nil
 		}
 	}
-	if s.nllbURL == "" {
-		return "", errors.New("NLLB URL not configured")
+
+	if s.translatorEngineURL == "" {
+		return "", errors.New("translator engine URL not configured")
 	}
 
-	// Convert ISO codes to FLORES-200 codes for NLLB
-	sourceFlores := isoToFlores(sourceLang)
-	targetFlores := isoToFlores(targetLang)
+	// Build the translation prompt
+	// ALMA-7B / Madlad-400 format: "Translate from {source} to {target}: {text}"
+	sourceName := languageCodeToName(sourceLang)
+	targetName := languageCodeToName(targetLang)
+	if sourceLang == "" || sourceLang == "auto" {
+		sourceName = "English"
+	}
 
-	reqBody := NLLBRequest{
-		Text:   text,
-		Source: sourceFlores,
-		Target: targetFlores,
+	systemPrompt := "You are a professional translator. Translate the user's text accurately and naturally. Return ONLY the translated text, without any explanations, prefixes, or quotes."
+	userPrompt := fmt.Sprintf("Translate from %s to %s: %s", sourceName, targetName, text)
+
+	reqBody := ChatCompletionRequest{
+		Model: "default",
+		Messages: []ChatMessage{
+			{Role: "system", Content: systemPrompt},
+			{Role: "user", Content: userPrompt},
+		},
+		Temperature: 0.1,
+		MaxTokens:   512,
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -100,28 +132,42 @@ func (s *TranslationService) TranslateQuick(text, targetLang, sourceLang string)
 			time.Sleep(time.Duration(attempt) * 2 * time.Second)
 		}
 
-		req, _ := http.NewRequestWithContext(s.ctx, "POST", s.nllbURL+"/translate", bytes.NewReader(body))
+		req, _ := http.NewRequestWithContext(s.ctx, "POST", s.translatorEngineURL+"/v1/chat/completions", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		resp, err := s.httpClient.Do(req)
 		if err != nil {
-			lastErr = fmt.Errorf("nllb call (attempt %d): %w", attempt+1, err)
+			lastErr = fmt.Errorf("translator engine call (attempt %d): %w", attempt+1, err)
 			continue
 		}
+
 		if resp.StatusCode == http.StatusOK {
-			var nllbResp NLLBResponse
-			json.NewDecoder(resp.Body).Decode(&nllbResp)
-			resp.Body.Close()
-			if nllbResp.TranslatedText != "" {
-				if s.redis != nil {
-					s.redis.Set(s.ctx, cacheKey, nllbResp.TranslatedText, 24*time.Hour)
-				}
-				return nllbResp.TranslatedText, nil
+			var chatResp ChatCompletionResponse
+			if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
+				resp.Body.Close()
+				lastErr = fmt.Errorf("decoding response (attempt %d): %w", attempt+1, err)
+				continue
 			}
 			resp.Body.Close()
+
+			if len(chatResp.Choices) > 0 && chatResp.Choices[0].Message.Content != "" {
+				translated := strings.TrimSpace(chatResp.Choices[0].Message.Content)
+				// Strip surrounding quotes if the model added them
+				if len(translated) >= 2 {
+					if (translated[0] == '"' && translated[len(translated)-1] == '"') ||
+						(translated[0] == '\'' && translated[len(translated)-1] == '\'') {
+						translated = translated[1 : len(translated)-1]
+					}
+				}
+				if s.redis != nil {
+					s.redis.Set(s.ctx, cacheKey, translated, 24*time.Hour)
+				}
+				return translated, nil
+			}
+			lastErr = fmt.Errorf("translator engine returned empty response (attempt %d)", attempt+1)
 		} else {
 			respBody, _ := io.ReadAll(resp.Body)
 			resp.Body.Close()
-			lastErr = fmt.Errorf("nllb status %d (attempt %d): %s", resp.StatusCode, attempt+1, string(respBody))
+			lastErr = fmt.Errorf("translator engine status %d (attempt %d): %s", resp.StatusCode, attempt+1, string(respBody))
 		}
 	}
 	return "", lastErr
@@ -215,39 +261,7 @@ func (s *TranslationService) ProcessOllamaQueue(onComplete func(messageID string
 	}
 }
 
-// isoToFlores converts ISO 639-1 codes to FLORES-200 codes used by NLLB.
-func isoToFlores(code string) string {
-	if code == "" || code == "auto" {
-		return "eng_Latn"
-	}
-	code = strings.ToLower(strings.Split(code, "-")[0])
-	m := map[string]string{
-		"en": "eng_Latn", "es": "spa_Latn", "fr": "fra_Latn", "de": "deu_Latn",
-		"it": "ita_Latn", "pt": "por_Latn", "ja": "jpn_Jpan", "ko": "kor_Hang",
-		"zh": "zho_Hans", "ar": "arb_Arab", "nl": "nld_Latn", "pl": "pol_Latn",
-		"ru": "rus_Cyrl", "sv": "swe_Latn",
-		"af": "afr_Latn", "bg": "bul_Cyrl", "bn": "ben_Beng", "bs": "bos_Latn",
-		"ca": "cat_Latn", "cs": "ces_Latn", "cy": "cym_Latn", "da": "dan_Latn",
-		"el": "ell_Grek", "et": "est_Latn", "fa": "pes_Arab", "fi": "fin_Latn",
-		"ga": "gle_Latn", "gl": "glg_Latn", "gu": "guj_Gujr", "ha": "hau_Latn",
-		"he": "heb_Hebr", "hi": "hin_Deva", "hr": "hrv_Latn", "hu": "hun_Latn",
-		"id": "ind_Latn", "ig": "ibo_Latn", "is": "isl_Latn", "kk": "kaz_Cyrl",
-		"km": "khm_Khmr", "kn": "kan_Knda", "ky": "kir_Cyrl", "lo": "lao_Laoo",
-		"lt": "lit_Latn", "lv": "lav_Latn", "mg": "mlg_Latn", "mk": "mkd_Cyrl",
-		"ml": "mal_Mlym", "mn": "mon_Cyrl", "mr": "mar_Deva", "ms": "msa_Latn",
-		"mt": "mlt_Latn", "my": "mya_Mymr", "ne": "npi_Deva", "no": "nob_Latn",
-		"pa": "pan_Guru", "ps": "pbt_Arab", "ro": "ron_Latn", "rw": "kin_Latn",
-		"si": "sin_Sinh", "sk": "slk_Latn", "sl": "slv_Latn", "so": "som_Latn",
-		"sq": "sqi_Latn", "sr": "srp_Cyrl", "sw": "swh_Latn", "ta": "tam_Taml",
-		"te": "tel_Telu", "tg": "tgk_Cyrl", "th": "tha_Thai", "tk": "tuk_Latn",
-		"tr": "tur_Latn", "uk": "ukr_Cyrl", "ur": "urd_Arab", "uz": "uzn_Latn",
-		"vi": "vie_Latn", "xh": "xho_Latn", "yo": "yor_Latn", "zu": "zul_Latn",
-	}
-	if v, ok := m[code]; ok {
-		return v
-	}
-	return code + "_Latn"
-}
+
 
 func languageCodeToName(code string) string {
 	m := map[string]string{

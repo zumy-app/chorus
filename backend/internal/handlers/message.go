@@ -109,7 +109,7 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 			}
 		}
 
-		// Phase 1+2: Translate asynchronously (LibreTranslate fast, then Ollama enhancement)
+		// Phase 1+2: Translate asynchronously (translator-engine fast, then Ollama enhancement)
 		go h.translateAndBroadcast(message, targetLangs, chatID)
 	}
 
@@ -132,12 +132,12 @@ func (h *MessageHandler) translateAndBroadcast(message *models.Message, targetLa
 		langs = append(langs, lang)
 	}
 
-	// Phase 1: Quick NLLB translation — broadcast instantly
+	// Phase 1: Quick translation via translator-engine — broadcast instantly
 	quickTranslations := make(map[string]string)
 	for _, lang := range langs {
 		trans, err := h.translationService.TranslateQuick(message.Text, lang, "auto")
 		if err != nil {
-			log.Printf("[Translate] NLLB translation failed for lang %s: %v", lang, err)
+			log.Printf("[Translate] translator-engine failed for lang %s: %v", lang, err)
 		} else if trans != "" {
 			quickTranslations[lang] = trans
 		}

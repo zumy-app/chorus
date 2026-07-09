@@ -1,0 +1,19 @@
+{
+  "name": "chorus-e2e-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "End-to-end tests for Chorus Multilingual Messenger",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:core": "playwright test 01-auth 02-chat-creation 03-messaging-translation 04-grammar 05-ai-tutor",
+    "test:report": "playwright show-report",
+    "install-browsers": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "@types/node": "^20.11.0"
+  }
+}

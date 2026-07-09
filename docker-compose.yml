@@ -47,7 +47,7 @@ services:
       - GOOGLE_TRANSLATE_API_KEY=${GOOGLE_TRANSLATE_API_KEY:-}
       - OLLAMA_URL=http://ollama:11434
       - OLLAMA_MODEL=qwen2.5:3b
-      - NLLB_URL=http://nllb:5000
+      - TRANSLATOR_ENGINE_URL=http://translator-engine:5000
       - PORT=8080
       - APPWRITE_ENDPOINT=${APPWRITE_ENDPOINT:-https://appwrite.zumy.app/v1}
       - APPWRITE_PROJECT_ID=${APPWRITE_PROJECT_ID:-6955733a001c10e7c020}
@@ -58,24 +58,44 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      nllb:
+      translator-engine:
         condition: service_started
     restart: unless-stopped
 
-  # NLLB Translation Service (Phase 1 — fast translation, 200+ languages)
-  nllb:
+  # ============================================================================
+  # Translator Engine (Phase 1 replacement for NLLB)
+  # llama.cpp server with a 7B-param translation model in GGUF format.
+  # Exposes an OpenAI-compatible API at /v1/chat/completions.
+  # RAM limit: ~4.2 GB (fits a Q3_K_M 7B model comfortably).
+  # ============================================================================
+  translator-engine:
     build:
-      context: ./backend/nllb-serve
+      context: ./backend/translator-engine
       dockerfile: Dockerfile
-    container_name: chorus-nllb
+    container_name: chorus-translator-engine
     ports:
       - "127.0.0.1:5002:5000"
+    volumes:
+      - translator_model_cache:/models
+    environment:
+      - HF_REPO=TheBloke/ALMA-7B-GGUF
+      - HF_FILE=alma-7b.Q3_K_M.gguf
+      - PORT=5000
+      - CTX_SIZE=2048
+      - THREADS=4
+      - TEMPERATURE=0.1
+    deploy:
+      resources:
+        limits:
+          memory: 4.5G
+        reservations:
+          memory: 3.8G
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; import json; req = urllib.request.Request('http://localhost:5000/translate', data=json.dumps({'text':'hi','source':'eng_Latn','target':'spa_Latn'}).encode(), headers={'Content-Type':'application/json'}); urllib.request.urlopen(req, timeout=15)"]
+      test: ["CMD", "curl", "-sSf", "http://localhost:5000/health"]
       interval: 30s
-      timeout: 15s
+      timeout: 10s
       retries: 10
-      start_period: 300s
+      start_period: 600s
     restart: unless-stopped
 
   # Ollama Translation Service
@@ -124,3 +144,4 @@ volumes:
   postgres_data:
   redis_data:
   ollama_data:
+  translator_model_cache:
