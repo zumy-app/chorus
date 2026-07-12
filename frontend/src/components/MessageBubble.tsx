@@ -19,11 +19,13 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
   const [loadingGrammar, setLoadingGrammar] = useState(false)
   const [showLearning, setShowLearning] = useState(false)
 
-  const nativeTranslation = message.translations?.[nativeLanguage]
+  const displayText = message.decryptionError || message.text
+  const hasDecryptionError = Boolean(message.decryptionError)
+  const nativeTranslation = hasDecryptionError ? undefined : message.translations?.[nativeLanguage]
   const showNativeTranslation = nativeTranslation && nativeTranslation !== message.text
 
   // Show translation pending indicator only for recent messages still awaiting translation
-  const isTranslationPending = !isOwn && !nativeTranslation && (
+  const isTranslationPending = !message.ciphertext && !isOwn && !nativeTranslation && (
     !message.translations || Object.keys(message.translations).length === 0
   )
 
@@ -31,7 +33,7 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
   const targetTranslation = targetLanguage && targetLanguage !== nativeLanguage && targetLanguage !== message.originalLanguage
     ? message.translations?.[targetLanguage]
     : null
-  const showTargetTranslation = targetTranslation && targetTranslation !== message.text
+  const showTargetTranslation = !hasDecryptionError && targetTranslation && targetTranslation !== message.text
 
   // Re-run AI grammar analysis when translations arrive (WebSocket update)
   const prevNativeTranslation = useRef(nativeTranslation)
@@ -59,6 +61,9 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
     }
     if (!silent) setLoadingGrammar(true)
     try {
+      if (hasDecryptionError) {
+        return
+      }
       // Always analyze the ORIGINAL message text.
       // Use the sender's native language as fallback when originalLanguage is not set.
       const sourceLang = message.originalLanguage || message.sender?.nativeLanguage || 'en'
@@ -82,7 +87,7 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
   }
 
     // Use original message text for word extraction (language being learned)
-  const words = (message.text || '')
+  const words = (hasDecryptionError ? '' : message.text || '')
     .split(/\s+/)
     .filter((w: string) => w.length > 3)
     .slice(0, 5)
@@ -106,9 +111,9 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
               {message.sender.displayName}
             </div>
           )}
-          
-          <div className="break-words whitespace-pre-wrap">
-            {message.text}
+
+          <div className={`break-words whitespace-pre-wrap ${hasDecryptionError ? 'italic opacity-75' : ''}`}>
+            {displayText}
           </div>
 
           {/* Translation loading indicator */}
@@ -288,7 +293,7 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
         )}
 
         {/* Action Buttons */}
-        {showActions && !isOwn && (
+        {showActions && !isOwn && !hasDecryptionError && (
           <div className="flex flex-wrap gap-1 mt-1">
             <button
               onClick={() => handleAnalyzeGrammar()}

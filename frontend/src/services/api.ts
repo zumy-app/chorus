@@ -9,6 +9,8 @@ import type {
   RegisterRequest,
   CreateChatRequest,
   SendMessageRequest,
+  DeviceKeyBundle,
+  EncryptedRecipientKey,
 } from '../types'
 
 // Get API URL based on environment
@@ -127,6 +129,24 @@ export const chatAPI = {
 
   leaveChat: async (chatId: string) => {
     await api.delete(`/chats/${chatId}/leave`)
+  },
+}
+
+export const keyAPI = {
+  registerDeviceKeys: async (data: DeviceKeyBundle) => {
+    const response = await api.post<DeviceKeyBundle>('/keys/device', data)
+    return response.data
+  },
+
+  getUserDeviceKeys: async (userId: string) => {
+    const response = await api.get<{ devices: DeviceKeyBundle[] }>(`/keys/users/${userId}/devices`)
+    return response.data.devices
+  },
+
+  getChatRecipientKey: async (chatId: string, deviceId: string) => {
+    const params = new URLSearchParams({ deviceId })
+    const response = await api.get<EncryptedRecipientKey>(`/chats/${chatId}/recipient-key?${params}`)
+    return response.data
   },
 }
 

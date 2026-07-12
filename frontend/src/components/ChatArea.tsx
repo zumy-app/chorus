@@ -13,6 +13,7 @@ export default function ChatArea() {
   const typingTimeoutRef = useRef<number>()
 
   const chatMessages = activeChat ? messages[activeChat.id] || [] : []
+  const hasDecryptionFailures = chatMessages.some((message) => message.decryptionError)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -89,6 +90,7 @@ export default function ChatArea() {
             {activeChat.type === 'group' && (
               <span>{activeChat.participants?.length || 0} members</span>
             )}
+            <span>Encrypted</span>
           </div>
         </div>
         <button
@@ -103,6 +105,11 @@ export default function ChatArea() {
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {hasDecryptionFailures && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Some messages cannot be decrypted on this device. Restore this device's keys or ask the chat to re-key.
+          </div>
+        )}
         {chatMessages.length === 0 ? (
           <div className="text-center text-gray-500 mt-8">
             No messages yet. Start the conversation!

@@ -1,7 +1,17 @@
 import { create } from 'zustand'
 import type { User, Chat, Message } from '../types'
-import { chatAPI, messageAPI } from '../services/api'
+import { chatAPI, keyAPI, messageAPI } from '../services/api'
 import { wsService } from '../services/websocket'
+import {
+  decryptMessage,
+  encryptMessage,
+  ensureDeviceKeys,
+  generateChatKey,
+  getStoredChatKey,
+  storeChatKey,
+  unwrapChatKey,
+  wrapChatKeyForDevice,
+} from '../services/crypto'
 
 // --- Slug helpers ---
 
@@ -52,7 +62,7 @@ interface AppState {
   chats: Chat[]
   activeChat: Chat | null
   messages: Record<string, Message[]>
-  
+
   // Actions
   setUser: (user: User | null) => void
   loadChats: () => Promise<void>
@@ -95,10 +105,11 @@ export const useStore = create<AppState>((set, get) => ({
   loadMessages: async (chatId) => {
     try {
       const messages = await messageAPI.getMessages(chatId)
+      const decrypted = await decryptMessagesForDisplay(chatId, messages, get().user)
       set((state) => ({
         messages: {
           ...state.messages,
-          [chatId]: messages.reverse(),
+          [chatId]: decrypted.reverse(),
         },
       }))
     } catch (error) {
@@ -107,64 +118,88 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   addMessage: (message) => {
-    set((state) => {
-      const chatMessages = state.messages[message.chatId] || []
-      // Avoid duplicates
-      if (chatMessages.some(m => m.id === message.id)) {
-        return state
-      }
-      return {
-        messages: {
-          ...state.messages,
-          [message.chatId]: [...chatMessages, message],
-        },
-      }
-    })
-    // Also update the chat's last message and reorder
-    get().updateChatLastMessage(message.chatId, message)
-  },
-
-  updateMessage: (message) => {
-    set((state) => {
-      const chatMessages = state.messages[message.chatId] || []
-      const index = chatMessages.findIndex((m) => m.id === message.id)
-      if (index !== -1) {
-        const newMessages = [...chatMessages]
-        newMessages[index] = { ...newMessages[index], ...message }
+    const applyMessage = (displayMessage: Message) => {
+      set((state) => {
+        const chatMessages = state.messages[displayMessage.chatId] || []
+        // Avoid duplicates
+        if (chatMessages.some(m => m.id === displayMessage.id)) {
+          return state
+        }
         return {
           messages: {
             ...state.messages,
-            [message.chatId]: newMessages,
+            [displayMessage.chatId]: [...chatMessages, displayMessage],
           },
         }
-      }
-      return state
-    })
+      })
+      // Also update the chat's last message and reorder
+      get().updateChatLastMessage(displayMessage.chatId, displayMessage)
+    }
+    if (!message.ciphertext) {
+      applyMessage(message)
+      return
+    }
+    decryptMessageForDisplay(message, get().user).then(applyMessage)
+  },
+
+  updateMessage: (message) => {
+    const applyMessage = (displayMessage: Message) => {
+      set((state) => {
+        const chatMessages = state.messages[displayMessage.chatId] || []
+        const index = chatMessages.findIndex((m) => m.id === displayMessage.id)
+        if (index !== -1) {
+          const newMessages = [...chatMessages]
+          newMessages[index] = { ...newMessages[index], ...displayMessage }
+          return {
+            messages: {
+              ...state.messages,
+              [displayMessage.chatId]: newMessages,
+            },
+          }
+        }
+        return state
+      })
+    }
+    if (!message.ciphertext) {
+      applyMessage(message)
+      return
+    }
+    decryptMessageForDisplay(message, get().user).then(applyMessage)
   },
 
   updateChatLastMessage: (chatId, message) => {
     set((state) => {
       const chatIndex = state.chats.findIndex(c => c.id === chatId)
       if (chatIndex === -1) return state
-      
+
       const updatedChats = [...state.chats]
       updatedChats[chatIndex] = {
         ...updatedChats[chatIndex],
         lastMessage: message,
       }
-      
+
       // Move chat to top of list
       const chat = updatedChats.splice(chatIndex, 1)[0]
       updatedChats.unshift(chat)
-      
+
       return { chats: updatedChats }
     })
   },
 
   sendMessage: async (chatId, text) => {
     try {
-      const message = await messageAPI.sendMessage(chatId, { text })
-      get().addMessage(message)
+      const user = get().user
+      if (!user) throw new Error('Cannot send encrypted messages before login')
+      await ensureRegisteredDevice(user)
+      if (!await getStoredChatKey(chatId)) {
+        await ensureChatKeyForRead(chatId, user)
+      }
+      if (!await getStoredChatKey(chatId)) {
+        await generateChatKey(chatId)
+      }
+      const encryptedPayload = await encryptMessage(chatId, text)
+      const message = await messageAPI.sendMessage(chatId, encryptedPayload)
+      get().addMessage({ ...message, text })
     } catch (error) {
       console.error('Failed to send message:', error)
       throw error
@@ -183,7 +218,38 @@ export const useStore = create<AppState>((set, get) => ({
 
   createChat: async (type, participants, name) => {
     try {
-      const chat = await chatAPI.createChat({ type, participants, name })
+      const user = get().user
+      let recipientKeys
+      let pendingChatKey: CryptoKey | undefined
+      if (user) {
+        const localDevice = await ensureRegisteredDevice(user)
+        pendingChatKey = await generateChatKey(`pending:${crypto.randomUUID()}`)
+        const participantIDs = Array.from(new Set([user.id, ...participants]))
+        const deviceGroups = await Promise.all(participantIDs.map(async (participantID) => {
+          if (participantID === user.id) {
+            return [{ ...localDevice, userId: user.id }]
+          }
+          try {
+            return await keyAPI.getUserDeviceKeys(participantID)
+          } catch (error) {
+            console.warn('Failed to fetch recipient device keys:', error)
+            return []
+          }
+        }))
+        recipientKeys = (await Promise.all(deviceGroups.flat().map((device) =>
+          wrapChatKeyForDevice({
+            chatId: '',
+            userId: device.userId || user.id,
+            device,
+            chatKey: pendingChatKey as CryptoKey,
+          })
+        ))).filter((envelope) => envelope.ciphertext)
+      }
+
+      const chat = await chatAPI.createChat({ type, participants, name, recipientKeys })
+      if (pendingChatKey) {
+        await storeChatKey(chat.id, pendingChatKey)
+      }
       set((state) => {
         // If the chat already exists (backend returns existing direct chats),
         // move it to the top instead of adding a duplicate
@@ -209,10 +275,53 @@ export const useStore = create<AppState>((set, get) => ({
   },
 }))
 
+async function ensureRegisteredDevice(user: User) {
+  const device = await ensureDeviceKeys(user.id)
+  try {
+    await keyAPI.registerDeviceKeys({
+      deviceId: device.deviceId,
+      deviceName: device.deviceName,
+      deviceType: device.deviceType,
+      identityPublicKey: device.identityPublicKey,
+      signedPreKey: device.signedPreKey,
+      signedPreKeySignature: device.signedPreKeySignature,
+      oneTimePreKeys: device.oneTimePreKeys,
+    })
+  } catch (error) {
+    console.warn('Failed to register device keys:', error)
+  }
+  return device
+}
+
+async function ensureChatKeyForRead(chatId: string, user: User | null) {
+  if (!user || await getStoredChatKey(chatId)) return
+  const device = await ensureDeviceKeys(user.id)
+  try {
+    const envelope = await keyAPI.getChatRecipientKey(chatId, device.deviceId)
+    await unwrapChatKey(chatId, envelope)
+  } catch (error) {
+    console.warn('No decryptable chat key for this device:', error)
+  }
+}
+
+async function decryptMessageForDisplay(message: Message, user: User | null) {
+  if (message.ciphertext) {
+    await ensureChatKeyForRead(message.chatId, user)
+  }
+  return decryptMessage(message)
+}
+
+async function decryptMessagesForDisplay(chatId: string, messages: Message[], user: User | null) {
+  if (messages.some((message) => message.ciphertext)) {
+    await ensureChatKeyForRead(chatId, user)
+  }
+  return Promise.all(messages.map((message) => decryptMessage(message)))
+}
+
 // Setup WebSocket listeners
 wsService.onMessage((message) => {
   const store = useStore.getState()
-  
+
   switch (message.type) {
     case 'new_message':
       store.addMessage(message.data)

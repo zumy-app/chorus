@@ -41,6 +41,8 @@ func (h *SearchHandler) SearchMessages(c *gin.Context) {
 	// Parse chat IDs if provided
 	var chatIDs []string
 	if chatID := c.Query("chatId"); chatID != "" {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "Server-side message search is not available for encrypted chats"})
+		return
 		chatIDs = append(chatIDs, chatID)
 	}
 
@@ -126,6 +128,8 @@ func (h *SearchHandler) SearchInChat(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Chat ID required"})
 		return
 	}
+	c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "Server-side message search is not available for encrypted chats"})
+	return
 
 	query := c.Query("q")
 	if query == "" {

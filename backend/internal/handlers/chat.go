@@ -9,13 +9,15 @@ import (
 type ChatHandler struct {
 	chatService *services.ChatService
 	userService *services.UserService
+	keyService  *services.KeyService
 	wsHub       *services.WebSocketHub
 }
 
-func NewChatHandler(chatService *services.ChatService, userService *services.UserService, wsHub *services.WebSocketHub) *ChatHandler {
+func NewChatHandler(chatService *services.ChatService, userService *services.UserService, keyService *services.KeyService, wsHub *services.WebSocketHub) *ChatHandler {
 	return &ChatHandler{
 		chatService: chatService,
 		userService: userService,
+		keyService:  keyService,
 		wsHub:       wsHub,
 	}
 }
@@ -77,6 +79,12 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 	if err != nil {
 		c.JSON(400, gin.H{"error": "Failed to create chat: " + err.Error()})
 		return
+	}
+	if h.keyService != nil && len(req.RecipientKeys) > 0 {
+		if err := h.keyService.StoreChatRecipientKeys(chat.ID, req.RecipientKeys); err != nil {
+			c.JSON(400, gin.H{"error": "Failed to store recipient keys: " + err.Error()})
+			return
+		}
 	}
 
 	// Get participants with user details
@@ -194,7 +202,10 @@ func (h *ChatHandler) AddParticipant(c *gin.Context) {
 		return
 	}
 
-	c.JSON(201, gin.H{"message": "Participant added successfully"})
+	c.JSON(202, gin.H{
+		"message":       "Participant added; clients must re-key before sending new encrypted messages",
+		"rekeyRequired": true,
+	})
 }
 
 func (h *ChatHandler) RemoveParticipant(c *gin.Context) {
@@ -214,7 +225,10 @@ func (h *ChatHandler) RemoveParticipant(c *gin.Context) {
 		return
 	}
 
-	c.JSON(204, nil)
+	c.JSON(202, gin.H{
+		"message":       "Participant removed; clients must re-key before sending new encrypted messages",
+		"rekeyRequired": true,
+	})
 }
 
 func (h *ChatHandler) LeaveChat(c *gin.Context) {
