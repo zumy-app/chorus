@@ -49,7 +49,7 @@ Run **everything** — Docker services, Go backend with auto-reload, and React f
 This opens 3 windows:
 | Window | What runs | Auto-reload |
 |--------|-----------|-------------|
-| **Docker** (background) | PostgreSQL, Redis, LibreTranslate (Phase 1), Ollama (Phase 2) | Always running |
+| **Docker** (background) | PostgreSQL, Redis, Ollama | Always running |
 | **Backend** (new terminal) | Go server via `air` on port **8081** | ✅ Saves → rebuild + restart |
 | **Frontend** (new terminal) | Vite dev server on port **3000** | ✅ Saves → instant HMR |
 
@@ -64,8 +64,8 @@ Then open **http://localhost:3000** — every edit to `.tsx`/`.ts` files updates
 If you prefer to run each service yourself:
 
 ```powershell
-# Terminal 1: Docker services (PostgreSQL, Redis, LibreTranslate, Ollama)
-docker-compose -f docker-compose.dev.yml up -d postgres-dev redis-dev libretranslate-dev ollama-dev
+# Terminal 1: Docker services (PostgreSQL, Redis, Ollama)
+docker-compose -f docker-compose.dev.yml up -d postgres-dev redis-dev ollama-dev
 
 # Terminal 2: Go backend with hot-reload
 cd backend

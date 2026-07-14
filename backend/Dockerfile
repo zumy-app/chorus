@@ -6,6 +6,9 @@ WORKDIR /app
 # Install build dependencies
 RUN apk add --no-cache git
 
+# Use a resilient Go module proxy configuration
+ENV GOPROXY=https://proxy.golang.org,direct
+
 # Copy go mod files
 COPY go.mod go.sum ./
 RUN go mod download

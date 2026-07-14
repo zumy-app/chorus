@@ -49,9 +49,11 @@ func main() {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
-	// Initialize Redis
+	// Initialize Redis (optional in lean local mode)
 	redisClient := database.ConnectRedis(cfg.RedisURL)
-	defer redisClient.Close()
+	if redisClient != nil {
+		defer redisClient.Close()
+	}
 
 	// Initialize core services
 	authService := services.NewAuthService(db, cfg.JWTSecret)
@@ -61,35 +63,21 @@ func main() {
 	translationService := services.NewTranslationService(cfg.TranslatorEngineURL, cfg.OllamaURL, cfg.OllamaModel, redisClient)
 	wsHub := services.NewWebSocketHub(redisClient)
 
-	// Phase 2: Initialize Pub/Sub service
-	pubsubService := services.NewPubSubService(redisClient, wsHub)
-	pubsubService.Start()
-	defer pubsubService.Stop()
-
-	// Start Ollama translation queue processor
-	go translationService.ProcessOllamaQueue(func(messageID string, translations map[string]string) {
-		msg, err := messageService.GetMessageByID(context.Background(), messageID)
-		if err != nil {
-			return
-		}
-		msg.Translations = translations
-		msg.TranslationEnhanced = true
-		messageService.UpdateTranslations(messageID, translations)
-
-		participants, _ := chatService.GetParticipants(msg.ChatID)
-		userIDs := make([]string, 0, len(participants))
-		for _, p := range participants {
-			userIDs = append(userIDs, p.UserID)
-		}
-		wsHub.SendToChat(msg.ChatID, userIDs, "message_updated", msg)
-	})
+	var pubsubService *services.PubSubService
+	if redisClient != nil {
+		pubsubService = services.NewPubSubService(redisClient, wsHub)
+		pubsubService.Start()
+		defer pubsubService.Stop()
+	}
 
 	// Phase 2: Initialize Inbox service for offline message delivery
 	_ = services.NewInboxService(db, redisClient)
 
-	// Phase 2: Initialize Presence service
-	presenceService := services.NewPresenceService(db, redisClient, pubsubService)
-	presenceService.StartPresenceCleanup()
+	var presenceService *services.PresenceService
+	if redisClient != nil {
+		presenceService = services.NewPresenceService(db, redisClient, pubsubService)
+		presenceService.StartPresenceCleanup()
+	}
 
 	// Phase 2: Initialize Search service
 	searchService := services.NewSearchService(db, redisClient)

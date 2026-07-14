@@ -1,5 +1,4 @@
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: chorus-postgres
@@ -17,21 +16,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis Cache
-  redis:
-    image: redis:7-alpine
-    container_name: chorus-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-
-  # Go Backend API
   backend:
     build:
       context: ./backend
@@ -42,12 +26,11 @@ services:
     environment:
       - ENVIRONMENT=development
       - DATABASE_URL=postgres://messenger:password@postgres:5432/messenger_dev?sslmode=disable
-      - REDIS_URL=redis:6379
+      - REDIS_URL=
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
       - GOOGLE_TRANSLATE_API_KEY=${GOOGLE_TRANSLATE_API_KEY:-}
       - OLLAMA_URL=http://ollama:11434
-      - OLLAMA_MODEL=qwen2.5:3b
-      - TRANSLATOR_ENGINE_URL=http://translator-engine:5000
+      - OLLAMA_MODEL=qwen2.5:1.5b-instruct
       - PORT=8080
       - APPWRITE_ENDPOINT=${APPWRITE_ENDPOINT:-https://appwrite.zumy.app/v1}
       - APPWRITE_PROJECT_ID=${APPWRITE_PROJECT_ID:-6955733a001c10e7c020}
@@ -56,49 +39,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
-      translator-engine:
-        condition: service_started
     restart: unless-stopped
 
-  # ============================================================================
-  # Translator Engine (Phase 1 replacement for NLLB)
-  # llama.cpp server with a 7B-param translation model in GGUF format.
-  # Exposes an OpenAI-compatible API at /v1/chat/completions.
-  # RAM limit: ~4.5 GB (fits a Q4_K_S 7B model comfortably).
-  # ============================================================================
-  translator-engine:
-    build:
-      context: ./backend/translator-engine
-      dockerfile: Dockerfile
-    container_name: chorus-translator-engine
-    ports:
-      - "127.0.0.1:5002:5000"
-    volumes:
-      - translator_model_cache:/models
-    environment:
-      - HF_REPO=mradermacher/Synatra-7B-v0.3-Translation-GGUF
-      - HF_FILE=Synatra-7B-v0.3-Translation.Q4_K_S.gguf
-      - PORT=5000
-      - CTX_SIZE=2048
-      - THREADS=4
-      - TEMPERATURE=0.1
-    deploy:
-      resources:
-        limits:
-          memory: 4.5G
-        reservations:
-          memory: 3.8G
-    healthcheck:
-      test: ["CMD", "curl", "-sSf", "http://localhost:5000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 10
-      start_period: 600s
-    restart: unless-stopped
-
-  # Ollama Translation Service
   ollama:
     image: ollama/ollama:latest
     container_name: chorus-ollama
@@ -108,11 +50,13 @@ services:
       - ollama_data:/root/.ollama
     environment:
       - OLLAMA_KEEP_ALIVE=24h
+      - OLLAMA_NUM_PARALLEL=4
+      - OLLAMA_MAX_LOADED_MODELS=1
     entrypoint: >
       sh -c "ollama serve &
+      sleep 5 &&
+      ollama pull qwen2.5:1.5b-instruct &&
       sleep 3 &&
-      ollama pull qwen2.5:3b &&
-      sleep 2 &&
       echo 'Ollama ready' &&
       wait"
     healthcheck:
@@ -120,28 +64,9 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 120s
-    restart: unless-stopped
-
-  # React Frontend
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        - VITE_APPWRITE_ENDPOINT=${VITE_APPWRITE_ENDPOINT:-https://appwrite.zumy.app/v1}
-        - VITE_APPWRITE_PROJECT_ID=${VITE_APPWRITE_PROJECT_ID:-6955733a001c10e7c020}
-        - VITE_APPWRITE_DATABASE_ID=${VITE_APPWRITE_DATABASE_ID:-6955749200181b13d9d6}
-        - VITE_APPWRITE_CLIENT_API_KEY=${VITE_APPWRITE_CLIENT_API_KEY:-}
-    container_name: chorus-frontend
-    ports:
-      - "3000:3000"
-    depends_on:
-      - backend
+      start_period: 180s
     restart: unless-stopped
 
 volumes:
   postgres_data:
-  redis_data:
   ollama_data:
-  translator_model_cache:

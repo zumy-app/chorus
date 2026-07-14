@@ -47,25 +47,6 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # LibreTranslate - Development
-  libretranslate-dev:
-    image: libretranslate/libretranslate:latest
-    container_name: chorus-dev-libretranslate
-    networks:
-      - chorus-dev
-    ports:
-      - "127.0.0.1:5002:5000"
-    environment:
-      - LT_LOAD_ONLY=en,es,fr,de,it,pt,ja,ko,zh
-      - LT_API_KEYS=false
-    healthcheck:
-      test: ["CMD", "curl", "-s", "-f", "http://localhost:5000/translate"]
-      interval: 30s
-      timeout: 10s
-      retries: 10
-      start_period: 120s
-    restart: unless-stopped
-
   backend-dev:
     build:
       context: ./backend
@@ -82,7 +63,6 @@ services:
       - JWT_SECRET=dev-jwt-secret-key-for-testing-only
       - GOOGLE_TRANSLATE_API_KEY=${GOOGLE_TRANSLATE_API_KEY:-}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
-      - LIBRETRANSLATE_URL=http://libretranslate-dev:5000
       - OLLAMA_URL=http://ollama-dev:11434
       - OLLAMA_MODEL=qwen2.5:3b
       - TRANSLATOR_ENGINE_URL=http://translator-engine-dev:5000

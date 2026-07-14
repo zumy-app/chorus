@@ -16,7 +16,7 @@ From the repo root, run:
 ```
 
 This opens 3 windows:
-- **Docker** (background): PostgreSQL, Redis, LibreTranslate (Phase 1), Ollama (Phase 2)
+- **Docker** (background): PostgreSQL, Redis, Ollama
 - **Backend** (new terminal): Go server with `air` on port **8080**
 - **Frontend** (new terminal): Vite dev server on port **3000**
 
@@ -26,7 +26,7 @@ This opens 3 windows:
 
 ```powershell
 cd C:\dev\chorus
-docker-compose -f docker-compose.dev.yml up -d postgres-dev redis-dev libretranslate-dev ollama-dev
+docker-compose -f docker-compose.dev.yml up -d postgres-dev redis-dev ollama-dev
 ```
 
 This starts the development Docker services (all on different ports to avoid conflicts with production).
