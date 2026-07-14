@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { messageAPI } from '../services/api'
 import type { Message } from '../types'
 import { formatDistanceToNow } from 'date-fns'
+import { useStore } from '../store'
 
 interface SearchMessagesProps {
   chatId?: string
@@ -14,7 +15,9 @@ export default function SearchMessages({ chatId, onClose, onSelectMessage }: Sea
   const [results, setResults] = useState<Message[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
+  const [notice, setNotice] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+  const loadedMessages = useStore((state) => chatId ? state.messages[chatId] || [] : [])
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -24,11 +27,24 @@ export default function SearchMessages({ chatId, onClose, onSelectMessage }: Sea
     if (!query.trim()) return
     setIsSearching(true)
     setHasSearched(true)
+    setNotice('')
     try {
-      const messages = await messageAPI.searchMessages(query, chatId)
+      if (chatId) {
+        const normalizedQuery = query.trim().toLowerCase()
+        const messages = loadedMessages.filter((message) =>
+          !message.decryptionError && message.text.toLowerCase().includes(normalizedQuery)
+        )
+        setResults(messages)
+        if (loadedMessages.length === 0) {
+          setNotice('Encrypted chat search only covers messages loaded and decrypted on this device.')
+        }
+        return
+      }
+      const messages = await messageAPI.searchMessages(query)
       setResults(messages)
     } catch (err) {
       console.error('Search failed:', err)
+      setNotice('Server-side encrypted message search is unavailable. Open a chat to search loaded decrypted messages.')
     } finally {
       setIsSearching(false)
     }
@@ -72,6 +88,7 @@ export default function SearchMessages({ chatId, onClose, onSelectMessage }: Sea
             <div className="text-center text-gray-500 py-8">
               <p className="text-4xl mb-3">📭</p>
               <p>No messages found for "{query}"</p>
+              {notice && <p className="mt-2 text-sm text-amber-600">{notice}</p>}
             </div>
           )}
 

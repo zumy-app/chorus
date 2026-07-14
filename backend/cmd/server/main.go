@@ -57,6 +57,7 @@ func main() {
 	authService := services.NewAuthService(db, cfg.JWTSecret)
 	userService := services.NewUserService(db)
 	chatService := services.NewChatService(db)
+	keyService := services.NewKeyService(db)
 	messageService := services.NewMessageService(db, redisClient)
 	translationService := services.NewTranslationService(cfg.TranslatorEngineURL, cfg.OllamaURL, cfg.OllamaModel, redisClient)
 	wsHub := services.NewWebSocketHub(redisClient)
@@ -115,7 +116,8 @@ func main() {
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService, userService)
-	chatHandler := handlers.NewChatHandler(chatService, userService, wsHub)
+	chatHandler := handlers.NewChatHandler(chatService, userService, keyService, wsHub)
+	keyHandler := handlers.NewKeyHandler(keyService, chatService)
 	messageHandler := handlers.NewMessageHandler(messageService, chatService, translationService, wsHub)
 	wsHandler := handlers.NewWebSocketHandler(wsHub, authService)
 
@@ -163,6 +165,11 @@ func main() {
 		protected.GET("/users/me", authHandler.GetMe)
 		protected.PUT("/users/me", authHandler.UpdateMe)
 		protected.GET("/users/search", authHandler.SearchUsers)
+
+		// Device key routes
+		protected.POST("/keys/device", keyHandler.RegisterDeviceKeys)
+		protected.GET("/keys/users/:userId/devices", keyHandler.GetUserDeviceKeys)
+		protected.GET("/chats/:chatId/recipient-key", keyHandler.GetChatRecipientKey)
 
 		// Chat routes
 		protected.GET("/chats", chatHandler.GetUserChats)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/chorus/messenger/internal/models"
@@ -54,6 +55,35 @@ func (s *MessageService) Create(chatID, senderID, text string, replyToID *string
 	return message, nil
 }
 
+func (s *MessageService) CreateEncrypted(chatID, senderID string, payload models.EncryptedMessagePayload, replyToID *string) (*models.Message, error) {
+	if payload.Ciphertext == "" || payload.Nonce == "" || payload.Algorithm == "" || payload.SenderDeviceID == "" || payload.EncryptionVersion <= 0 {
+		return nil, errors.New("encrypted message payload missing required fields")
+	}
+
+	query := `
+		INSERT INTO messages (
+			chat_id, sender_id, ciphertext, nonce, algorithm,
+			encryption_version, sender_device_id, delivery_status, reply_to_id
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, 'sent', $8)
+		RETURNING id, chat_id, sender_id, text, ciphertext, nonce, algorithm,
+			encryption_version, sender_device_id, COALESCE(original_language, ''),
+			COALESCE(translations, '{}'::jsonb), delivery_status, reply_to_id, created_at
+	`
+
+	return scanMessageRow(s.db.QueryRow(
+		query,
+		chatID,
+		senderID,
+		payload.Ciphertext,
+		payload.Nonce,
+		payload.Algorithm,
+		payload.EncryptionVersion,
+		payload.SenderDeviceID,
+		replyToID,
+	))
+}
+
 func (s *MessageService) GetMessages(chatID string, limit int, before *string) ([]models.Message, error) {
 	var query string
 	var rows *sql.Rows
@@ -61,7 +91,8 @@ func (s *MessageService) GetMessages(chatID string, limit int, before *string) (
 
 	if before != nil {
 		query = `
-			SELECT id, chat_id, sender_id, text, COALESCE(original_language, ''), COALESCE(translations, '{}'::jsonb), delivery_status, reply_to_id, created_at
+			SELECT id, chat_id, sender_id, text, ciphertext, nonce, algorithm, encryption_version, sender_device_id,
+				COALESCE(original_language, ''), COALESCE(translations, '{}'::jsonb), delivery_status, reply_to_id, created_at
 			FROM messages
 			WHERE chat_id = $1 AND created_at < (SELECT created_at FROM messages WHERE id = $2)
 			ORDER BY created_at DESC
@@ -70,7 +101,8 @@ func (s *MessageService) GetMessages(chatID string, limit int, before *string) (
 		rows, err = s.db.Query(query, chatID, *before, limit)
 	} else {
 		query = `
-			SELECT id, chat_id, sender_id, text, COALESCE(original_language, ''), COALESCE(translations, '{}'::jsonb), delivery_status, reply_to_id, created_at
+			SELECT id, chat_id, sender_id, text, ciphertext, nonce, algorithm, encryption_version, sender_device_id,
+				COALESCE(original_language, ''), COALESCE(translations, '{}'::jsonb), delivery_status, reply_to_id, created_at
 			FROM messages
 			WHERE chat_id = $1
 			ORDER BY created_at DESC
@@ -86,30 +118,12 @@ func (s *MessageService) GetMessages(chatID string, limit int, before *string) (
 
 	messages := []models.Message{}
 	for rows.Next() {
-		msg := models.Message{}
-		var translationsBytes []byte
-
-		err := rows.Scan(
-			&msg.ID,
-			&msg.ChatID,
-			&msg.SenderID,
-			&msg.Text,
-			&msg.OriginalLanguage,
-			&translationsBytes,
-			&msg.DeliveryStatus,
-			&msg.ReplyToID,
-			&msg.CreatedAt,
-		)
-
+		msg, err := scanMessageRow(rows)
 		if err != nil {
 			continue
 		}
 
-		if len(translationsBytes) > 0 {
-			json.Unmarshal(translationsBytes, &msg.Translations)
-		}
-
-		messages = append(messages, msg)
+		messages = append(messages, *msg)
 	}
 
 	return messages, nil
@@ -118,33 +132,19 @@ func (s *MessageService) GetMessages(chatID string, limit int, before *string) (
 func (s *MessageService) GetMessageByID(ctx context.Context, messageID string) (*models.Message, error) {
 	message := &models.Message{}
 	query := `
-		SELECT id, chat_id, sender_id, text, COALESCE(original_language, ''), COALESCE(translations, '{}'::jsonb), delivery_status, reply_to_id, created_at
+		SELECT id, chat_id, sender_id, text, ciphertext, nonce, algorithm, encryption_version, sender_device_id,
+			COALESCE(original_language, ''), COALESCE(translations, '{}'::jsonb), delivery_status, reply_to_id, created_at
 		FROM messages
 		WHERE id = $1
 	`
 
-	var translationsBytes []byte
-	err := s.db.QueryRowContext(ctx, query, messageID).Scan(
-		&message.ID,
-		&message.ChatID,
-		&message.SenderID,
-		&message.Text,
-		&message.OriginalLanguage,
-		&translationsBytes,
-		&message.DeliveryStatus,
-		&message.ReplyToID,
-		&message.CreatedAt,
-	)
+	message, err := scanMessageRow(s.db.QueryRowContext(ctx, query, messageID))
 
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
 		return nil, err
-	}
-
-	if len(translationsBytes) > 0 {
-		json.Unmarshal(translationsBytes, &message.Translations)
 	}
 
 	return message, nil
@@ -179,18 +179,20 @@ func (s *MessageService) Search(query string, chatID *string, limit int) ([]mode
 
 	if chatID != nil {
 		sqlQuery = `
-			SELECT id, chat_id, sender_id, text, original_language, translations, delivery_status, reply_to_id, created_at
+			SELECT id, chat_id, sender_id, text, ciphertext, nonce, algorithm, encryption_version, sender_device_id,
+				original_language, translations, delivery_status, reply_to_id, created_at
 			FROM messages
-			WHERE chat_id = $1 AND to_tsvector('english', text) @@ plainto_tsquery('english', $2)
+			WHERE chat_id = $1 AND text IS NOT NULL AND to_tsvector('english', text) @@ plainto_tsquery('english', $2)
 			ORDER BY created_at DESC
 			LIMIT $3
 		`
 		rows, err = s.db.Query(sqlQuery, *chatID, query, limit)
 	} else {
 		sqlQuery = `
-			SELECT id, chat_id, sender_id, text, original_language, translations, delivery_status, reply_to_id, created_at
+			SELECT id, chat_id, sender_id, text, ciphertext, nonce, algorithm, encryption_version, sender_device_id,
+				original_language, translations, delivery_status, reply_to_id, created_at
 			FROM messages
-			WHERE to_tsvector('english', text) @@ plainto_tsquery('english', $1)
+			WHERE text IS NOT NULL AND to_tsvector('english', text) @@ plainto_tsquery('english', $1)
 			ORDER BY created_at DESC
 			LIMIT $2
 		`
@@ -204,64 +206,31 @@ func (s *MessageService) Search(query string, chatID *string, limit int) ([]mode
 
 	messages := []models.Message{}
 	for rows.Next() {
-		msg := models.Message{}
-		var translationsBytes []byte
-
-		err := rows.Scan(
-			&msg.ID,
-			&msg.ChatID,
-			&msg.SenderID,
-			&msg.Text,
-			&msg.OriginalLanguage,
-			&translationsBytes,
-			&msg.DeliveryStatus,
-			&msg.ReplyToID,
-			&msg.CreatedAt,
-		)
-
+		msg, err := scanMessageRow(rows)
 		if err != nil {
 			continue
 		}
 
-		if len(translationsBytes) > 0 {
-			json.Unmarshal(translationsBytes, &msg.Translations)
-		}
-
-		messages = append(messages, msg)
+		messages = append(messages, *msg)
 	}
 
 	return messages, nil
 }
 
 func (s *MessageService) GetLastMessage(chatID string) (*models.Message, error) {
-	message := &models.Message{}
 	query := `
-		SELECT id, chat_id, sender_id, text, original_language, translations, delivery_status, reply_to_id, created_at
+		SELECT id, chat_id, sender_id, text, ciphertext, nonce, algorithm, encryption_version, sender_device_id,
+			original_language, translations, delivery_status, reply_to_id, created_at
 		FROM messages
 		WHERE chat_id = $1
 		ORDER BY created_at DESC
 		LIMIT 1
 	`
 
-	var translationsBytes []byte
-	err := s.db.QueryRow(query, chatID).Scan(
-		&message.ID,
-		&message.ChatID,
-		&message.SenderID,
-		&message.Text,
-		&message.OriginalLanguage,
-		&translationsBytes,
-		&message.DeliveryStatus,
-		&message.ReplyToID,
-		&message.CreatedAt,
-	)
+	message, err := scanMessageRow(s.db.QueryRow(query, chatID))
 
 	if err != nil {
 		return nil, err
-	}
-
-	if len(translationsBytes) > 0 {
-		json.Unmarshal(translationsBytes, &message.Translations)
 	}
 
 	return message, nil
@@ -322,4 +291,67 @@ func (s *MessageService) UpdateOriginalLanguage(messageID, language string) erro
 	query := `UPDATE messages SET original_language = $1 WHERE id = $2`
 	_, err := s.db.Exec(query, language, messageID)
 	return err
+}
+
+type messageScanner interface {
+	Scan(dest ...interface{}) error
+}
+
+func scanMessageRow(scanner messageScanner) (*models.Message, error) {
+	msg := &models.Message{}
+	var text sql.NullString
+	var ciphertext sql.NullString
+	var nonce sql.NullString
+	var algorithm sql.NullString
+	var encryptionVersion sql.NullInt64
+	var senderDeviceID sql.NullString
+	var originalLanguage sql.NullString
+	var translationsBytes []byte
+
+	err := scanner.Scan(
+		&msg.ID,
+		&msg.ChatID,
+		&msg.SenderID,
+		&text,
+		&ciphertext,
+		&nonce,
+		&algorithm,
+		&encryptionVersion,
+		&senderDeviceID,
+		&originalLanguage,
+		&translationsBytes,
+		&msg.DeliveryStatus,
+		&msg.ReplyToID,
+		&msg.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if text.Valid {
+		msg.Text = text.String
+	}
+	if ciphertext.Valid {
+		msg.Ciphertext = ciphertext.String
+	}
+	if nonce.Valid {
+		msg.Nonce = nonce.String
+	}
+	if algorithm.Valid {
+		msg.Algorithm = algorithm.String
+	}
+	if encryptionVersion.Valid {
+		msg.EncryptionVersion = int(encryptionVersion.Int64)
+	}
+	if senderDeviceID.Valid {
+		msg.SenderDeviceID = senderDeviceID.String
+	}
+	if originalLanguage.Valid {
+		msg.OriginalLanguage = originalLanguage.String
+	}
+	if len(translationsBytes) > 0 {
+		json.Unmarshal(translationsBytes, &msg.Translations)
+	}
+
+	return msg, nil
 }

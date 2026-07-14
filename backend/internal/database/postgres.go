@@ -68,16 +68,27 @@ func Migrate(db *sql.DB) error {
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			chat_id UUID NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
 			sender_id UUID NOT NULL REFERENCES users(id),
-			text TEXT NOT NULL,
+			text TEXT,
+			ciphertext TEXT,
+			nonce TEXT,
+			algorithm VARCHAR(50),
+			encryption_version INTEGER,
+			sender_device_id UUID,
 			original_language VARCHAR(10),
 			translations JSONB DEFAULT '{}',
 			delivery_status VARCHAR(20) NOT NULL DEFAULT 'sent' CHECK (delivery_status IN ('sent', 'delivered', 'failed')),
 			reply_to_id UUID REFERENCES messages(id),
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
+		`ALTER TABLE messages ALTER COLUMN text DROP NOT NULL`,
+		`ALTER TABLE messages ADD COLUMN IF NOT EXISTS ciphertext TEXT`,
+		`ALTER TABLE messages ADD COLUMN IF NOT EXISTS nonce TEXT`,
+		`ALTER TABLE messages ADD COLUMN IF NOT EXISTS algorithm VARCHAR(50)`,
+		`ALTER TABLE messages ADD COLUMN IF NOT EXISTS encryption_version INTEGER`,
+		`ALTER TABLE messages ADD COLUMN IF NOT EXISTS sender_device_id UUID`,
 		`CREATE INDEX IF NOT EXISTS idx_messages_chat_id ON messages(chat_id, created_at DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id)`,
-		`CREATE INDEX IF NOT EXISTS idx_messages_text_search ON messages USING gin(to_tsvector('english', text))`,
+		`CREATE INDEX IF NOT EXISTS idx_messages_text_search ON messages USING gin(to_tsvector('english', text)) WHERE text IS NOT NULL`,
 
 		`CREATE TABLE IF NOT EXISTS refresh_tokens (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -101,6 +112,36 @@ func Migrate(db *sql.DB) error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_clients_user_id ON clients(user_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_clients_user_status ON clients(user_id, connection_status)`,
+
+		`CREATE TABLE IF NOT EXISTS user_devices (
+			id UUID PRIMARY KEY,
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			device_name VARCHAR(255) NOT NULL,
+			device_type VARCHAR(20) NOT NULL CHECK (device_type IN ('mobile', 'web', 'desktop')),
+			identity_public_key TEXT NOT NULL,
+			signed_pre_key TEXT NOT NULL,
+			signed_pre_key_signature TEXT NOT NULL,
+			one_time_pre_keys JSONB DEFAULT '[]',
+			key_version INTEGER NOT NULL DEFAULT 1,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_user_devices_user_id ON user_devices(user_id)`,
+
+		`CREATE TABLE IF NOT EXISTS chat_recipient_keys (
+			chat_id UUID NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			device_id UUID NOT NULL REFERENCES user_devices(id) ON DELETE CASCADE,
+			algorithm VARCHAR(50) NOT NULL,
+			nonce TEXT NOT NULL,
+			ciphertext TEXT NOT NULL,
+			ephemeral_public_key TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (chat_id, user_id, device_id)
+		)`,
+		`ALTER TABLE chat_recipient_keys ADD COLUMN IF NOT EXISTS ephemeral_public_key TEXT`,
+		`CREATE INDEX IF NOT EXISTS idx_chat_recipient_keys_user_device ON chat_recipient_keys(user_id, device_id)`,
 
 		// Phase 2: Offline message delivery - Inbox table
 		`CREATE TABLE IF NOT EXISTS inbox (

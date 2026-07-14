@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/chorus/messenger/internal/models"
 )
 
 func TestMessageCreate(t *testing.T) {
@@ -73,6 +74,48 @@ func TestMessageCreate_WithReply(t *testing.T) {
 	}
 }
 
+func TestMessageCreateEncryptedStoresCiphertextWithoutPlaintext(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to create sqlmock: %v", err)
+	}
+	defer db.Close()
+
+	s := NewMessageService(db, nil)
+	payload := models.EncryptedMessagePayload{
+		Ciphertext:        "ciphertext",
+		Nonce:             "nonce",
+		Algorithm:         "AES-GCM",
+		EncryptionVersion: 1,
+		SenderDeviceID:    "device-1",
+	}
+
+	mock.ExpectQuery(`INSERT INTO messages \(`).
+		WithArgs("chat-1", "user-1", "ciphertext", "nonce", "AES-GCM", 1, "device-1", nil).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "chat_id", "sender_id", "text", "ciphertext", "nonce", "algorithm",
+			"encryption_version", "sender_device_id", "original_language", "translations",
+			"delivery_status", "reply_to_id", "created_at",
+		}).AddRow(
+			"msg-1", "chat-1", "user-1", nil, "ciphertext", "nonce", "AES-GCM",
+			1, "device-1", "", []byte(`{}`), "sent", nil, time.Now(),
+		))
+
+	msg, err := s.CreateEncrypted("chat-1", "user-1", payload, nil)
+	if err != nil {
+		t.Fatalf("CreateEncrypted failed: %v", err)
+	}
+	if msg.Text != "" {
+		t.Fatalf("expected no plaintext to be stored, got %q", msg.Text)
+	}
+	if msg.Ciphertext != "ciphertext" || msg.Nonce != "nonce" {
+		t.Fatalf("expected encrypted fields to round trip, got %#v", msg)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
 func TestMessageGetMessages(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -83,11 +126,11 @@ func TestMessageGetMessages(t *testing.T) {
 	s := NewMessageService(db, nil)
 	translationsJSON, _ := json.Marshal(map[string]string{})
 
-	mock.ExpectQuery(`SELECT id, chat_id, sender_id, text, COALESCE\(original_language, ''\), COALESCE\(translations, '{}'::jsonb\), delivery_status, reply_to_id, created_at FROM messages WHERE chat_id = \$1 ORDER BY created_at DESC LIMIT \$2`).
+	mock.ExpectQuery(`SELECT id, chat_id, sender_id, text, ciphertext, nonce, algorithm, encryption_version, sender_device_id,`).
 		WithArgs("chat-1", 50).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "chat_id", "sender_id", "text", "original_language", "translations", "delivery_status", "reply_to_id", "created_at"}).
-			AddRow("msg-1", "chat-1", "user-1", "Hello", "en", translationsJSON, "sent", nil, time.Now()).
-			AddRow("msg-2", "chat-1", "user-2", "Hi back", "es", translationsJSON, "sent", nil, time.Now()))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "chat_id", "sender_id", "text", "ciphertext", "nonce", "algorithm", "encryption_version", "sender_device_id", "original_language", "translations", "delivery_status", "reply_to_id", "created_at"}).
+			AddRow("msg-1", "chat-1", "user-1", "Hello", nil, nil, nil, nil, nil, "en", translationsJSON, "sent", nil, time.Now()).
+			AddRow("msg-2", "chat-1", "user-2", "Hi back", nil, nil, nil, nil, nil, "es", translationsJSON, "sent", nil, time.Now()))
 
 	messages, err := s.GetMessages("chat-1", 50, nil)
 	if err != nil {
@@ -116,10 +159,10 @@ func TestMessageGetMessages_BeforeCursor(t *testing.T) {
 	translationsJSON, _ := json.Marshal(map[string]string{})
 	before := "msg-10"
 
-	mock.ExpectQuery(`SELECT id, chat_id, sender_id, text, COALESCE\(original_language, ''\), COALESCE\(translations, '{}'::jsonb\), delivery_status, reply_to_id, created_at FROM messages WHERE chat_id = \$1 AND created_at < \(SELECT created_at FROM messages WHERE id = \$2\) ORDER BY created_at DESC LIMIT \$3`).
+	mock.ExpectQuery(`SELECT id, chat_id, sender_id, text, ciphertext, nonce, algorithm, encryption_version, sender_device_id,`).
 		WithArgs("chat-1", before, 20).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "chat_id", "sender_id", "text", "original_language", "translations", "delivery_status", "reply_to_id", "created_at"}).
-			AddRow("msg-1", "chat-1", "user-1", "Older message", "en", translationsJSON, "sent", nil, time.Now()))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "chat_id", "sender_id", "text", "ciphertext", "nonce", "algorithm", "encryption_version", "sender_device_id", "original_language", "translations", "delivery_status", "reply_to_id", "created_at"}).
+			AddRow("msg-1", "chat-1", "user-1", "Older message", nil, nil, nil, nil, nil, "en", translationsJSON, "sent", nil, time.Now()))
 
 	messages, err := s.GetMessages("chat-1", 20, &before)
 	if err != nil {
@@ -144,10 +187,10 @@ func TestMessageGetMessageByID(t *testing.T) {
 	s := NewMessageService(db, nil)
 	translationsJSON, _ := json.Marshal(map[string]string{})
 
-	mock.ExpectQuery(`SELECT id, chat_id, sender_id, text, COALESCE\(original_language, ''\), COALESCE\(translations, '{}'::jsonb\), delivery_status, reply_to_id, created_at FROM messages WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT id, chat_id, sender_id, text, ciphertext, nonce, algorithm, encryption_version, sender_device_id,`).
 		WithArgs("msg-1").
-		WillReturnRows(sqlmock.NewRows([]string{"id", "chat_id", "sender_id", "text", "original_language", "translations", "delivery_status", "reply_to_id", "created_at"}).
-			AddRow("msg-1", "chat-1", "user-1", "Hello", "en", translationsJSON, "sent", nil, time.Now()))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "chat_id", "sender_id", "text", "ciphertext", "nonce", "algorithm", "encryption_version", "sender_device_id", "original_language", "translations", "delivery_status", "reply_to_id", "created_at"}).
+			AddRow("msg-1", "chat-1", "user-1", "Hello", nil, nil, nil, nil, nil, "en", translationsJSON, "sent", nil, time.Now()))
 
 	msg, err := s.GetMessageByID(context.Background(), "msg-1")
 	if err != nil {
@@ -174,7 +217,7 @@ func TestMessageGetMessageByID_NotFound(t *testing.T) {
 
 	s := NewMessageService(db, nil)
 
-	mock.ExpectQuery(`SELECT id, chat_id, sender_id, text, COALESCE\(original_language, ''\), COALESCE\(translations, '{}'::jsonb\), delivery_status, reply_to_id, created_at FROM messages WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT id, chat_id, sender_id, text, ciphertext, nonce, algorithm, encryption_version, sender_device_id,`).
 		WithArgs("nonexistent").
 		WillReturnError(sqlmock.ErrCancelled)
 

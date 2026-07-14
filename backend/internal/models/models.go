@@ -20,9 +20,9 @@ type User struct {
 
 // Phase 2: Learning settings for grammar and vocabulary features
 type LearningSettings struct {
-	GrammarEnabled   bool   `json:"grammarEnabled" db:"grammar_enabled"`
-	VocabularyEnabled bool  `json:"vocabularyEnabled" db:"vocabulary_enabled"`
-	DifficultyLevel  string `json:"difficultyLevel" db:"difficulty_level"` // beginner, intermediate, advanced
+	GrammarEnabled    bool   `json:"grammarEnabled" db:"grammar_enabled"`
+	VocabularyEnabled bool   `json:"vocabularyEnabled" db:"vocabulary_enabled"`
+	DifficultyLevel   string `json:"difficultyLevel" db:"difficulty_level"` // beginner, intermediate, advanced
 }
 
 // Phase 2: Privacy settings
@@ -40,6 +40,48 @@ type Client struct {
 	ConnectionStatus string     `json:"connectionStatus" db:"connection_status"` // online, offline
 	LastActive       time.Time  `json:"lastActive" db:"last_active"`
 	CreatedAt        time.Time  `json:"createdAt" db:"created_at"`
+}
+
+type DeviceKeyBundle struct {
+	DeviceID              string    `json:"deviceId" db:"id"`
+	UserID                string    `json:"userId" db:"user_id"`
+	DeviceName            string    `json:"deviceName" db:"device_name"`
+	DeviceType            string    `json:"deviceType" db:"device_type"`
+	IdentityPublicKey     string    `json:"identityPublicKey" db:"identity_public_key"`
+	SignedPreKey          string    `json:"signedPreKey" db:"signed_pre_key"`
+	SignedPreKeySignature string    `json:"signedPreKeySignature" db:"signed_pre_key_signature"`
+	OneTimePreKeys        []string  `json:"oneTimePreKeys,omitempty" db:"-"`
+	KeyVersion            int       `json:"keyVersion" db:"key_version"`
+	CreatedAt             time.Time `json:"createdAt" db:"created_at"`
+	UpdatedAt             time.Time `json:"updatedAt" db:"updated_at"`
+}
+
+type RegisterDeviceKeysRequest struct {
+	DeviceID              string   `json:"deviceId" binding:"required"`
+	DeviceName            string   `json:"deviceName" binding:"required"`
+	DeviceType            string   `json:"deviceType" binding:"required,oneof=mobile web desktop"`
+	IdentityPublicKey     string   `json:"identityPublicKey" binding:"required"`
+	SignedPreKey          string   `json:"signedPreKey" binding:"required"`
+	SignedPreKeySignature string   `json:"signedPreKeySignature" binding:"required"`
+	OneTimePreKeys        []string `json:"oneTimePreKeys"`
+}
+
+type EncryptedRecipientKey struct {
+	ChatID             string `json:"chatId,omitempty" db:"chat_id"`
+	UserID             string `json:"userId" db:"user_id"`
+	DeviceID           string `json:"deviceId" db:"device_id"`
+	Algorithm          string `json:"algorithm" db:"algorithm"`
+	Nonce              string `json:"nonce" db:"nonce"`
+	Ciphertext         string `json:"ciphertext" db:"ciphertext"`
+	EphemeralPublicKey string `json:"ephemeralPublicKey,omitempty" db:"ephemeral_public_key"`
+}
+
+type EncryptedMessagePayload struct {
+	Ciphertext        string `json:"ciphertext" binding:"required"`
+	Nonce             string `json:"nonce" binding:"required"`
+	Algorithm         string `json:"algorithm" binding:"required"`
+	EncryptionVersion int    `json:"encryptionVersion" binding:"required,min=1"`
+	SenderDeviceID    string `json:"senderDeviceId" binding:"required"`
 }
 
 type DeviceInfo struct {
@@ -93,10 +135,10 @@ type GrammarAnalysis struct {
 
 // AI-powered grammar analysis (enriched via Ollama)
 type AIGrammarAnalysis struct {
-	Difficulty       string                   `json:"difficulty"`
-	Patterns         []GrammarPattern         `json:"patterns"`
-	Summary          string                   `json:"summary"`
-	DetailedBreakdown []BreakdownItem         `json:"detailedBreakdown,omitempty"`
+	Difficulty        string           `json:"difficulty"`
+	Patterns          []GrammarPattern `json:"patterns"`
+	Summary           string           `json:"summary"`
+	DetailedBreakdown []BreakdownItem  `json:"detailedBreakdown,omitempty"`
 }
 
 type GrammarPattern struct {
@@ -128,12 +170,12 @@ type LearnRequest struct {
 
 // Phase 3: Call session for voice/video
 type CallSession struct {
-	ID           string    `json:"id" db:"id"`
-	ChatID       string    `json:"chatId" db:"chat_id"`
-	Participants []string  `json:"participants" db:"-"`
-	Type         string    `json:"type" db:"type"` // audio, video
-	Status       string    `json:"status" db:"status"` // active, ended
-	StartedAt    time.Time `json:"startedAt" db:"started_at"`
+	ID           string     `json:"id" db:"id"`
+	ChatID       string     `json:"chatId" db:"chat_id"`
+	Participants []string   `json:"participants" db:"-"`
+	Type         string     `json:"type" db:"type"`     // audio, video
+	Status       string     `json:"status" db:"status"` // active, ended
+	StartedAt    time.Time  `json:"startedAt" db:"started_at"`
 	EndedAt      *time.Time `json:"endedAt,omitempty" db:"ended_at"`
 }
 
@@ -178,17 +220,22 @@ type ChatParticipant struct {
 }
 
 type Message struct {
-	ID                 string                 `json:"id" db:"id"`
-	ChatID             string                 `json:"chatId" db:"chat_id"`
-	SenderID           string                 `json:"senderId" db:"sender_id"`
-	Text               string                 `json:"text" db:"text"`
-	OriginalLanguage   string                 `json:"originalLanguage" db:"original_language"`
-	Translations       map[string]string      `json:"translations,omitempty" db:"translations"`
-	TranslationEnhanced bool                 `json:"translationEnhanced"`
-	DeliveryStatus     string                 `json:"deliveryStatus" db:"delivery_status"`
-	ReplyToID          *string                `json:"replyToId,omitempty" db:"reply_to_id"`
-	CreatedAt          time.Time              `json:"timestamp" db:"created_at"`
-	Sender             *User                  `json:"sender,omitempty" db:"-"`
+	ID                  string            `json:"id" db:"id"`
+	ChatID              string            `json:"chatId" db:"chat_id"`
+	SenderID            string            `json:"senderId" db:"sender_id"`
+	Text                string            `json:"text,omitempty" db:"text"`
+	Ciphertext          string            `json:"ciphertext,omitempty" db:"ciphertext"`
+	Nonce               string            `json:"nonce,omitempty" db:"nonce"`
+	Algorithm           string            `json:"algorithm,omitempty" db:"algorithm"`
+	EncryptionVersion   int               `json:"encryptionVersion,omitempty" db:"encryption_version"`
+	SenderDeviceID      string            `json:"senderDeviceId,omitempty" db:"sender_device_id"`
+	OriginalLanguage    string            `json:"originalLanguage" db:"original_language"`
+	Translations        map[string]string `json:"translations,omitempty" db:"translations"`
+	TranslationEnhanced bool              `json:"translationEnhanced"`
+	DeliveryStatus      string            `json:"deliveryStatus" db:"delivery_status"`
+	ReplyToID           *string           `json:"replyToId,omitempty" db:"reply_to_id"`
+	CreatedAt           time.Time         `json:"timestamp" db:"created_at"`
+	Sender              *User             `json:"sender,omitempty" db:"-"`
 }
 
 type AuthTokens struct {
@@ -212,14 +259,20 @@ type LoginRequest struct {
 }
 
 type CreateChatRequest struct {
-	Type         string   `json:"type" binding:"required,oneof=direct group"`
-	Participants []string `json:"participants" binding:"required,min=1,max=100"`
-	Name         string   `json:"name"`
+	Type          string                  `json:"type" binding:"required,oneof=direct group"`
+	Participants  []string                `json:"participants" binding:"required,min=1,max=100"`
+	Name          string                  `json:"name"`
+	RecipientKeys []EncryptedRecipientKey `json:"recipientKeys,omitempty"`
 }
 
 type SendMessageRequest struct {
-	Text      string  `json:"text" binding:"required,min=1,max=10000"`
-	ReplyToID *string `json:"replyToId"`
+	Text              string  `json:"text,omitempty" binding:"omitempty,min=1,max=10000"`
+	Ciphertext        string  `json:"ciphertext,omitempty"`
+	Nonce             string  `json:"nonce,omitempty"`
+	Algorithm         string  `json:"algorithm,omitempty"`
+	EncryptionVersion int     `json:"encryptionVersion,omitempty"`
+	SenderDeviceID    string  `json:"senderDeviceId,omitempty"`
+	ReplyToID         *string `json:"replyToId"`
 }
 
 type UpdateUserRequest struct {
@@ -295,15 +348,15 @@ type InitiateCallRequest struct {
 
 // Phase 2: Media attachment
 type MediaAttachment struct {
-	ID          string    `json:"id" db:"id"`
-	MessageID   string    `json:"messageId" db:"message_id"`
-	Type        string    `json:"type" db:"type"` // image, video, audio, document
-	FileName    string    `json:"fileName" db:"file_name"`
-	FileSize    int64     `json:"fileSize" db:"file_size"`
-	MimeType    string    `json:"mimeType" db:"mime_type"`
-	URL         string    `json:"url" db:"url"`
-	ThumbnailURL *string  `json:"thumbnailUrl,omitempty" db:"thumbnail_url"`
-	CreatedAt   time.Time `json:"createdAt" db:"created_at"`
+	ID           string    `json:"id" db:"id"`
+	MessageID    string    `json:"messageId" db:"message_id"`
+	Type         string    `json:"type" db:"type"` // image, video, audio, document
+	FileName     string    `json:"fileName" db:"file_name"`
+	FileSize     int64     `json:"fileSize" db:"file_size"`
+	MimeType     string    `json:"mimeType" db:"mime_type"`
+	URL          string    `json:"url" db:"url"`
+	ThumbnailURL *string   `json:"thumbnailUrl,omitempty" db:"thumbnail_url"`
+	CreatedAt    time.Time `json:"createdAt" db:"created_at"`
 }
 
 // Phase 2: Metrics for monitoring

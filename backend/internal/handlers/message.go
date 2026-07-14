@@ -78,11 +78,34 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 		c.JSON(400, gin.H{"error": "Invalid request: " + err.Error()})
 		return
 	}
+	isEncrypted := req.Ciphertext != "" || req.Nonce != "" || req.Algorithm != "" || req.SenderDeviceID != ""
 
 	// Create message
-	message, err := h.messageService.Create(chatID, userID, req.Text, req.ReplyToID)
+	var message *models.Message
+	if isEncrypted {
+		payload := models.EncryptedMessagePayload{
+			Ciphertext:        req.Ciphertext,
+			Nonce:             req.Nonce,
+			Algorithm:         req.Algorithm,
+			EncryptionVersion: req.EncryptionVersion,
+			SenderDeviceID:    req.SenderDeviceID,
+		}
+		message, err = h.messageService.CreateEncrypted(chatID, userID, payload, req.ReplyToID)
+	} else {
+		if req.Text == "" {
+			c.JSON(400, gin.H{"error": "Message text or encrypted payload is required"})
+			return
+		}
+		message, err = h.messageService.Create(chatID, userID, req.Text, req.ReplyToID)
+	}
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Failed to send message"})
+		return
+	}
+
+	if isEncrypted {
+		h.broadcastNewMessage(chatID, message)
+		c.JSON(201, message)
 		return
 	}
 
@@ -114,6 +137,12 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 	}
 
 	// Broadcast new message to ALL chat participants (including sender for multi-device)
+	h.broadcastNewMessage(chatID, message)
+
+	c.JSON(201, message)
+}
+
+func (h *MessageHandler) broadcastNewMessage(chatID string, message *models.Message) {
 	participants, _ := h.chatService.GetParticipants(chatID)
 	userIDs := make([]string, 0, len(participants))
 	for _, p := range participants {
@@ -121,8 +150,6 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 	}
 
 	h.wsHub.SendToChat(chatID, userIDs, "new_message", message)
-
-	c.JSON(201, message)
 }
 
 func (h *MessageHandler) translateAndBroadcast(message *models.Message, targetLangs map[string]bool, chatID string) {
@@ -204,6 +231,8 @@ func (h *MessageHandler) SearchMessages(c *gin.Context) {
 			c.JSON(403, gin.H{"error": "Access denied"})
 			return
 		}
+		c.JSON(422, gin.H{"error": "Server-side message search is not available for encrypted chats"})
+		return
 	}
 
 	limit := 20

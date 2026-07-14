@@ -17,6 +17,7 @@ export interface Chat {
   createdBy: string
   settings?: {
     translationEnabled?: boolean
+    encryptionEnabled?: boolean
   }
   createdAt: string
   lastMessage?: Message
@@ -37,6 +38,12 @@ export interface Message {
   chatId: string
   senderId: string
   text: string
+  ciphertext?: string
+  nonce?: string
+  algorithm?: string
+  encryptionVersion?: number
+  senderDeviceId?: string
+  decryptionError?: string
   originalLanguage?: string
   translations?: Record<string, string>
   translationEnhanced?: boolean
@@ -70,11 +77,39 @@ export interface CreateChatRequest {
   type: 'direct' | 'group'
   participants: string[]
   name?: string
+  recipientKeys?: EncryptedRecipientKey[]
 }
 
 export interface SendMessageRequest {
-  text: string
+  text?: string
+  ciphertext?: string
+  nonce?: string
+  algorithm?: string
+  encryptionVersion?: number
+  senderDeviceId?: string
   replyToId?: string
+}
+
+export interface DeviceKeyBundle {
+  deviceId: string
+  userId?: string
+  deviceName: string
+  deviceType: 'mobile' | 'web' | 'desktop'
+  identityPublicKey: string
+  signedPreKey: string
+  signedPreKeySignature: string
+  oneTimePreKeys?: string[]
+  keyVersion?: number
+}
+
+export interface EncryptedRecipientKey {
+  chatId?: string
+  userId: string
+  deviceId: string
+  algorithm: string
+  nonce: string
+  ciphertext: string
+  ephemeralPublicKey?: string
 }
 
 export interface WebSocketMessage {
