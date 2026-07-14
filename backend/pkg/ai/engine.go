@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	defaultFastTimeout  = 500 * time.Millisecond
-	defaultTutorTimeout = 3 * time.Second
+	defaultFastTimeout   = 5 * time.Second
+	defaultTutorTimeout  = 10 * time.Second
 	defaultOllamaPath   = "/api/chat"
 	defaultTemperature  = 0.1
 	defaultTopP         = 0.9
