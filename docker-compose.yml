@@ -39,6 +39,24 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: chorus-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_APPWRITE_ENDPOINT=${VITE_APPWRITE_ENDPOINT:-}
+      - VITE_APPWRITE_PROJECT_ID=${VITE_APPWRITE_PROJECT_ID:-}
+      - VITE_APPWRITE_DATABASE_ID=${VITE_APPWRITE_DATABASE_ID:-}
+      - VITE_APPWRITE_CLIENT_API_KEY=${VITE_APPWRITE_CLIENT_API_KEY:-}
+    depends_on:
+      - backend
     restart: unless-stopped
 
   ollama:
