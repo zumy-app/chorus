@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"log"
+	"time"
 
 	"github.com/chorus/messenger/internal/models"
 	"github.com/chorus/messenger/internal/services"
@@ -126,18 +127,16 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 }
 
 func (h *MessageHandler) translateAndBroadcast(message *models.Message, targetLangs map[string]bool, chatID string) {
-	// Convert map to slice
 	langs := make([]string, 0, len(targetLangs))
 	for lang := range targetLangs {
 		langs = append(langs, lang)
 	}
 
-	// Phase 1: Quick translation via translator-engine — broadcast instantly
 	quickTranslations := make(map[string]string)
 	for _, lang := range langs {
 		trans, err := h.translationService.TranslateQuick(message.Text, lang, "auto")
 		if err != nil {
-			log.Printf("[Translate] translator-engine failed for lang %s: %v", lang, err)
+			log.Printf("[Translate] fast translation failed for lang %s: %v", lang, err)
 		} else if trans != "" {
 			quickTranslations[lang] = trans
 		}
@@ -155,8 +154,40 @@ func (h *MessageHandler) translateAndBroadcast(message *models.Message, targetLa
 		h.wsHub.SendToChat(chatID, userIDs, "message_updated", message)
 	}
 
-	// Phase 2: Enqueue Ollama for async enhancement
-	h.translationService.EnqueueOllamaTranslation(message.ID, message.Text, langs)
+	go func(msg *models.Message, targetLanguages []string, roomID string) {
+		defer func() {
+			if rec := recover(); rec != nil {
+				log.Printf("background tutor analysis panicked: %v", rec)
+			}
+		}()
+		if len(targetLanguages) == 0 {
+			return
+		}
+		time.Sleep(50 * time.Millisecond)
+		backgroundTranslations := make(map[string]string)
+		for _, lang := range targetLanguages {
+			translated, err := h.translationService.TranslateWithOllama(msg.Text, lang)
+			if err != nil {
+				continue
+			}
+			backgroundTranslations[lang] = translated
+		}
+		if len(backgroundTranslations) == 0 {
+			return
+		}
+		if err := h.messageService.UpdateTranslations(msg.ID, backgroundTranslations); err != nil {
+			log.Printf("background translation update failed: %v", err)
+			return
+		}
+		participants, _ := h.chatService.GetParticipants(roomID)
+		userIDs := make([]string, 0, len(participants))
+		for _, p := range participants {
+			userIDs = append(userIDs, p.UserID)
+		}
+		msg.Translations = backgroundTranslations
+		msg.TranslationEnhanced = true
+		h.wsHub.SendToChat(roomID, userIDs, "message_updated", msg)
+	}(message, langs, chatID)
 }
 
 func (h *MessageHandler) MarkAsRead(c *gin.Context) {

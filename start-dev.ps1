@@ -1,9 +1,9 @@
-<#
+﻿<#
 .SYNOPSIS
     Start Chorus development environment with hot-reload for all services.
 .DESCRIPTION
     Ensures Docker Desktop is running, launches Docker services (PostgreSQL,
-    Redis, LibreTranslate, Ollama), then starts the Go backend (with air
+    Redis, Ollama), then starts the Go backend (with air
     auto-reload) and React frontend (Vite HMR) in their own terminal windows.
 
     Run this from the repository root:
@@ -66,10 +66,10 @@ Log ""
 # ──────────────────────────────────────────────
 # 1. Start Docker services (detached)
 # ──────────────────────────────────────────────
-Log "▶ [1/5] Starting Docker services (PostgreSQL, Redis, LibreTranslate, Ollama)..." Yellow
+Log "▶ [1/5] Starting Docker services (PostgreSQL, Redis, Ollama)..." Yellow
 
 # Check for port conflicts before starting
-$PortsToCheck = @{5433 = "postgres-dev"; 6380 = "redis-dev"; 5002 = "libretranslate-dev"; 11435 = "ollama-dev"}
+$PortsToCheck = @{5433 = "postgres-dev"; 6380 = "redis-dev"; 11435 = "ollama-dev"}
 $portBlockers = @()
 foreach ($port in $PortsToCheck.Keys) {
     $processInfo = netstat -ano -p tcp 2>$null | Select-String ":$port\s" | Select-String "LISTENING"
@@ -111,7 +111,7 @@ if ($portBlockers.Count -gt 0) {
 }
 
 # Start Docker services (with --remove-orphans to clean up stale containers)
-docker-compose -f $DevCompose up -d --remove-orphans postgres-dev redis-dev libretranslate-dev ollama-dev 2>&1 | ForEach-Object {
+docker-compose -f $DevCompose up -d --remove-orphans postgres-dev redis-dev ollama-dev 2>&1 | ForEach-Object {
     $line = $_.ToString()
     # Suppress the version warning
     if ($line -notmatch "the attribute .version. is obsolete") {
@@ -160,9 +160,8 @@ REDIS_URL=localhost:6380
 # JWT
 JWT_SECRET=dev-jwt-secret-key-for-testing-only
 
-# Translation — Phase 1 (LibreTranslate on dev port 5002)
+# Translation — Phase 1 (translator engine)
 TRANSLATOR_ENGINE_URL=http://localhost:5002
-LIBRETRANSLATE_URL=http://localhost:5002
 
 # Translation — Phase 2 (Ollama on dev port 11435)
 OLLAMA_URL=http://localhost:11435
@@ -234,7 +233,6 @@ Log "║   Backend  (API):   http://localhost:8080                ║" Cyan
 Log "║   Backend  (health): http://localhost:8080/health       ║" Cyan
 Log "║   PostgreSQL:       localhost:5433                       ║" Cyan
 Log "║   Redis:            localhost:6380                       ║" Cyan
-Log "║   LibreTranslate:   http://localhost:5002                ║" Cyan
 Log "║   Ollama:           http://localhost:11435               ║" Cyan
 Log "║                                                          ║" Cyan
 Log "║   Close the backend/frontend windows or press Ctrl+C     ║" Cyan
