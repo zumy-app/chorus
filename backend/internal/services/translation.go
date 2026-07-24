@@ -1,19 +1,20 @@
 package services
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
-	"github.com/chorus/messenger/pkg/ai"
+	"github.com/chorus/messenger/pkg/translation"
 	"github.com/redis/go-redis/v9"
 )
 
+// OllamaGenerateRequest and OllamaGenerateResponse are kept here because
+// GrammarService (in grammar.go) references them directly for its own Ollama calls.
+// These are NOT used by the new TranslationService which uses the provider abstraction.
 type OllamaGenerateRequest struct {
 	Model  string `json:"model"`
 	Prompt string `json:"prompt"`
@@ -26,73 +27,47 @@ type OllamaGenerateResponse struct {
 	Done     bool   `json:"done"`
 }
 
-// OpenAI-compatible Chat Completion types (used with llama.cpp server)
-type ChatCompletionRequest struct {
-	Model       string        `json:"model"`
-	Messages    []ChatMessage `json:"messages"`
-	Temperature float64       `json:"temperature"`
-	MaxTokens   int           `json:"max_tokens"`
-}
-
-type ChatMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
-
-type ChatCompletionResponse struct {
-	Choices []ChatChoice `json:"choices"`
-}
-
-type ChatChoice struct {
-	Message      ChatResponseMessage `json:"message"`
-	Index        int                 `json:"index"`
-	FinishReason string              `json:"finish_reason"`
-}
-
-type ChatResponseMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
-
+// TranslationQueueJob is a legacy type kept for compatibility.
 type TranslationQueueJob struct {
 	MessageID   string   `json:"messageId"`
 	Text        string   `json:"text"`
 	TargetLangs []string `json:"targetLangs"`
 }
 
+// TranslationService handles text translation using a pluggable provider.
+// It caches results in Redis and delegates the actual translation to the
+// configured Provider implementation (OpenAI, Ollama, or Translator Engine).
 type TranslationService struct {
-	redis               *redis.Client
-	ollamaURL           string
-	ollamaModel         string
-	translatorEngineURL string
-	httpClient          *http.Client
-	ctx                 context.Context
-	engine              *ai.Engine
-	queueEnabled        bool
+	redis    *redis.Client
+	provider translation.Provider
+	ctx      context.Context
 }
 
-func NewTranslationService(translatorEngineURL, ollamaURL, ollamaModel string, redis *redis.Client) *TranslationService {
+// NewTranslationService creates a new TranslationService with the given provider.
+//
+// The provider is the translation backend to use (e.g. OpenAI, Ollama, etc.).
+// Redis is optional; if nil, caching is disabled.
+func NewTranslationService(provider translation.Provider, redis *redis.Client) *TranslationService {
 	return &TranslationService{
-		redis:               redis,
-		ollamaURL:           ollamaURL,
-		ollamaModel:         ollamaModel,
-		translatorEngineURL: translatorEngineURL,
-		httpClient:          &http.Client{Timeout: 120 * time.Second},
-		ctx:                 context.Background(),
-		engine:              ai.NewEngine(ollamaURL, ollamaModel),
-		queueEnabled:        false,
+		redis:    redis,
+		provider: provider,
+		ctx:      context.Background(),
 	}
 }
 
+// Translate translates text to the target language, auto-detecting the source.
 func (s *TranslationService) Translate(text, targetLang string) (string, error) {
 	return s.TranslateQuick(text, targetLang, "auto")
 }
 
-// TranslateQuick translates text using the llama.cpp translator engine.
-// Uses the OpenAI-compatible /v1/chat/completions endpoint.
-// Retries up to 3 times with backoff to handle container startup delay.
+// TranslateQuick translates text using the configured provider.
+// Results are cached in Redis for 24 hours.
 func (s *TranslationService) TranslateQuick(text, targetLang, sourceLang string) (string, error) {
-	cacheKey := fmt.Sprintf("translation:engine:%s:%s:%s", sourceLang, targetLang, text)
+	if s.provider == nil {
+		return "", errors.New("translation provider not configured")
+	}
+
+	cacheKey := fmt.Sprintf("translation:%s:%s:%s:%s", s.provider.Name(), sourceLang, targetLang, text)
 	if s.redis != nil {
 		cached, err := s.redis.Get(s.ctx, cacheKey).Result()
 		if err == nil && cached != "" {
@@ -100,91 +75,34 @@ func (s *TranslationService) TranslateQuick(text, targetLang, sourceLang string)
 		}
 	}
 
-	if s.engine != nil {
-		translated, err := s.engine.ExecuteFastTranslation(text, sourceLang, targetLang)
-		if err == nil && translated != "" {
-			if s.redis != nil {
-				s.redis.Set(s.ctx, cacheKey, translated, 24*time.Hour)
-			}
-			return translated, nil
-		}
-		if err != nil {
-			return "", err
-		}
+	req := translation.TranslateRequest{
+		Text:       text,
+		SourceLang: sourceLang,
+		TargetLang: targetLang,
 	}
 
-	if s.ollamaURL == "" {
-		return "", errors.New("ollama URL not configured")
-	}
+	ctx, cancel := context.WithTimeout(s.ctx, 30*time.Second)
+	defer cancel()
 
-	langName := languageCodeToName(targetLang)
-	prompt := fmt.Sprintf("Translate the following text to %s. Return ONLY the translated text, preserving formatting.\n\n%s", langName, text)
-	reqBody := OllamaGenerateRequest{Model: s.ollamaModel, Prompt: prompt, Stream: false}
-	body, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequestWithContext(s.ctx, http.MethodPost, s.ollamaURL+"/api/generate", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := s.httpClient.Do(req)
+	resp, err := s.provider.Translate(ctx, req)
 	if err != nil {
-		return "", fmt.Errorf("ollama call: %w", err)
+		return "", fmt.Errorf("translation failed: %w", err)
 	}
-	defer resp.Body.Close()
-	var ollamaResp OllamaGenerateResponse
-	json.NewDecoder(resp.Body).Decode(&ollamaResp)
-	result := strings.TrimSpace(ollamaResp.Response)
-	if len(result) >= 2 {
-		if (result[0] == '"' && result[len(result)-1] == '"') ||
-			(result[0] == '\'' && result[len(result)-1] == '\'') {
-			result = result[1 : len(result)-1]
-		}
-	}
+
+	result := strings.TrimSpace(resp.TranslatedText)
 	if result == "" {
-		return "", errors.New("ollama empty response")
+		return "", errors.New("translation returned empty result")
 	}
+
 	if s.redis != nil {
 		s.redis.Set(s.ctx, cacheKey, result, 24*time.Hour)
 	}
+
 	return result, nil
 }
 
-func (s *TranslationService) TranslateWithOllama(text, targetLang string) (string, error) {
-	if s.engine != nil {
-		return s.engine.ExecuteFastTranslation(text, "auto", targetLang)
-	}
-	if s.ollamaURL == "" {
-		return "", errors.New("Ollama URL not configured")
-	}
-	langName := languageCodeToName(targetLang)
-	prompt := fmt.Sprintf(
-		"Translate the following text to %s. Return ONLY the translated text, preserving all original line breaks and formatting. Do not add any explanation or prefix.\n\n%s",
-		langName, text,
-	)
-	reqBody := OllamaGenerateRequest{Model: s.ollamaModel, Prompt: prompt, Stream: false}
-	body, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequestWithContext(s.ctx, http.MethodPost, s.ollamaURL+"/api/generate", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("ollama call: %w", err)
-	}
-	defer resp.Body.Close()
-	var ollamaResp OllamaGenerateResponse
-	json.NewDecoder(resp.Body).Decode(&ollamaResp)
-	result := strings.TrimSpace(ollamaResp.Response)
-	if len(result) >= 2 {
-		if (result[0] == '"' && result[len(result)-1] == '"') ||
-			(result[0] == '\'' && result[len(result)-1] == '\'') {
-			result = result[1 : len(result)-1]
-		}
-	}
-	if result == "" {
-		return "", errors.New("ollama empty response")
-	}
-	if s.redis != nil {
-		s.redis.Set(s.ctx, fmt.Sprintf("translation:ollama:%s:%s", targetLang, text), result, 24*time.Hour)
-	}
-	return result, nil
-}
-
+// TranslateMultiple translates text into multiple target languages.
+// Errors for individual languages are silently skipped.
 func (s *TranslationService) TranslateMultiple(text string, targetLangs []string) (map[string]string, error) {
 	translations := make(map[string]string)
 	for _, lang := range targetLangs {
@@ -197,14 +115,18 @@ func (s *TranslationService) TranslateMultiple(text string, targetLangs []string
 	return translations, nil
 }
 
+// EnqueueOllamaTranslation is a legacy no-op kept for compatibility.
 func (s *TranslationService) EnqueueOllamaTranslation(messageID, text string, targetLangs []string) error {
 	return nil
 }
 
+// ProcessOllamaQueue is a legacy no-op kept for compatibility.
 func (s *TranslationService) ProcessOllamaQueue(onComplete func(messageID string, translations map[string]string)) {
 	return
 }
 
+// languageCodeToName is kept here for backward compatibility with grammar.go
+// which references it from the services package.
 func languageCodeToName(code string) string {
 	m := map[string]string{
 		"en": "English", "es": "Spanish", "fr": "French", "de": "German",
@@ -233,3 +155,6 @@ func languageCodeToName(code string) string {
 	}
 	return code
 }
+
+// Ensure json is used (import reference for grammar.go compatibility).
+var _ = json.Marshal
