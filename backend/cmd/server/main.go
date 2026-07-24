@@ -10,6 +10,7 @@ import (
 	"github.com/chorus/messenger/internal/handlers"
 	"github.com/chorus/messenger/internal/middleware"
 	"github.com/chorus/messenger/internal/services"
+	"github.com/chorus/messenger/pkg/translation"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -60,7 +61,22 @@ func main() {
 	userService := services.NewUserService(db)
 	chatService := services.NewChatService(db)
 	messageService := services.NewMessageService(db, redisClient)
-	translationService := services.NewTranslationService(cfg.TranslatorEngineURL, cfg.OllamaURL, cfg.OllamaModel, redisClient)
+	// Create translation provider from config.
+	translationCfg := translation.Config{
+		Provider:            translation.ProviderType(cfg.TranslationProvider),
+		OpenAIBaseURL:       cfg.OpenAIBaseURL,
+		OpenAIAPIKey:        cfg.OpenAIAPIKey,
+		OpenAIModel:         cfg.OpenAIModel,
+		OllamaURL:           cfg.OllamaURL,
+		OllamaModel:         cfg.OllamaModel,
+		TranslatorEngineURL: cfg.TranslatorEngineURL,
+	}
+	translationProvider, err := translation.NewProvider(translationCfg)
+	if err != nil {
+		log.Fatalf("Failed to create translation provider: %v", err)
+	}
+	log.Printf("Using translation provider: %s", translationProvider.Name())
+	translationService := services.NewTranslationService(translationProvider, redisClient)
 	wsHub := services.NewWebSocketHub(redisClient)
 
 	var pubsubService *services.PubSubService
