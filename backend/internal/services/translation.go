@@ -12,21 +12,6 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// OllamaGenerateRequest and OllamaGenerateResponse are kept here because
-// GrammarService (in grammar.go) references them directly for its own Ollama calls.
-// These are NOT used by the new TranslationService which uses the provider abstraction.
-type OllamaGenerateRequest struct {
-	Model  string `json:"model"`
-	Prompt string `json:"prompt"`
-	Stream bool   `json:"stream"`
-}
-
-type OllamaGenerateResponse struct {
-	Model    string `json:"model"`
-	Response string `json:"response"`
-	Done     bool   `json:"done"`
-}
-
 // TranslationQueueJob is a legacy type kept for compatibility.
 type TranslationQueueJob struct {
 	MessageID   string   `json:"messageId"`

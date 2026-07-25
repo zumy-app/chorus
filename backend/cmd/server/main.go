@@ -97,7 +97,7 @@ func main() {
 	searchService := services.NewSearchService(db, redisClient)
 
 	// Phase 3: Initialize Grammar service
-	grammarService := services.NewGrammarService(redisClient, cfg.TranslationProviderURL, cfg.TranslationProviderModel)
+	grammarService := services.NewGrammarService(redisClient, cfg.GrammarAPIURL, cfg.GrammarAPIKey, cfg.GrammarModel)
 
 	// Phase 3: Initialize Vocabulary service
 	vocabularyService := services.NewVocabularyService(db, redisClient)

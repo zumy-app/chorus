@@ -190,8 +190,8 @@ export const vocabularyAPI = {
 }
 
 export const grammarAPI = {
-  analyze: async (text: string, language: string) => {
-    const response = await api.post('/grammar/analyze-text', { text, language })
+  analyze: async (text: string, language: string, nativeLanguage?: string) => {
+    const response = await api.post('/grammar/analyze-text', { text, language, nativeLanguage })
     return response.data.data
   },
 

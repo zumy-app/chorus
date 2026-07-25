@@ -15,6 +15,28 @@ type ChatMessage = {
   suggestedActions?: string[]
 }
 
+const actionLabels: Record<string, Record<string, { icon: string; label: string }>> = {
+  en: { breakdown: { icon: '🔍', label: 'Break Down' }, examples: { icon: '📝', label: 'Examples' }, flashcards: { icon: '🃏', label: 'Flashcards' }, conjugation: { icon: '📊', label: 'Conjugation' }, custom: { icon: '💬', label: 'Ask More' } },
+  es: { breakdown: { icon: '🔍', label: 'Analizar' }, examples: { icon: '📝', label: 'Ejemplos' }, flashcards: { icon: '🃏', label: 'Tarjetas' }, conjugation: { icon: '📊', label: 'Conjugación' }, custom: { icon: '💬', label: 'Preguntar' } },
+  fr: { breakdown: { icon: '🔍', label: 'Analyser' }, examples: { icon: '📝', label: 'Exemples' }, flashcards: { icon: '🃏', label: 'Cartes' }, conjugation: { icon: '📊', label: 'Conjugaison' }, custom: { icon: '💬', label: 'Demander' } },
+  de: { breakdown: { icon: '🔍', label: 'Analysieren' }, examples: { icon: '📝', label: 'Beispiele' }, flashcards: { icon: '🃏', label: 'Karten' }, conjugation: { icon: '📊', label: 'Konjugation' }, custom: { icon: '💬', label: 'Fragen' } },
+}
+
+function getActionLabel(action: string, lang: string): { icon: string; label: string } {
+  return actionLabels[lang]?.[action] || actionLabels.en[action] || { icon: '📚', label: action }
+}
+
+const localizedTexts: Record<string, Record<string, string>> = {
+  en: { title: 'AI Tutor', analyzing: 'Analyzing...', error: 'Sorry, I couldn\'t generate learning content right now. Please try again.', placeholder: 'Ask a question...', ask: 'Ask', grammarBreakdown: '📖 Grammar Breakdown' },
+  es: { title: 'Tutor IA', analyzing: 'Analizando...', error: 'Lo siento, no pude generar contenido educativo ahora. Intenta de nuevo.', placeholder: 'Haz una pregunta...', ask: 'Preguntar', grammarBreakdown: '📖 Análisis Gramatical' },
+  fr: { title: 'Tuteur IA', analyzing: 'Analyse...', error: 'Désolé, je n\'ai pas pu générer de contenu pour le moment. Réessayez.', placeholder: 'Posez une question...', ask: 'Demander', grammarBreakdown: '📖 Analyse Grammaticale' },
+  de: { title: 'KI-Tutor', analyzing: 'Analysiere...', error: 'Entschuldigung, ich konnte gerade keine Lerninhalte erstellen. Bitte versuchen Sie es erneut.', placeholder: 'Stelle eine Frage...', ask: 'Fragen', grammarBreakdown: '📖 Grammatikanalyse' },
+}
+
+function getText(key: string, lang: string): string {
+  return localizedTexts[lang]?.[key] || localizedTexts.en[key] || key
+}
+
 export default function LearningPanel({ text, language, nativeLanguage, onClose }: LearningPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -38,7 +60,7 @@ export default function LearningPanel({ text, language, nativeLanguage, onClose 
       
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: result.content || 'No response generated.',
+        content: result.content || getText('error', nativeLanguage),
         details: result.details || [],
         suggestedActions: result.suggestedActions || [],
       }])
@@ -46,7 +68,7 @@ export default function LearningPanel({ text, language, nativeLanguage, onClose 
       console.error('Learning action failed:', err)
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
+        content: getText('error', nativeLanguage),
         suggestedActions: ['breakdown', 'examples', 'flashcards'],
       }])
     } finally {
@@ -69,7 +91,7 @@ export default function LearningPanel({ text, language, nativeLanguage, onClose 
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-3 py-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-lg">🤖</span>
-          <span className="text-white font-semibold text-sm">AI Tutor</span>
+          <span className="text-white font-semibold text-sm">{getText('title', nativeLanguage)}</span>
         </div>
         <button onClick={onClose} className="text-white/80 hover:text-white text-lg leading-none">×</button>
       </div>
@@ -85,7 +107,7 @@ export default function LearningPanel({ text, language, nativeLanguage, onClose 
                   style={{ animationDelay: '300ms' }} />
             <span className="inline-block w-2 h-2 bg-indigo-500 rounded-full animate-pulse" 
                   style={{ animationDelay: '600ms' }} />
-            <span className="ml-1">Analyzing...</span>
+            <span className="ml-1">{getText('analyzing', nativeLanguage)}</span>
           </div>
         )}
 
@@ -101,7 +123,7 @@ export default function LearningPanel({ text, language, nativeLanguage, onClose 
                   {/* Action label */}
                   {i === 0 && (
                     <div className="text-[10px] font-semibold text-indigo-600 uppercase tracking-wide mb-1">
-                      📖 Grammar Breakdown
+                      {getText('grammarBreakdown', nativeLanguage)}
                     </div>
                   )}
                   
@@ -125,14 +147,7 @@ export default function LearningPanel({ text, language, nativeLanguage, onClose 
                 {msg.suggestedActions && msg.suggestedActions.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1.5">
                     {msg.suggestedActions.map(action => {
-                      const labels: Record<string, { icon: string; label: string }> = {
-                        breakdown: { icon: '🔍', label: 'Break Down' },
-                        examples: { icon: '📝', label: 'Examples' },
-                        flashcards: { icon: '🃏', label: 'Flashcards' },
-                        conjugation: { icon: '📊', label: 'Conjugation' },
-                        custom: { icon: '💬', label: 'Ask More' },
-                      }
-                      const btn = labels[action] || { icon: '📚', label: action }
+                      const btn = getActionLabel(action, nativeLanguage)
                       return (
                         <button
                           key={action}
@@ -171,7 +186,7 @@ export default function LearningPanel({ text, language, nativeLanguage, onClose 
           type="text"
           value={customQuery}
           onChange={e => setCustomQuery(e.target.value)}
-          placeholder="Ask a question..."
+          placeholder={getText('placeholder', nativeLanguage)}
           className="flex-1 text-xs px-2.5 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
           disabled={isLoading}
         />
@@ -180,7 +195,7 @@ export default function LearningPanel({ text, language, nativeLanguage, onClose 
           disabled={!customQuery.trim() || isLoading}
           className="px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs rounded-lg hover:opacity-90 transition disabled:opacity-50 font-medium"
         >
-          Ask
+          {getText('ask', nativeLanguage)}
         </button>
       </form>
     </div>
