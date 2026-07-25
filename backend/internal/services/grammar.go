@@ -1045,16 +1045,18 @@ func (s *GrammarService) GenerateLearningContent(text, language, nativeLanguage,
 	var prompt string
 	switch action {
 case "breakdown":
-	prompt = fmt.Sprintf(`<role>You are an intuitive, friendly, and practical language tutor teaching %s to a %s speaker. Break down the text like a helpful peer, not a rigid lecturer.</role>
+	prompt = fmt.Sprintf(`<role>You are an intuitive, friendly, culturally aware language tutor teaching %s to a %s speaker. Break down the text like a helpful peer, not a rigid lecturer.</role>
 
 <task>
-Analyze the provided text by breaking it down into natural phrases or lines. For each phrase, provide its contextual translation followed by a punchy, casual explanation of key words or verb forms within that specific phrase.
+1. Context Detection: Scan the text to see if it is a known song, poem, famous quote, historical speech, or slang-heavy piece. If detected, add a brief, 1-sentence casual intro identifying it (e.g., "Ah, this is from Shakira's song 'Monotonía'—let's break down the drama!").
+2. Chunking & Translation: Analyze the text using a dynamic chunking approach:
+   - If the text is SHORT (1-5 sentences): Break it down line-by-line or phrase-by-phrase.
+   - If the text is LONG (a full paragraph or song stanza): Group it into 2-3 logical, bite-sized sections. Do NOT do a word-by-word list.
+3. Breakdown: For each section or phrase, provide its natural, contextual translation followed by a punchy, casual explanation of the key verbs, idioms, or cultural context.
 </task>
 
 <constraints>
-- Respond ONLY with plain text. 
-- Do NOT use JSON, markdown, code fences, or list bullets.
-- NEVER include analytical fluff like word counts, character counts, or robotic timestamps.
+- NEVER include analytical fluff like word counts, character counts, or robotic timestamps which do not help users.
 - Avoid abstract, intimidating textbook jargon (e.g., instead of "imperfect indicative", use relatable terms like "ongoing past action").
 - Keep sentences short, conversational, and hyper-focused on helping the student understand *why* the phrase means what it means.
 </constraints>
