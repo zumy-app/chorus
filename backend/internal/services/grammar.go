@@ -1044,42 +1044,85 @@ func (s *GrammarService) GenerateLearningContent(text, language, nativeLanguage,
 
 	var prompt string
 	switch action {
-	case "breakdown":
-		prompt = fmt.Sprintf(`You are a language tutor teaching %s to a %s speaker. Provide a detailed grammar breakdown.
+case "breakdown":
+	prompt = fmt.Sprintf(`<role>You are an intuitive, friendly, and practical language tutor teaching %s to a %s speaker. Break down the text like a helpful peer, not a rigid lecturer.</role>
 
-Text: "%s"
+<task>
+Analyze the provided text by breaking it down into natural phrases or lines. For each phrase, provide its contextual translation followed by a punchy, casual explanation of key words or verb forms within that specific phrase.
+</task>
 
-Respond ONLY with a plain text paragraph (no JSON, no markdown, no code fences) explaining the grammar in %s. Cover: sentence structure, verb conjugations, tenses, and any special rules. Make it beginner-friendly.
-`, langName, nativeLangName, text, nativeLangName)
+<constraints>
+- Respond ONLY with plain text. 
+- Do NOT use JSON, markdown, code fences, or list bullets.
+- NEVER include analytical fluff like word counts, character counts, or robotic timestamps.
+- Avoid abstract, intimidating textbook jargon (e.g., instead of "imperfect indicative", use relatable terms like "ongoing past action").
+- Keep sentences short, conversational, and hyper-focused on helping the student understand *why* the phrase means what it means.
+</constraints>
 
-	case "examples":
-		prompt = fmt.Sprintf(`You are a language tutor teaching %s to a %s speaker. Provide example sentences.
-
-Text: "%s"
-
-Respond ONLY with 3-5 example sentences in %s with their %s translations. Format as a plain text list. No JSON, no markdown, no code fences.
-`, langName, nativeLangName, text, langName, nativeLangName)
-
-	case "flashcards":
-		prompt = fmt.Sprintf(`You are a language tutor teaching %s to a %s speaker. Create flashcards.
-
-Text: "%s"
-
-Respond ONLY with 3-5 flashcards, one per line, formatted as "Q: question? A: answer". No JSON, no markdown, no code fences.
+<input_text>
+"%s"
+</input_text>
 `, langName, nativeLangName, text)
 
-	case "custom":
-		prompt = fmt.Sprintf(`You are a language tutor teaching %s to a %s speaker.
+case "examples":
+	prompt = fmt.Sprintf(`<role>You are an intuitive, friendly, and practical language tutor teaching %s to a %s speaker. Provide natural, conversational example sentences.</role>
 
+<task>
+Provide 3-5 example sentences using the key vocabulary or grammatical patterns found in the source text. Focus on real-world usability rather than stiff textbook phrases.
+Each line must show the example sentence in %s, followed immediately by its natural translation in %s.
+</task>
+
+<constraints>
+- Respond ONLY with a plain text list.
+- Do NOT use JSON, markdown headers, or code fences. Do not use bullet points or dashes.
+</constraints>
+
+<input_text>
+"%s"
+</input_text>
+`, langName, nativeLangName, langName, nativeLangName, text)
+
+case "flashcards":
+	prompt = fmt.Sprintf(`<role>You are an intuitive, friendly, and practical language tutor teaching %s to a %s speaker. Create high-yield vocabulary and phrase flashcards based on the text.</role>
+
+<task>
+Create 3-5 flashcards, exactly one per line, focusing on the most useful words, idioms, or verb variations from the text that a language learner can immediately use in daily conversation.
+Format each line strictly as: "Q: [target word or phrase]? A: [native translation and quick tip]"
+</task>
+
+<constraints>
+- Respond ONLY with plain text.
+- Do NOT use JSON, markdown, or code fences.
+- Strictly adhere to one flashcard per line.
+</constraints>
+
+<input_text>
+"%s"
+</input_text>
+`, langName, nativeLangName, text)
+
+case "custom":
+	prompt = fmt.Sprintf(`<role>You are an intuitive, friendly, and practical language tutor teaching %s to a %s speaker.</role>
+
+<task>
+Answer the student's question about the text in a helpful, warm, and highly educational peer-to-peer style. Keep your explanation brief, direct, and completely free of textbook jargon.
+</task>
+
+<constraints>
+- Answer in %s.
+- Respond ONLY with plain text.
+- Strictly avoid JSON, markdown, or code fences.
+</constraints>
+
+<context>
 Text: "%s"
-Student's question: "%s"
+Student Question: "%s"
+</context>
+`, langName, nativeLangName, nativeLangName, text, customQuery)
 
-Answer in %s in a helpful, educational way. Respond ONLY with plain text. No JSON, no markdown, no code fences.
-`, langName, nativeLangName, text, customQuery, nativeLangName)
-
-	default:
-		return nil, fmt.Errorf("unknown learning action: %s", action)
-	}
+default:
+	return nil, fmt.Errorf("unknown learning action: %s", action)
+}
 
 	// Use a 30-second timeout so the AI Tutor panel doesn't hang indefinitely.
 	result, err := s.callGrammarAPI(prompt, nativeLangName)
