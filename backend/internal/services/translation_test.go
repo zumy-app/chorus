@@ -4,54 +4,50 @@ import (
 	"testing"
 	"time"
 
+	"github.com/chorus/messenger/pkg/translation"
 	"github.com/redis/go-redis/v9"
 )
 
 func TestNewTranslationService(t *testing.T) {
-	s := NewTranslationService("http://localhost:5002", "http://localhost:11435", "qwen2.5:3b", nil)
+	provider := translation.NewOpenAIProvider("https://api.opencode.com/v1", "test-key", "gpt-4o-mini")
+	s := NewTranslationService(provider, nil)
 	if s == nil {
 		t.Fatal("NewTranslationService returned nil")
 	}
-	if s.translatorEngineURL != "http://localhost:5002" {
-		t.Fatalf("expected http://localhost:5002, got %s", s.translatorEngineURL)
-	}
-	if s.ollamaURL != "http://localhost:11435" {
-		t.Fatalf("expected http://localhost:11435, got %s", s.ollamaURL)
-	}
-	if s.ollamaModel != "qwen2.5:3b" {
-		t.Fatalf("expected qwen2.5:3b, got %s", s.ollamaModel)
+	if s.provider == nil {
+		t.Fatal("provider should not be nil")
 	}
 }
 
-func TestTranslate_ReturnsMockOnError(t *testing.T) {
-	// When the translator engine is unreachable, Translate should return a mock translation
-	s := NewTranslationService("http://localhost:1", "http://localhost:1", "test-model", nil)
+func TestTranslate_ReturnsErrorOnNoProvider(t *testing.T) {
+	s := &TranslationService{redis: nil, provider: nil}
 
-	// Should not panic or hang - should return mock/error gracefully
 	result, err := s.Translate("Hello", "es")
-	if err != nil {
-		// Accept error - the important thing is it doesn't panic
-		t.Logf("Translate returned error (expected): %v", err)
-	} else {
-		t.Logf("Translate returned (no error): %s", result)
+	if err == nil {
+		t.Fatal("expected error with nil provider")
+	}
+	if result != "" {
+		t.Fatalf("expected empty result, got %s", result)
 	}
 }
 
-func TestTranslateQuick_ReturnsMockOnError(t *testing.T) {
-	s := NewTranslationService("http://localhost:1", "http://localhost:1", "test-model", nil)
+func TestTranslateQuick_ReturnsErrorOnNoProvider(t *testing.T) {
+	s := &TranslationService{redis: nil, provider: nil}
 
 	result, err := s.TranslateQuick("Hello", "es", "en")
-	if err != nil {
-		t.Logf("TranslateQuick returned error (expected): %v", err)
-	} else {
-		t.Logf("TranslateQuick returned: %s", result)
+	if err == nil {
+		t.Fatal("expected error with nil provider")
+	}
+	if result != "" {
+		t.Fatalf("expected empty result, got %s", result)
 	}
 }
 
 func TestTranslateQuick_UsesCache(t *testing.T) {
 	// With a redis client that can't connect, the cache lookup should fail gracefully
 	redisClient := redis.NewClient(&redis.Options{Addr: "localhost:1"})
-	s := NewTranslationService("http://localhost:1", "http://localhost:1", "test-model", redisClient)
+	provider := translation.NewOpenAIProvider("http://localhost:1", "test-key", "gpt-4o-mini")
+	s := NewTranslationService(provider, redisClient)
 
 	// Should handle the cache miss gracefully and attempt HTTP translation
 	result, err := s.TranslateQuick("Hello", "es", "en")
@@ -63,9 +59,10 @@ func TestTranslateQuick_UsesCache(t *testing.T) {
 }
 
 func TestTranslateMultiple(t *testing.T) {
-	s := NewTranslationService("http://localhost:1", "http://localhost:1", "test-model", nil)
+	provider := translation.NewOpenAIProvider("http://localhost:1", "test-key", "gpt-4o-mini")
+	s := NewTranslationService(provider, nil)
 
-	// Should return an error because the translator engine is unreachable
+	// Should return an error because the provider is unreachable
 	translations, err := s.TranslateMultiple("Hello", []string{"es", "fr"})
 	if err != nil {
 		t.Logf("TranslateMultiple error (expected): %v", err)
@@ -76,10 +73,8 @@ func TestTranslateMultiple(t *testing.T) {
 
 func TestProcessOllamaQueue_WithNilRedis(t *testing.T) {
 	// With nil redis and nil callback, ProcessOllamaQueue should not panic
-	s := NewTranslationService("http://localhost:1", "http://localhost:1", "test-model", nil)
-
-	// Temporarily disable queue to test initialization
-	s.queueEnabled = false
+	provider := translation.NewOpenAIProvider("http://localhost:1", "test-key", "gpt-4o-mini")
+	s := NewTranslationService(provider, nil)
 
 	// This should not panic
 	defer func() {

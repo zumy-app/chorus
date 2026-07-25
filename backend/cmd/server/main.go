@@ -61,15 +61,13 @@ func main() {
 	userService := services.NewUserService(db)
 	chatService := services.NewChatService(db)
 	messageService := services.NewMessageService(db, redisClient)
-	// Create translation provider from config.
+
+	// Create translation provider from unified config.
 	translationCfg := translation.Config{
-		Provider:            translation.ProviderType(cfg.TranslationProvider),
-		OpenAIBaseURL:       cfg.OpenAIBaseURL,
-		OpenAIAPIKey:        cfg.OpenAIAPIKey,
-		OpenAIModel:         cfg.OpenAIModel,
-		OllamaURL:           cfg.OllamaURL,
-		OllamaModel:         cfg.OllamaModel,
-		TranslatorEngineURL: cfg.TranslatorEngineURL,
+		Provider: translation.ProviderType(cfg.TranslationProviderName),
+		APIURL:   cfg.TranslationProviderURL,
+		APIKey:   cfg.TranslationProviderKey,
+		Model:    cfg.TranslationProviderModel,
 	}
 	translationProvider, err := translation.NewProvider(translationCfg)
 	if err != nil {
@@ -99,7 +97,7 @@ func main() {
 	searchService := services.NewSearchService(db, redisClient)
 
 	// Phase 3: Initialize Grammar service
-	grammarService := services.NewGrammarService(redisClient, cfg.OllamaURL, cfg.OllamaModel)
+	grammarService := services.NewGrammarService(redisClient, cfg.TranslationProviderURL, cfg.TranslationProviderModel)
 
 	// Phase 3: Initialize Vocabulary service
 	vocabularyService := services.NewVocabularyService(db, redisClient)
@@ -220,13 +218,6 @@ func main() {
 		protected.GET("/calls/transcripts/search", callHandler.SearchTranscripts)
 		protected.POST("/calls/:callId/signal", callHandler.HandleWebRTCSignaling)
 	}
-
-	// Admin routes (for monitoring) - Commented out for now
-	// admin := r.Group("/api/v1/admin")
-	// admin.Use(middleware.AuthMiddleware(authService))
-	// {
-	// 	admin.GET("/presence/stats", presenceHandler.GetPresenceStats)
-	// }
 
 	// WebSocket endpoint (auth handled inside handler via query param or header)
 	r.GET("/ws", wsHandler.HandleWebSocket)

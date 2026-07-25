@@ -17,14 +17,12 @@ type Config struct {
 	AppwriteAPIKey        string
 	AppwriteDatabaseID    string
 
-	// Translation provider configuration (Phase 4 unified provider abstraction).
-	TranslationProvider   string
-	OpenAIBaseURL         string
-	OpenAIAPIKey          string
-	OpenAIModel           string
-	OllamaURL             string
-	OllamaModel           string
-	TranslatorEngineURL   string
+	// Translation provider configuration (unified provider abstraction).
+	// See backend/.env.example for full documentation.
+	TranslationProviderName string
+	TranslationProviderURL  string
+	TranslationProviderKey  string
+	TranslationProviderModel string
 }
 
 func Load() *Config {
@@ -40,14 +38,12 @@ func Load() *Config {
 		AppwriteAPIKey:        getEnv("APPWRITE_API_KEY", ""),
 		AppwriteDatabaseID:    getEnv("APPWRITE_DATABASE_ID", ""),
 
-		// Translation provider defaults (Phase 4).
-		TranslationProvider: getEnv("TRANSLATION_PROVIDER", string(translation.ProviderOpenAI)),
-		OpenAIBaseURL:       getEnv("OPENAI_BASE_URL", "https://api.opencode.com/v1"),
-		OpenAIAPIKey:        getEnv("OPENAI_API_KEY", ""),
-		OpenAIModel:         getEnv("OPENAI_MODEL", "gpt-4o-mini"),
-		OllamaURL:           getEnv("OLLAMA_URL", "http://localhost:11434"),
-		OllamaModel:         getEnv("OLLAMA_MODEL", "qwen2.5:3b"),
-		TranslatorEngineURL: getEnv("TRANSLATOR_ENGINE_URL", "http://translator-engine:5000"),
+		// Translation provider defaults (unified).
+		// Supported provider names: opencode, openai, deepseek, ollama, translator-engine
+		TranslationProviderName:  getEnv("TRANSLATION_PROVIDER_NAME", string(translation.ProviderOpenCode)),
+		TranslationProviderURL:   getEnv("TRANSLATION_PROVIDER_API_URL", ""),
+		TranslationProviderKey:   getEnv("TRANSLATION_PROVIDER_API_KEY", ""),
+		TranslationProviderModel: getEnv("TRANSLATION_PROVIDER_MODEL", ""),
 	}
 }
 

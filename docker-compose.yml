@@ -28,9 +28,10 @@ services:
       - DATABASE_URL=postgres://messenger:password@postgres:5432/messenger_dev?sslmode=disable
       - REDIS_URL=
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
-      - GOOGLE_TRANSLATE_API_KEY=${GOOGLE_TRANSLATE_API_KEY:-}
-      - OLLAMA_URL=http://ollama:11434
-      - OLLAMA_MODEL=qwen2.5:1.5b-instruct
+      - TRANSLATION_PROVIDER_NAME=opencode
+      - TRANSLATION_PROVIDER_API_URL=${TRANSLATION_PROVIDER_API_URL:-}
+      - TRANSLATION_PROVIDER_API_KEY=${TRANSLATION_PROVIDER_API_KEY:-}
+      - TRANSLATION_PROVIDER_MODEL=${TRANSLATION_PROVIDER_MODEL:-}
       - PORT=8080
       - APPWRITE_ENDPOINT=${APPWRITE_ENDPOINT:-https://appwrite.zumy.app/v1}
       - APPWRITE_PROJECT_ID=${APPWRITE_PROJECT_ID:-6955733a001c10e7c020}

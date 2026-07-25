@@ -61,11 +61,10 @@ services:
       - DATABASE_URL=postgres://chorus_dev:dev_password_123@postgres-dev:5432/chorus_dev?sslmode=disable
       - REDIS_URL=redis-dev:6379
       - JWT_SECRET=dev-jwt-secret-key-for-testing-only
-      - GOOGLE_TRANSLATE_API_KEY=${GOOGLE_TRANSLATE_API_KEY:-}
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
-      - OLLAMA_URL=http://ollama-dev:11434
-      - OLLAMA_MODEL=qwen2.5:3b
-      - TRANSLATOR_ENGINE_URL=http://translator-engine-dev:5000
+      - TRANSLATION_PROVIDER_NAME=opencode
+      - TRANSLATION_PROVIDER_API_URL=https://api.opencode.com/v1
+      - TRANSLATION_PROVIDER_API_KEY=${TRANSLATION_PROVIDER_API_KEY:-}
+      - TRANSLATION_PROVIDER_MODEL=gpt-4o-mini
       - PORT=8080
     depends_on:
       postgres-dev:
