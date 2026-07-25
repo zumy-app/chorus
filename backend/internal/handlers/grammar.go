@@ -50,52 +50,17 @@ func (h *GrammarHandler) AnalyzeMessageGrammar(c *gin.Context) {
 		}
 	}
 
-	analysis, err := h.grammarService.AnalyzeGrammar(text, language)
+	nativeLang := req.NativeLanguage
+	if nativeLang == "" {
+		nativeLang = "en"
+	}
+	analysis, err := h.grammarService.AnalyzeGrammar(text, language, nativeLang)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Grammar analysis failed"})
 		return
 	}
 
 	c.JSON(http.StatusOK, analysis)
-}
-
-// AnalyzeGrammar analyzes grammar of a message
-// POST /api/v1/grammar/analyze
-func (h *GrammarHandler) AnalyzeGrammar(c *gin.Context) {
-	userID := c.GetString("userID")
-	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-		return
-	}
-
-	var req models.GrammarAnalysisRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
-		return
-	}
-
-	// Get the message
-	message, err := h.messageService.GetMessageByID(c.Request.Context(), req.MessageID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Message not found"})
-		return
-	}
-
-	// Perform grammar analysis
-	analysis, err := h.grammarService.AnalyzeGrammar(message.Text, req.TargetLanguage)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Grammar analysis failed"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"data": gin.H{
-			"messageId": req.MessageID,
-			"text":      message.Text,
-			"language":  req.TargetLanguage,
-			"analysis":  analysis,
-		},
-	})
 }
 
 // AnalyzeText analyzes grammar of arbitrary text
@@ -108,16 +73,20 @@ func (h *GrammarHandler) AnalyzeText(c *gin.Context) {
 	}
 
 	var req struct {
-		Text     string `json:"text" binding:"required"`
-		Language string `json:"language" binding:"required"`
+		Text           string `json:"text" binding:"required"`
+		Language       string `json:"language" binding:"required"`
+		NativeLanguage string `json:"nativeLanguage"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
+	if req.NativeLanguage == "" {
+		req.NativeLanguage = "en"
+	}
 
 	// Perform grammar analysis
-	analysis, err := h.grammarService.AnalyzeGrammar(req.Text, req.Language)
+	analysis, err := h.grammarService.AnalyzeGrammar(req.Text, req.Language, req.NativeLanguage)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Grammar analysis failed"})
 		return
@@ -142,15 +111,20 @@ func (h *GrammarHandler) GetDifficultyLevel(c *gin.Context) {
 	}
 
 	var req struct {
-		Text     string `json:"text" binding:"required"`
-		Language string `json:"language" binding:"required"`
+		Text           string `json:"text" binding:"required"`
+		Language       string `json:"language" binding:"required"`
+		NativeLanguage string `json:"nativeLanguage"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
-	analysis, err := h.grammarService.AnalyzeGrammar(req.Text, req.Language)
+	nativeLang := req.NativeLanguage
+	if nativeLang == "" {
+		nativeLang = "en"
+	}
+	analysis, err := h.grammarService.AnalyzeGrammar(req.Text, req.Language, nativeLang)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Analysis failed"})
 		return

@@ -23,6 +23,11 @@ type Config struct {
 	TranslationProviderURL  string
 	TranslationProviderKey  string
 	TranslationProviderModel string
+
+	// Grammar AI analysis configuration (OpenAI-compatible API).
+	GrammarAPIURL string
+	GrammarAPIKey string
+	GrammarModel  string
 }
 
 func Load() *Config {
@@ -44,6 +49,11 @@ func Load() *Config {
 		TranslationProviderURL:   getEnv("TRANSLATION_PROVIDER_API_URL", ""),
 		TranslationProviderKey:   getEnv("TRANSLATION_PROVIDER_API_KEY", ""),
 		TranslationProviderModel: getEnv("TRANSLATION_PROVIDER_MODEL", ""),
+
+		// Grammar API defaults to the OpenCode Go cloud API with deepseek-v4-flash.
+		GrammarAPIURL: getEnv("GRAMMAR_API_URL", "https://opencode.ai/zen/go/v1"),
+		GrammarAPIKey: getEnv("GRAMMAR_API_KEY", ""),
+		GrammarModel:  getEnv("GRAMMAR_MODEL", "deepseek-v4-flash"),
 	}
 }
 

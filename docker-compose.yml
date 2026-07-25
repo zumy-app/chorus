@@ -11,10 +11,24 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U messenger"]
+      test: ["CMD-SHELL", "pg_isready -U messenger -d messenger_dev"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: chorus-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
 
   backend:
     build:
@@ -23,15 +37,13 @@ services:
     container_name: chorus-backend
     ports:
       - "8080:8080"
+    env_file:
+      - ./backend/.env
     environment:
       - ENVIRONMENT=development
       - DATABASE_URL=postgres://messenger:password@postgres:5432/messenger_dev?sslmode=disable
-      - REDIS_URL=
+      - REDIS_URL=redis:6379
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
-      - TRANSLATION_PROVIDER_NAME=opencode
-      - TRANSLATION_PROVIDER_API_URL=${TRANSLATION_PROVIDER_API_URL:-}
-      - TRANSLATION_PROVIDER_API_KEY=${TRANSLATION_PROVIDER_API_KEY:-}
-      - TRANSLATION_PROVIDER_MODEL=${TRANSLATION_PROVIDER_MODEL:-}
       - PORT=8080
       - APPWRITE_ENDPOINT=${APPWRITE_ENDPOINT:-https://appwrite.zumy.app/v1}
       - APPWRITE_PROJECT_ID=${APPWRITE_PROJECT_ID:-6955733a001c10e7c020}
@@ -40,7 +52,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      ollama:
+      redis:
         condition: service_healthy
     restart: unless-stopped
 
@@ -60,32 +72,6 @@ services:
       - backend
     restart: unless-stopped
 
-  ollama:
-    image: ollama/ollama:latest
-    container_name: chorus-ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    environment:
-      - OLLAMA_KEEP_ALIVE=24h
-      - OLLAMA_NUM_PARALLEL=4
-      - OLLAMA_MAX_LOADED_MODELS=1
-    entrypoint: >
-      sh -c "ollama serve &
-      sleep 5 &&
-      ollama pull qwen2.5:1.5b-instruct &&
-      sleep 3 &&
-      echo 'Ollama ready' &&
-      wait"
-    healthcheck:
-      test: ["CMD", "ollama", "list"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 180s
-    restart: unless-stopped
-
 volumes:
   postgres_data:
-  ollama_data:
+  redis_data:

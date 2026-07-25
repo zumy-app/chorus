@@ -91,7 +91,7 @@ type GrammarAnalysis struct {
 	Explanations []string `json:"explanations"`
 }
 
-// AI-powered grammar analysis (enriched via Ollama)
+// AI-powered grammar analysis (enriched via AI API)
 type AIGrammarAnalysis struct {
 	Difficulty       string                   `json:"difficulty"`
 	Patterns         []GrammarPattern         `json:"patterns"`
@@ -273,6 +273,7 @@ type SearchResult struct {
 type GrammarAnalysisRequest struct {
 	MessageID      string `json:"messageId" binding:"required"`
 	TargetLanguage string `json:"targetLanguage" binding:"required"`
+	NativeLanguage string `json:"nativeLanguage"`
 }
 
 // Phase 3: Vocabulary requests

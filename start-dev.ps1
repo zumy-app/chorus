@@ -1,241 +1,240 @@
 ﻿<#
 .SYNOPSIS
-    Start Chorus development environment with hot-reload for all services.
-.DESCRIPTION
-    Ensures Docker Desktop is running, launches Docker services (PostgreSQL,
-    Redis, Ollama), then starts the Go backend (with air
-    auto-reload) and React frontend (Vite HMR) in their own terminal windows.
+    Start Chorus development environment with hot-reload.
 
-    Run this from the repository root:
+.DESCRIPTION
+    Starts Docker infra (PostgreSQL, Redis), then runs the Go backend
+    (with file-watch auto-restart) and React frontend (Vite HMR).
+
+    Run from repo root:
         .\start-dev.ps1
+
+    Open separate terminals for frontend/backend logs by using:
+        .\start-dev.ps1 -SplitWindows
 #>
+
+param([switch]$SplitWindows)
 
 $RootDir = $PSScriptRoot
 $BackendDir = Join-Path $RootDir "backend"
 $FrontendDir = Join-Path $RootDir "frontend"
-$DevCompose = Join-Path $RootDir "docker-compose.dev.yml"
+$ComposeFile = Join-Path $RootDir "docker-compose.yml"
 
-# Helper: log with colour
 function Log($Msg, $Color = "White") { Write-Host "$Msg" -ForegroundColor $Color }
 function Ok($Msg)  { Write-Host "  ✓ $Msg" -ForegroundColor Green }
 function Warn($Msg) { Write-Host "  ⚠ $Msg" -ForegroundColor Yellow }
 function Fail($Msg) { Write-Host "  ✘ $Msg" -ForegroundColor Red }
 
 # ──────────────────────────────────────────────
-# Header
+# 0. Header
 # ──────────────────────────────────────────────
-Log "╔══════════════════════════════════════════════════════════╗" Cyan
-Log "║   Chorus Dev Environment — Starting all services...     ║" Cyan
-Log "╚══════════════════════════════════════════════════════════╝" Cyan
+Log "╔════════════════════════════════════════════════╗" Cyan
+Log "║   Chorus Dev Environment                       ║" Cyan
+Log "╚════════════════════════════════════════════════╝" Cyan
 Log ""
 
 # ──────────────────────────────────────────────
-# 0. Ensure Docker Desktop is running
+# 1. Ensure Docker is running
 # ──────────────────────────────────────────────
-Log "▶ [0/5] Checking Docker Desktop..." Yellow
-
-# Test if the Docker CLI responds
+Log "▶ [1/5] Checking Docker..." Yellow
 $dockerOk = $false
 for ($attempt = 0; $attempt -lt 20; $attempt++) {
     $null = docker ps 2>$null
     if ($LASTEXITCODE -eq 0) { $dockerOk = $true; break }
-
     if ($attempt -eq 0) {
-        Warn "Docker CLI not responding. Attempting to start Docker Desktop..."
-        $dockerPath = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
-        if (Test-Path $dockerPath) {
-            Start-Process -FilePath $dockerPath -WindowStyle Hidden
-            Log "  Waiting for Docker Desktop to start (up to 60s)..." Yellow
-        } else {
-            Warn "Docker Desktop not found at '$dockerPath'."
-            Log "  Please start Docker Desktop manually and re-run this script." Yellow
-        }
+        Warn "Docker CLI not responding. Starting Docker Desktop..."
+        $dp = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+        if (Test-Path $dp) { Start-Process -FilePath $dp -WindowStyle Hidden }
+        Log "  Waiting up to 60s..." Yellow
     }
     Start-Sleep -Seconds 3
 }
-
-if (-not $dockerOk) {
-    Fail "Docker Desktop is not running. Start it manually, then re-run this script."
-    Log ""
-    Log "  Try: & 'C:\Program Files\Docker\Docker\Docker Desktop.exe'" Yellow
-    exit 1
-}
-Ok "Docker Desktop is running"
+if (-not $dockerOk) { Fail "Docker Desktop not running."; exit 1 }
+Ok "Docker Desktop ready"
 Log ""
 
 # ──────────────────────────────────────────────
-# 1. Start Docker services (detached)
+# 2. Start Docker services (infra only)
 # ──────────────────────────────────────────────
-Log "▶ [1/5] Starting Docker services (PostgreSQL, Redis, Ollama)..." Yellow
+Log "▶ [2/5] Starting Docker services (PostgreSQL, Redis)..." Yellow
 
-# Check for port conflicts before starting
-$PortsToCheck = @{5433 = "postgres-dev"; 6380 = "redis-dev"; 11435 = "ollama-dev"}
-$portBlockers = @()
-foreach ($port in $PortsToCheck.Keys) {
-    $processInfo = netstat -ano -p tcp 2>$null | Select-String ":$port\s" | Select-String "LISTENING"
-    if ($processInfo) {
-        $processInfo | ForEach-Object {
-            if ($_ -match "(\d+)$") {
-                $foundPid = $Matches[1]
-                $proc = Get-Process -Id $foundPid -ErrorAction SilentlyContinue
-                $procName = if ($proc) { $proc.ProcessName } else { "PID $foundPid" }
-                $portBlockers += @{Port = $port; Service = $PortsToCheck[$port]; Process = $procName; PID = $foundPid }
-            }
-        }
-    }
+docker compose -f $ComposeFile up -d --remove-orphans postgres redis 2>&1 | ForEach-Object {
+    $line = $_.ToString().Trim()
+    if ($line -ne "") { Write-Host "  $line" }
 }
-
-if ($portBlockers.Count -gt 0) {
-    Warn "Port conflict(s) detected:"
-    $portBlockers | ForEach-Object {
-        Log "    Port $($_.Port) ($($_.Service)) is used by '$($_.Process)' (PID $($_.PID))" Yellow
-        # Try to stop it if it's a Docker container
-        $containerName = docker ps --format "{{.Names}}" --filter "publish=$($_.Port)" 2>$null
-        if ($containerName) {
-            Log "    -> Stopping conflicting Docker container '$containerName'..." Yellow
-            docker stop $containerName 2>$null | Out-Null
-            docker rm $containerName 2>$null | Out-Null
-        }
-    }
-    # Re-check
-    Start-Sleep -Seconds 1
-    $stillBlocked = $portBlockers | Where-Object {
-        $pInfo = netstat -ano -p tcp 2>$null | Select-String ":$($_.Port)\s" | Select-String "LISTENING"
-        $pInfo -ne $null
-    }
-    if ($stillBlocked) {
-        Warn "Some ports are still in use. Docker services that conflict may fail to start."
-        Warn "Close the conflicting applications manually and re-run, or the script will continue anyway."
-    }
-    Log ""
-}
-
-# Start Docker services (with --remove-orphans to clean up stale containers)
-docker-compose -f $DevCompose up -d --remove-orphans postgres-dev redis-dev ollama-dev 2>&1 | ForEach-Object {
-    $line = $_.ToString()
-    # Suppress the version warning
-    if ($line -notmatch "the attribute .version. is obsolete") {
-        Write-Host "  $line"
-    }
-}
-
-if ($LASTEXITCODE -ne 0) {
-    Warn "Docker compose had some issues. Checking what started successfully..."
-} else {
-    Ok "Docker services started"
-}
+if ($LASTEXITCODE -eq 0) { Ok "Docker services started" } else { Warn "Some services may have issues" }
 Log ""
 
 # ──────────────────────────────────────────────
-# 2. Wait for PostgreSQL to be healthy
+# 3. Wait for PostgreSQL & Redis healthy
 # ──────────────────────────────────────────────
-Log "▶ [2/5] Waiting for PostgreSQL to be healthy..." Yellow
+Log "▶ [3/5] Waiting for services to be healthy..." Yellow
 $pgReady = $false
 for ($i = 0; $i -lt 30; $i++) {
-    $status = docker inspect --format='{{.State.Health.Status}}' chorus-dev-postgres 2>$null
+    $status = docker inspect --format='{{.State.Health.Status}}' chorus-postgres 2>$null
     if ($status -eq "healthy") { $pgReady = $true; break }
-    if ($i % 5 -eq 0 -and $i -gt 0) { Write-Host "  ...still waiting ($i sec)" }
+    if ($i -gt 0 -and $i % 10 -eq 0) { Write-Host "  ...waiting for PostgreSQL ($($i*2)s)" }
     Start-Sleep -Seconds 2
 }
-if (-not $pgReady) {
-    Warn "PostgreSQL not yet healthy — backend may retry connection."
-} else {
-    Ok "PostgreSQL healthy"
+if ($pgReady) { Ok "PostgreSQL healthy" } else { Warn "PostgreSQL not healthy yet" }
+
+$redisReady = $false
+for ($i = 0; $i -lt 15; $i++) {
+    $status = docker inspect --format='{{.State.Health.Status}}' chorus-redis 2>$null
+    if ($status -eq "healthy") { $redisReady = $true; break }
+    Start-Sleep -Seconds 2
 }
-Log ""
+if ($redisReady) { Ok "Redis healthy" } else { Warn "Redis not healthy yet" }
 
 # ──────────────────────────────────────────────
-# 3. Create .env for backend with dev ports
+# 4. Run backend with file-watch auto-restart
 # ──────────────────────────────────────────────
-Log "▶ [3/5] Setting up backend .env for dev Docker services..." Yellow
+Log "▶ [4/5] Starting Go backend (file-watch enabled)..." Yellow
 
-$EnvFile = Join-Path $BackendDir ".env"
-$DevEnvContent = @'
-ENVIRONMENT=development
+$env:ENVIRONMENT = "development"
+$env:DATABASE_URL = "postgres://messenger:password@localhost:5432/messenger_dev?sslmode=disable"
+$env:REDIS_URL = "localhost:6379"
+$env:JWT_SECRET = "dev-jwt-secret-key-for-testing-only"
+$env:PORT = "8080"
+$env:TRANSLATION_PROVIDER_NAME = "opencode"
 
-# Dev Docker services (different ports from production defaults)
-DATABASE_URL=postgres://chorus_dev:dev_password_123@localhost:5433/chorus_dev?sslmode=disable
-REDIS_URL=localhost:6380
-
-# JWT
-JWT_SECRET=dev-jwt-secret-key-for-testing-only
-
-# Translation — Phase 1 (translator engine)
-TRANSLATOR_ENGINE_URL=http://localhost:5002
-
-# Translation — Phase 2 (Ollama on dev port 11435)
-OLLAMA_URL=http://localhost:11435
-OLLAMA_MODEL=qwen2.5:3b
-
-# Server
-PORT=8080
-'@
-
-if (-not (Test-Path $EnvFile)) {
-    $DevEnvContent | Set-Content -Path $EnvFile -Encoding UTF8
-    Ok "Created backend\.env with dev Docker service ports"
-} else {
-    Ok "backend\.env already exists (using existing)"
-}
-Log ""
-
-# ──────────────────────────────────────────────
-# 4. Start Go backend with air (new window)
-# ──────────────────────────────────────────────
-Log "▶ [4/5] Starting Go backend with air (hot-reload)..." Yellow
-
-$airInstalled = (Get-Command air -ErrorAction SilentlyContinue) -ne $null
-if (-not $airInstalled) {
-    Warn "'air' not found. Installing..."
-    go install github.com/air-verse/air@latest
-    if ($LASTEXITCODE -ne 0) {
-        Warn "Failed to install 'air'. Starting backend with 'go run' instead."
-        Start-Process powershell -ArgumentList @(
-            "-NoExit",
-            "-Command", "cd '$BackendDir'; Write-Host 'Backend starting with go run (no hot-reload)...' -ForegroundColor Cyan; go run ./cmd/server"
-        ) -WindowStyle Normal
-    } else {
-        Start-Process powershell -ArgumentList @(
-            "-NoExit",
-            "-Command", "cd '$BackendDir'; Write-Host 'Backend starting with air (hot-reload)...' -ForegroundColor Cyan; air"
-        ) -WindowStyle Normal
-    }
-} else {
+if ($SplitWindows) {
     Start-Process powershell -ArgumentList @(
-        "-NoExit",
-        "-Command", "cd '$BackendDir'; Write-Host 'Backend starting with air (hot-reload)...' -ForegroundColor Cyan; air"
+        "-NoExit", "-Command", @"
+            cd '$BackendDir'
+            `$env:ENVIRONMENT = 'development'
+            `$env:DATABASE_URL = 'postgres://messenger:password@localhost:5432/messenger_dev?sslmode=disable'
+            `$env:REDIS_URL = 'localhost:6379'
+            `$env:JWT_SECRET = 'dev-jwt-secret-key-for-testing-only'
+            `$env:PORT = '8080'
+            `$env:TRANSLATION_PROVIDER_NAME = 'opencode'
+            Write-Host 'Backend starting...' -ForegroundColor Cyan
+            # Watch for .go file changes and restart
+            `$watcher = New-Object System.IO.FileSystemWatcher
+            `$watcher.Path = '$BackendDir'
+            `$watcher.Filter = '*.go'
+            `$watcher.IncludeSubdirectories = `$true
+            `$watcher.EnableRaisingEvents = `$true
+            `$lastRestart = Get-Date
+            `$proc = $null
+            function Start-Backend {
+                if (`$proc -and -not `$proc.HasExited) { `$proc.Kill() }
+                Start-Sleep 1
+                `$script:proc = Start-Process -FilePath 'go' -ArgumentList 'run','./cmd/server' -NoNewWindow -PassThru -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
+            }
+            Start-Backend
+            Register-ObjectEvent `$watcher "Changed" -Action {
+                if (((Get-Date) - `$script:lastRestart).TotalSeconds -gt 2) {
+                    Write-Host "`n  File changed. Restarting backend..." -ForegroundColor Yellow
+                    `$script:lastRestart = Get-Date
+                    Start-Backend
+                }
+            } | Out-Null
+            # Tail output
+            while (`$true) {
+                if (Test-Path "stdout.txt") { Get-Content "stdout.txt" -Tail 0 -Wait }
+                Start-Sleep 0.5
+            }
+"@
     ) -WindowStyle Normal
+} else {
+    Log "  Starting backend in this terminal. Files in backend/ will auto-restart." Yellow
+    Log "  --- backend output ---" Cyan
+
+    $watcher = New-Object System.IO.FileSystemWatcher
+    $watcher.Path = $BackendDir
+    $watcher.Filter = '*.go'
+    $watcher.IncludeSubdirectories = $true
+    $watcher.EnableRaisingEvents = $true
+
+    $global:lastRestart = Get-Date
+    $global:backendProc = $null
+
+    function Start-Backend {
+        if ($global:backendProc -and -not $global:backendProc.HasExited) {
+            try { $global:backendProc.Kill() } catch {}
+            Start-Sleep 1
+        }
+        Push-Location $BackendDir
+        $global:backendProc = Start-Process -FilePath "go" -ArgumentList "run","./cmd/server" -NoNewWindow -PassThru -RedirectStandardOutput "$BackendDir\.dev-stdout.txt" -RedirectStandardError "$BackendDir\.dev-stderr.txt"
+        Pop-Location
+    }
+
+    Start-Backend
+
+    Register-ObjectEvent $watcher "Changed" -Action {
+        if (((Get-Date) - $global:lastRestart).TotalSeconds -gt 2) {
+            Write-Host "`n  File changed. Restarting backend..." -ForegroundColor Yellow
+            $global:lastRestart = Get-Date
+            Start-Backend
+        }
+    } | Out-Null
+
+    # Start frontend BEFORE entering tail loop
+    $frontendScript = @"
+Set-Location '$FrontendDir'
+if (-not (Test-Path node_modules)) { npm install }
+Write-Host 'Frontend (Vite HMR) starting...' -ForegroundColor Cyan
+npm run dev
+"@
+    $scriptPath = Join-Path $env:TEMP "start-frontend.ps1"
+    Set-Content -Path $scriptPath -Value $frontendScript -Force
+    Start-Process powershell -ArgumentList @("-NoExit", "-File", $scriptPath) -WindowStyle Normal
+    Ok "Frontend starting in new window (Vite HMR on http://localhost:3000)"
+    Log ""
+
+    # Tail backend output
+    $stdoutFile = Join-Path $BackendDir ".dev-stdout.txt"
+    $stderrFile = Join-Path $BackendDir ".dev-stderr.txt"
+    try {
+        while ($true) {
+            if (Test-Path $stdoutFile) {
+                Get-Content $stdoutFile -Tail 0 -Wait -ErrorAction SilentlyContinue
+            }
+            if (Test-Path $stderrFile) {
+                Get-Content $stderrFile -Tail 0 -Wait -ErrorAction SilentlyContinue
+            }
+            Start-Sleep 0.5
+        }
+    } finally {
+        if ($global:backendProc -and -not $global:backendProc.HasExited) {
+            $global:backendProc.Kill()
+        }
+    }
 }
-Ok "Backend starting in new window (hot-reload on port 8080)"
 Log ""
 
 # ──────────────────────────────────────────────
-# 5. Start frontend with Vite HMR (new window)
+# 5. Start frontend with Vite HMR (SplitWindows)
 # ──────────────────────────────────────────────
-Log "▶ [5/5] Starting frontend with Vite HMR..." Yellow
+if ($SplitWindows) {
+    Log "▶ [5/5] Starting frontend with Vite HMR..." Yellow
 
-Start-Process powershell -ArgumentList @(
-    "-NoExit",
-    "-Command", "cd '$FrontendDir'; if (-not (Test-Path node_modules)) { Write-Host 'Installing npm dependencies...' -ForegroundColor Yellow; npm install }; Write-Host 'Frontend starting with Vite HMR...' -ForegroundColor Cyan; npm run dev"
-) -WindowStyle Normal
-
-Ok "Frontend starting in new window (Vite HMR on port 3000)"
-Log ""
+    $frontendScript = @"
+Set-Location '$FrontendDir'
+if (-not (Test-Path node_modules)) { npm install }
+Write-Host 'Frontend (Vite HMR) starting...' -ForegroundColor Cyan
+npm run dev
+"@
+    $scriptPath = Join-Path $env:TEMP "start-frontend.ps1"
+    Set-Content -Path $scriptPath -Value $frontendScript -Force
+    Start-Process powershell -ArgumentList @("-NoExit", "-File", $scriptPath) -WindowStyle Normal
+    Ok "Frontend starting in new window (Vite HMR on http://localhost:3000)"
+    Log ""
+}
 
 # ──────────────────────────────────────────────
-# 6. Summary
+# Summary
 # ──────────────────────────────────────────────
-Log "╔══════════════════════════════════════════════════════════╗" Cyan
-Log "║   ✓ All services starting!                               ║" Cyan
-Log "║                                                          ║" Cyan
-Log "║   Frontend (HMR):   http://localhost:3000                ║" Cyan
-Log "║   Backend  (API):   http://localhost:8080                ║" Cyan
-Log "║   Backend  (health): http://localhost:8080/health       ║" Cyan
-Log "║   PostgreSQL:       localhost:5433                       ║" Cyan
-Log "║   Redis:            localhost:6380                       ║" Cyan
-Log "║   Ollama:           http://localhost:11435               ║" Cyan
-Log "║                                                          ║" Cyan
-Log "║   Close the backend/frontend windows or press Ctrl+C     ║" Cyan
-Log "║   to stop. Run the following to stop Docker services:    ║" Cyan
-Log "║     docker-compose -f docker-compose.dev.yml down       ║" Cyan
-Log "╚══════════════════════════════════════════════════════════╝" Cyan
+Log "╔════════════════════════════════════════════════╗" Cyan
+Log "║   ✓ All services starting!                     ║" Cyan
+Log "║                                                ║" Cyan
+Log "║   Frontend (HMR):  http://localhost:3000       ║" Cyan
+Log "║   Backend  (API):  http://localhost:8080       ║" Cyan
+Log "║   Health check:    http://localhost:8080/health║" Cyan
+Log "║   PostgreSQL:      localhost:5432              ║" Cyan
+Log "║   Redis:           localhost:6379              ║" Cyan
+Log "║                                                ║" Cyan
+Log "║   Stop infra:  docker compose down             ║" Cyan
+Log "║   Stop all:    docker compose down -v          ║" Cyan
+Log "╚════════════════════════════════════════════════╝" Cyan

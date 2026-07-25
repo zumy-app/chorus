@@ -15,36 +15,67 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// grammarChatMessage represents a message in the OpenAI chat format.
+type grammarChatMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+// grammarChatRequest is the request body for /v1/chat/completions.
+type grammarChatRequest struct {
+	Model       string               `json:"model"`
+	Messages    []grammarChatMessage `json:"messages"`
+	Temperature float64              `json:"temperature"`
+	MaxTokens   int                  `json:"max_tokens,omitempty"`
+}
+
+// grammarChatChoice represents a single choice in the response.
+type grammarChatChoice struct {
+	Message grammarChatMessage `json:"message"`
+}
+
+// grammarChatResponse is the response from /v1/chat/completions.
+type grammarChatResponse struct {
+	Choices []grammarChatChoice `json:"choices"`
+}
+
 // GrammarService handles grammar analysis for language learning
 type GrammarService struct {
-	redis       *redis.Client
-	ollamaURL   string
-	ollamaModel string
-	httpClient  *http.Client
+	redis      *redis.Client
+	apiURL     string
+	apiKey     string
+	model      string
+	httpClient *http.Client
 }
 
 // NewGrammarService creates a new Grammar service
-func NewGrammarService(redis *redis.Client, ollamaURL, ollamaModel string) *GrammarService {
+func NewGrammarService(redis *redis.Client, apiURL, apiKey, model string) *GrammarService {
 	return &GrammarService{
-		redis:       redis,
-		ollamaURL:   ollamaURL,
-		ollamaModel: ollamaModel,
-		// 90s is the outer safety net; individual calls use context deadlines (30s).
+		redis:      redis,
+		apiURL:     strings.TrimRight(apiURL, "/"),
+		apiKey:     apiKey,
+		model:      model,
 		httpClient: &http.Client{Timeout: 90 * time.Second},
 	}
 }
 
-// AnalyzeGrammar performs grammar analysis on a message
-func (s *GrammarService) AnalyzeGrammar(text, language string) (*models.GrammarAnalysis, error) {
+// AnalyzeGrammar performs grammar analysis on a message.
+// nativeLanguage is the user's native language for explanation localization.
+func (s *GrammarService) AnalyzeGrammar(text, language, nativeLanguage string) (*models.GrammarAnalysis, error) {
+	if nativeLanguage == "" {
+		nativeLanguage = "en"
+	}
 	ctx := context.Background()
-
-	// Check cache first
 	cacheKey := fmt.Sprintf("grammar:%s:%s", language, hashText(text))
-	cached, err := s.redis.Get(ctx, cacheKey).Result()
-	if err == nil {
-		var analysis models.GrammarAnalysis
-		if json.Unmarshal([]byte(cached), &analysis) == nil {
-			return &analysis, nil
+
+	// Check cache first (skip if redis is unavailable)
+	if s.redis != nil {
+		cached, err := s.redis.Get(ctx, cacheKey).Result()
+		if err == nil {
+			var analysis models.GrammarAnalysis
+			if json.Unmarshal([]byte(cached), &analysis) == nil {
+				return &analysis, nil
+			}
 		}
 	}
 
@@ -52,12 +83,14 @@ func (s *GrammarService) AnalyzeGrammar(text, language string) (*models.GrammarA
 	analysis := &models.GrammarAnalysis{
 		Difficulty:   s.assessDifficulty(text, language),
 		Patterns:     s.identifyPatterns(text, language),
-		Explanations: s.generateExplanations(text, language),
+		Explanations: s.generateExplanations(text, language, nativeLanguage),
 	}
 
 	// Cache result
-	if jsonData, err := json.Marshal(analysis); err == nil {
-		s.redis.Set(ctx, cacheKey, jsonData, 24*time.Hour)
+	if s.redis != nil {
+		if jsonData, err := json.Marshal(analysis); err == nil {
+			s.redis.Set(ctx, cacheKey, jsonData, 24*time.Hour)
+		}
 	}
 
 	return analysis, nil
@@ -285,13 +318,13 @@ func (s *GrammarService) identifyGermanPatterns(text string) []string {
 	return patterns
 }
 
-// generateExplanations generates explanations for identified patterns
-func (s *GrammarService) generateExplanations(text, language string) []string {
+// generateExplanations generates explanations for identified patterns in the user's native language.
+func (s *GrammarService) generateExplanations(text, language, nativeLanguage string) []string {
 	patterns := s.identifyPatterns(text, language)
 	var explanations []string
 
 	for _, pattern := range patterns {
-		explanation := s.getPatternExplanation(pattern, language)
+		explanation := s.getPatternExplanation(pattern, nativeLanguage)
 		if explanation != "" {
 			explanations = append(explanations, explanation)
 		}
@@ -300,42 +333,159 @@ func (s *GrammarService) generateExplanations(text, language string) []string {
 	return explanations
 }
 
-// getPatternExplanation returns an explanation for a grammar pattern
-func (s *GrammarService) getPatternExplanation(pattern, language string) string {
-	explanations := map[string]string{
+// getPatternExplanation returns an explanation for a grammar pattern in the user's native language.
+// Supported native languages: en, es, fr, de. Falls back to English if the language is not available.
+func (s *GrammarService) getPatternExplanation(pattern, nativeLanguage string) string {
+	explanations := map[string]map[string]string{
 		// English patterns
-		"present_continuous": "Present continuous tense: Used for actions happening now or temporary situations. Formed with 'am/is/are + verb-ing'.",
-		"past_tense":         "Past tense: Used for completed actions in the past. Regular verbs add '-ed'.",
-		"future_tense":       "Future tense: Used for actions that will happen. Can use 'will + verb' or 'going to + verb'.",
-		"conditional":        "Conditional: Used for hypothetical situations. Often uses 'if' clauses with 'would/could/should'.",
-		"passive_voice":      "Passive voice: Emphasizes the action or recipient rather than the doer. Formed with 'be + past participle'.",
-		"question":           "Question form: Inverts subject and auxiliary verb, or uses question words (who, what, when, etc.).",
-		"relative_clause":    "Relative clause: Provides additional information about a noun. Uses 'who', 'which', 'that', etc.",
-		"present_perfect":    "Present perfect: Connects past action to present. Uses 'have/has + past participle'.",
-		"comparison":         "Comparison: Compares qualities. Uses '-er/-est' or 'more/most'.",
+		"present_continuous": {
+			"en": "Present continuous tense: Used for actions happening now or temporary situations. Formed with 'am/is/are + verb-ing'.",
+			"es": "Presente continuo: Se usa para acciones que ocurren ahora o situaciones temporales. Se forma con 'am/is/are + verbo-ing'.",
+			"fr": "Présent continu : Utilisé pour des actions qui se déroulent maintenant ou des situations temporaires. Formé avec 'am/is/are + verbe-ing'.",
+			"de": "Verlaufsform der Gegenwart: Wird für Handlungen verwendet, die jetzt stattfinden oder vorübergehende Situationen. Gebildet mit 'am/is/are + Verb-ing'.",
+		},
+		"past_tense": {
+			"en": "Past tense: Used for completed actions in the past. Regular verbs add '-ed'.",
+			"es": "Tiempo pasado: Se usa para acciones completadas en el pasado. Los verbos regulares añaden '-ed'.",
+			"fr": "Temps passé : Utilisé pour des actions terminées dans le passé. Les verbes réguliers ajoutent '-ed'.",
+			"de": "Vergangenheit: Wird für abgeschlossene Handlungen in der Vergangenheit verwendet. Regelmäßige Verben erhalten '-ed'.",
+		},
+		"future_tense": {
+			"en": "Future tense: Used for actions that will happen. Can use 'will + verb' or 'going to + verb'.",
+			"es": "Tiempo futuro: Se usa para acciones que sucederán. Se puede usar 'will + verbo' o 'going to + verbo'.",
+			"fr": "Temps futur : Utilisé pour des actions qui se produiront. On peut utiliser 'will + verbe' ou 'going to + verbe'.",
+			"de": "Zukunft: Wird für Handlungen verwendet, die passieren werden. Kann 'will + Verb' oder 'going to + Verb' verwenden.",
+		},
+		"conditional": {
+			"en": "Conditional: Used for hypothetical situations. Often uses 'if' clauses with 'would/could/should'.",
+			"es": "Condicional: Se usa para situaciones hipotéticas. A menudo usa cláusulas con 'if' y 'would/could/should'.",
+			"fr": "Conditionnel : Utilisé pour des situations hypothétiques. Utilise souvent des clauses avec 'if' et 'would/could/should'.",
+			"de": "Konditional: Wird für hypothetische Situationen verwendet. Verwendet oft 'if'-Sätze mit 'would/could/should'.",
+		},
+		"passive_voice": {
+			"en": "Passive voice: Emphasizes the action or recipient rather than the doer. Formed with 'be + past participle'.",
+			"es": "Voz pasiva: Enfatiza la acción o el receptor en lugar del que hace la acción. Se forma con 'be + participio pasado'.",
+			"fr": "Voix passive : Met l'accent sur l'action ou le destinataire plutôt que sur l'auteur. Formé avec 'be + participe passé'.",
+			"de": "Passiv: Betont die Handlung oder den Empfänger statt den Täter. Gebildet mit 'be + Partizip Perfekt'.",
+		},
+		"question": {
+			"en": "Question form: Inverts subject and auxiliary verb, or uses question words (who, what, when, etc.).",
+			"es": "Forma interrogativa: Invierte el sujeto y el verbo auxiliar, o usa palabras interrogativas (quién, qué, cuándo, etc.).",
+			"fr": "Forme interrogative : Inverse le sujet et le verbe auxiliaire, ou utilise des mots interrogatifs (qui, quoi, quand, etc.).",
+			"de": "Frageform: Kehrt Subjekt und Hilfsverb um oder verwendet Fragewörter (wer, was, wann, etc.).",
+		},
+		"relative_clause": {
+			"en": "Relative clause: Provides additional information about a noun. Uses 'who', 'which', 'that', etc.",
+			"es": "Cláusula relativa: Proporciona información adicional sobre un sustantivo. Usa 'who', 'which', 'that', etc.",
+			"fr": "Proposition relative : Fournit des informations supplémentaires sur un nom. Utilise 'who', 'which', 'that', etc.",
+			"de": "Relativsatz: Gibt zusätzliche Informationen über ein Nomen. Verwendet 'who', 'which', 'that', etc.",
+		},
+		"present_perfect": {
+			"en": "Present perfect: Connects past action to present. Uses 'have/has + past participle'.",
+			"es": "Presente perfecto: Conecta una acción pasada con el presente. Usa 'have/has + participio pasado'.",
+			"fr": "Present perfect : Relie une action passée au présent. Utilise 'have/has + participe passé'.",
+			"de": "Present Perfect: Verbindet vergangene Handlung mit Gegenwart. Verwendet 'have/has + Partizip Perfekt'.",
+		},
+		"comparison": {
+			"en": "Comparison: Compares qualities. Uses '-er/-est' or 'more/most'.",
+			"es": "Comparación: Compara cualidades. Usa '-er/-est' o 'more/most'.",
+			"fr": "Comparaison : Compare des qualités. Utilise '-er/-est' ou 'more/most'.",
+			"de": "Vergleich: Vergleicht Eigenschaften. Verwendet '-er/-est' oder 'more/most'.",
+		},
 
-		// Spanish patterns
-		"presente":          "Presente: Tiempo verbal para acciones actuales o habituales.",
-		"preterito":         "Pretérito: Tiempo verbal para acciones completadas en el pasado.",
-		"subjuntivo":        "Subjuntivo: Modo verbal para expresar deseos, dudas o situaciones hipotéticas.",
-		"verbos_reflexivos": "Verbos reflexivos: Verbos donde el sujeto y el objeto son la misma persona. Usan pronombres 'me, te, se, nos, os'.",
-		"condicional":       "Condicional: Para expresar posibilidades o situaciones hipotéticas.",
+		// Spanish patterns (with translations to other languages)
+		"presente": {
+			"en": "Present tense: Verb tense for current or habitual actions.",
+			"es": "Presente: Tiempo verbal para acciones actuales o habituales.",
+			"fr": "Présent : Temps verbal pour des actions actuelles ou habituelles.",
+			"de": "Präsens: Zeitform für aktuelle oder gewohnheitsmäßige Handlungen.",
+		},
+		"preterito": {
+			"en": "Preterite: Verb tense for completed past actions.",
+			"es": "Pretérito: Tiempo verbal para acciones completadas en el pasado.",
+			"fr": "Prétérit : Temps verbal pour des actions passées terminées.",
+			"de": "Präteritum: Zeitform für abgeschlossene vergangene Handlungen.",
+		},
+		"subjuntivo": {
+			"en": "Subjunctive: Verb mood to express wishes, doubts, or hypothetical situations.",
+			"es": "Subjuntivo: Modo verbal para expresar deseos, dudas o situaciones hipotéticas.",
+			"fr": "Subjonctif : Mode verbal pour exprimer des souhaits, des doutes ou des situations hypothétiques.",
+			"de": "Subjunktiv: Modus zum Ausdruck von Wünschen, Zweifeln oder hypothetischen Situationen.",
+		},
+		"verbos_reflexivos": {
+			"en": "Reflexive verbs: Verbs where the subject and object are the same person. Use pronouns 'me, te, se, nos, os'.",
+			"es": "Verbos reflexivos: Verbos donde el sujeto y el objeto son la misma persona. Usan pronombres 'me, te, se, nos, os'.",
+			"fr": "Verbes réfléchis : Verbes où le sujet et l'objet sont la même personne. Utilisent les pronoms 'me, te, se, nous, vous'.",
+			"de": "Reflexive Verben: Verben, bei denen Subjekt und Objekt dieselbe Person sind. Verwenden Pronomen 'mich, dich, sich, uns, euch'.",
+		},
+		"condicional": {
+			"en": "Conditional: Used to express possibilities or hypothetical situations.",
+			"es": "Condicional: Para expresar posibilidades o situaciones hipotéticas.",
+			"fr": "Conditionnel : Utilisé pour exprimer des possibilités ou des situations hypothétiques.",
+			"de": "Konditional: Zum Ausdruck von Möglichkeiten oder hypothetischen Situationen.",
+		},
 
 		// French patterns
-		"présent":       "Présent: Temps pour les actions actuelles ou habituelles.",
-		"passé_composé": "Passé composé: Temps pour les actions passées. Utilise 'avoir/être + participe passé'.",
-		"imparfait":     "Imparfait: Temps pour décrire des situations passées continues ou habituelles.",
-		"subjonctif":    "Subjonctif: Mode pour exprimer le doute, le souhait ou l'émotion.",
+		"présent": {
+			"en": "Present: Tense for current or habitual actions.",
+			"es": "Presente: Tiempo para acciones actuales o habituales.",
+			"fr": "Présent : Temps pour les actions actuelles ou habituelles.",
+			"de": "Präsens: Zeitform für aktuelle oder gewohnheitsmäßige Handlungen.",
+		},
+		"passé_composé": {
+			"en": "Passé composé: Tense for past actions. Uses 'avoir/être + past participle'.",
+			"es": "Passé composé: Tiempo para acciones pasadas. Usa 'avoir/être + participio pasado'.",
+			"fr": "Passé composé : Temps pour les actions passées. Utilise 'avoir/être + participe passé'.",
+			"de": "Passé composé: Zeitform für vergangene Handlungen. Verwendet 'avoir/être + Partizip Perfekt'.",
+		},
+		"imparfait": {
+			"en": "Imperfect: Tense for describing continuous or habitual past situations.",
+			"es": "Imperfecto: Tiempo para describir situaciones pasadas continuas o habituales.",
+			"fr": "Imparfait : Temps pour décrire des situations passées continues ou habituelles.",
+			"de": "Imperfekt: Zeitform zur Beschreibung kontinuierlicher oder gewohnheitsmäßiger vergangener Situationen.",
+		},
+		"subjonctif": {
+			"en": "Subjunctive: Mood for expressing doubt, wish, or emotion.",
+			"es": "Subjuntivo: Modo para expresar duda, deseo o emoción.",
+			"fr": "Subjonctif : Mode pour exprimer le doute, le souhait ou l'émotion.",
+			"de": "Subjunktiv: Modus zum Ausdruck von Zweifel, Wunsch oder Emotion.",
+		},
 
 		// German patterns
-		"modalverben": "Modalverben: können, müssen, sollen, wollen, dürfen, mögen. Verändern die Bedeutung des Hauptverbs.",
-		"perfekt":     "Perfekt: Vergangenheitsform mit 'haben/sein + Partizip II'.",
-		"dativ":       "Dativ: Indirektes Objekt. Artikel: dem, der, den, einem, einer.",
-		"akkusativ":   "Akkusativ: Direktes Objekt. Artikel: den, die, das, einen, eine.",
+		"modalverben": {
+			"en": "Modal verbs: können, müssen, sollen, wollen, dürfen, mögen. They modify the meaning of the main verb.",
+			"es": "Verbos modales: können, müssen, sollen, wollen, dürfen, mögen. Modifican el significado del verbo principal.",
+			"fr": "Verbes modaux : können, müssen, sollen, wollen, dürfen, mögen. Ils modifient le sens du verbe principal.",
+			"de": "Modalverben: können, müssen, sollen, wollen, dürfen, mögen. Verändern die Bedeutung des Hauptverbs.",
+		},
+		"perfekt": {
+			"en": "Perfect tense: Past tense formed with 'haben/sein + past participle'.",
+			"es": "Tiempo perfecto: Tiempo pasado formado con 'haben/sein + participio pasado'.",
+			"fr": "Temps parfait : Temps passé formé avec 'haben/sein + participe passé'.",
+			"de": "Perfekt: Vergangenheitsform mit 'haben/sein + Partizip II'.",
+		},
+		"dativ": {
+			"en": "Dative: Indirect object. Articles: dem, der, den, einem, einer.",
+			"es": "Dativo: Objeto indirecto. Artículos: dem, der, den, einem, einer.",
+			"fr": "Datif : Objet indirect. Articles : dem, der, den, einem, einer.",
+			"de": "Dativ: Indirektes Objekt. Artikel: dem, der, den, einem, einer.",
+		},
+		"akkusativ": {
+			"en": "Accusative: Direct object. Articles: den, die, das, einen, eine.",
+			"es": "Acusativo: Objeto directo. Artículos: den, die, das, einen, eine.",
+			"fr": "Accusatif : Objet direct. Articles : den, die, das, einen, eine.",
+			"de": "Akkusativ: Direktes Objekt. Artikel: den, die, das, einen, eine.",
+		},
 	}
 
-	if explanation, ok := explanations[pattern]; ok {
-		return explanation
+	if langs, ok := explanations[pattern]; ok {
+		if exp, ok := langs[nativeLanguage]; ok {
+			return exp
+		}
+		// Fall back to English
+		if exp, ok := langs["en"]; ok {
+			return exp
+		}
 	}
 
 	return ""
@@ -453,15 +603,15 @@ func (s *GrammarService) GenerateGrammarReport(userID, language string) (map[str
 }
 
 // ---------------------------------------------------------------------------
-// AI-Powered Grammar Analysis & Learning (via Ollama)
+// AI-Powered Grammar Analysis & Learning (via AI API)
 // ---------------------------------------------------------------------------
 
-// GenerateAIAnalysis uses Ollama to produce a rich grammar analysis,
-// enriched with pattern names, descriptions, examples, and a plain‑language summary.
-// Falls back to the regex-based analysis if Ollama is unavailable.
+// GenerateAIAnalysis uses the AI API to produce a rich grammar analysis,
+// enriched with pattern names, descriptions, examples, and a plain-language summary.
+// Falls back to the regex-based analysis if the AI API is unavailable.
 func (s *GrammarService) GenerateAIAnalysis(text, language, nativeLanguage string) (*models.AIGrammarAnalysis, error) {
-	if s.ollamaURL == "" {
-		return s.fallbackAIAnalysis(text, language)
+	if s.apiURL == "" || s.apiKey == "" {
+		return s.fallbackAIAnalysis(text, language, nativeLanguage)
 	}
 
 	cacheKey := fmt.Sprintf("ai_grammar:%s:%s:%s", language, nativeLanguage, hashText(text))
@@ -484,47 +634,33 @@ func (s *GrammarService) GenerateAIAnalysis(text, language, nativeLanguage strin
 		nativeLangName = nativeLanguage
 	}
 
-	prompt := fmt.Sprintf(`You are a language tutor. Your student's native language is %s.
+	prompt := fmt.Sprintf(`You are a friendly language tutor. The student speaks %s.
 
-Analyze this text and EXPLAIN EVERYTHING IN %s.
+Explain this sentence in %[1]s to help them LEARN:
 
-Text: "%s"
+Sentence: "%s"
 
-IDENTIFY THE LANGUAGE: Look at the text and determine what language it is written in (e.g. "I love Spanish" = English, "De repente ya no eras el mismo" = Spanish, etc.).
+Return ONLY valid JSON, no markdown, no code fences. Use this EXACT structure:
 
-CRITICAL INSTRUCTION — You MUST write ALL of the following in %s (the student's native language):
-- The summary
-- Every pattern description
-- Every word explanation
-- The entire response except for the original text words
-
-Write in SIMPLE, BEGINNER-FRIENDLY language. Avoid complex linguistic terms. Use everyday words.
-
-Return a JSON object (no markdown, no code fences) with these fields:
 {
-  "difficulty": "CEFR level A1-C2",
-  "summary": "First show the FULL SENTENCE TRANSLATION in %s. Then in 1-2 simple sentences explain the grammar.",
-  "patterns": [
-    {
-      "name": "simple grammar name in %s (e.g. 'Acción pasada' for Spanish students, 'Passato prossimo' for Italian students, 'Past tense' for English students)",
-      "description": "ONE short sentence in %s explaining when to use this. Keep it simple.",
-      "example": "an example sentence in the SAME language as the original text"
-    }
-  ],
+  "summary": "In %[1]s: One practical tip about this sentence. What grammar should the student notice? How is it built?",
   "detailedBreakdown": [
-    {
-      "text": "each word from the original text, one at a time",
-      "explanation": "Write a SIMPLE explanation in %s. Format: 'means [TRANSLATION] — [SIMPLE GRAMMAR NOTE]'. Example for 'eras': 'significa 'eras' — verbo en tiempo pasado, como 'you were''.",
-      "type": "verb|noun|pronoun|preposition|article|adjective|adverb|conjunction|phrase|other"
-    }
+    {"text": "word1", "explanation": "In %[1]s: means [TRANSLATION] — [grammar note, e.g. 'verb in present tense, 2nd person']", "type": "verb"},
+    {"text": "word2", "explanation": "In %[1]s: means [TRANSLATION] — [grammar note]", "type": "noun"}
   ]
 }
 
-Remember: ALL explanations MUST be in %s.`, nativeLangName, nativeLangName, text, nativeLangName, nativeLangName, nativeLangName, nativeLangName, nativeLangName, nativeLangName)
+RULES:
+- summary: JUST the learning tip (one short paragraph). Tell the student what to notice about how this sentence works. Example: "This Spanish sentence uses 'vas a' to talk about future plans. 'Vas' comes from 'ir' (to go). The question word 'qué' asks 'what'."
+- detailedBreakdown: EVERY word from the sentence, one by one. For each: what it means + a simple grammar note.
+- types: verb, noun, pronoun, preposition, article, adjective, adverb, conjunction, question, phrase
+- Keep language SIMPLE. Use everyday words. Think of explaining to a beginner.
+- Write EVERYTHING in %[1]s (the student's language), except example words which stay in the original language.
+- For multi-word phrases like "going to", group them together as one item.`, nativeLangName, text)
 
-	result, err := s.callOllama(prompt)
+	result, err := s.callGrammarAPI(prompt, nativeLangName)
 	if err != nil {
-		return s.fallbackAIAnalysis(text, language)
+		return s.fallbackAIAnalysis(text, language, nativeLanguage)
 	}
 
 	// Strip markdown code fences and leading/trailing whitespace
@@ -549,7 +685,7 @@ Remember: ALL explanations MUST be in %s.`, nativeLangName, nativeLangName, text
 	// Parse the structured response using a flexible approach
 	aiResult, err := s.parseAIGrammarAnalysis(cleaned)
 	if err != nil {
-		return s.fallbackAIAnalysis(text, language)
+		return s.fallbackAIAnalysis(text, language, nativeLanguage)
 	}
 
 	// Fill in any missing patterns from regex analysis
@@ -566,42 +702,220 @@ Remember: ALL explanations MUST be in %s.`, nativeLangName, nativeLangName, text
 	return aiResult, nil
 }
 
-// fallbackAIAnalysis returns a regex-based analysis when Ollama is unavailable.
+// fallbackAIAnalysis returns a regex-based analysis when the AI API is unavailable.
 // It builds a human-readable summary from the identified patterns so the grammar
 // panel always has something useful to show, and populates GrammarPattern structs
-// so the Patterns section renders too.
-func (s *GrammarService) fallbackAIAnalysis(text, language string) (*models.AIGrammarAnalysis, error) {
-	basic, err := s.AnalyzeGrammar(text, language)
+// so the Patterns section renders too. Explanations are in the user's native language.
+func (s *GrammarService) fallbackAIAnalysis(text, language, nativeLanguage string) (*models.AIGrammarAnalysis, error) {
+	if nativeLanguage == "" {
+		nativeLanguage = "en"
+	}
+	basic, err := s.AnalyzeGrammar(text, language, nativeLanguage)
 	if err != nil {
 		return nil, err
 	}
 
-	// Build a readable summary from the identified patterns.
-	summary := ""
-	if len(basic.Explanations) > 0 {
-		summary = strings.Join(basic.Explanations[:min(3, len(basic.Explanations))], " ")
-	} else if basic.Difficulty != "" {
-		summary = fmt.Sprintf("This text is at a %s level. Click AI Tutor for a detailed explanation.", basic.Difficulty)
-	}
-
-	// Convert regex pattern names to GrammarPattern structs.
-	var patterns []models.GrammarPattern
-	for _, p := range basic.Patterns {
-		desc := s.getPatternExplanation(p, language)
-		if desc == "" {
-			desc = strings.ReplaceAll(p, "_", " ")
-		}
-		patterns = append(patterns, models.GrammarPattern{
-			Name:        strings.ReplaceAll(p, "_", " "),
-			Description: desc,
-		})
-	}
+	summary := s.buildFallbackSummary(text, language, basic, nativeLanguage)
 
 	return &models.AIGrammarAnalysis{
 		Difficulty: basic.Difficulty,
 		Summary:    summary,
-		Patterns:   patterns,
 	}, nil
+}
+
+// isQuestion checks if text looks like a question (starts with question word or ends with ?)
+func isQuestion(text string) bool {
+	t := strings.TrimSpace(text)
+	if strings.HasSuffix(t, "?") {
+		return true
+	}
+	questionWords := []string{"what", "who", "where", "when", "why", "how", "which", "do", "does", "did",
+		"is", "are", "am", "can", "will", "would", "could", "should",
+		"qué", "cómo", "dónde", "cuándo", "por qué", "quién", "cuál",
+		"que", "como", "donde", "cuando", "porque", "quien", "cual"}
+	firstWord := strings.ToLower(strings.Fields(t)[0])
+	for _, qw := range questionWords {
+		if firstWord == qw {
+			return true
+		}
+	}
+	return false
+}
+
+// buildFallbackSummary creates a practical, learning-focused summary in the user's native language.
+func (s *GrammarService) buildFallbackSummary(text, language string, basic *models.GrammarAnalysis, nativeLanguage string) string {
+	if basic.Difficulty == "" {
+		basic.Difficulty = "A1"
+	}
+	if nativeLanguage == "" {
+		nativeLanguage = "en"
+	}
+	langName := languageCodeToName(language)
+	if langName == "" {
+		langName = language
+	}
+
+	wordCount := len(strings.Fields(text))
+	isQ := isQuestion(text)
+
+	// Identify what kind of sentence this is
+	var sentenceType string
+	switch {
+	case isQ && language == "es":
+		sentenceType = "question"
+	default:
+		sentenceType = "sentence"
+	}
+
+	// Map sentence types to native language
+	typeDesc := map[string]map[string]string{
+		"question": {
+			"en": "This is a question.",
+			"es": "Esta es una pregunta.",
+			"fr": "C'est une question.",
+			"de": "Dies ist eine Frage.",
+		},
+	}
+
+	sentenceDesc := typeDesc[sentenceType][nativeLanguage]
+	if sentenceDesc == "" {
+		sentenceDesc = typeDesc[sentenceType]["en"]
+	}
+
+	// Collect pattern info with matching words
+	type matchInfo struct {
+		name  string
+		words string
+	}
+	var matches []matchInfo
+	seen := map[string]bool{}
+	for _, p := range basic.Patterns {
+		if seen[p] {
+			continue
+		}
+		seen[p] = true
+		matchingWords := s.findPatternWords(text, language, p)
+		words := strings.Join(matchingWords, ", ")
+		matches = append(matches, matchInfo{name: p, words: words})
+	}
+
+	// Build a practical summary
+	var parts []string
+	parts = append(parts, sentenceDesc)
+
+	// Add word count info
+	wordNote := map[string]string{
+		"en": fmt.Sprintf("It has %d words.", wordCount),
+		"es": fmt.Sprintf("Tiene %d palabras.", wordCount),
+		"fr": fmt.Sprintf("Elle a %d mots.", wordCount),
+		"de": fmt.Sprintf("Sie hat %d Wörter.", wordCount),
+	}
+	if v, ok := wordNote[nativeLanguage]; ok {
+		parts = append(parts, v)
+	} else {
+		parts = append(parts, fmt.Sprintf("It has %d words.", wordCount))
+	}
+
+	// Add pattern observations in practical language
+	for _, m := range matches {
+		exp := s.getPatternExplanation(m.name, nativeLanguage)
+		// Take first sentence
+		if idx := strings.Index(exp, "."); idx > 0 {
+			exp = exp[:idx+1]
+		}
+		if m.words != "" {
+			obs := map[string]string{
+				"en": fmt.Sprintf("Notice the word(s) \"%s\" — %s", m.words, exp),
+				"es": fmt.Sprintf("Nota la(s) palabra(s) \"%s\" — %s", m.words, exp),
+				"fr": fmt.Sprintf("Remarquez le(s) mot(s) \"%s\" — %s", m.words, exp),
+				"de": fmt.Sprintf("Beachten Sie das/die Wort/Wörter \"%s\" — %s", m.words, exp),
+			}
+			if v, ok := obs[nativeLanguage]; ok {
+				parts = append(parts, v)
+			} else {
+				parts = append(parts, fmt.Sprintf("Notice the word(s) \"%s\" — %s", m.words, exp))
+			}
+		} else {
+			parts = append(parts, exp)
+		}
+	}
+
+	// Add a simple practice suggestion if patterns were found
+	if len(matches) > 0 {
+		practiceHint := map[string]string{
+			"en": "Try changing the verb to practice different tenses!",
+			"es": "¡Intenta cambiar el verbo para practicar diferentes tiempos!",
+			"fr": "Essayez de changer le verbe pour pratiquer différents temps !",
+			"de": "Versuchen Sie, das Verb zu ändern, um verschiedene Zeiten zu üben!",
+		}
+		if v, ok := practiceHint[nativeLanguage]; ok {
+			parts = append(parts, v)
+		} else {
+			parts = append(parts, "Try changing the verb to practice different tenses!")
+		}
+	}
+
+	return strings.Join(parts, " ")
+}
+
+// findPatternWords extracts the specific words from text that matched a grammar pattern.
+func (s *GrammarService) findPatternWords(text, language, pattern string) []string {
+	re := s.patternRegexFor(language, pattern)
+	if re == nil {
+		return nil
+	}
+	matches := re.FindAllString(strings.ToLower(text), -1)
+	// De-duplicate
+	seen := map[string]bool{}
+	var unique []string
+	for _, m := range matches {
+		if !seen[m] {
+			seen[m] = true
+			unique = append(unique, m)
+		}
+	}
+	return unique
+}
+
+// patternRegexFor returns the compiled regex for a specific language+pattern.
+func (s *GrammarService) patternRegexFor(language, pattern string) *regexp.Regexp {
+	patterns := map[string]map[string]string{
+		"en": {
+			"present_continuous": `\b\w+ing\b`,
+			"past_tense":         `\b\w+ed\b`,
+			"future_tense":       `\b(will|going to|gonna)\b`,
+			"conditional":        `\b(would|could|should|might)\b`,
+			"passive_voice":      `\b(was|were|been|being)\s+\w+ed\b`,
+			"question":           `\b(what|who|where|when|why|how|which|do|does|did|is|are|am|can|will)\b`,
+			"present_perfect":    `\b(have|has)\s+\w+ed\b`,
+			"comparison":         `\b(more|most|better|worse|best|worst|than)\b`,
+		},
+		"es": {
+			"presente":          `\b\w+(o|as|a|amos|áis|an|es|e|emos|éis|en|imos|ís)\b`,
+			"preterito":         `\b\w+(é|aste|ó|amos|asteis|aron|í|iste|ió|imos|isteis|ieron)\b`,
+			"subjuntivo":        `\b(ojalá|espero que|quiero que)\b`,
+			"verbos_reflexivos": `\b(me|te|se|nos|os)\s+\w+\b`,
+			"condicional":       `\b\w+(ía|ías|íamos|íais|ían)\b`,
+		},
+		"fr": {
+			"présent":       `\b\w+(e|es|e|ons|ez|ent|is|it|issons|issez|issent)\b`,
+			"passé_composé": `\b(ai|as|a|avons|avez|ont|suis|es|est|sommes|êtes|sont)\s+\w+(é|i|u|is|it)\b`,
+			"imparfait":     `\b\w+(ais|ait|ions|iez|aient)\b`,
+			"subjonctif":    `\b(que|il faut que|bien que)\b`,
+		},
+		"de": {
+			"modalverben": `\b(kann|kannst|können|muss|musst|müssen|soll|sollst|sollen|darf|darfst|dürfen|mag|magst|mögen)\b`,
+			"perfekt":     `\b(habe|hast|hat|haben|habt|bin|bist|ist|sind|seid)\s+\w+\b`,
+			"dativ":       `\b(dem|der|den|einem|einer)\b`,
+			"akkusativ":   `\b(den|die|das|einen|eine)\b`,
+		},
+	}
+	if langPatterns, ok := patterns[language]; ok {
+		if reStr, ok := langPatterns[pattern]; ok {
+			return regexp.MustCompile(reStr)
+		}
+	}
+	return nil
 }
 
 // min returns the smaller of two ints (Go 1.20 added a builtin, but keep compatible).
@@ -612,7 +926,7 @@ func min(a, b int) int {
 	return b
 }
 
-// parseAIGrammarAnalysis parses the Ollama JSON response flexibly,
+// parseAIGrammarAnalysis parses the AI API JSON response flexibly,
 // handling cases where detailedBreakdown items have nested objects instead of flat strings.
 func (s *GrammarService) parseAIGrammarAnalysis(rawJSON string) (*models.AIGrammarAnalysis, error) {
 	var raw map[string]interface{}
@@ -705,15 +1019,15 @@ func (s *GrammarService) regexPatternsToGrammarPatterns(text, language string) [
 	return result
 }
 
-// GenerateLearningContent uses Ollama to generate interactive learning content
+// GenerateLearningContent uses the AI API to generate interactive learning content
 // for a given text. Supported actions: breakdown, examples, flashcards, custom.
 // Prompts ask for plain text responses, so the result is returned as-is without
 // attempting JSON parsing.
 func (s *GrammarService) GenerateLearningContent(text, language, nativeLanguage, action, customQuery string) (*models.LearningContent, error) {
-	if s.ollamaURL == "" {
+	if s.apiURL == "" || s.apiKey == "" {
 		return &models.LearningContent{
 			Action:           action,
-			Content:          "AI learning is not available. Please configure an Ollama instance.",
+			Content:          "AI learning is not available. Please configure an AI API key.",
 			Details:          []string{},
 			SuggestedActions: []string{"breakdown", "examples", "flashcards"},
 		}, nil
@@ -768,7 +1082,7 @@ Answer in %s in a helpful, educational way. Respond ONLY with plain text. No JSO
 	}
 
 	// Use a 30-second timeout so the AI Tutor panel doesn't hang indefinitely.
-	result, err := s.callOllamaWithTimeout(prompt, 30*time.Second)
+	result, err := s.callGrammarAPI(prompt, nativeLangName)
 	if err != nil {
 		return &models.LearningContent{
 			Action:           action,
@@ -818,49 +1132,57 @@ func nextActionsFor(action string) []string {
 	}
 }
 
-// callOllama sends a prompt to Ollama with a 30-second deadline.
-func (s *GrammarService) callOllama(prompt string) (string, error) {
-	return s.callOllamaWithTimeout(prompt, 30*time.Second)
-}
-
-// callOllamaWithTimeout sends a prompt to Ollama and returns the raw text response.
-// The provided timeout is applied as a context deadline on the request.
-func (s *GrammarService) callOllamaWithTimeout(prompt string, timeout time.Duration) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+// callGrammarAPI sends a prompt to the OpenAI-compatible API and returns the text response.
+func (s *GrammarService) callGrammarAPI(prompt, nativeLangName string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	reqBody := OllamaGenerateRequest{
-		Model:  s.ollamaModel,
-		Prompt: prompt,
-		Stream: false,
+	systemMsg := fmt.Sprintf(`You are a friendly language tutor teaching a student who speaks %s.
+Return ONLY valid JSON. No markdown, no code fences, no commentary before or after.`, nativeLangName)
+
+	chatReq := grammarChatRequest{
+		Model: s.model,
+		Messages: []grammarChatMessage{
+			{Role: "system", Content: systemMsg},
+			{Role: "user", Content: prompt},
+		},
+		Temperature: 0.3,
+		MaxTokens:   2048,
 	}
 
-	body, err := json.Marshal(reqBody)
+	body, err := json.Marshal(chatReq)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal request: %w", err)
+		return "", fmt.Errorf("grammar marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", s.ollamaURL+"/api/generate", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, "POST", s.apiURL+"/chat/completions", bytes.NewReader(body))
 	if err != nil {
-		return "", fmt.Errorf("failed to create request: %w", err)
+		return "", fmt.Errorf("grammar create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if s.apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+s.apiKey)
+	}
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("failed to call Ollama: %w", err)
+		return "", fmt.Errorf("grammar API request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("Ollama returned status %d: %s", resp.StatusCode, string(respBody))
+		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return "", fmt.Errorf("grammar API returned status %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
 	}
 
-	var ollamaResp OllamaGenerateResponse
-	if err := json.NewDecoder(resp.Body).Decode(&ollamaResp); err != nil {
-		return "", fmt.Errorf("failed to decode Ollama response: %w", err)
+	var chatResp grammarChatResponse
+	if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
+		return "", fmt.Errorf("grammar decode response: %w", err)
 	}
 
-	return strings.TrimSpace(ollamaResp.Response), nil
+	if len(chatResp.Choices) == 0 {
+		return "", fmt.Errorf("grammar API: no choices in response")
+	}
+
+	return strings.TrimSpace(chatResp.Choices[0].Message.Content), nil
 }
