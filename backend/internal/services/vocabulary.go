@@ -45,6 +45,7 @@ func (s *VocabularyService) SaveWord(userID string, req models.SaveVocabularyReq
 	definition := s.generateDefinition(req.Term, req.Language)
 
 	var entry models.VocabularyEntry
+	entry.LearningData = &models.LearningData{}
 	err = s.db.QueryRow(`
 		INSERT INTO vocabulary (
 			user_id, term, language, translation, definition,

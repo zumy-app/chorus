@@ -17,8 +17,8 @@ import (
 )
 
 func main() {
-	// Load environment variables
-	if err := godotenv.Load(); err != nil {
+	// Load environment variables (.env always wins over system env)
+	if err := godotenv.Overload(); err != nil {
 		log.Println("No .env file found, using system environment variables")
 	}
 
@@ -88,6 +88,9 @@ func main() {
 	searchService := services.NewSearchService(db, redisClient)
 
 	// Phase 3: Initialize Grammar service with endpoint chain
+	log.Printf("[Startup] GRAMMAR_PROVIDER_ORDER=%q from env", os.Getenv("GRAMMAR_PROVIDER_ORDER"))
+	log.Printf("[Startup] TRANSLATION_PROVIDER_ORDER=%q from env", os.Getenv("TRANSLATION_PROVIDER_ORDER"))
+	log.Printf("[Startup] PROVIDER_OLLAMA_LOCAL_TYPE=%q", os.Getenv("PROVIDER_OLLAMA_LOCAL_TYPE"))
 	grammarService := services.NewGrammarService(redisClient, buildGrammarEndpoints(cfg))
 
 	// Phase 3: Initialize Vocabulary service
@@ -278,6 +281,10 @@ func buildTranslationProviderChain(cfg *config.Config) translation.Provider {
 // If GRAMMAR_PROVIDER_ORDER is set, it follows that order. Otherwise it falls back
 // to the legacy GRAMMAR_API_* env vars.
 func buildGrammarEndpoints(cfg *config.Config) []services.GrammarEndpoint {
+	log.Printf("[Startup] GrammarProviderOrder=%v, Providers keys:", cfg.GrammarProviderOrder)
+	for k, v := range cfg.Providers {
+		log.Printf("  Provider %q: type=%q url=%q model=%q", k, v.Type, v.APIURL, v.Model)
+	}
 	if len(cfg.GrammarProviderOrder) > 0 {
 		var endpoints []services.GrammarEndpoint
 		for _, alias := range cfg.GrammarProviderOrder {
@@ -286,7 +293,7 @@ func buildGrammarEndpoints(cfg *config.Config) []services.GrammarEndpoint {
 				log.Printf("Warning: provider %q in GRAMMAR_PROVIDER_ORDER not configured, skipping", alias)
 				continue
 			}
-			ep := services.NewGrammarEndpoint(alias, def.APIURL, def.APIKey, def.Model, def.Timeout)
+			ep := services.NewGrammarEndpoint(alias, def.Type, def.APIURL, def.APIKey, def.Model, def.Timeout)
 			endpoints = append(endpoints, ep)
 			log.Printf("  Grammar endpoint %d: %s (%s model=%s)", len(endpoints), alias, def.APIURL, def.Model)
 		}
@@ -297,7 +304,7 @@ func buildGrammarEndpoints(cfg *config.Config) []services.GrammarEndpoint {
 	}
 
 	// Legacy fallback: single endpoint from GRAMMAR_API_* env vars.
-	ep := services.NewGrammarEndpoint("legacy", cfg.GrammarAPIURL, cfg.GrammarAPIKey, cfg.GrammarModel, 0)
+	ep := services.NewGrammarEndpoint("legacy", "", cfg.GrammarAPIURL, cfg.GrammarAPIKey, cfg.GrammarModel, 0)
 	log.Printf("  Grammar endpoint: %s model=%s", cfg.GrammarAPIURL, cfg.GrammarModel)
 	return []services.GrammarEndpoint{ep}
 }
