@@ -18,6 +18,13 @@ param([switch]$SplitWindows)
 $RootDir = $PSScriptRoot
 $BackendDir = Join-Path $RootDir "backend"
 $FrontendDir = Join-Path $RootDir "frontend"
+
+# ──────────────────────────────────────────────
+# Clean stale provider env vars from previous runs
+# (godotenv.Load does NOT override existing env vars)
+# ──────────────────────────────────────────────
+Get-ChildItem Env:PROVIDER_*, Env:TRANSLATION_PROVIDER_ORDER, Env:GRAMMAR_PROVIDER_ORDER -ErrorAction SilentlyContinue |
+    ForEach-Object { Remove-Item "Env:$($_.Name)" -ErrorAction SilentlyContinue }
 $ComposeFile = Join-Path $RootDir "docker-compose.yml"
 
 function Log($Msg, $Color = "White") { Write-Host "$Msg" -ForegroundColor $Color }
