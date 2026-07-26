@@ -42,27 +42,29 @@ type grammarChatResponse struct {
 
 // GrammarEndpoint holds the config for a single AI API endpoint in the chain.
 type GrammarEndpoint struct {
-	Name    string
-	APIURL  string
-	APIKey  string
-	Model   string
-	Timeout time.Duration
-	client  *http.Client
+	Name         string
+	ProviderType string // "opencode", "openai", "ollama", etc.
+	APIURL       string
+	APIKey       string
+	Model        string
+	Timeout      time.Duration
+	client       *http.Client
 }
 
 // NewGrammarEndpoint creates a ready-to-use endpoint.
-func NewGrammarEndpoint(name, apiURL, apiKey, model string, timeout int) GrammarEndpoint {
+func NewGrammarEndpoint(name, providerType, apiURL, apiKey, model string, timeout int) GrammarEndpoint {
 	d := 90 * time.Second
 	if timeout > 0 {
 		d = time.Duration(timeout) * time.Second
 	}
 	return GrammarEndpoint{
-		Name:    name,
-		APIURL:  strings.TrimRight(apiURL, "/"),
-		APIKey:  apiKey,
-		Model:   model,
-		Timeout: d,
-		client:  &http.Client{Timeout: d},
+		Name:         name,
+		ProviderType: providerType,
+		APIURL:       strings.TrimRight(apiURL, "/"),
+		APIKey:       apiKey,
+		Model:        model,
+		Timeout:      d,
+		client:       &http.Client{Timeout: d},
 	}
 }
 
@@ -1322,7 +1324,16 @@ func (ep *GrammarEndpoint) call(prompt, nativeLangName string) (string, error) {
 		return "", fmt.Errorf("grammar marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", ep.APIURL+"/chat/completions", bytes.NewReader(body))
+	// Determine API path and request format based on provider type
+	var apiPath string
+	switch ep.ProviderType {
+	case "ollama":
+		apiPath = "/api/chat"
+	default:
+		apiPath = "/chat/completions"
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", ep.APIURL+apiPath, bytes.NewReader(body))
 	if err != nil {
 		return "", fmt.Errorf("grammar create request: %w", err)
 	}
@@ -1340,6 +1351,20 @@ func (ep *GrammarEndpoint) call(prompt, nativeLangName string) (string, error) {
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 		return "", fmt.Errorf("grammar API returned status %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
+	}
+
+	if ep.ProviderType == "ollama" {
+		// Ollama /api/chat returns {"model":"...","message":{"role":"...","content":"..."},"done":true}
+		var ollamaResp struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+			Done bool `json:"done"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&ollamaResp); err != nil {
+			return "", fmt.Errorf("grammar decode ollama response: %w", err)
+		}
+		return strings.TrimSpace(ollamaResp.Message.Content), nil
 	}
 
 	var chatResp grammarChatResponse
