@@ -62,7 +62,8 @@ type openAIChatRequest struct {
 
 // openAIChatChoice represents a single choice in the response.
 type openAIChatChoice struct {
-	Message openAIChatMessage `json:"message"`
+	Message      openAIChatMessage `json:"message"`
+	FinishReason string            `json:"finish_reason"`
 }
 
 // openAIChatResponse is the response from /v1/chat/completions.
@@ -81,11 +82,11 @@ func (p *OpenAIProvider) Translate(ctx context.Context, req TranslateRequest) (T
 		langName = req.TargetLang
 	}
 
-	systemMsg := "You are a precise translation engine. Translate the user's text exactly as written. " +
+	systemMsg := "You are a precise translation engine. Translate ALL of the user's text completely. " +
 		"Preserve all original formatting, line breaks, and punctuation. " +
-		"Return ONLY the translated text with no preamble, explanation, or commentary."
+		"Return ONLY the complete translated text with no preamble, explanation, or commentary."
 
-	userMsg := fmt.Sprintf("Translate the following text to %s.\n\n%s", langName, req.Text)
+	userMsg := fmt.Sprintf("Translate ALL of the following text to %s. Do not skip any part.\n\n%s", langName, req.Text)
 
 	chatReq := openAIChatRequest{
 		Model: p.model,
@@ -94,7 +95,7 @@ func (p *OpenAIProvider) Translate(ctx context.Context, req TranslateRequest) (T
 			{Role: "user", Content: userMsg},
 		},
 		Temperature: 0.1,
-		MaxTokens:   1024,
+		MaxTokens:   4096,
 	}
 
 	body, err := json.Marshal(chatReq)
@@ -127,6 +128,10 @@ func (p *OpenAIProvider) Translate(ctx context.Context, req TranslateRequest) (T
 
 	if len(chatResp.Choices) == 0 {
 		return TranslateResponse{}, fmt.Errorf("%w: no choices in response", ErrEmptyResponse)
+	}
+
+	if chatResp.Choices[0].FinishReason == "length" {
+		return TranslateResponse{}, fmt.Errorf("%w: response truncated by max_tokens (finish_reason=length)", ErrEmptyResponse)
 	}
 
 	translated := strings.TrimSpace(chatResp.Choices[0].Message.Content)
