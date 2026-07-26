@@ -93,10 +93,24 @@ type GrammarAnalysis struct {
 
 // AI-powered grammar analysis (enriched via AI API)
 type AIGrammarAnalysis struct {
-	Difficulty       string                   `json:"difficulty"`
-	Patterns         []GrammarPattern         `json:"patterns"`
-	Summary          string                   `json:"summary"`
-	DetailedBreakdown []BreakdownItem         `json:"detailedBreakdown,omitempty"`
+	Difficulty        string          `json:"difficulty"`
+	Summary           string          `json:"summary"`
+	SentenceStructure string          `json:"sentenceStructure,omitempty"`
+	KeyPhrases        []KeyPhrase     `json:"keyPhrases,omitempty"`
+	DetailedBreakdown []BreakdownItem `json:"detailedBreakdown,omitempty"`
+	GrammarNotes      []GrammarNote   `json:"grammarNotes,omitempty"`
+}
+
+type KeyPhrase struct {
+	Phrase      string `json:"phrase"`
+	Translation string `json:"translation"`
+	Context     string `json:"context,omitempty"`
+}
+
+type GrammarNote struct {
+	Title       string   `json:"title"`
+	Explanation string   `json:"explanation"`
+	Examples    []string `json:"examples,omitempty"`
 }
 
 type GrammarPattern struct {
@@ -107,8 +121,11 @@ type GrammarPattern struct {
 
 type BreakdownItem struct {
 	Text        string `json:"text"`
-	Explanation string `json:"explanation"`
-	Type        string `json:"type"` // verb, tense, noun, preposition, article, etc.
+	Translation string `json:"translation,omitempty"`
+	Role        string `json:"role,omitempty"`
+	Type        string `json:"type"`
+	Note        string `json:"note,omitempty"`
+	Explanation string `json:"explanation,omitempty"`
 }
 
 type LearningContent struct {

@@ -162,10 +162,51 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   sendMessage: async (chatId, text) => {
+    const tempId = `pending-${Date.now()}`
+    const optimisticMessage: Message = {
+      id: tempId,
+      chatId,
+      senderId: get().user?.id || '',
+      text,
+      deliveryStatus: 'sent',
+      timestamp: new Date().toISOString(),
+    }
+
+    get().addMessage(optimisticMessage)
+
     try {
       const message = await messageAPI.sendMessage(chatId, { text })
-      get().addMessage(message)
+      set((state) => {
+        const chatMessages = state.messages[chatId] || []
+        const alreadyExists = chatMessages.some(m => m.id === message.id)
+        if (alreadyExists) {
+          return {
+            messages: {
+              ...state.messages,
+              [chatId]: chatMessages.filter(m => m.id !== tempId),
+            },
+          }
+        }
+        return {
+          messages: {
+            ...state.messages,
+            [chatId]: chatMessages.map(m => m.id === tempId ? message : m),
+          },
+        }
+      })
+      get().updateChatLastMessage(chatId, message)
     } catch (error) {
+      set((state) => {
+        const chatMessages = state.messages[chatId] || []
+        return {
+          messages: {
+            ...state.messages,
+            [chatId]: chatMessages.map(m =>
+              m.id === tempId ? { ...m, deliveryStatus: 'failed' as const } : m
+            ),
+          },
+        }
+      })
       console.error('Failed to send message:', error)
       throw error
     }

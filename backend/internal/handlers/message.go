@@ -86,33 +86,6 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 		return
 	}
 
-	// Detect and store the original language based on sender's native language
-	participantLangs, err := h.chatService.GetParticipantLanguages(chatID)
-	if err == nil {
-		if senderLangs, ok := participantLangs[userID]; ok && len(senderLangs) > 0 {
-			nativeLang := senderLangs[0]
-			if nativeLang != "" {
-				// Update the message's original language in DB
-				h.messageService.UpdateOriginalLanguage(message.ID, nativeLang)
-				message.OriginalLanguage = nativeLang
-			}
-		}
-	}
-
-	// Get participant languages for translation
-	participantLangs, err = h.chatService.GetParticipantLanguages(chatID)
-	if err == nil && len(participantLangs) > 0 {
-		targetLangs := make(map[string]bool)
-		for _, langs := range participantLangs {
-			for _, lang := range langs {
-				targetLangs[lang] = true
-			}
-		}
-
-		// Single-phase translation: translate asynchronously using the configured provider
-		go h.translateAndBroadcast(message, targetLangs, chatID)
-	}
-
 	// Broadcast new message to ALL chat participants (including sender for multi-device)
 	participants, _ := h.chatService.GetParticipants(chatID)
 	userIDs := make([]string, 0, len(participants))
@@ -123,6 +96,33 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 	h.wsHub.SendToChat(chatID, userIDs, "new_message", message)
 
 	c.JSON(201, message)
+
+	// Handle language detection and translation asynchronously
+	go func() {
+		participantLangs, err := h.chatService.GetParticipantLanguages(chatID)
+		if err != nil || len(participantLangs) == 0 {
+			return
+		}
+
+		// Detect and store the original language based on sender's native language
+		if senderLangs, ok := participantLangs[userID]; ok && len(senderLangs) > 0 {
+			nativeLang := senderLangs[0]
+			if nativeLang != "" {
+				h.messageService.UpdateOriginalLanguage(message.ID, nativeLang)
+				message.OriginalLanguage = nativeLang
+			}
+		}
+
+		// Build target languages for translation
+		targetLangs := make(map[string]bool)
+		for _, langs := range participantLangs {
+			for _, lang := range langs {
+				targetLangs[lang] = true
+			}
+		}
+
+		h.translateAndBroadcast(message, targetLangs, chatID)
+	}()
 }
 
 func (h *MessageHandler) translateAndBroadcast(message *models.Message, targetLangs map[string]bool, chatID string) {

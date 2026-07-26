@@ -4,7 +4,7 @@
 
 .DESCRIPTION
     Starts Docker infra (PostgreSQL, Redis), then runs the Go backend
-    (with file-watch auto-restart) and React frontend (Vite HMR).
+    (with air hot-reload) and React frontend (Vite HMR).
 
     Run from repo root:
         .\start-dev.ps1
@@ -87,9 +87,21 @@ for ($i = 0; $i -lt 15; $i++) {
 if ($redisReady) { Ok "Redis healthy" } else { Warn "Redis not healthy yet" }
 
 # ──────────────────────────────────────────────
-# 4. Run backend with file-watch auto-restart
+# 4. Run backend with air (hot-reload)
 # ──────────────────────────────────────────────
-Log "▶ [4/5] Starting Go backend (file-watch enabled)..." Yellow
+Log "▶ [4/5] Starting Go backend (air hot-reload)..." Yellow
+
+# Kill any existing processes on port 8080
+$portPid = netstat -ano | Select-String ":8080\s" | ForEach-Object { $_.ToString().Trim().Split()[-1] } | Select-Object -First 1
+if ($portPid -and $portPid -match '^\d+$') {
+    Warn "Killing existing process (PID $portPid) on port 8080..."
+    Stop-Process -Id $portPid -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 3
+}
+
+# Also kill any lingering main.exe or air processes
+Get-Process "main", "air" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 1
 
 $env:ENVIRONMENT = "development"
 $env:DATABASE_URL = "postgres://messenger:password@localhost:5432/messenger_dev?sslmode=disable"
@@ -97,6 +109,35 @@ $env:REDIS_URL = "localhost:6379"
 $env:JWT_SECRET = "dev-jwt-secret-key-for-testing-only"
 $env:PORT = "8080"
 $env:TRANSLATION_PROVIDER_NAME = "opencode"
+
+# Grammar AI analysis also uses the same provider
+$env:GRAMMAR_API_URL = "https://opencode.ai/zen/go/v1"
+$env:GRAMMAR_API_KEY = "sk-Y7Sq9pcfewDhbozFiPzhPOoqZzAszipdq7ed9HNcLGBx4DqBwEZl6xsJMiWbemvU"
+$env:GRAMMAR_MODEL = "deepseek-v4-flash"
+
+# Check if air is installed, install if not
+$airInstalled = Get-Command air -ErrorAction SilentlyContinue
+if (-not $airInstalled) {
+    Log "  Installing air (Go hot-reload tool)..." Yellow
+    go install github.com/air-verse/air@latest
+    if ($LASTEXITCODE -ne 0) {
+        Fail "Failed to install air. Please install manually: go install github.com/air-verse/air@latest"
+        exit 1
+    }
+    Ok "air installed"
+}
+
+# Clean build first to ensure no stale binaries
+Log "  Running clean build..." Yellow
+Push-Location $BackendDir
+go build -o ./tmp/main.exe ./cmd/server 2>&1 | ForEach-Object { Write-Host "  $_" }
+if ($LASTEXITCODE -ne 0) {
+    Fail "Build failed. Fix errors before starting."
+    Pop-Location
+    exit 1
+}
+Ok "Build successful"
+Pop-Location
 
 if ($SplitWindows) {
     Start-Process powershell -ArgumentList @(
@@ -108,51 +149,15 @@ if ($SplitWindows) {
             `$env:JWT_SECRET = 'dev-jwt-secret-key-for-testing-only'
             `$env:PORT = '8080'
             `$env:TRANSLATION_PROVIDER_NAME = 'opencode'
-            Write-Host 'Backend starting...' -ForegroundColor Cyan
-            `$lastRestart = Get-Date
-            `$proc = $null
-            function Start-Backend {
-                if (`$proc -and -not `$proc.HasExited) { `$proc.Kill(); Start-Sleep 1 }
-                `$script:proc = Start-Process -FilePath 'go' -ArgumentList 'run','./cmd/server' -NoNewWindow -PassThru
-            }
-            Start-Backend
-            `$fileTimes = @{}
-            Get-ChildItem -Recurse -Filter *.go . | ForEach-Object { `$fileTimes[`$_.FullName] = `$_.LastWriteTimeUtc }
-            while (`$true) {
-                Start-Sleep -Seconds 1
-                `$changed = Get-ChildItem -Recurse -Filter *.go . | Where-Object { `$fileTimes[`$_.FullName] -ne `$_.LastWriteTimeUtc }
-                if (`$changed) {
-                    foreach (`$f in `$changed) { `$fileTimes[`$f.FullName] = `$f.LastWriteTimeUtc }
-                    if (((Get-Date) - `$lastRestart).TotalSeconds -gt 2) {
-                        Write-Host "`n  File changed. Restarting backend..." -ForegroundColor Yellow
-                        `$lastRestart = Get-Date
-                        Start-Backend
-                    }
-                }
-            }
+            `$env:GRAMMAR_API_URL = 'https://opencode.ai/zen/go/v1'
+            `$env:GRAMMAR_API_KEY = 'sk-Y7Sq9pcfewDhbozFiPzhPOoqZzAszipdq7ed9HNcLGBx4DqBwEZl6xsJMiWbemvU'
+            `$env:GRAMMAR_MODEL = 'deepseek-v4-flash'
+            Write-Host 'Backend starting with air (hot-reload)...' -ForegroundColor Cyan
+            air -c .air.toml
 "@
     ) -WindowStyle Normal
 } else {
-    Log "  Starting backend in this terminal. Files in backend/ will auto-restart." Yellow
-
-    $global:lastRestart = Get-Date
-    $global:backendProc = $null
-
-    function global:Start-Backend {
-        if ($global:backendProc -and -not $global:backendProc.HasExited) {
-            try { $global:backendProc.Kill() } catch {}
-            Start-Sleep 1
-        }
-        Push-Location $BackendDir
-        $global:backendProc = Start-Process -FilePath "go" -ArgumentList "run","./cmd/server" -NoNewWindow -PassThru
-        Pop-Location
-    }
-
-    Start-Backend
-
-    # Build initial file-write timestamps for .go files
-    $fileWriteTimes = @{}
-    Get-ChildItem -Recurse -Filter *.go $BackendDir | ForEach-Object { $fileWriteTimes[$_.FullName] = $_.LastWriteTimeUtc }
+    Log "  Starting backend with air (hot-reload on .go file changes)..." Yellow
 
     # Start frontend in a new window
     $frontendScript = @"
@@ -167,26 +172,12 @@ npm run dev
     Ok "Frontend starting in new window (Vite HMR on http://localhost:3000)"
     Log ""
 
-    # Poll for .go file changes and restart backend
+    # Run air in the current terminal
+    Push-Location $BackendDir
     try {
-        while ($true) {
-            Start-Sleep -Seconds 1
-            $changed = Get-ChildItem -Recurse -Filter *.go $BackendDir | Where-Object {
-                $fileWriteTimes[$_.FullName] -ne $_.LastWriteTimeUtc
-            }
-            if ($changed) {
-                foreach ($f in $changed) { $fileWriteTimes[$f.FullName] = $f.LastWriteTimeUtc }
-                if (((Get-Date) - $global:lastRestart).TotalSeconds -gt 2) {
-                    $global:lastRestart = Get-Date
-                    Write-Host "`n  File changed. Restarting backend..." -ForegroundColor Yellow
-                    Start-Backend
-                }
-            }
-        }
+        air -c .air.toml
     } finally {
-        if ($global:backendProc -and -not $global:backendProc.HasExited) {
-            $global:backendProc.Kill()
-        }
+        Pop-Location
     }
 }
 Log ""

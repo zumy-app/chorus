@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import type { Message } from '../types'
 import { vocabularyAPI, grammarAPI } from '../services/api'
-import LearningPanel from './LearningPanel'
+import GrammarPanel from './GrammarPanel'
 
 interface MessageBubbleProps {
   message: Message
@@ -25,69 +25,12 @@ function getLabel(key: string, lang: string): string {
   return grammarLabels[lang]?.[key] || grammarLabels.en[key] || key
 }
 
-// Human-readable pattern descriptions in each language (for regex fallback patterns)
-const patternDescriptions: Record<string, Record<string, string>> = {
-  present_continuous: {
-    en: 'Actions happening now or temporary situations. Formed with "am/is/are + verb-ing".',
-    es: 'Acciones que ocurren ahora o situaciones temporales. Se forma con "am/is/are + verbo-ing".',
-  },
-  past_tense: {
-    en: 'Completed actions in the past. Regular verbs add "-ed".',
-    es: 'Acciones completadas en el pasado. Los verbos regulares añaden "-ed".',
-  },
-  future_tense: {
-    en: 'Actions that will happen. Uses "will + verb" or "going to + verb".',
-    es: 'Acciones que sucederán. Usa "will + verbo" o "going to + verbo".',
-  },
-  conditional: {
-    en: 'Hypothetical situations. Often uses "if" with "would/could/should".',
-    es: 'Situaciones hipotéticas. Usa "if" con "would/could/should".',
-  },
-  passive_voice: {
-    en: 'Emphasizes the action rather than the doer. Formed with "be + past participle".',
-    es: 'Enfatiza la acción en lugar de quien la realiza. Se forma con "be + participio pasado".',
-  },
-  question: {
-    en: 'Inverts subject and verb, or uses question words (who, what, when, etc.).',
-    es: 'Invierte el sujeto y el verbo, o usa palabras interrogativas (quién, qué, cuándo, etc.).',
-  },
-  present_perfect: {
-    en: 'Connects past action to present. Uses "have/has + past participle".',
-    es: 'Conecta una acción pasada con el presente. Usa "have/has + participio pasado".',
-  },
-  comparison: {
-    en: 'Compares qualities. Uses "-er/-est" or "more/most".',
-    es: 'Compara cualidades. Usa "-er/-est" o "more/most".',
-  },
-  presente: {
-    en: 'Verb tense for current or habitual actions.',
-    es: 'Tiempo verbal para acciones actuales o habituales.',
-  },
-  preterito: {
-    en: 'Verb tense for completed past actions.',
-    es: 'Tiempo verbal para acciones completadas en el pasado.',
-  },
-  subjuntivo: {
-    en: 'Verb mood to express wishes, doubts, or hypothetical situations.',
-    es: 'Modo verbal para expresar deseos, dudas o situaciones hipotéticas.',
-  },
-  verbos_reflexivos: {
-    en: 'Verbs where subject and object are the same person. Uses "me, te, se, nos, os".',
-    es: 'Verbos donde el sujeto y el objeto son la misma persona. Usan "me, te, se, nos, os".',
-  },
-}
-
-function getPatternDesc(pattern: string, lang: string): string {
-  return patternDescriptions[pattern]?.[lang] || patternDescriptions[pattern]?.en || ''
-}
-
 export default function MessageBubble({ message, isOwn, nativeLanguage, targetLanguage }: MessageBubbleProps) {
   const [showActions, setShowActions] = useState(false)
   const [savedWord, setSavedWord] = useState<string | null>(null)
   const [showGrammar, setShowGrammar] = useState(false)
   const [grammarAnalysis, setGrammarAnalysis] = useState<any>(null)
   const [loadingGrammar, setLoadingGrammar] = useState(false)
-  const [showLearning, setShowLearning] = useState(false)
 
   const nativeTranslation = message.translations?.[nativeLanguage]
   const showNativeTranslation = nativeTranslation && nativeTranslation !== message.text
@@ -234,122 +177,13 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
 
         {/* AI-Powered Grammar Analysis */}
         {showGrammar && grammarAnalysis && (
-          <div className="mt-1 bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200 rounded-lg p-3 text-sm max-w-sm shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-semibold text-amber-800 flex items-center gap-1.5">
-                <span>📝</span> {getLabel('grammar', nativeLanguage)}
-                {grammarAnalysis.difficulty && grammarAnalysis.difficulty !== 'N/A' && (
-                  <span className="text-[10px] bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded-full font-bold">
-                    {grammarAnalysis.difficulty}
-                  </span>
-                )}
-              </span>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setShowLearning(true)}
-                  className="text-[11px] px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition font-medium"
-                >
-                  🤖 {getLabel('aiTutor', nativeLanguage)}
-                </button>
-                <button onClick={() => setShowGrammar(false)} className="text-amber-600 hover:text-amber-800 text-lg leading-none ml-1">×</button>
-              </div>
-            </div>
-
-            {grammarAnalysis.summary && (
-              <p className="text-amber-900 text-xs mb-2 leading-relaxed">{grammarAnalysis.summary}</p>
-            )}
-
-            {grammarAnalysis.patterns?.length > 0 && (
-              <div className="space-y-1.5 mb-2">
-                <p className="text-[11px] font-semibold text-amber-700 uppercase tracking-wide">{getLabel('patterns', nativeLanguage)}</p>
-                <div className="flex flex-wrap gap-1">
-                  {grammarAnalysis.patterns.map((p: any, i: number) => {
-                    // String patterns = regex fallback — show with description
-                    if (typeof p === 'string') {
-                      const desc = getPatternDesc(p, nativeLanguage)
-                      return (
-                        <div key={i} className="w-full bg-white/80 rounded-lg p-2 border border-amber-100">
-                          <div className="flex items-center justify-between">
-                            <span className="font-semibold text-amber-900 text-xs capitalize">{p.replace(/_/g, ' ')}</span>
-                          </div>
-                          {desc && (
-                            <p className="text-[11px] text-amber-800 mt-0.5">{desc}</p>
-                          )}
-                        </div>
-                      )
-                    }
-                    // Object patterns = AI analysis — show with description
-                    return (
-                      <div key={i} className="w-full bg-white/80 rounded-lg p-2 border border-amber-100">
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold text-amber-900 text-xs capitalize">{p.name}</span>
-                          {p.example && (
-                            <span className="text-[10px] text-amber-600 italic ml-2">e.g. "{p.example}"</span>
-                          )}
-                        </div>
-                        {p.description && (
-                          <p className="text-[11px] text-amber-800 mt-0.5">{p.description}</p>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {grammarAnalysis.detailedBreakdown?.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-[11px] font-semibold text-amber-700 uppercase tracking-wide">{getLabel('wordByWord', nativeLanguage)}</p>
-                <div className="flex flex-wrap gap-x-2 gap-y-1">
-                  {grammarAnalysis.detailedBreakdown.map((item: any, i: number) => {
-                    const badgeColorMap: Record<string, string> = {
-                      verb: 'bg-blue-100 text-blue-700',
-                      tense: 'bg-purple-100 text-purple-700',
-                      noun: 'bg-green-100 text-green-700',
-                      pronoun: 'bg-pink-100 text-pink-700',
-                      preposition: 'bg-orange-100 text-orange-700',
-                      article: 'bg-teal-100 text-teal-700',
-                      adjective: 'bg-yellow-100 text-yellow-700',
-                      adverb: 'bg-indigo-100 text-indigo-700',
-                      conjunction: 'bg-red-100 text-red-700',
-                      phrase: 'bg-gray-100 text-gray-600',
-                    }
-                    const badgeClass = badgeColorMap[item.type] || 'bg-gray-100 text-gray-600'
-                    return (
-                      <div
-                        key={i}
-                        className="w-full bg-white/80 rounded p-1.5 border border-amber-100"
-                      >
-                        <div className="flex items-baseline gap-1 flex-wrap">
-                          <span className="font-semibold text-gray-900 text-xs">{item.text}</span>
-                          <span className={`text-[10px] px-1 rounded font-medium ${badgeClass}`}>
-                            {item.type || 'w'}
-                          </span>
-                        </div>
-                        {item.explanation && (
-                          <p className="text-[11px] text-gray-600 mt-0.5 leading-relaxed">
-                            {item.explanation}
-                          </p>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Inline Learning Panel — always uses original text, AI explains in native language */}
-        {showLearning && (
-          <div className="mt-1">
-            <LearningPanel
-              text={message.text}
-              language={message.originalLanguage || message.sender?.nativeLanguage || 'en'}
-              nativeLanguage={nativeLanguage}
-              onClose={() => setShowLearning(false)}
-            />
-          </div>
+          <GrammarPanel
+            analysis={grammarAnalysis}
+            nativeLanguage={nativeLanguage}
+            messageText={message.text}
+            messageLanguage={message.originalLanguage || message.sender?.nativeLanguage || 'en'}
+            onClose={() => setShowGrammar(false)}
+          />
         )}
 
         {/* Action Buttons */}

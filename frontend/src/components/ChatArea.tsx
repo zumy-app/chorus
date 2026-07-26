@@ -22,10 +22,12 @@ export default function ChatArea() {
     e.preventDefault()
     if (!inputText.trim() || !activeChat) return
 
+    const text = inputText
+    setInputText('')
+    wsService.sendTyping(activeChat.id, false)
+
     try {
-      await sendMessage(activeChat.id, inputText)
-      setInputText('')
-      wsService.sendTyping(activeChat.id, false)
+      await sendMessage(activeChat.id, text)
     } catch (error) {
       console.error('Failed to send message:', error)
     }

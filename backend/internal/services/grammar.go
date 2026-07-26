@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -614,7 +615,9 @@ func (s *GrammarService) GenerateAIAnalysis(text, language, nativeLanguage strin
 		return s.fallbackAIAnalysis(text, language, nativeLanguage)
 	}
 
-	cacheKey := fmt.Sprintf("ai_grammar:%s:%s:%s", language, nativeLanguage, hashText(text))
+	// Cache version — bump this to invalidate all cached grammar analyses after prompt/model changes.
+	const cacheVersion = "v2"
+	cacheKey := fmt.Sprintf("ai_grammar:%s:%s:%s:%s", cacheVersion, language, nativeLanguage, hashText(text))
 	if s.redis != nil {
 		cached, err := s.redis.Get(context.Background(), cacheKey).Result()
 		if err == nil && cached != "" {
@@ -634,34 +637,51 @@ func (s *GrammarService) GenerateAIAnalysis(text, language, nativeLanguage strin
 		nativeLangName = nativeLanguage
 	}
 
-	prompt := fmt.Sprintf(`You are a friendly language tutor. The student speaks %s.
+	prompt := fmt.Sprintf(`<role>You are a friendly, practical language tutor. The student speaks %[1]s and is learning %[4]s. Your goal is to help them understand a sentence in a simple, conversational way — like a helpful friend, not a textbook.</role>
 
-Explain this sentence in %[1]s to help them LEARN:
+<task>Analyze this sentence and return a structured JSON response:
 
-Sentence: "%s"
+Sentence: "%[2]s"
+</task>
 
-Return ONLY valid JSON, no markdown, no code fences. Use this EXACT structure:
+<output_format>
+Return ONLY valid JSON (no markdown, no code fences). Use this EXACT structure:
 
 {
-  "summary": "In %[1]s: One practical tip about this sentence. What grammar should the student notice? How is it built?",
+  "difficulty": "A1-C2 level estimate",
+  "summary": "In %[1]s: A short, friendly overview of what the sentence means and what's interesting about it. Write 2-3 sentences max. Focus on the overall meaning and any tricky parts.",
+  "sentenceStructure": "In %[1]s: Briefly explain how the sentence is organized. For example: 'The first part talks about X, then it shifts to Y' or 'This is a question that starts with a question word'.",
+  "keyPhrases": [
+    {"phrase": "original phrase in %[4]s", "translation": "what it means in %[1]s", "context": "when or how you'd use this phrase in real life"}
+  ],
   "detailedBreakdown": [
-    {"text": "word1", "explanation": "In %[1]s: means [TRANSLATION] — [grammar note, e.g. 'verb in present tense, 2nd person']", "type": "verb"},
-    {"text": "word2", "explanation": "In %[1]s: means [TRANSLATION] — [grammar note]", "type": "noun"}
+    {"text": "word or short phrase", "translation": "meaning in %[1]s", "role": "simple description like 'action word' or 'describing word' or 'connector'", "type": "verb|noun|pronoun|preposition|article|adjective|adverb|conjunction|phrase", "note": "optional: a brief, plain-language grammar note if the word is interesting"}
+  ],
+  "grammarNotes": [
+    {"title": "Simple, jargon-free title like 'Talking about the past' or 'Expressing a wish'", "explanation": "In %[1]s: Plain-language explanation of the grammar concept. No technical terms like 'subjunctive' or 'preterite'. Explain it like you would to a friend.", "examples": ["word1", "word2"]}
   ]
 }
+</output_format>
 
-RULES:
-- summary: JUST the learning tip (one short paragraph). Tell the student what to notice about how this sentence works. Example: "This Spanish sentence uses 'vas a' to talk about future plans. 'Vas' comes from 'ir' (to go). The question word 'qué' asks 'what'."
-- detailedBreakdown: EVERY word from the sentence, one by one. For each: what it means + a simple grammar note.
-- types: verb, noun, pronoun, preposition, article, adjective, adverb, conjunction, question, phrase
-- Keep language SIMPLE. Use everyday words. Think of explaining to a beginner.
-- Write EVERYTHING in %[1]s (the student's language), except example words which stay in the original language.
-- For multi-word phrases like "going to", group them together as one item.`, nativeLangName, text)
+<rules>
+- summary: Be conversational and practical. NEVER mention word counts. NEVER say "Notice the word(s)...". Just explain what the sentence means and what's interesting.
+- sentenceStructure: Keep it to 1-2 sentences. Describe how the sentence flows.
+- keyPhrases: Pick 2-4 important or interesting phrases. Skip obvious words like "the" or "and".
+- detailedBreakdown: Cover EVERY word or short phrase from the sentence. For each: what it means, what role it plays (in simple terms), and an optional grammar note if it's interesting.
+- grammarNotes: Pick 2-4 grammar concepts from the sentence. Use SIMPLE titles — never use terms like "Subjunctive", "Preterite", "Reflexive", "Conditional". Instead use titles like "Talking about wishes", "Describing past actions", "Actions that reflect back". Explain each concept in everyday language.
+- types for breakdown: verb, noun, pronoun, preposition, article, adjective, adverb, conjunction, phrase
+- Write EVERYTHING in %[1]s (the student's language), except example words which stay in the original language (%[4]s).
+- For multi-word phrases like "going to" or "se llama", group them as one item.
+- Keep ALL language simple and accessible. Imagine explaining to someone who has never studied grammar formally.
+</rules>`, nativeLangName, text, "", langName)
 
+	log.Printf("[Grammar] Calling AI API for text: %.50s... (language=%s, native=%s)", text, language, nativeLanguage)
 	result, err := s.callGrammarAPI(prompt, nativeLangName)
 	if err != nil {
+		log.Printf("[Grammar] AI API call failed: %v", err)
 		return s.fallbackAIAnalysis(text, language, nativeLanguage)
 	}
+	log.Printf("[Grammar] AI API returned %d characters", len(result))
 
 	// Strip markdown code fences and leading/trailing whitespace
 	cleaned := strings.TrimSpace(result)
@@ -685,6 +705,7 @@ RULES:
 	// Parse the structured response using a flexible approach
 	aiResult, err := s.parseAIGrammarAnalysis(cleaned)
 	if err != nil {
+		log.Printf("[Grammar] JSON parsing failed, falling back to regex: %v", err)
 		return s.fallbackAIAnalysis(text, language, nativeLanguage)
 	}
 
@@ -704,8 +725,7 @@ RULES:
 
 // fallbackAIAnalysis returns a regex-based analysis when the AI API is unavailable.
 // It builds a human-readable summary from the identified patterns so the grammar
-// panel always has something useful to show, and populates GrammarPattern structs
-// so the Patterns section renders too. Explanations are in the user's native language.
+// panel always has something useful to show. Explanations are in the user's native language.
 func (s *GrammarService) fallbackAIAnalysis(text, language, nativeLanguage string) (*models.AIGrammarAnalysis, error) {
 	if nativeLanguage == "" {
 		nativeLanguage = "en"
@@ -716,10 +736,12 @@ func (s *GrammarService) fallbackAIAnalysis(text, language, nativeLanguage strin
 	}
 
 	summary := s.buildFallbackSummary(text, language, basic, nativeLanguage)
+	grammarNotes := s.buildFallbackGrammarNotes(text, language, basic, nativeLanguage)
 
 	return &models.AIGrammarAnalysis{
-		Difficulty: basic.Difficulty,
-		Summary:    summary,
+		Difficulty:   basic.Difficulty,
+		Summary:      summary,
+		GrammarNotes: grammarNotes,
 	}, nil
 }
 
@@ -750,112 +772,135 @@ func (s *GrammarService) buildFallbackSummary(text, language string, basic *mode
 	if nativeLanguage == "" {
 		nativeLanguage = "en"
 	}
-	langName := languageCodeToName(language)
-	if langName == "" {
-		langName = language
-	}
 
-	wordCount := len(strings.Fields(text))
 	isQ := isQuestion(text)
 
-	// Identify what kind of sentence this is
-	var sentenceType string
-	switch {
-	case isQ && language == "es":
-		sentenceType = "question"
-	default:
-		sentenceType = "sentence"
-	}
+	var parts []string
 
-	// Map sentence types to native language
-	typeDesc := map[string]map[string]string{
-		"question": {
+	if isQ {
+		qDesc := map[string]string{
 			"en": "This is a question.",
 			"es": "Esta es una pregunta.",
 			"fr": "C'est une question.",
 			"de": "Dies ist eine Frage.",
-		},
+		}
+		if v, ok := qDesc[nativeLanguage]; ok {
+			parts = append(parts, v)
+		} else {
+			parts = append(parts, qDesc["en"])
+		}
 	}
 
-	sentenceDesc := typeDesc[sentenceType][nativeLanguage]
-	if sentenceDesc == "" {
-		sentenceDesc = typeDesc[sentenceType]["en"]
+	// Describe patterns in plain language
+	plainTitles := map[string]map[string]string{
+		"present_continuous": {"en": "This sentence describes something happening right now.", "es": "Esta oración describe algo que está pasando ahora mismo."},
+		"past_tense":         {"en": "This sentence talks about something that already happened.", "es": "Esta oración habla de algo que ya pasó."},
+		"future_tense":       {"en": "This sentence talks about something that will happen.", "es": "Esta oración habla de algo que va a pasar."},
+		"conditional":        {"en": "This sentence expresses a possibility or hypothetical situation.", "es": "Esta oración expresa una posibilidad o situación hipotética."},
+		"passive_voice":      {"en": "This sentence focuses on the action rather than who did it.", "es": "Esta oración se enfoca en la acción más que en quién la hizo."},
+		"question":           {"en": "This is a question asking for information.", "es": "Esta es una pregunta que busca información."},
+		"present_perfect":    {"en": "This sentence connects a past action to the present.", "es": "Esta oración conecta una acción pasada con el presente."},
+		"comparison":         {"en": "This sentence compares things.", "es": "Esta oración compara cosas."},
+		"presente":           {"en": "This sentence describes something happening now or a general truth.", "es": "Esta oración describe algo que pasa ahora o una verdad general."},
+		"preterito":          {"en": "This sentence talks about a completed action in the past.", "es": "Esta oración habla de una acción completada en el pasado."},
+		"subjuntivo":         {"en": "This sentence expresses a wish, doubt, or something uncertain.", "es": "Esta oración expresa un deseo, duda o algo incierto."},
+		"verbos_reflexivos":  {"en": "This sentence uses verbs where the action reflects back on the person doing it.", "es": "Esta oración usa verbos donde la acción se refleja en quien la hace."},
+		"condicional":        {"en": "This sentence talks about what would happen under certain conditions.", "es": "Esta oración habla de lo que pasaría bajo ciertas condiciones."},
 	}
 
-	// Collect pattern info with matching words
-	type matchInfo struct {
-		name  string
-		words string
-	}
-	var matches []matchInfo
 	seen := map[string]bool{}
 	for _, p := range basic.Patterns {
 		if seen[p] {
 			continue
 		}
 		seen[p] = true
-		matchingWords := s.findPatternWords(text, language, p)
-		words := strings.Join(matchingWords, ", ")
-		matches = append(matches, matchInfo{name: p, words: words})
-	}
-
-	// Build a practical summary
-	var parts []string
-	parts = append(parts, sentenceDesc)
-
-	// Add word count info
-	wordNote := map[string]string{
-		"en": fmt.Sprintf("It has %d words.", wordCount),
-		"es": fmt.Sprintf("Tiene %d palabras.", wordCount),
-		"fr": fmt.Sprintf("Elle a %d mots.", wordCount),
-		"de": fmt.Sprintf("Sie hat %d Wörter.", wordCount),
-	}
-	if v, ok := wordNote[nativeLanguage]; ok {
-		parts = append(parts, v)
-	} else {
-		parts = append(parts, fmt.Sprintf("It has %d words.", wordCount))
-	}
-
-	// Add pattern observations in practical language
-	for _, m := range matches {
-		exp := s.getPatternExplanation(m.name, nativeLanguage)
-		// Take first sentence
-		if idx := strings.Index(exp, "."); idx > 0 {
-			exp = exp[:idx+1]
-		}
-		if m.words != "" {
-			obs := map[string]string{
-				"en": fmt.Sprintf("Notice the word(s) \"%s\" — %s", m.words, exp),
-				"es": fmt.Sprintf("Nota la(s) palabra(s) \"%s\" — %s", m.words, exp),
-				"fr": fmt.Sprintf("Remarquez le(s) mot(s) \"%s\" — %s", m.words, exp),
-				"de": fmt.Sprintf("Beachten Sie das/die Wort/Wörter \"%s\" — %s", m.words, exp),
-			}
-			if v, ok := obs[nativeLanguage]; ok {
+		if titles, ok := plainTitles[p]; ok {
+			if v, ok := titles[nativeLanguage]; ok {
 				parts = append(parts, v)
-			} else {
-				parts = append(parts, fmt.Sprintf("Notice the word(s) \"%s\" — %s", m.words, exp))
+			} else if v, ok := titles["en"]; ok {
+				parts = append(parts, v)
 			}
-		} else {
-			parts = append(parts, exp)
 		}
 	}
 
-	// Add a simple practice suggestion if patterns were found
-	if len(matches) > 0 {
-		practiceHint := map[string]string{
-			"en": "Try changing the verb to practice different tenses!",
-			"es": "¡Intenta cambiar el verbo para practicar diferentes tiempos!",
-			"fr": "Essayez de changer le verbe pour pratiquer différents temps !",
-			"de": "Versuchen Sie, das Verb zu ändern, um verschiedene Zeiten zu üben!",
+	if len(parts) == 0 {
+		defaults := map[string]string{
+			"en": "This is a straightforward sentence. Tap on the words below to see what each one means.",
+			"es": "Esta es una oración sencilla. Toca las palabras abajo para ver qué significa cada una.",
+			"fr": "C'est une phrase simple. Appuyez sur les mots ci-dessous pour voir ce que chacun signifie.",
+			"de": "Dies ist ein einfacher Satz. Tippen Sie auf die Wörter unten, um zu sehen, was jedes bedeutet.",
 		}
-		if v, ok := practiceHint[nativeLanguage]; ok {
-			parts = append(parts, v)
-		} else {
-			parts = append(parts, "Try changing the verb to practice different tenses!")
+		if v, ok := defaults[nativeLanguage]; ok {
+			return v
 		}
+		return defaults["en"]
 	}
 
 	return strings.Join(parts, " ")
+}
+
+// buildFallbackGrammarNotes creates plain-language grammar notes from regex patterns.
+func (s *GrammarService) buildFallbackGrammarNotes(text, language string, basic *models.GrammarAnalysis, nativeLanguage string) []models.GrammarNote {
+	plainNotes := map[string]map[string]models.GrammarNote{
+		"present_continuous": {
+			"en": {Title: "Happening right now", Explanation: "When you want to talk about something happening at this very moment, you use this form. It's built with 'am/is/are' plus a word ending in '-ing'.", Examples: []string{}},
+			"es": {Title: "Pasando ahora mismo", Explanation: "Cuando quieres hablar de algo que está pasando en este momento, usas esta forma. Se construye con 'am/is/are' más una palabra que termina en '-ing'.", Examples: []string{}},
+		},
+		"past_tense": {
+			"en": {Title: "Talking about the past", Explanation: "This is how you describe something that already happened. Regular words add '-ed' at the end, but many common words change completely (like 'go' becomes 'went').", Examples: []string{}},
+			"es": {Title: "Hablando del pasado", Explanation: "Así es como describes algo que ya pasó. Las palabras regulares añaden '-ed' al final, pero muchas palabras comunes cambian completamente (como 'go' se convierte en 'went').", Examples: []string{}},
+		},
+		"future_tense": {
+			"en": {Title: "Talking about what's coming", Explanation: "When you want to talk about something that hasn't happened yet, you use 'will' or 'going to' before the action word.", Examples: []string{}},
+			"es": {Title: "Hablando de lo que viene", Explanation: "Cuando quieres hablar de algo que todavía no ha pasado, usas 'will' o 'going to' antes de la palabra de acción.", Examples: []string{}},
+		},
+		"conditional": {
+			"en": {Title: "What if...?", Explanation: "This is used when talking about something that might happen or could happen under certain conditions. Words like 'would', 'could', and 'if' are common here.", Examples: []string{}},
+			"es": {Title: "¿Qué pasaría si...?", Explanation: "Se usa cuando hablas de algo que podría pasar bajo ciertas condiciones. Palabras como 'would', 'could' e 'if' son comunes aquí.", Examples: []string{}},
+		},
+		"presente": {
+			"en": {Title: "Describing now or general truths", Explanation: "This form is used for things happening now or things that are generally true. The word endings change depending on who is doing the action (I, you, he/she, we, they).", Examples: []string{}},
+			"es": {Title: "Describiendo el ahora o verdades generales", Explanation: "Esta forma se usa para cosas que pasan ahora o que son generalmente ciertas. Las terminaciones cambian dependiendo de quién hace la acción (yo, tú, él/ella, nosotros, ellos).", Examples: []string{}},
+		},
+		"preterito": {
+			"en": {Title: "Completed actions in the past", Explanation: "This form describes actions that started and finished in the past. The word endings change depending on who did the action.", Examples: []string{}},
+			"es": {Title: "Acciones completadas en el pasado", Explanation: "Esta forma describe acciones que empezaron y terminaron en el pasado. Las terminaciones cambian dependiendo de quién hizo la acción.", Examples: []string{}},
+		},
+		"subjuntivo": {
+			"en": {Title: "Expressing wishes or uncertainty", Explanation: "This form is used when talking about things that aren't certain — wishes, doubts, emotions, or things you hope will happen. It often appears after words like 'que' or 'ojalá'.", Examples: []string{}},
+			"es": {Title: "Expresando deseos o incertidumbre", Explanation: "Esta forma se usa cuando hablas de cosas que no son seguras — deseos, dudas, emociones o cosas que esperas que pasen. A menudo aparece después de palabras como 'que' u 'ojalá'.", Examples: []string{}},
+		},
+		"verbos_reflexivos": {
+			"en": {Title: "Actions that reflect back", Explanation: "Some verbs describe actions that a person does to themselves — like washing yourself, calling yourself, or getting yourself ready. These verbs use small words like 'me', 'te', 'se' before the action word.", Examples: []string{}},
+			"es": {Title: "Acciones que se reflejan", Explanation: "Algunos verbos describen acciones que una persona se hace a sí misma — como lavarse, llamarse o prepararse. Estos verbos usan palabritas como 'me', 'te', 'se' antes de la palabra de acción.", Examples: []string{}},
+		},
+		"condicional": {
+			"en": {Title: "What would happen", Explanation: "This form talks about what would happen under certain conditions. It's like saying 'I would go' or 'she would eat'. The word endings typically include 'ía'.", Examples: []string{}},
+			"es": {Title: "Lo que pasaría", Explanation: "Esta forma habla de lo que pasaría bajo ciertas condiciones. Es como decir 'yo iría' o 'ella comería'. Las terminaciones suelen incluir 'ía'.", Examples: []string{}},
+		},
+	}
+
+	var notes []models.GrammarNote
+	seen := map[string]bool{}
+	for _, p := range basic.Patterns {
+		if seen[p] {
+			continue
+		}
+		seen[p] = true
+		if noteMap, ok := plainNotes[p]; ok {
+			if note, ok := noteMap[nativeLanguage]; ok {
+				words := s.findPatternWords(text, language, p)
+				note.Examples = words
+				notes = append(notes, note)
+			} else if note, ok := noteMap["en"]; ok {
+				words := s.findPatternWords(text, language, p)
+				note.Examples = words
+				notes = append(notes, note)
+			}
+		}
+	}
+
+	return notes
 }
 
 // findPatternWords extracts the specific words from text that matched a grammar pattern.
@@ -927,7 +972,7 @@ func min(a, b int) int {
 }
 
 // parseAIGrammarAnalysis parses the AI API JSON response flexibly,
-// handling cases where detailedBreakdown items have nested objects instead of flat strings.
+// handling both the new rich format and the legacy format.
 func (s *GrammarService) parseAIGrammarAnalysis(rawJSON string) (*models.AIGrammarAnalysis, error) {
 	var raw map[string]interface{}
 	if err := json.Unmarshal([]byte(rawJSON), &raw); err != nil {
@@ -942,22 +987,25 @@ func (s *GrammarService) parseAIGrammarAnalysis(rawJSON string) (*models.AIGramm
 	if s, ok := raw["summary"].(string); ok {
 		result.Summary = s
 	}
+	if ss, ok := raw["sentenceStructure"].(string); ok {
+		result.SentenceStructure = ss
+	}
 
-	// Parse patterns
-	if patternsRaw, ok := raw["patterns"].([]interface{}); ok {
-		for _, p := range patternsRaw {
-			if pm, ok := p.(map[string]interface{}); ok {
-				gp := models.GrammarPattern{}
-				if n, ok := pm["name"].(string); ok {
-					gp.Name = n
+	// Parse keyPhrases
+	if kpRaw, ok := raw["keyPhrases"].([]interface{}); ok {
+		for _, kp := range kpRaw {
+			if km, ok := kp.(map[string]interface{}); ok {
+				phrase := models.KeyPhrase{}
+				if p, ok := km["phrase"].(string); ok {
+					phrase.Phrase = p
 				}
-				if d, ok := pm["description"].(string); ok {
-					gp.Description = d
+				if t, ok := km["translation"].(string); ok {
+					phrase.Translation = t
 				}
-				if e, ok := pm["example"].(string); ok {
-					gp.Example = e
+				if c, ok := km["context"].(string); ok {
+					phrase.Context = c
 				}
-				result.Patterns = append(result.Patterns, gp)
+				result.KeyPhrases = append(result.KeyPhrases, phrase)
 			}
 		}
 	}
@@ -974,13 +1022,21 @@ func (s *GrammarService) parseAIGrammarAnalysis(rawJSON string) (*models.AIGramm
 				if t, ok := bm["type"].(string); ok {
 					item.Type = t
 				}
+				if t, ok := bm["translation"].(string); ok {
+					item.Translation = t
+				}
+				if r, ok := bm["role"].(string); ok {
+					item.Role = r
+				}
+				if n, ok := bm["note"].(string); ok {
+					item.Note = n
+				}
 
 				// Explanation can be a string OR a nested object — handle both
 				switch exp := bm["explanation"].(type) {
 				case string:
 					item.Explanation = exp
 				case map[string]interface{}:
-					// Flatten nested object into a readable string
 					parts := []string{}
 					for k, v := range exp {
 						parts = append(parts, fmt.Sprintf("%s: %v", k, v))
@@ -993,6 +1049,29 @@ func (s *GrammarService) parseAIGrammarAnalysis(rawJSON string) (*models.AIGramm
 				}
 
 				result.DetailedBreakdown = append(result.DetailedBreakdown, item)
+			}
+		}
+	}
+
+	// Parse grammarNotes
+	if gnRaw, ok := raw["grammarNotes"].([]interface{}); ok {
+		for _, gn := range gnRaw {
+			if gm, ok := gn.(map[string]interface{}); ok {
+				note := models.GrammarNote{}
+				if t, ok := gm["title"].(string); ok {
+					note.Title = t
+				}
+				if e, ok := gm["explanation"].(string); ok {
+					note.Explanation = e
+				}
+				if exRaw, ok := gm["examples"].([]interface{}); ok {
+					for _, ex := range exRaw {
+						if exStr, ok := ex.(string); ok {
+							note.Examples = append(note.Examples, exStr)
+						}
+					}
+				}
+				result.GrammarNotes = append(result.GrammarNotes, note)
 			}
 		}
 	}
@@ -1193,7 +1272,7 @@ func (s *GrammarService) callGrammarAPI(prompt, nativeLangName string) (string, 
 			{Role: "user", Content: prompt},
 		},
 		Temperature: 0.3,
-		MaxTokens:   2048,
+		MaxTokens:   4096,
 	}
 
 	body, err := json.Marshal(chatReq)
