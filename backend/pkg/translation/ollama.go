@@ -72,7 +72,7 @@ func (p *OllamaProvider) Translate(ctx context.Context, req TranslateRequest) (T
 		langName = req.TargetLang
 	}
 
-	prompt := fmt.Sprintf("Translate the following text to %s. Return ONLY the translated text, preserving all original formatting.\n\n%s", langName, req.Text)
+	prompt := fmt.Sprintf("Translate ALL of the following text to %s. Do not skip any part. Return ONLY the complete translated text, preserving all original formatting.\n\n%s", langName, req.Text)
 
 	chatReq := ollamaChatRequest{
 		Model: p.model,
@@ -84,7 +84,7 @@ func (p *OllamaProvider) Translate(ctx context.Context, req TranslateRequest) (T
 		Options: map[string]any{
 			"temperature": 0.1,
 			"top_p":       0.9,
-			"num_predict": 128,
+			"num_predict": 512,
 		},
 	}
 

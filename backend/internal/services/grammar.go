@@ -1056,7 +1056,9 @@ case "breakdown":
 </task>
 
 <constraints>
-- NEVER include analytical fluff like word counts, character counts, or robotic timestamps which do not help users.
+- Respond ONLY with plain text. Emoticons are ok. Just no JSON or XML 
+- Do NOT use JSON, markdown headers, code fences, or list bullets.
+- NEVER include analytical fluff like word counts, character counts, or robotic timestamps.
 - Avoid abstract, intimidating textbook jargon (e.g., instead of "imperfect indicative", use relatable terms like "ongoing past action").
 - Keep sentences short, conversational, and hyper-focused on helping the student understand *why* the phrase means what it means.
 </constraints>
@@ -1182,8 +1184,7 @@ func (s *GrammarService) callGrammarAPI(prompt, nativeLangName string) (string, 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	systemMsg := fmt.Sprintf(`You are a friendly language tutor teaching a student who speaks %s.
-Return ONLY valid JSON. No markdown, no code fences, no commentary before or after.`, nativeLangName)
+	systemMsg := fmt.Sprintf(`You are a friendly language tutor teaching a student who speaks %s. Follow the user's instructions for the response format.`, nativeLangName)
 
 	chatReq := grammarChatRequest{
 		Model: s.model,

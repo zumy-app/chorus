@@ -109,68 +109,52 @@ if ($SplitWindows) {
             `$env:PORT = '8080'
             `$env:TRANSLATION_PROVIDER_NAME = 'opencode'
             Write-Host 'Backend starting...' -ForegroundColor Cyan
-            # Watch for .go file changes and restart
-            `$watcher = New-Object System.IO.FileSystemWatcher
-            `$watcher.Path = '$BackendDir'
-            `$watcher.Filter = '*.go'
-            `$watcher.IncludeSubdirectories = `$true
-            `$watcher.EnableRaisingEvents = `$true
             `$lastRestart = Get-Date
             `$proc = $null
             function Start-Backend {
-                if (`$proc -and -not `$proc.HasExited) { `$proc.Kill() }
-                Start-Sleep 1
-                `$script:proc = Start-Process -FilePath 'go' -ArgumentList 'run','./cmd/server' -NoNewWindow -PassThru -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
+                if (`$proc -and -not `$proc.HasExited) { `$proc.Kill(); Start-Sleep 1 }
+                `$script:proc = Start-Process -FilePath 'go' -ArgumentList 'run','./cmd/server' -NoNewWindow -PassThru
             }
             Start-Backend
-            Register-ObjectEvent `$watcher "Changed" -Action {
-                if (((Get-Date) - `$script:lastRestart).TotalSeconds -gt 2) {
-                    Write-Host "`n  File changed. Restarting backend..." -ForegroundColor Yellow
-                    `$script:lastRestart = Get-Date
-                    Start-Backend
-                }
-            } | Out-Null
-            # Tail output
+            `$fileTimes = @{}
+            Get-ChildItem -Recurse -Filter *.go . | ForEach-Object { `$fileTimes[`$_.FullName] = `$_.LastWriteTimeUtc }
             while (`$true) {
-                if (Test-Path "stdout.txt") { Get-Content "stdout.txt" -Tail 0 -Wait }
-                Start-Sleep 0.5
+                Start-Sleep -Seconds 1
+                `$changed = Get-ChildItem -Recurse -Filter *.go . | Where-Object { `$fileTimes[`$_.FullName] -ne `$_.LastWriteTimeUtc }
+                if (`$changed) {
+                    foreach (`$f in `$changed) { `$fileTimes[`$f.FullName] = `$f.LastWriteTimeUtc }
+                    if (((Get-Date) - `$lastRestart).TotalSeconds -gt 2) {
+                        Write-Host "`n  File changed. Restarting backend..." -ForegroundColor Yellow
+                        `$lastRestart = Get-Date
+                        Start-Backend
+                    }
+                }
             }
 "@
     ) -WindowStyle Normal
 } else {
     Log "  Starting backend in this terminal. Files in backend/ will auto-restart." Yellow
-    Log "  --- backend output ---" Cyan
-
-    $watcher = New-Object System.IO.FileSystemWatcher
-    $watcher.Path = $BackendDir
-    $watcher.Filter = '*.go'
-    $watcher.IncludeSubdirectories = $true
-    $watcher.EnableRaisingEvents = $true
 
     $global:lastRestart = Get-Date
     $global:backendProc = $null
 
-    function Start-Backend {
+    function global:Start-Backend {
         if ($global:backendProc -and -not $global:backendProc.HasExited) {
             try { $global:backendProc.Kill() } catch {}
             Start-Sleep 1
         }
         Push-Location $BackendDir
-        $global:backendProc = Start-Process -FilePath "go" -ArgumentList "run","./cmd/server" -NoNewWindow -PassThru -RedirectStandardOutput "$BackendDir\.dev-stdout.txt" -RedirectStandardError "$BackendDir\.dev-stderr.txt"
+        $global:backendProc = Start-Process -FilePath "go" -ArgumentList "run","./cmd/server" -NoNewWindow -PassThru
         Pop-Location
     }
 
     Start-Backend
 
-    Register-ObjectEvent $watcher "Changed" -Action {
-        if (((Get-Date) - $global:lastRestart).TotalSeconds -gt 2) {
-            Write-Host "`n  File changed. Restarting backend..." -ForegroundColor Yellow
-            $global:lastRestart = Get-Date
-            Start-Backend
-        }
-    } | Out-Null
+    # Build initial file-write timestamps for .go files
+    $fileWriteTimes = @{}
+    Get-ChildItem -Recurse -Filter *.go $BackendDir | ForEach-Object { $fileWriteTimes[$_.FullName] = $_.LastWriteTimeUtc }
 
-    # Start frontend BEFORE entering tail loop
+    # Start frontend in a new window
     $frontendScript = @"
 Set-Location '$FrontendDir'
 if (-not (Test-Path node_modules)) { npm install }
@@ -183,18 +167,21 @@ npm run dev
     Ok "Frontend starting in new window (Vite HMR on http://localhost:3000)"
     Log ""
 
-    # Tail backend output
-    $stdoutFile = Join-Path $BackendDir ".dev-stdout.txt"
-    $stderrFile = Join-Path $BackendDir ".dev-stderr.txt"
+    # Poll for .go file changes and restart backend
     try {
         while ($true) {
-            if (Test-Path $stdoutFile) {
-                Get-Content $stdoutFile -Tail 0 -Wait -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 1
+            $changed = Get-ChildItem -Recurse -Filter *.go $BackendDir | Where-Object {
+                $fileWriteTimes[$_.FullName] -ne $_.LastWriteTimeUtc
             }
-            if (Test-Path $stderrFile) {
-                Get-Content $stderrFile -Tail 0 -Wait -ErrorAction SilentlyContinue
+            if ($changed) {
+                foreach ($f in $changed) { $fileWriteTimes[$f.FullName] = $f.LastWriteTimeUtc }
+                if (((Get-Date) - $global:lastRestart).TotalSeconds -gt 2) {
+                    $global:lastRestart = Get-Date
+                    Write-Host "`n  File changed. Restarting backend..." -ForegroundColor Yellow
+                    Start-Backend
+                }
             }
-            Start-Sleep 0.5
         }
     } finally {
         if ($global:backendProc -and -not $global:backendProc.HasExited) {

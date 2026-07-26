@@ -52,7 +52,9 @@ func (s *TranslationService) TranslateQuick(text, targetLang, sourceLang string)
 		return "", errors.New("translation provider not configured")
 	}
 
-	cacheKey := fmt.Sprintf("translation:%s:%s:%s:%s", s.provider.Name(), sourceLang, targetLang, text)
+	// Cache version — bump this to invalidate all cached translations after prompt/model changes.
+	const cacheVersion = "v2"
+	cacheKey := fmt.Sprintf("translation:%s:%s:%s:%s:%s", cacheVersion, s.provider.Name(), sourceLang, targetLang, text)
 	if s.redis != nil {
 		cached, err := s.redis.Get(s.ctx, cacheKey).Result()
 		if err == nil && cached != "" {

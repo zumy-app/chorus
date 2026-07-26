@@ -77,7 +77,7 @@ func (p *EngineProvider) Translate(ctx context.Context, req TranslateRequest) (T
 		sourceInfo = fmt.Sprintf(" from %s", sourceName)
 	}
 
-	userMsg := fmt.Sprintf("Translate the following text%s to %s. Return ONLY the translated text.\n\n%s",
+	userMsg := fmt.Sprintf("Translate ALL of the following text%s to %s. Do not skip any part. Return ONLY the complete translated text.\n\n%s",
 		sourceInfo, langName, req.Text)
 
 	chatReq := engineChatRequest{
@@ -87,7 +87,7 @@ func (p *EngineProvider) Translate(ctx context.Context, req TranslateRequest) (T
 			{Role: "user", Content: userMsg},
 		},
 		Temperature: 0.1,
-		MaxTokens:   512,
+		MaxTokens:   2048,
 	}
 
 	body, err := json.Marshal(chatReq)
