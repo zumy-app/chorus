@@ -58,7 +58,7 @@ Log ""
 # ──────────────────────────────────────────────
 Log "▶ [2/5] Starting Docker services (PostgreSQL, Redis)..." Yellow
 
-docker compose -f $ComposeFile up -d --remove-orphans postgres redis 2>&1 | ForEach-Object {
+docker compose -f $ComposeFile up -d --remove-orphans --force-recreate ollama postgres redis 2>&1 | ForEach-Object {
     $line = $_.ToString().Trim()
     if ($line -ne "") { Write-Host "  $line" }
 }
@@ -86,6 +86,33 @@ for ($i = 0; $i -lt 15; $i++) {
 }
 if ($redisReady) { Ok "Redis healthy" } else { Warn "Redis not healthy yet" }
 
+# Wait for Ollama to be healthy (docker healthcheck), then ensure the model exists
+Log "  Waiting for Ollama to be healthy..." Yellow
+$ollamaReady = $false
+for ($i = 0; $i -lt 30; $i++) {
+    $status = docker inspect --format='{{.State.Health.Status}}' chorus-ollama 2>$null
+    if ($status -eq "healthy") { $ollamaReady = $true; break }
+    if ($i -gt 0 -and $i % 10 -eq 0) { Write-Host "  ...waiting for Ollama ($($i*2)s)" }
+    Start-Sleep -Seconds 2
+}
+if ($ollamaReady) {
+    # Check if the model exists, if not pull it
+    $modelList = docker exec chorus-ollama ollama list 2>$null | Out-String
+    if ($modelList -notmatch "llama3.2:3b-instruct-q4_K_M") {
+        Warn "Model not found. Pulling llama3.2:3b-instruct-q4_K_M (may take 2-5 min)..."
+        docker exec chorus-ollama ollama pull llama3.2:3b-instruct-q4_K_M
+        if ($LASTEXITCODE -eq 0) {
+            Ok "Model ready (llama3.2:3b-instruct-q4_K_M)"
+        } else {
+            Warn "Failed to pull model. Check if Ollama has internet access."
+        }
+    } else {
+        Ok "Ollama healthy (llama3.2:3b-instruct-q4_K_M ready)"
+    }
+} else {
+    Warn "Ollama not ready yet - backend will fall through to other providers"
+}
+
 # ──────────────────────────────────────────────
 # 4. Run backend with air (hot-reload)
 # ──────────────────────────────────────────────
@@ -108,12 +135,6 @@ $env:DATABASE_URL = "postgres://messenger:password@localhost:5432/messenger_dev?
 $env:REDIS_URL = "localhost:6379"
 $env:JWT_SECRET = "dev-jwt-secret-key-for-testing-only"
 $env:PORT = "8080"
-$env:TRANSLATION_PROVIDER_NAME = "opencode"
-
-# Grammar AI analysis also uses the same provider
-$env:GRAMMAR_API_URL = "https://opencode.ai/zen/go/v1"
-$env:GRAMMAR_API_KEY = "sk-Y7Sq9pcfewDhbozFiPzhPOoqZzAszipdq7ed9HNcLGBx4DqBwEZl6xsJMiWbemvU"
-$env:GRAMMAR_MODEL = "deepseek-v4-flash"
 
 # Check if air is installed, install if not
 $airInstalled = Get-Command air -ErrorAction SilentlyContinue
@@ -148,10 +169,6 @@ if ($SplitWindows) {
             `$env:REDIS_URL = 'localhost:6379'
             `$env:JWT_SECRET = 'dev-jwt-secret-key-for-testing-only'
             `$env:PORT = '8080'
-            `$env:TRANSLATION_PROVIDER_NAME = 'opencode'
-            `$env:GRAMMAR_API_URL = 'https://opencode.ai/zen/go/v1'
-            `$env:GRAMMAR_API_KEY = 'sk-Y7Sq9pcfewDhbozFiPzhPOoqZzAszipdq7ed9HNcLGBx4DqBwEZl6xsJMiWbemvU'
-            `$env:GRAMMAR_MODEL = 'deepseek-v4-flash'
             Write-Host 'Backend starting with air (hot-reload)...' -ForegroundColor Cyan
             air -c .air.toml
 "@
@@ -159,18 +176,39 @@ if ($SplitWindows) {
 } else {
     Log "  Starting backend with air (hot-reload on .go file changes)..." Yellow
 
-    # Start frontend in a new window
-    $frontendScript = @"
+    # Start frontend in a new window (unless already running on :3000)
+    $frontendRunning = netstat -ano 2>$null | Select-String "LISTENING" | Select-String ":3000\s"
+    if ($frontendRunning) {
+        Log "  Frontend already running on http://localhost:3000, skipping" Yellow
+    } else {
+        $frontendScript = @"
 Set-Location '$FrontendDir'
 if (-not (Test-Path node_modules)) { npm install }
 Write-Host 'Frontend (Vite HMR) starting...' -ForegroundColor Cyan
 npm run dev
 "@
-    $scriptPath = Join-Path $env:TEMP "start-frontend.ps1"
-    Set-Content -Path $scriptPath -Value $frontendScript -Force
-    Start-Process powershell -ArgumentList @("-NoExit", "-File", $scriptPath) -WindowStyle Normal
-    Ok "Frontend starting in new window (Vite HMR on http://localhost:3000)"
-    Log ""
+        $frontendScriptPath = Join-Path $env:TEMP "start-frontend.ps1"
+        Set-Content -Path $frontendScriptPath -Value $frontendScript -Force
+        $frontendProc = Start-Process powershell -ArgumentList @("-NoExit", "-File", $frontendScriptPath) -WindowStyle Normal -PassThru
+        $frontendPid = $frontendProc.Id
+        $parentPid = $PID
+        Ok "Frontend starting in new window (PID $frontendPid, Vite HMR on http://localhost:3000)"
+        Log ""
+
+        # Launch a hidden watcher that kills the frontend when this script exits
+        $watcherScript = @"
+`$parentPid = $parentPid
+`$frontendPid = $frontendPid
+while (Get-Process -Id `$parentPid -ErrorAction SilentlyContinue) {
+    Start-Sleep -Seconds 2
+}
+Start-Sleep -Seconds 1
+Stop-Process -Id `$frontendPid -Force -ErrorAction SilentlyContinue
+"@
+        $watcherPath = Join-Path $env:TEMP "watch-frontend.ps1"
+        Set-Content -Path $watcherPath -Value $watcherScript -Force
+        Start-Process powershell -ArgumentList @("-WindowStyle", "Hidden", "-File", $watcherPath) -WindowStyle Hidden
+    }
 
     # Run air in the current terminal
     Push-Location $BackendDir
@@ -188,17 +226,22 @@ Log ""
 if ($SplitWindows) {
     Log "▶ [5/5] Starting frontend with Vite HMR..." Yellow
 
-    $frontendScript = @"
+    $frontendRunning = netstat -ano 2>$null | Select-String "LISTENING" | Select-String ":3000\s"
+    if ($frontendRunning) {
+        Log "  Frontend already running on http://localhost:3000, skipping" Yellow
+    } else {
+        $frontendScript = @"
 Set-Location '$FrontendDir'
 if (-not (Test-Path node_modules)) { npm install }
 Write-Host 'Frontend (Vite HMR) starting...' -ForegroundColor Cyan
 npm run dev
 "@
-    $scriptPath = Join-Path $env:TEMP "start-frontend.ps1"
-    Set-Content -Path $scriptPath -Value $frontendScript -Force
-    Start-Process powershell -ArgumentList @("-NoExit", "-File", $scriptPath) -WindowStyle Normal
-    Ok "Frontend starting in new window (Vite HMR on http://localhost:3000)"
-    Log ""
+        $scriptPath = Join-Path $env:TEMP "start-frontend.ps1"
+        Set-Content -Path $scriptPath -Value $frontendScript -Force
+        Start-Process powershell -ArgumentList @("-NoExit", "-File", $scriptPath) -WindowStyle Normal
+        Ok "Frontend starting in new window (Vite HMR on http://localhost:3000)"
+        Log ""
+    }
 }
 
 # ──────────────────────────────────────────────

@@ -7,6 +7,7 @@ interface GrammarPanelProps {
   messageText: string
   messageLanguage: string
   onClose: () => void
+  providerUsed?: string
 }
 
 const labels: Record<string, Record<string, string>> = {
@@ -32,7 +33,7 @@ const typeColors: Record<string, string> = {
   phrase: 'bg-gray-100 text-gray-600',
 }
 
-export default function GrammarPanel({ analysis, nativeLanguage, messageText, messageLanguage, onClose }: GrammarPanelProps) {
+export default function GrammarPanel({ analysis, nativeLanguage, messageText, messageLanguage, onClose, providerUsed }: GrammarPanelProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'wordByWord' | 'grammar'>('overview')
   const [showLearning, setShowLearning] = useState(false)
   const [expandedWord, setExpandedWord] = useState<number | null>(null)
@@ -52,6 +53,11 @@ export default function GrammarPanel({ analysis, nativeLanguage, messageText, me
           {analysis.difficulty && analysis.difficulty !== 'N/A' && (
             <span className="text-[10px] bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded-full font-bold">
               {analysis.difficulty}
+            </span>
+          )}
+          {providerUsed && providerUsed !== 'cache' && (
+            <span className="text-[9px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">
+              {providerUsed === 'regex-fallback' ? '📊 regex' : `⚡ ${providerUsed}`}
             </span>
           )}
         </div>

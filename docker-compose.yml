@@ -72,6 +72,30 @@ services:
       - backend
     restart: unless-stopped
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: chorus-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_NUM_PARALLEL=1
+      - OLLAMA_MAX_LOADED_MODELS=1
+      - OLLAMA_KEEP_ALIVE=5m
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+          cpus: '2'
+
 volumes:
   postgres_data:
   redis_data:
+  ollama_data:

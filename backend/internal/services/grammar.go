@@ -40,23 +40,44 @@ type grammarChatResponse struct {
 	Choices []grammarChatChoice `json:"choices"`
 }
 
-// GrammarService handles grammar analysis for language learning
-type GrammarService struct {
-	redis      *redis.Client
-	apiURL     string
-	apiKey     string
-	model      string
-	httpClient *http.Client
+// GrammarEndpoint holds the config for a single AI API endpoint in the chain.
+type GrammarEndpoint struct {
+	Name    string
+	APIURL  string
+	APIKey  string
+	Model   string
+	Timeout time.Duration
+	client  *http.Client
 }
 
-// NewGrammarService creates a new Grammar service
-func NewGrammarService(redis *redis.Client, apiURL, apiKey, model string) *GrammarService {
+// NewGrammarEndpoint creates a ready-to-use endpoint.
+func NewGrammarEndpoint(name, apiURL, apiKey, model string, timeout int) GrammarEndpoint {
+	d := 90 * time.Second
+	if timeout > 0 {
+		d = time.Duration(timeout) * time.Second
+	}
+	return GrammarEndpoint{
+		Name:    name,
+		APIURL:  strings.TrimRight(apiURL, "/"),
+		APIKey:  apiKey,
+		Model:   model,
+		Timeout: d,
+		client:  &http.Client{Timeout: d},
+	}
+}
+
+// GrammarService handles grammar analysis for language learning
+type GrammarService struct {
+	redis     *redis.Client
+	endpoints []GrammarEndpoint
+}
+
+// NewGrammarService creates a new Grammar service with an ordered list of endpoints.
+// Endpoints are tried in sequence; if one fails (e.g. 429), the next is tried.
+func NewGrammarService(redis *redis.Client, endpoints []GrammarEndpoint) *GrammarService {
 	return &GrammarService{
-		redis:      redis,
-		apiURL:     strings.TrimRight(apiURL, "/"),
-		apiKey:     apiKey,
-		model:      model,
-		httpClient: &http.Client{Timeout: 90 * time.Second},
+		redis:     redis,
+		endpoints: endpoints,
 	}
 }
 
@@ -609,10 +630,13 @@ func (s *GrammarService) GenerateGrammarReport(userID, language string) (map[str
 
 // GenerateAIAnalysis uses the AI API to produce a rich grammar analysis,
 // enriched with pattern names, descriptions, examples, and a plain-language summary.
-// Falls back to the regex-based analysis if the AI API is unavailable.
-func (s *GrammarService) GenerateAIAnalysis(text, language, nativeLanguage string) (*models.AIGrammarAnalysis, error) {
-	if s.apiURL == "" || s.apiKey == "" {
-		return s.fallbackAIAnalysis(text, language, nativeLanguage)
+// Falls back to the regex-based analysis if all AI endpoints are unavailable.
+// Returns the analysis, the provider name that succeeded (or "regex-fallback"), and any error.
+func (s *GrammarService) GenerateAIAnalysis(text, language, nativeLanguage string) (*models.AIGrammarAnalysis, string, error) {
+	if len(s.endpoints) == 0 {
+		log.Printf("[Grammar] no AI endpoints configured, using regex fallback")
+		analysis, err := s.fallbackAIAnalysis(text, language, nativeLanguage)
+		return analysis, "regex-fallback", err
 	}
 
 	// Cache version — bump this to invalidate all cached grammar analyses after prompt/model changes.
@@ -623,7 +647,7 @@ func (s *GrammarService) GenerateAIAnalysis(text, language, nativeLanguage strin
 		if err == nil && cached != "" {
 			var result models.AIGrammarAnalysis
 			if json.Unmarshal([]byte(cached), &result) == nil {
-				return &result, nil
+				return &result, "cache", nil
 			}
 		}
 	}
@@ -676,12 +700,13 @@ Return ONLY valid JSON (no markdown, no code fences). Use this EXACT structure:
 </rules>`, nativeLangName, text, "", langName)
 
 	log.Printf("[Grammar] Calling AI API for text: %.50s... (language=%s, native=%s)", text, language, nativeLanguage)
-	result, err := s.callGrammarAPI(prompt, nativeLangName)
+	result, providerUsed, err := s.callGrammarAPI(prompt, nativeLangName)
 	if err != nil {
-		log.Printf("[Grammar] AI API call failed: %v", err)
-		return s.fallbackAIAnalysis(text, language, nativeLanguage)
+		log.Printf("[Grammar] all AI endpoints failed: %v", err)
+		analysis, err := s.fallbackAIAnalysis(text, language, nativeLanguage)
+		return analysis, "regex-fallback", err
 	}
-	log.Printf("[Grammar] AI API returned %d characters", len(result))
+	log.Printf("[Grammar] provider %q returned %d characters", providerUsed, len(result))
 
 	// Strip markdown code fences and leading/trailing whitespace
 	cleaned := strings.TrimSpace(result)
@@ -706,7 +731,8 @@ Return ONLY valid JSON (no markdown, no code fences). Use this EXACT structure:
 	aiResult, err := s.parseAIGrammarAnalysis(cleaned)
 	if err != nil {
 		log.Printf("[Grammar] JSON parsing failed, falling back to regex: %v", err)
-		return s.fallbackAIAnalysis(text, language, nativeLanguage)
+		analysis, err := s.fallbackAIAnalysis(text, language, nativeLanguage)
+		return analysis, "regex-fallback", err
 	}
 
 	// Fill in any missing patterns from regex analysis
@@ -720,7 +746,7 @@ Return ONLY valid JSON (no markdown, no code fences). Use this EXACT structure:
 		}
 	}
 
-	return aiResult, nil
+	return aiResult, providerUsed, nil
 }
 
 // fallbackAIAnalysis returns a regex-based analysis when the AI API is unavailable.
@@ -1103,10 +1129,10 @@ func (s *GrammarService) regexPatternsToGrammarPatterns(text, language string) [
 // Prompts ask for plain text responses, so the result is returned as-is without
 // attempting JSON parsing.
 func (s *GrammarService) GenerateLearningContent(text, language, nativeLanguage, action, customQuery string) (*models.LearningContent, error) {
-	if s.apiURL == "" || s.apiKey == "" {
+	if len(s.endpoints) == 0 {
 		return &models.LearningContent{
 			Action:           action,
-			Content:          "AI learning is not available. Please configure an AI API key.",
+			Content:          "AI learning is not available. Please configure an AI API endpoint.",
 			Details:          []string{},
 			SuggestedActions: []string{"breakdown", "examples", "flashcards"},
 		}, nil
@@ -1208,7 +1234,7 @@ default:
 }
 
 	// Use a 30-second timeout so the AI Tutor panel doesn't hang indefinitely.
-	result, err := s.callGrammarAPI(prompt, nativeLangName)
+	result, providerUsed, err := s.callGrammarAPI(prompt, nativeLangName)
 	if err != nil {
 		return &models.LearningContent{
 			Action:           action,
@@ -1217,6 +1243,7 @@ default:
 			SuggestedActions: []string{"breakdown", "examples", "flashcards"},
 		}, nil
 	}
+	log.Printf("[Grammar] Learning content via %q", providerUsed)
 
 	// Strip any markdown fences the model may have added despite being told not to.
 	cleaned := strings.TrimSpace(result)
@@ -1258,15 +1285,30 @@ func nextActionsFor(action string) []string {
 	}
 }
 
-// callGrammarAPI sends a prompt to the OpenAI-compatible API and returns the text response.
-func (s *GrammarService) callGrammarAPI(prompt, nativeLangName string) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+// callGrammarAPI tries each configured endpoint in sequence.
+// Returns the response text and the name of the provider that succeeded.
+func (s *GrammarService) callGrammarAPI(prompt, nativeLangName string) (string, string, error) {
+	var lastErr error
+	for _, ep := range s.endpoints {
+		result, err := ep.call(prompt, nativeLangName)
+		if err == nil {
+			return result, ep.Name, nil
+		}
+		lastErr = err
+		log.Printf("[Grammar] endpoint %q failed: %v — trying next", ep.Name, err)
+	}
+	return "", "", fmt.Errorf("all %d endpoints exhausted: %w", len(s.endpoints), lastErr)
+}
+
+// call sends a single chat completion request to this endpoint.
+func (ep *GrammarEndpoint) call(prompt, nativeLangName string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), ep.Timeout)
 	defer cancel()
 
 	systemMsg := fmt.Sprintf(`You are a friendly language tutor teaching a student who speaks %s. Follow the user's instructions for the response format.`, nativeLangName)
 
 	chatReq := grammarChatRequest{
-		Model: s.model,
+		Model: ep.Model,
 		Messages: []grammarChatMessage{
 			{Role: "system", Content: systemMsg},
 			{Role: "user", Content: prompt},
@@ -1280,16 +1322,16 @@ func (s *GrammarService) callGrammarAPI(prompt, nativeLangName string) (string, 
 		return "", fmt.Errorf("grammar marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", s.apiURL+"/chat/completions", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, "POST", ep.APIURL+"/chat/completions", bytes.NewReader(body))
 	if err != nil {
 		return "", fmt.Errorf("grammar create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if s.apiKey != "" {
-		req.Header.Set("Authorization", "Bearer "+s.apiKey)
+	if ep.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+ep.APIKey)
 	}
 
-	resp, err := s.httpClient.Do(req)
+	resp, err := ep.client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("grammar API request failed: %w", err)
 	}

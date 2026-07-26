@@ -31,6 +31,8 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
   const [showGrammar, setShowGrammar] = useState(false)
   const [grammarAnalysis, setGrammarAnalysis] = useState<any>(null)
   const [loadingGrammar, setLoadingGrammar] = useState(false)
+  const [grammarProvider, setGrammarProvider] = useState<string | null>(null)
+  const [showFallbackMsg, setShowFallbackMsg] = useState(false)
 
   const nativeTranslation = message.translations?.[nativeLanguage]
   const showNativeTranslation = nativeTranslation && nativeTranslation !== message.text
@@ -46,6 +48,14 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
     : null
   const showTargetTranslation = targetTranslation && targetTranslation !== message.text
 
+  // Show fallback message after 3s during loading (indicates provider chain is trying alternatives)
+  useEffect(() => {
+    if (loadingGrammar) {
+      const timer = setTimeout(() => setShowFallbackMsg(true), 3000)
+      return () => clearTimeout(timer)
+    }
+    setShowFallbackMsg(false)
+  }, [loadingGrammar])
   // Re-run AI grammar analysis when translations arrive (WebSocket update)
   const prevNativeTranslation = useRef(nativeTranslation)
   useEffect(() => {
@@ -71,12 +81,14 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
       return
     }
     if (!silent) setLoadingGrammar(true)
+    setGrammarProvider(null)
     try {
       // Always analyze the ORIGINAL message text.
       // Use the sender's native language as fallback when originalLanguage is not set.
       const sourceLang = message.originalLanguage || message.sender?.nativeLanguage || 'en'
       const response = await grammarAPI.analyzeAI(message.text, sourceLang, nativeLanguage)
       setGrammarAnalysis(response.analysis || response)
+      setGrammarProvider(response.provider_used || null)
       if (!silent) setShowGrammar(true)
     } catch (err) {
       console.error('AI grammar analysis failed, falling back to regex:', err)
@@ -85,6 +97,7 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
         const sourceLang = message.originalLanguage || message.sender?.nativeLanguage || 'en'
         const response = await grammarAPI.analyze(message.text, sourceLang, nativeLanguage)
         setGrammarAnalysis(response.analysis || response)
+        setGrammarProvider(null)
         if (!silent) setShowGrammar(true)
       } catch (fallbackErr) {
         console.error('Grammar analysis failed:', fallbackErr)
@@ -183,6 +196,7 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
             messageText={message.text}
             messageLanguage={message.originalLanguage || message.sender?.nativeLanguage || 'en'}
             onClose={() => setShowGrammar(false)}
+            providerUsed={grammarProvider || undefined}
           />
         )}
 
@@ -197,7 +211,7 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
               {loadingGrammar ? (
                 <span className="flex items-center gap-1">
                   <span className="inline-block w-1 h-1 bg-amber-600 rounded-full animate-pulse" />
-                  {getLabel('analyzing', nativeLanguage)}
+                  {showFallbackMsg ? '🔄 Switching models...' : getLabel('analyzing', nativeLanguage)}
                 </span>
               ) : (
                 `📝 ${getLabel('grammar', nativeLanguage)}`

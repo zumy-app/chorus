@@ -1,0 +1,161 @@
+name: chorus
+services:
+  backend:
+    build:
+      context: C:\dev\chorus\backend
+      dockerfile: Dockerfile
+    container_name: chorus-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: true
+      redis:
+        condition: service_healthy
+        required: true
+    environment:
+      APPWRITE_API_KEY: ""
+      APPWRITE_DATABASE_ID: 6955749200181b13d9d6
+      APPWRITE_ENDPOINT: https://appwrite.zumy.app/v1
+      APPWRITE_PROJECT_ID: 6955733a001c10e7c020
+      DATABASE_URL: postgres://messenger:password@postgres:5432/messenger_dev?sslmode=disable
+      ENVIRONMENT: development
+      GRAMMAR_PROVIDER_ORDER: opencode_go,opencode_zen
+      JWT_SECRET: your-secret-key-change-in-production
+      PORT: "8080"
+      PROVIDER_OLLAMA_LOCAL_API_URL: http://localhost:11434
+      PROVIDER_OLLAMA_LOCAL_MODEL: fast-translator
+      PROVIDER_OLLAMA_LOCAL_TYPE: ollama
+      PROVIDER_OPENCODE_GO_API_KEY: sk-Y7Sq9pcfewDhbozFiPzhPOoqZzAszipdq7ed9HNcLGBx4DqBwEZl6xsJMiWbemvU
+      PROVIDER_OPENCODE_GO_API_URL: https://opencode.ai/zen/go/v1
+      PROVIDER_OPENCODE_GO_MODEL: deepseek-v4-flash
+      PROVIDER_OPENCODE_GO_TYPE: opencode
+      PROVIDER_OPENCODE_ZEN_API_KEY: sk-Y7Sq9pcfewDhbozFiPzhPOoqZzAszipdq7ed9HNcLGBx4DqBwEZl6xsJMiWbemvU
+      PROVIDER_OPENCODE_ZEN_API_URL: https://opencode.ai/zen/v1
+      PROVIDER_OPENCODE_ZEN_MODEL: big-pickle
+      PROVIDER_OPENCODE_ZEN_TYPE: opencode
+      REDIS_URL: redis:6379
+      TRANSLATION_PROVIDER_ORDER: opencode_go,opencode_zen,ollama_local
+      VPS_IP: 147.93.191.102
+      VPS_USER: uhsarp
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 8080
+        published: "8080"
+        protocol: tcp
+    restart: unless-stopped
+  frontend:
+    build:
+      context: C:\dev\chorus\frontend
+      dockerfile: Dockerfile
+    container_name: chorus-frontend
+    depends_on:
+      backend:
+        condition: service_started
+        required: true
+    environment:
+      VITE_APPWRITE_CLIENT_API_KEY: ""
+      VITE_APPWRITE_DATABASE_ID: ""
+      VITE_APPWRITE_ENDPOINT: ""
+      VITE_APPWRITE_PROJECT_ID: ""
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 3000
+        published: "3000"
+        protocol: tcp
+    restart: unless-stopped
+  ollama:
+    command:
+      - ollama
+      - serve
+    container_name: chorus-ollama
+    deploy:
+      resources:
+        limits:
+          cpus: 2
+          memory: "4294967296"
+    entrypoint:
+      - /bin/sh
+      - -c
+    environment:
+      OLLAMA_KEEP_ALIVE: 5m
+      OLLAMA_MAX_LOADED_MODELS: "1"
+      OLLAMA_NUM_PARALLEL: "1"
+    image: ollama/ollama:latest
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 11434
+        published: "11434"
+        protocol: tcp
+    restart: unless-stopped
+    tty: true
+    volumes:
+      - type: volume
+        source: ollama_data
+        target: /root/.ollama
+        volume: {}
+  postgres:
+    container_name: chorus-postgres
+    environment:
+      POSTGRES_DB: messenger_dev
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: messenger
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U messenger -d messenger_dev
+      timeout: 5s
+      interval: 10s
+      retries: 5
+    image: postgres:15-alpine
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 5432
+        published: "5432"
+        protocol: tcp
+    volumes:
+      - type: volume
+        source: postgres_data
+        target: /var/lib/postgresql/data
+        volume: {}
+  redis:
+    container_name: chorus-redis
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      timeout: 3s
+      interval: 10s
+      retries: 5
+    image: redis:7-alpine
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 6379
+        published: "6379"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: volume
+        source: redis_data
+        target: /data
+        volume: {}
+networks:
+  default:
+    name: chorus_default
+volumes:
+  ollama_data:
+    name: chorus_ollama_data
+  postgres_data:
+    name: chorus_postgres_data
+  redis_data:
+    name: chorus_redis_data
