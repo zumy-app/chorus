@@ -12,7 +12,7 @@ import (
 )
 
 // OllamaProvider translates text using a local Ollama instance.
-// It uses the /api/chat endpoint with the OpenAI-compatible message format.
+// It uses the /api/generate endpoint for efficiency (no streaming, raw response).
 type OllamaProvider struct {
 	baseURL    string
 	model      string
@@ -33,7 +33,7 @@ func NewOllamaProvider(baseURL, model string) *OllamaProvider {
 	return &OllamaProvider{
 		baseURL:    strings.TrimRight(baseURL, "/"),
 		model:      model,
-		httpClient: &http.Client{Timeout: 30 * time.Second},
+		httpClient: &http.Client{Timeout: 120 * time.Second},
 	}
 }
 
@@ -42,26 +42,24 @@ func (p *OllamaProvider) Name() string {
 	return fmt.Sprintf("ollama(%s)", p.model)
 }
 
-// ollamaChatMessage represents a message in the Ollama chat format.
-type ollamaChatMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+// ollamaGenerateRequest is the request body for Ollama's /api/generate endpoint.
+type ollamaGenerateRequest struct {
+	Model   string         `json:"model"`
+	Prompt  string         `json:"prompt"`
+	Stream  bool           `json:"stream"`
+	System  string         `json:"system,omitempty"`
+	Options map[string]any `json:"options,omitempty"`
 }
 
-// ollamaChatRequest is the request body for Ollama's /api/chat endpoint.
-type ollamaChatRequest struct {
-	Model    string              `json:"model"`
-	Messages []ollamaChatMessage `json:"messages"`
-	Stream   bool                `json:"stream"`
-	Options  map[string]any      `json:"options,omitempty"`
+// ollamaGenerateResponse is the response from Ollama's /api/generate endpoint.
+type ollamaGenerateResponse struct {
+	Model     string `json:"model"`
+	Response  string `json:"response"`
+	Done      bool   `json:"done"`
+	Error     string `json:"error,omitempty"`
 }
 
-// ollamaChatResponse is the response from Ollama's /api/chat endpoint.
-type ollamaChatResponse struct {
-	Message ollamaChatMessage `json:"message"`
-}
-
-// Translate translates text using the local Ollama instance.
+// Translate translates text using the local Ollama instance via /api/generate.
 func (p *OllamaProvider) Translate(ctx context.Context, req TranslateRequest) (TranslateResponse, error) {
 	if p.baseURL == "" {
 		return TranslateResponse{}, fmt.Errorf("%w: Ollama URL is empty", ErrNotConfigured)
@@ -72,15 +70,13 @@ func (p *OllamaProvider) Translate(ctx context.Context, req TranslateRequest) (T
 		langName = req.TargetLang
 	}
 
-	prompt := fmt.Sprintf("Translate ALL of the following text to %s. Do not skip any part. Return ONLY the complete translated text, preserving all original formatting.\n\n%s", langName, req.Text)
+	userPrompt := fmt.Sprintf("Translate ALL of the following text to %s. Do not skip any part. Return ONLY the complete translated text, preserving all original formatting.\n\n%s", langName, req.Text)
 
-	chatReq := ollamaChatRequest{
-		Model: p.model,
-		Messages: []ollamaChatMessage{
-			{Role: "system", Content: "You are a precise translation engine. Return only the translated text with no preamble."},
-			{Role: "user", Content: prompt},
-		},
+	genReq := ollamaGenerateRequest{
+		Model:  p.model,
+		Prompt: userPrompt,
 		Stream: false,
+		System: "You are a precise translation engine. Return only the translated text with no preamble.",
 		Options: map[string]any{
 			"temperature": 0.1,
 			"top_p":       0.9,
@@ -88,12 +84,12 @@ func (p *OllamaProvider) Translate(ctx context.Context, req TranslateRequest) (T
 		},
 	}
 
-	body, err := json.Marshal(chatReq)
+	body, err := json.Marshal(genReq)
 	if err != nil {
 		return TranslateResponse{}, fmt.Errorf("ollama marshal request: %w", err)
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, p.baseURL+"/api/chat", bytes.NewReader(body))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, p.baseURL+"/api/generate", bytes.NewReader(body))
 	if err != nil {
 		return TranslateResponse{}, fmt.Errorf("ollama create request: %w", err)
 	}
@@ -105,17 +101,25 @@ func (p *OllamaProvider) Translate(ctx context.Context, req TranslateRequest) (T
 	}
 	defer resp.Body.Close()
 
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return TranslateResponse{}, fmt.Errorf("ollama read response: %w", err)
+	}
+
 	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
 		return TranslateResponse{}, fmt.Errorf("ollama returned status %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
 	}
 
-	var chatResp ollamaChatResponse
-	if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
+	var genResp ollamaGenerateResponse
+	if err := json.Unmarshal(respBody, &genResp); err != nil {
 		return TranslateResponse{}, fmt.Errorf("ollama decode response: %w", err)
 	}
 
-	translated := strings.TrimSpace(chatResp.Message.Content)
+	if genResp.Error != "" {
+		return TranslateResponse{}, fmt.Errorf("ollama error: %s", genResp.Error)
+	}
+
+	translated := strings.TrimSpace(genResp.Response)
 	translated = stripQuotes(translated)
 
 	if translated == "" {

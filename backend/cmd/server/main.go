@@ -62,17 +62,8 @@ func main() {
 	chatService := services.NewChatService(db)
 	messageService := services.NewMessageService(db, redisClient)
 
-	// Create translation provider from unified config.
-	translationCfg := translation.Config{
-		Provider: translation.ProviderType(cfg.TranslationProviderName),
-		APIURL:   cfg.TranslationProviderURL,
-		APIKey:   cfg.TranslationProviderKey,
-		Model:    cfg.TranslationProviderModel,
-	}
-	translationProvider, err := translation.NewProvider(translationCfg)
-	if err != nil {
-		log.Fatalf("Failed to create translation provider: %v", err)
-	}
+	// Create translation provider chain.
+	translationProvider := buildTranslationProviderChain(cfg)
 	log.Printf("Using translation provider: %s", translationProvider.Name())
 	translationService := services.NewTranslationService(translationProvider, redisClient)
 	wsHub := services.NewWebSocketHub(redisClient)
@@ -96,8 +87,8 @@ func main() {
 	// Phase 2: Initialize Search service
 	searchService := services.NewSearchService(db, redisClient)
 
-	// Phase 3: Initialize Grammar service
-	grammarService := services.NewGrammarService(redisClient, cfg.GrammarAPIURL, cfg.GrammarAPIKey, cfg.GrammarModel)
+	// Phase 3: Initialize Grammar service with endpoint chain
+	grammarService := services.NewGrammarService(redisClient, buildGrammarEndpoints(cfg))
 
 	// Phase 3: Initialize Vocabulary service
 	vocabularyService := services.NewVocabularyService(db, redisClient)
@@ -232,4 +223,81 @@ func main() {
 	if err := r.Run(":" + port); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
+}
+
+// buildTranslationProviderChain constructs a provider chain from config.
+// If TRANSLATION_PROVIDER_ORDER is set, it builds a ChainProvider from the
+// ordered list of aliases. Otherwise, it falls back to the legacy single-provider config.
+func buildTranslationProviderChain(cfg *config.Config) translation.Provider {
+	if len(cfg.TranslationProviderOrder) > 0 {
+		var providers []translation.Provider
+		for _, alias := range cfg.TranslationProviderOrder {
+			def, ok := cfg.Providers[alias]
+			if !ok {
+				log.Printf("Warning: provider %q in TRANSLATION_PROVIDER_ORDER not configured, skipping", alias)
+				continue
+			}
+			provCfg := translation.Config{
+				Provider: translation.ProviderType(def.Type),
+				APIURL:   def.APIURL,
+				APIKey:   def.APIKey,
+				Model:    def.Model,
+			}
+			prov, err := translation.NewProvider(provCfg)
+			if err != nil {
+				log.Printf("Warning: failed to create provider %q: %v", alias, err)
+				continue
+			}
+			providers = append(providers, prov)
+			log.Printf("  Translation provider %d: %s (%s)", len(providers), alias, prov.Name())
+		}
+		if len(providers) == 0 {
+			log.Fatal("No translation providers could be created from TRANSLATION_PROVIDER_ORDER")
+		}
+		if len(providers) == 1 {
+			return providers[0]
+		}
+		return translation.NewChainProvider(providers)
+	}
+
+	// Legacy fallback: single provider from TRANSLATION_PROVIDER_NAME etc.
+	provCfg := translation.Config{
+		Provider: translation.ProviderType(cfg.TranslationProviderName),
+		APIURL:   cfg.TranslationProviderURL,
+		APIKey:   cfg.TranslationProviderKey,
+		Model:    cfg.TranslationProviderModel,
+	}
+	prov, err := translation.NewProvider(provCfg)
+	if err != nil {
+		log.Fatalf("Failed to create translation provider: %v", err)
+	}
+	return prov
+}
+
+// buildGrammarEndpoints constructs an ordered list of GrammarEndpoints from config.
+// If GRAMMAR_PROVIDER_ORDER is set, it follows that order. Otherwise it falls back
+// to the legacy GRAMMAR_API_* env vars.
+func buildGrammarEndpoints(cfg *config.Config) []services.GrammarEndpoint {
+	if len(cfg.GrammarProviderOrder) > 0 {
+		var endpoints []services.GrammarEndpoint
+		for _, alias := range cfg.GrammarProviderOrder {
+			def, ok := cfg.Providers[alias]
+			if !ok {
+				log.Printf("Warning: provider %q in GRAMMAR_PROVIDER_ORDER not configured, skipping", alias)
+				continue
+			}
+			ep := services.NewGrammarEndpoint(alias, def.APIURL, def.APIKey, def.Model, def.Timeout)
+			endpoints = append(endpoints, ep)
+			log.Printf("  Grammar endpoint %d: %s (%s model=%s)", len(endpoints), alias, def.APIURL, def.Model)
+		}
+		if len(endpoints) == 0 {
+			log.Fatal("No grammar endpoints could be created from GRAMMAR_PROVIDER_ORDER")
+		}
+		return endpoints
+	}
+
+	// Legacy fallback: single endpoint from GRAMMAR_API_* env vars.
+	ep := services.NewGrammarEndpoint("legacy", cfg.GrammarAPIURL, cfg.GrammarAPIKey, cfg.GrammarModel, 0)
+	log.Printf("  Grammar endpoint: %s model=%s", cfg.GrammarAPIURL, cfg.GrammarModel)
+	return []services.GrammarEndpoint{ep}
 }

@@ -211,7 +211,7 @@ func (h *GrammarHandler) AnalyzeTextWithAI(c *gin.Context) {
 		nativeLang = "en"
 	}
 
-	analysis, err := h.grammarService.GenerateAIAnalysis(req.Text, req.Language, nativeLang)
+	analysis, providerUsed, err := h.grammarService.GenerateAIAnalysis(req.Text, req.Language, nativeLang)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "AI grammar analysis failed"})
 		return
@@ -219,9 +219,10 @@ func (h *GrammarHandler) AnalyzeTextWithAI(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"data": gin.H{
-			"text":     req.Text,
-			"language": req.Language,
-			"analysis": analysis,
+			"text":          req.Text,
+			"language":      req.Language,
+			"analysis":      analysis,
+			"provider_used": providerUsed,
 		},
 	})
 }

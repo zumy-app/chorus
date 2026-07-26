@@ -68,7 +68,7 @@ func (s *TranslationService) TranslateQuick(text, targetLang, sourceLang string)
 		TargetLang: targetLang,
 	}
 
-	ctx, cancel := context.WithTimeout(s.ctx, 30*time.Second)
+	ctx, cancel := context.WithTimeout(s.ctx, 120*time.Second)
 	defer cancel()
 
 	resp, err := s.provider.Translate(ctx, req)

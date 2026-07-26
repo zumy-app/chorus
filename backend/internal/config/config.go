@@ -1,10 +1,24 @@
 package config
 
 import (
-	"github.com/chorus/messenger/pkg/translation"
+	"log"
 	"os"
+	"strconv"
+	"strings"
+
+	"github.com/chorus/messenger/pkg/translation"
 )
 
+// ProviderDef holds the configuration for a single provider in the chain.
+type ProviderDef struct {
+	Type    string // "opencode", "ollama", "translator-engine", etc.
+	APIURL  string
+	APIKey  string
+	Model   string
+	Timeout int // seconds; 0 = use default
+}
+
+// Config holds all application configuration.
 type Config struct {
 	Environment           string
 	DatabaseURL           string
@@ -17,21 +31,27 @@ type Config struct {
 	AppwriteAPIKey        string
 	AppwriteDatabaseID    string
 
-	// Translation provider configuration (unified provider abstraction).
-	// See backend/.env.example for full documentation.
-	TranslationProviderName string
-	TranslationProviderURL  string
-	TranslationProviderKey  string
+	// Legacy single-provider config (used when PROVIDER_ORDER is not set).
+	TranslationProviderName  string
+	TranslationProviderURL   string
+	TranslationProviderKey   string
 	TranslationProviderModel string
 
-	// Grammar AI analysis configuration (OpenAI-compatible API).
+	// Grammar AI analysis legacy config.
 	GrammarAPIURL string
 	GrammarAPIKey string
 	GrammarModel  string
+
+	// Provider chain — ordered list of aliases (e.g. ["primary", "secondary", "local"]).
+	// Each alias maps into the Providers map.
+	TranslationProviderOrder []string
+	GrammarProviderOrder     []string
+	Providers                map[string]ProviderDef // key = alias, e.g. "primary", "ollama_local"
 }
 
+// Load reads configuration from environment variables.
 func Load() *Config {
-	return &Config{
+	cfg := &Config{
 		Environment:           getEnv("ENVIRONMENT", "development"),
 		DatabaseURL:           getEnv("DATABASE_URL", "postgres://messenger:password@localhost:5432/messenger_dev?sslmode=disable"),
 		RedisURL:              getEnv("REDIS_URL", "localhost:6379"),
@@ -43,18 +63,105 @@ func Load() *Config {
 		AppwriteAPIKey:        getEnv("APPWRITE_API_KEY", ""),
 		AppwriteDatabaseID:    getEnv("APPWRITE_DATABASE_ID", ""),
 
-		// Translation provider defaults (unified).
-		// Supported provider names: opencode, openai, deepseek, ollama, translator-engine
+		// Legacy single-provider config.
 		TranslationProviderName:  getEnv("TRANSLATION_PROVIDER_NAME", string(translation.ProviderOpenCode)),
 		TranslationProviderURL:   getEnv("TRANSLATION_PROVIDER_API_URL", ""),
 		TranslationProviderKey:   getEnv("TRANSLATION_PROVIDER_API_KEY", ""),
 		TranslationProviderModel: getEnv("TRANSLATION_PROVIDER_MODEL", ""),
 
-		// Grammar API defaults to the OpenCode Go cloud API with deepseek-v4-flash.
 		GrammarAPIURL: getEnv("GRAMMAR_API_URL", "https://opencode.ai/zen/go/v1"),
 		GrammarAPIKey: getEnv("GRAMMAR_API_KEY", ""),
 		GrammarModel:  getEnv("GRAMMAR_MODEL", "deepseek-v4-flash"),
+
+		Providers: make(map[string]ProviderDef),
 	}
+
+	// Parse provider chain orders.
+	transOrder := getEnv("TRANSLATION_PROVIDER_ORDER", "")
+	grammarOrder := getEnv("GRAMMAR_PROVIDER_ORDER", "")
+
+	if transOrder != "" {
+		cfg.TranslationProviderOrder = splitAndTrim(transOrder)
+	}
+	if grammarOrder != "" {
+		cfg.GrammarProviderOrder = splitAndTrim(grammarOrder)
+	}
+
+	// Parse individual provider definitions.
+	// Format: PROVIDER_<ALIAS>_<KEY>
+	// Example: PROVIDER_PRIMARY_TYPE=opencode
+	//          PROVIDER_PRIMARY_API_URL=https://opencode.ai/zen/go/v1
+	//          PROVIDER_PRIMARY_API_KEY=sk-...
+	for _, env := range os.Environ() {
+		if !strings.HasPrefix(env, "PROVIDER_") {
+			continue
+		}
+		// env is "PROVIDER_<ALIAS>_<KEY>=<VALUE>"
+		eqIdx := strings.Index(env, "=")
+		if eqIdx == -1 {
+			continue
+		}
+		key := env[:eqIdx]     // PROVIDER_ALIAS_KEY
+		value := env[eqIdx+1:] // the value
+
+		// Strip "PROVIDER_" prefix -> "ALIAS_KEY"
+		rest := key[len("PROVIDER_"):]
+
+		// Match known field suffixes from longest to shortest
+		// so "API_KEY" is matched before just "KEY", and multi-part
+		// aliases like "opencode_go" are handled correctly.
+		type suffixEntry struct {
+			suffix string // with leading underscore, e.g. "_API_KEY"
+			field  string // the field name, e.g. "API_KEY"
+		}
+		knownFields := []suffixEntry{
+			{"_API_KEY", "API_KEY"},
+			{"_API_URL", "API_URL"},
+			{"_TIMEOUT", "TIMEOUT"},
+			{"_MODEL", "MODEL"},
+			{"_TYPE", "TYPE"},
+		}
+		var alias string
+		var field string
+		for _, entry := range knownFields {
+			if strings.HasSuffix(rest, entry.suffix) {
+				alias = strings.ToLower(rest[:len(rest)-len(entry.suffix)])
+				field = entry.field
+				break
+			}
+		}
+		if alias == "" {
+			continue
+		}
+
+		def := cfg.Providers[alias]
+		switch field {
+		case "TYPE":
+			def.Type = value
+		case "API_URL":
+			def.APIURL = value
+		case "API_KEY":
+			def.APIKey = value
+		case "MODEL":
+			def.Model = value
+		case "TIMEOUT":
+			if v, err := strconv.Atoi(value); err == nil {
+				def.Timeout = v
+			}
+		}
+		cfg.Providers[alias] = def
+	}
+
+	// If no order is specified, default to legacy single-provider mode.
+	// The caller (main.go) handles this by checking len(TranslationProviderOrder)==0.
+	if len(cfg.TranslationProviderOrder) == 0 {
+		log.Printf("[Config] TRANSLATION_PROVIDER_ORDER not set, using legacy single-provider config")
+	}
+	if len(cfg.GrammarProviderOrder) == 0 {
+		log.Printf("[Config] GRAMMAR_PROVIDER_ORDER not set, using legacy single-provider config")
+	}
+
+	return cfg
 }
 
 func getEnv(key, defaultValue string) string {
@@ -62,4 +169,16 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+func splitAndTrim(s string) []string {
+	parts := strings.Split(s, ",")
+	result := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			result = append(result, p)
+		}
+	}
+	return result
 }
