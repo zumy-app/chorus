@@ -4,12 +4,14 @@ import (
 	"context"
 	"log"
 	"os"
+	"time"
 
 	"github.com/chorus/messenger/internal/config"
 	"github.com/chorus/messenger/internal/database"
 	"github.com/chorus/messenger/internal/handlers"
 	"github.com/chorus/messenger/internal/middleware"
 	"github.com/chorus/messenger/internal/services"
+	"github.com/chorus/messenger/pkg/logutil"
 	"github.com/chorus/messenger/pkg/translation"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -24,6 +26,10 @@ func main() {
 
 	// Load configuration
 	cfg := config.Load()
+
+	// Initialize log level
+	logutil.SetLevelFromString(cfg.LogLevel)
+	log.Printf("[Startup] Log level set to %q", cfg.LogLevel)
 
 	// Initialize Appwrite (if configured)
 	if cfg.AppwriteEndpoint != "" && cfg.AppwriteProjectID != "" {
@@ -65,7 +71,11 @@ func main() {
 	// Create translation provider chain.
 	translationProvider := buildTranslationProviderChain(cfg)
 	log.Printf("Using translation provider: %s", translationProvider.Name())
-	translationService := services.NewTranslationService(translationProvider, redisClient)
+	translationService := services.NewTranslationService(
+		translationProvider,
+		redisClient,
+		time.Duration(cfg.TranslationChainTimeout)*time.Second,
+	)
 	wsHub := services.NewWebSocketHub(redisClient)
 
 	var pubsubService *services.PubSubService
@@ -245,6 +255,7 @@ func buildTranslationProviderChain(cfg *config.Config) translation.Provider {
 				APIURL:   def.APIURL,
 				APIKey:   def.APIKey,
 				Model:    def.Model,
+				Timeout:  def.Timeout,
 			}
 			prov, err := translation.NewProvider(provCfg)
 			if err != nil {

@@ -23,20 +23,27 @@ type TranslationQueueJob struct {
 // It caches results in Redis and delegates the actual translation to the
 // configured Provider implementation (OpenAI, Ollama, or Translator Engine).
 type TranslationService struct {
-	redis    *redis.Client
-	provider translation.Provider
-	ctx      context.Context
+	redis          *redis.Client
+	provider       translation.Provider
+	ctx            context.Context
+	chainTimeout   time.Duration
 }
 
 // NewTranslationService creates a new TranslationService with the given provider.
 //
 // The provider is the translation backend to use (e.g. OpenAI, Ollama, etc.).
 // Redis is optional; if nil, caching is disabled.
-func NewTranslationService(provider translation.Provider, redis *redis.Client) *TranslationService {
+// chainTimeout is the total timeout for the entire chain across all providers.
+// Use 0 to default to 120 seconds.
+func NewTranslationService(provider translation.Provider, redis *redis.Client, chainTimeout time.Duration) *TranslationService {
+	if chainTimeout <= 0 {
+		chainTimeout = 120 * time.Second
+	}
 	return &TranslationService{
-		redis:    redis,
-		provider: provider,
-		ctx:      context.Background(),
+		redis:          redis,
+		provider:       provider,
+		ctx:            context.Background(),
+		chainTimeout:   chainTimeout,
 	}
 }
 
@@ -68,7 +75,7 @@ func (s *TranslationService) TranslateQuick(text, targetLang, sourceLang string)
 		TargetLang: targetLang,
 	}
 
-	ctx, cancel := context.WithTimeout(s.ctx, 120*time.Second)
+	ctx, cancel := context.WithTimeout(s.ctx, s.chainTimeout)
 	defer cancel()
 
 	resp, err := s.provider.Translate(ctx, req)
