@@ -9,8 +9,8 @@ import (
 )
 
 func TestNewTranslationService(t *testing.T) {
-	provider := translation.NewOpenAIProvider("https://api.opencode.com/v1", "test-key", "gpt-4o-mini")
-	s := NewTranslationService(provider, nil)
+	provider := translation.NewOpenAIProvider("https://api.opencode.com/v1", "test-key", "gpt-4o-mini", 0)
+	s := NewTranslationService(provider, nil, 0)
 	if s == nil {
 		t.Fatal("NewTranslationService returned nil")
 	}
@@ -46,8 +46,8 @@ func TestTranslateQuick_ReturnsErrorOnNoProvider(t *testing.T) {
 func TestTranslateQuick_UsesCache(t *testing.T) {
 	// With a redis client that can't connect, the cache lookup should fail gracefully
 	redisClient := redis.NewClient(&redis.Options{Addr: "localhost:1"})
-	provider := translation.NewOpenAIProvider("http://localhost:1", "test-key", "gpt-4o-mini")
-	s := NewTranslationService(provider, redisClient)
+	provider := translation.NewOpenAIProvider("http://localhost:1", "test-key", "gpt-4o-mini", 0)
+	s := NewTranslationService(provider, redisClient, 0)
 
 	// Should handle the cache miss gracefully and attempt HTTP translation
 	result, err := s.TranslateQuick("Hello", "es", "en")
@@ -59,8 +59,8 @@ func TestTranslateQuick_UsesCache(t *testing.T) {
 }
 
 func TestTranslateMultiple(t *testing.T) {
-	provider := translation.NewOpenAIProvider("http://localhost:1", "test-key", "gpt-4o-mini")
-	s := NewTranslationService(provider, nil)
+	provider := translation.NewOpenAIProvider("http://localhost:1", "test-key", "gpt-4o-mini", 0)
+	s := NewTranslationService(provider, nil, 0)
 
 	// Should return an error because the provider is unreachable
 	translations, err := s.TranslateMultiple("Hello", []string{"es", "fr"})
@@ -73,8 +73,8 @@ func TestTranslateMultiple(t *testing.T) {
 
 func TestProcessOllamaQueue_WithNilRedis(t *testing.T) {
 	// With nil redis and nil callback, ProcessOllamaQueue should not panic
-	provider := translation.NewOpenAIProvider("http://localhost:1", "test-key", "gpt-4o-mini")
-	s := NewTranslationService(provider, nil)
+	provider := translation.NewOpenAIProvider("http://localhost:1", "test-key", "gpt-4o-mini", 0)
+	s := NewTranslationService(provider, nil, 0)
 
 	// This should not panic
 	defer func() {

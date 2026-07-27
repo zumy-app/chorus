@@ -21,19 +21,23 @@ type OllamaProvider struct {
 
 // NewOllamaProvider creates a new Ollama translation provider.
 //
-//   - baseURL: The Ollama server URL (e.g. "http://localhost:11434").
-//   - model:   The model name (e.g. "qwen2.5:3b").
-func NewOllamaProvider(baseURL, model string) *OllamaProvider {
+//   - baseURL:   The Ollama server URL (e.g. "http://localhost:11434").
+//   - model:     The model name (e.g. "qwen2.5:3b").
+//   - timeoutSec: HTTP client timeout in seconds; <= 0 defaults to 120.
+func NewOllamaProvider(baseURL, model string, timeoutSec int) *OllamaProvider {
 	if baseURL == "" {
 		baseURL = "http://localhost:11434"
 	}
 	if model == "" {
 		model = "qwen2.5:1.5b-instruct"
 	}
+	if timeoutSec <= 0 {
+		timeoutSec = 120
+	}
 	return &OllamaProvider{
 		baseURL:    strings.TrimRight(baseURL, "/"),
 		model:      model,
-		httpClient: &http.Client{Timeout: 120 * time.Second},
+		httpClient: &http.Client{Timeout: time.Duration(timeoutSec) * time.Second},
 	}
 }
 

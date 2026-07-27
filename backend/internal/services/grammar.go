@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/chorus/messenger/internal/models"
+	"github.com/chorus/messenger/pkg/logutil"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -26,8 +27,17 @@ type grammarChatMessage struct {
 type grammarChatRequest struct {
 	Model       string               `json:"model"`
 	Messages    []grammarChatMessage `json:"messages"`
-	Temperature float64              `json:"temperature"`
+	Temperature float64              `json:"temperature,omitempty"`
 	MaxTokens   int                  `json:"max_tokens,omitempty"`
+}
+
+// ollamaChatRequest is the request body for Ollama's /api/chat endpoint.
+// Ollama wraps model params inside an "options" object and uses num_predict instead of max_tokens.
+type ollamaChatRequest struct {
+	Model    string               `json:"model"`
+	Messages []grammarChatMessage `json:"messages"`
+	Stream   bool                 `json:"stream"`
+	Options  map[string]any       `json:"options,omitempty"`
 }
 
 // grammarChatChoice represents a single choice in the response.
@@ -53,7 +63,7 @@ type GrammarEndpoint struct {
 
 // NewGrammarEndpoint creates a ready-to-use endpoint.
 func NewGrammarEndpoint(name, providerType, apiURL, apiKey, model string, timeout int) GrammarEndpoint {
-	d := 90 * time.Second
+	d := 99999999 * time.Second
 	if timeout > 0 {
 		d = time.Duration(timeout) * time.Second
 	}
@@ -701,14 +711,14 @@ Return ONLY valid JSON (no markdown, no code fences). Use this EXACT structure:
 - Keep ALL language simple and accessible. Imagine explaining to someone who has never studied grammar formally.
 </rules>`, nativeLangName, text, "", langName)
 
-	log.Printf("[Grammar] Calling AI API for text: %.50s... (language=%s, native=%s)", text, language, nativeLanguage)
+	logutil.Infof("[Grammar] Calling AI API for text: %.50s... (language=%s, native=%s)", text, language, nativeLanguage)
 	result, providerUsed, err := s.callGrammarAPI(prompt, nativeLangName)
 	if err != nil {
-		log.Printf("[Grammar] all AI endpoints failed: %v", err)
+		logutil.Errorf("[Grammar] all AI endpoints failed: %v", err)
 		analysis, err := s.fallbackAIAnalysis(text, language, nativeLanguage)
 		return analysis, "regex-fallback", err
 	}
-	log.Printf("[Grammar] provider %q returned %d characters", providerUsed, len(result))
+	logutil.Infof("[Grammar] provider %q returned %d characters", providerUsed, len(result))
 
 	// Strip markdown code fences and leading/trailing whitespace
 	cleaned := strings.TrimSpace(result)
@@ -732,7 +742,7 @@ Return ONLY valid JSON (no markdown, no code fences). Use this EXACT structure:
 	// Parse the structured response using a flexible approach
 	aiResult, err := s.parseAIGrammarAnalysis(cleaned)
 	if err != nil {
-		log.Printf("[Grammar] JSON parsing failed, falling back to regex: %v", err)
+		logutil.Warnf("[Grammar] JSON parsing failed, falling back to regex: %v", err)
 		analysis, err := s.fallbackAIAnalysis(text, language, nativeLanguage)
 		return analysis, "regex-fallback", err
 	}
@@ -1291,46 +1301,72 @@ func nextActionsFor(action string) []string {
 // Returns the response text and the name of the provider that succeeded.
 func (s *GrammarService) callGrammarAPI(prompt, nativeLangName string) (string, string, error) {
 	var lastErr error
-	for _, ep := range s.endpoints {
+	for i, ep := range s.endpoints {
+		logutil.Infof("[Grammar] trying endpoint %d/%d: %s (url=%s, model=%s)",
+			i+1, len(s.endpoints), ep.Name, ep.APIURL, ep.Model)
+		start := time.Now()
 		result, err := ep.call(prompt, nativeLangName)
+		logutil.Duration("Grammar", start, ep.Name)
 		if err == nil {
+			logutil.Infof("[Grammar] endpoint %d/%d %s succeeded (%d chars)",
+				i+1, len(s.endpoints), ep.Name, len(result))
 			return result, ep.Name, nil
 		}
 		lastErr = err
-		log.Printf("[Grammar] endpoint %q failed: %v — trying next", ep.Name, err)
+		logutil.Warnf("[Grammar] endpoint %d/%d %s failed: %v — trying next",
+			i+1, len(s.endpoints), ep.Name, err)
 	}
 	return "", "", fmt.Errorf("all %d endpoints exhausted: %w", len(s.endpoints), lastErr)
 }
 
 // call sends a single chat completion request to this endpoint.
 func (ep *GrammarEndpoint) call(prompt, nativeLangName string) (string, error) {
+	start := time.Now()
+	defer func() {
+		logutil.Duration("GrammarEndpoint", start, ep.Name)
+	}()
+
 	ctx, cancel := context.WithTimeout(context.Background(), ep.Timeout)
 	defer cancel()
 
 	systemMsg := fmt.Sprintf(`You are a friendly language tutor teaching a student who speaks %s. Follow the user's instructions for the response format.`, nativeLangName)
 
-	chatReq := grammarChatRequest{
-		Model: ep.Model,
-		Messages: []grammarChatMessage{
-			{Role: "system", Content: systemMsg},
-			{Role: "user", Content: prompt},
-		},
-		Temperature: 0.3,
-		MaxTokens:   4096,
-	}
-
-	body, err := json.Marshal(chatReq)
-	if err != nil {
-		return "", fmt.Errorf("grammar marshal request: %w", err)
-	}
-
 	// Determine API path and request format based on provider type
 	var apiPath string
+	var body []byte
+	var err error
+
 	switch ep.ProviderType {
 	case "ollama":
 		apiPath = "/api/chat"
+		ollamaReq := ollamaChatRequest{
+			Model: ep.Model,
+			Messages: []grammarChatMessage{
+				{Role: "system", Content: systemMsg},
+				{Role: "user", Content: prompt},
+			},
+			Stream: false,
+			Options: map[string]any{
+				"temperature": 0.3,
+				"num_predict": 4096,
+			},
+		}
+		body, err = json.Marshal(ollamaReq)
 	default:
 		apiPath = "/chat/completions"
+		chatReq := grammarChatRequest{
+			Model: ep.Model,
+			Messages: []grammarChatMessage{
+				{Role: "system", Content: systemMsg},
+				{Role: "user", Content: prompt},
+			},
+			Temperature: 0.3,
+			MaxTokens:   4096,
+		}
+		body, err = json.Marshal(chatReq)
+	}
+	if err != nil {
+		return "", fmt.Errorf("grammar marshal request: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", ep.APIURL+apiPath, bytes.NewReader(body))

@@ -19,12 +19,14 @@ const (
 	ProviderOllama ProviderType = "ollama"
 	// ProviderEngine uses the legacy llama.cpp translator engine.
 	ProviderEngine ProviderType = "translator-engine"
+	// ProviderNvidia uses NVIDIA AI Foundation endpoints (OpenAI-compatible).
+	ProviderNvidia ProviderType = "nvidia"
 )
 
 // Config holds the configuration for creating a translation provider.
 type Config struct {
 	// Provider is the name of the provider to create.
-	// Supported values: "opencode", "openai", "deepseek", "ollama", "translator-engine"
+	// Supported values: "opencode", "openai", "deepseek", "nvidia", "ollama", "translator-engine"
 	Provider ProviderType `json:"provider"`
 
 	// APIURL is the base URL for the provider's API.
@@ -49,13 +51,17 @@ type Config struct {
 	//   - ollama:    qwen2.5:3b
 	//   - translator-engine: (not used)
 	Model string `json:"model"`
+
+	// Timeout is the HTTP client timeout in seconds.
+	// 0 or negative means use the provider-specific default.
+	Timeout int `json:"timeout"`
 }
 
 // NewProvider creates a translation provider based on the given configuration.
 // Returns an error if the provider type is unknown.
 func NewProvider(cfg Config) (Provider, error) {
 	switch cfg.Provider {
-	case ProviderOpenCode, ProviderOpenAI, ProviderDeepSeek:
+	case ProviderOpenCode, ProviderOpenAI, ProviderDeepSeek, ProviderNvidia:
 		// All OpenAI-compatible providers use the same implementation.
 		baseURL := cfg.APIURL
 		if baseURL == "" {
@@ -66,6 +72,8 @@ func NewProvider(cfg Config) (Provider, error) {
 				baseURL = "https://api.openai.com/v1"
 			case ProviderDeepSeek:
 				baseURL = "https://api.deepseek.com/v1"
+			case ProviderNvidia:
+				baseURL = "https://integrate.api.nvidia.com/v1"
 			}
 		}
 		model := cfg.Model
@@ -77,7 +85,7 @@ func NewProvider(cfg Config) (Provider, error) {
 				model = "gpt-4o-mini"
 			}
 		}
-		return NewOpenAIProvider(baseURL, cfg.APIKey, model), nil
+		return NewOpenAIProvider(baseURL, cfg.APIKey, model, cfg.Timeout), nil
 
 	case ProviderOllama:
 		baseURL := cfg.APIURL
@@ -88,7 +96,7 @@ func NewProvider(cfg Config) (Provider, error) {
 		if model == "" {
 			model = "qwen2.5:3b"
 		}
-		return NewOllamaProvider(baseURL, model), nil
+		return NewOllamaProvider(baseURL, model, cfg.Timeout), nil
 
 	case ProviderEngine:
 		baseURL := cfg.APIURL
@@ -102,6 +110,7 @@ func NewProvider(cfg Config) (Provider, error) {
 			string(ProviderOpenCode),
 			string(ProviderOpenAI),
 			string(ProviderDeepSeek),
+			string(ProviderNvidia),
 			string(ProviderOllama),
 			string(ProviderEngine),
 		}

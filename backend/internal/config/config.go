@@ -37,6 +37,13 @@ type Config struct {
 	TranslationProviderKey   string
 	TranslationProviderModel string
 
+	// TranslationChainTimeout is the total timeout for the translation chain
+	// (across all providers tried sequentially), in seconds.
+	TranslationChainTimeout int
+
+	// LogLevel controls verbosity: "debug", "info", "warn", "error"
+	LogLevel string
+
 	// Grammar AI analysis legacy config.
 	GrammarAPIURL string
 	GrammarAPIKey string
@@ -69,9 +76,13 @@ func Load() *Config {
 		TranslationProviderKey:   getEnv("TRANSLATION_PROVIDER_API_KEY", ""),
 		TranslationProviderModel: getEnv("TRANSLATION_PROVIDER_MODEL", ""),
 
+		LogLevel: getEnv("LOG_LEVEL", "info"),
+
 		GrammarAPIURL: getEnv("GRAMMAR_API_URL", "https://opencode.ai/zen/go/v1"),
 		GrammarAPIKey: getEnv("GRAMMAR_API_KEY", ""),
 		GrammarModel:  getEnv("GRAMMAR_MODEL", "deepseek-v4-flash"),
+
+		TranslationChainTimeout: getEnvInt("TRANSLATION_CHAIN_TIMEOUT", 120),
 
 		Providers: make(map[string]ProviderDef),
 	}
@@ -169,6 +180,15 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+func getEnvInt(key string, defaultVal int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return n
+		}
+	}
+	return defaultVal
 }
 
 func splitAndTrim(s string) []string {

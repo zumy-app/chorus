@@ -36,7 +36,14 @@ npx playwright test 01-auth
 npx playwright test 03-messaging-translation
 ```
 
+## Setup ##
 
+ - Install Docker Desktop and run it
+
+
+## Considerations ##
+ - We are using local llm plus cloud llm as a back
+ - see .env.example in the backend folder which lists the order of priority
 
 ## ⚡ One-Command Dev Start (Recommended)
 

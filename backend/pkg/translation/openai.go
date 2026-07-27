@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/chorus/messenger/pkg/logutil"
 )
 
 // OpenAIProvider translates text using any OpenAI-compatible API endpoint.
@@ -23,21 +25,25 @@ type OpenAIProvider struct {
 
 // NewOpenAIProvider creates a new OpenAI-compatible translation provider.
 //
-//   - baseURL: The API base URL (e.g. "https://api.opencode.com/v1").
-//   - apiKey:  The API key for authentication.
-//   - model:   The model name (e.g. "gpt-4o-mini", "claude-3-haiku", etc.).
-func NewOpenAIProvider(baseURL, apiKey, model string) *OpenAIProvider {
+//   - baseURL:   The API base URL (e.g. "https://api.opencode.com/v1").
+//   - apiKey:    The API key for authentication.
+//   - model:     The model name (e.g. "gpt-4o-mini", "claude-3-haiku", etc.).
+//   - timeoutSec: HTTP client timeout in seconds; <= 0 defaults to 30.
+func NewOpenAIProvider(baseURL, apiKey, model string, timeoutSec int) *OpenAIProvider {
 	if baseURL == "" {
 		baseURL = "https://api.opencode.com/v1"
 	}
 	if model == "" {
 		model = "gpt-4o-mini"
 	}
+	if timeoutSec <= 0 {
+		timeoutSec = 30
+	}
 	return &OpenAIProvider{
 		baseURL:    strings.TrimRight(baseURL, "/"),
 		apiKey:     apiKey,
 		model:      model,
-		httpClient: &http.Client{Timeout: 30 * time.Second},
+		httpClient: &http.Client{Timeout: time.Duration(timeoutSec) * time.Second},
 	}
 }
 
@@ -76,6 +82,12 @@ func (p *OpenAIProvider) Translate(ctx context.Context, req TranslateRequest) (T
 	if p.apiKey == "" {
 		return TranslateResponse{}, fmt.Errorf("%w: OpenAI API key is empty", ErrNotConfigured)
 	}
+
+	start := time.Now()
+	logutil.Debugf("[%s] Translate start: text_len=%d target=%s", p.Name(), len(req.Text), req.TargetLang)
+	defer func() {
+		logutil.Duration(p.Name(), start, "Translate")
+	}()
 
 	langName := languageCodeToName(req.TargetLang)
 	if langName == "" {
