@@ -31,7 +31,7 @@ type Config struct {
 	AppwriteAPIKey        string
 	AppwriteDatabaseID    string
 
-	// Legacy single-provider config (used when PROVIDER_ORDER is not set).
+	// Legacy single-provider config (used when EXTERNAL_LLM_PROVIDER_ORDER is not set).
 	TranslationProviderName  string
 	TranslationProviderURL   string
 	TranslationProviderKey   string
@@ -44,16 +44,11 @@ type Config struct {
 	// LogLevel controls verbosity: "debug", "info", "warn", "error"
 	LogLevel string
 
-	// Grammar AI analysis legacy config.
-	GrammarAPIURL string
-	GrammarAPIKey string
-	GrammarModel  string
-
-	// Provider chain — ordered list of aliases (e.g. ["primary", "secondary", "local"]).
+	// Provider chain — ordered list of aliases (e.g. ["openrouter", "nvidia", "ollama_local"]).
 	// Each alias maps into the Providers map.
-	TranslationProviderOrder []string
-	GrammarProviderOrder     []string
-	Providers                map[string]ProviderDef // key = alias, e.g. "primary", "ollama_local"
+	// Used for BOTH translation and grammar AI analysis.
+	ExternalLLMProviderOrder []string
+	Providers                map[string]ProviderDef // key = alias, e.g. "openrouter", "ollama_local"
 }
 
 // Load reads configuration from environment variables.
@@ -78,31 +73,22 @@ func Load() *Config {
 
 		LogLevel: getEnv("LOG_LEVEL", "info"),
 
-		GrammarAPIURL: getEnv("GRAMMAR_API_URL", "https://opencode.ai/zen/go/v1"),
-		GrammarAPIKey: getEnv("GRAMMAR_API_KEY", ""),
-		GrammarModel:  getEnv("GRAMMAR_MODEL", "deepseek-v4-flash"),
-
 		TranslationChainTimeout: getEnvInt("TRANSLATION_CHAIN_TIMEOUT", 120),
 
 		Providers: make(map[string]ProviderDef),
 	}
 
-	// Parse provider chain orders.
-	transOrder := getEnv("TRANSLATION_PROVIDER_ORDER", "")
-	grammarOrder := getEnv("GRAMMAR_PROVIDER_ORDER", "")
-
-	if transOrder != "" {
-		cfg.TranslationProviderOrder = splitAndTrim(transOrder)
-	}
-	if grammarOrder != "" {
-		cfg.GrammarProviderOrder = splitAndTrim(grammarOrder)
+	// Parse the unified provider order (used for BOTH translation and grammar).
+	order := getEnv("EXTERNAL_LLM_PROVIDER_ORDER", "")
+	if order != "" {
+		cfg.ExternalLLMProviderOrder = splitAndTrim(order)
 	}
 
 	// Parse individual provider definitions.
 	// Format: PROVIDER_<ALIAS>_<KEY>
-	// Example: PROVIDER_PRIMARY_TYPE=opencode
-	//          PROVIDER_PRIMARY_API_URL=https://opencode.ai/zen/go/v1
-	//          PROVIDER_PRIMARY_API_KEY=sk-...
+	// Example: PROVIDER_OPENROUTER_TYPE=opencode
+	//          PROVIDER_OPENROUTER_API_URL=https://openrouter.ai
+	//          PROVIDER_OPENROUTER_API_KEY=sk-...
 	for _, env := range os.Environ() {
 		if !strings.HasPrefix(env, "PROVIDER_") {
 			continue
@@ -164,12 +150,9 @@ func Load() *Config {
 	}
 
 	// If no order is specified, default to legacy single-provider mode.
-	// The caller (main.go) handles this by checking len(TranslationProviderOrder)==0.
-	if len(cfg.TranslationProviderOrder) == 0 {
-		log.Printf("[Config] TRANSLATION_PROVIDER_ORDER not set, using legacy single-provider config")
-	}
-	if len(cfg.GrammarProviderOrder) == 0 {
-		log.Printf("[Config] GRAMMAR_PROVIDER_ORDER not set, using legacy single-provider config")
+	// The caller (main.go) handles this by checking len(ExternalLLMProviderOrder)==0.
+	if len(cfg.ExternalLLMProviderOrder) == 0 {
+		log.Printf("[Config] EXTERNAL_LLM_PROVIDER_ORDER not set, using legacy single-provider config")
 	}
 
 	return cfg

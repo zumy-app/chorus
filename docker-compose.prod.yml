@@ -66,8 +66,8 @@ services:
       - TRANSLATION_PROVIDER_API_KEY=${TRANSLATION_PROVIDER_API_KEY:-}
       - TRANSLATION_PROVIDER_MODEL=${TRANSLATION_PROVIDER_MODEL:-}
 
-      # ─── Multi-provider chain (translation) ───
-      - TRANSLATION_PROVIDER_ORDER=${TRANSLATION_PROVIDER_ORDER:-}
+      # ─── External LLM provider chain (unified — used for BOTH translation and grammar) ───
+      - EXTERNAL_LLM_PROVIDER_ORDER=${EXTERNAL_LLM_PROVIDER_ORDER:-}
       - TRANSLATION_CHAIN_TIMEOUT=${TRANSLATION_CHAIN_TIMEOUT:-300}
       - PROVIDER_OPENCODE_GO_TYPE=${PROVIDER_OPENCODE_GO_TYPE:-}
       - PROVIDER_OPENCODE_GO_API_URL=${PROVIDER_OPENCODE_GO_API_URL:-}
@@ -81,14 +81,6 @@ services:
       - PROVIDER_OLLAMA_LOCAL_API_URL=${PROVIDER_OLLAMA_LOCAL_API_URL:-}
       - PROVIDER_OLLAMA_LOCAL_MODEL=${PROVIDER_OLLAMA_LOCAL_MODEL:-}
       - PROVIDER_OLLAMA_LOCAL_TIMEOUT=${PROVIDER_OLLAMA_LOCAL_TIMEOUT:-}
-
-      # ─── Grammar AI (legacy single-provider) ───
-      - GRAMMAR_API_URL=${GRAMMAR_API_URL:-https://opencode.ai/zen/go/v1}
-      - GRAMMAR_API_KEY=${GRAMMAR_API_KEY:-}
-      - GRAMMAR_MODEL=${GRAMMAR_MODEL:-deepseek-v4-flash}
-
-      # ─── Multi-provider chain (grammar) ───
-      - GRAMMAR_PROVIDER_ORDER=${GRAMMAR_PROVIDER_ORDER:-}
 
       # ─── Appwrite ───
       - APPWRITE_ENDPOINT=${APPWRITE_ENDPOINT:-}

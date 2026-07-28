@@ -98,9 +98,7 @@ func main() {
 	searchService := services.NewSearchService(db, redisClient)
 
 	// Phase 3: Initialize Grammar service with endpoint chain
-	log.Printf("[Startup] GRAMMAR_PROVIDER_ORDER=%q from env", os.Getenv("GRAMMAR_PROVIDER_ORDER"))
-	log.Printf("[Startup] TRANSLATION_PROVIDER_ORDER=%q from env", os.Getenv("TRANSLATION_PROVIDER_ORDER"))
-	log.Printf("[Startup] PROVIDER_OLLAMA_LOCAL_TYPE=%q", os.Getenv("PROVIDER_OLLAMA_LOCAL_TYPE"))
+	log.Printf("[Startup] EXTERNAL_LLM_PROVIDER_ORDER=%q from env", os.Getenv("EXTERNAL_LLM_PROVIDER_ORDER"))
 	grammarService := services.NewGrammarService(redisClient, buildGrammarEndpoints(cfg))
 
 	// Phase 3: Initialize Vocabulary service
@@ -239,15 +237,15 @@ func main() {
 }
 
 // buildTranslationProviderChain constructs a provider chain from config.
-// If TRANSLATION_PROVIDER_ORDER is set, it builds a ChainProvider from the
+// If EXTERNAL_LLM_PROVIDER_ORDER is set, it builds a ChainProvider from the
 // ordered list of aliases. Otherwise, it falls back to the legacy single-provider config.
 func buildTranslationProviderChain(cfg *config.Config) translation.Provider {
-	if len(cfg.TranslationProviderOrder) > 0 {
+	if len(cfg.ExternalLLMProviderOrder) > 0 {
 		var providers []translation.Provider
-		for _, alias := range cfg.TranslationProviderOrder {
+		for _, alias := range cfg.ExternalLLMProviderOrder {
 			def, ok := cfg.Providers[alias]
 			if !ok {
-				log.Printf("Warning: provider %q in TRANSLATION_PROVIDER_ORDER not configured, skipping", alias)
+				log.Printf("Warning: provider %q in EXTERNAL_LLM_PROVIDER_ORDER not configured, skipping", alias)
 				continue
 			}
 			provCfg := translation.Config{
@@ -266,7 +264,7 @@ func buildTranslationProviderChain(cfg *config.Config) translation.Provider {
 			log.Printf("  Translation provider %d: %s (%s)", len(providers), alias, prov.Name())
 		}
 		if len(providers) == 0 {
-			log.Fatal("No translation providers could be created from TRANSLATION_PROVIDER_ORDER")
+			log.Fatal("No translation providers could be created from EXTERNAL_LLM_PROVIDER_ORDER")
 		}
 		if len(providers) == 1 {
 			return providers[0]
@@ -289,19 +287,19 @@ func buildTranslationProviderChain(cfg *config.Config) translation.Provider {
 }
 
 // buildGrammarEndpoints constructs an ordered list of GrammarEndpoints from config.
-// If GRAMMAR_PROVIDER_ORDER is set, it follows that order. Otherwise it falls back
-// to the legacy GRAMMAR_API_* env vars.
+// If EXTERNAL_LLM_PROVIDER_ORDER is set, it follows that order. Otherwise it falls back
+// to the legacy GRAMMAR_API_* env vars (maintained for backward compatibility).
 func buildGrammarEndpoints(cfg *config.Config) []services.GrammarEndpoint {
-	log.Printf("[Startup] GrammarProviderOrder=%v, Providers keys:", cfg.GrammarProviderOrder)
+	log.Printf("[Startup] Using EXTERNAL_LLM_PROVIDER_ORDER=%v", cfg.ExternalLLMProviderOrder)
 	for k, v := range cfg.Providers {
 		log.Printf("  Provider %q: type=%q url=%q model=%q", k, v.Type, v.APIURL, v.Model)
 	}
-	if len(cfg.GrammarProviderOrder) > 0 {
+	if len(cfg.ExternalLLMProviderOrder) > 0 {
 		var endpoints []services.GrammarEndpoint
-		for _, alias := range cfg.GrammarProviderOrder {
+		for _, alias := range cfg.ExternalLLMProviderOrder {
 			def, ok := cfg.Providers[alias]
 			if !ok {
-				log.Printf("Warning: provider %q in GRAMMAR_PROVIDER_ORDER not configured, skipping", alias)
+				log.Printf("Warning: provider %q in EXTERNAL_LLM_PROVIDER_ORDER not configured, skipping", alias)
 				continue
 			}
 			ep := services.NewGrammarEndpoint(alias, def.Type, def.APIURL, def.APIKey, def.Model, def.Timeout)
@@ -309,13 +307,13 @@ func buildGrammarEndpoints(cfg *config.Config) []services.GrammarEndpoint {
 			log.Printf("  Grammar endpoint %d: %s (%s model=%s)", len(endpoints), alias, def.APIURL, def.Model)
 		}
 		if len(endpoints) == 0 {
-			log.Fatal("No grammar endpoints could be created from GRAMMAR_PROVIDER_ORDER")
+			log.Fatal("No grammar endpoints could be created from EXTERNAL_LLM_PROVIDER_ORDER")
 		}
 		return endpoints
 	}
 
 	// Legacy fallback: single endpoint from GRAMMAR_API_* env vars.
-	ep := services.NewGrammarEndpoint("legacy", "", cfg.GrammarAPIURL, cfg.GrammarAPIKey, cfg.GrammarModel, 0)
-	log.Printf("  Grammar endpoint: %s model=%s", cfg.GrammarAPIURL, cfg.GrammarModel)
+	ep := services.NewGrammarEndpoint("legacy", "", "", "", "", 0)
+	log.Printf("  Grammar endpoint: legacy (no EXTERNAL_LLM_PROVIDER_ORDER configured)")
 	return []services.GrammarEndpoint{ep}
 }

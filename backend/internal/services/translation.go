@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -82,6 +83,8 @@ func (s *TranslationService) TranslateQuick(text, targetLang, sourceLang string)
 	if err != nil {
 		return "", fmt.Errorf("translation failed: %w", err)
 	}
+
+	log.Printf("[Translate] provider=%q source=%s target=%s text_len=%d", resp.Provider, sourceLang, targetLang, len(text))
 
 	result := strings.TrimSpace(resp.TranslatedText)
 	if result == "" {

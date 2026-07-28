@@ -706,13 +706,50 @@ Events:
 
 ### Backend (.env)
 
+The backend uses a unified provider chain for **both translation and grammar AI analysis**. A single `EXTERNAL_LLM_PROVIDER_ORDER` env var controls the order in which providers are tried for both services.
+
 ```env
-ENVIRONMENT=development
-DATABASE_URL=postgres://messenger:password@localhost:5432/messenger_dev?sslmode=disable
-REDIS_URL=localhost:6379
-JWT_SECRET=your-secret-key-change-in-production
-GOOGLE_TRANSLATE_API_KEY=  # Optional
-PORT=8080
+# === External LLM provider chain (unified — used for BOTH translation and grammar) ===
+# Comma-separated list of aliases matching PROVIDER_<ALIAS>_* vars below.
+# Providers are tried in order — the first successful response wins.
+EXTERNAL_LLM_PROVIDER_ORDER=openrouter,nvidia,opencode_go,ollama_local
+
+# Total timeout across all providers in the chain (seconds)
+TRANSLATION_CHAIN_TIMEOUT=300
+
+# Each alias in the order must have a corresponding PROVIDER_<ALIAS>_<KEY> set:
+PROVIDER_OPENROUTER_TYPE=openrouter
+PROVIDER_OPENROUTER_API_URL=https://openrouter.ai
+PROVIDER_OPENROUTER_API_KEY=sk-or-...
+PROVIDER_OPENROUTER_MODEL=google/gemini-2.5-flash-lite:free
+
+PROVIDER_NVIDIA_TYPE=nvidia
+PROVIDER_NVIDIA_API_URL=https://integrate.api.nvidia.com/v1
+PROVIDER_NVIDIA_API_KEY=nvapi-...
+PROVIDER_NVIDIA_MODEL=meta/llama-3.1-70b-instruct
+
+PROVIDER_OLLAMA_LOCAL_TYPE=ollama
+PROVIDER_OLLAMA_LOCAL_API_URL=http://localhost:11434
+PROVIDER_OLLAMA_LOCAL_MODEL=llama3.2:3b-instruct-q4_K_M
+PROVIDER_OLLAMA_LOCAL_TIMEOUT=600
+```
+
+**Supported provider types:**
+| Type keyword | API URL example                     | Needs API Key? | Notes                        |
+|-------------|--------------------------------------|----------------|------------------------------|
+| `openrouter`| https://openrouter.ai                | Yes            | OpenAI-compatible            |
+| `opencode`  | https://opencode.ai/zen/go/v1        | Yes            | OpenAI-compatible            |
+| `openai`    | https://api.openai.com/v1            | Yes            | OpenAI-compatible            |
+| `deepseek`  | https://api.deepseek.com/v1          | Yes            | OpenAI-compatible            |
+| `nvidia`    | https://integrate.api.nvidia.com/v1  | Yes            | OpenAI-compatible            |
+| `ollama`    | http://localhost:11434               | No             | Local LLM, no API key needed |
+
+**Legacy fallback:** If `EXTERNAL_LLM_PROVIDER_ORDER` is not set, the backend falls back to the legacy single-provider config:
+```env
+TRANSLATION_PROVIDER_NAME=opencode
+TRANSLATION_PROVIDER_API_URL=https://api.opencode.com/v1
+TRANSLATION_PROVIDER_API_KEY=
+TRANSLATION_PROVIDER_MODEL=
 ```
 
 ### Google Translate API (Optional)
