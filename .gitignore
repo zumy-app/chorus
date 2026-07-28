@@ -10,6 +10,7 @@ backend/chorus.exe
 backend/*.log
 .env
 .kiro
+
 # Frontend
 frontend/node_modules
 frontend/dist
@@ -47,3 +48,21 @@ Thumbs.db
 # Docker
 docker-compose.override.yml
 node_modules
+
+# GitHub / Copilot
+.github/
+
+# Temp files
+tmp_*
+tmp_compose_config.txt
+tmp_setup_env.py
+tmp_setup_env.sh
+
+# Build artifacts
+chorus_deploy.tar
+nllb_req.json
+dynamic.yml
+
+# Credentials / tokens
+token.json
+token2.txt
