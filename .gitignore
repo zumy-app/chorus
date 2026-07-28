@@ -1,6 +1,6 @@
 # Dev log files
 backend/.dev-*
-
+.github
 # Environment files
 .env.prod
 .env.local
