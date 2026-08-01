@@ -1,7 +1,9 @@
 services:
+  # PostgreSQL
   postgres:
     image: postgres:15-alpine
     container_name: chorus-postgres
+    mem_limit: 512m
     environment:
       POSTGRES_DB: messenger_dev
       POSTGRES_USER: messenger
@@ -16,9 +18,11 @@ services:
       timeout: 5s
       retries: 5
 
+  # Redis
   redis:
     image: redis:7-alpine
     container_name: chorus-redis
+    mem_limit: 256m
     ports:
       - "6379:6379"
     volumes:
@@ -30,11 +34,13 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # Go Backend API
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: chorus-backend
+    mem_limit: 512m
     ports:
       - "8080:8080"
     env_file:
@@ -56,11 +62,13 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # React Frontend
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: chorus-frontend
+    mem_limit: 512m
     ports:
       - "3000:3000"
     environment:
@@ -72,9 +80,11 @@ services:
       - backend
     restart: unless-stopped
 
+  # Ollama (LLM fallback for analysis)
   ollama:
     image: ollama/ollama:latest
     container_name: chorus-ollama
+    mem_limit: 4g
     ports:
       - "11434:11434"
     volumes:
@@ -96,33 +106,40 @@ services:
           cpus: '2'
 
   # ============================================================================
-  # LibreTranslate — fast local translation (Argos / OPUS-MT backend).
-  # Near-real-time (~100-300ms) for chat-sized messages. First provider in the
-  # translation chain. LT_LOAD_ONLY limits first-boot downloads to the
-  # languages this app uses (English + Spanish); extend as needed.
-  # API: POST /translate (form: q, source, target) on port 5000.
+  # LibreTranslate — fast local translation (Argos/OPUS-MT backend).
+  # Near-real-time (~20-30ms warm) for chat-sized messages. First provider in
+  # the translation chain. LT_LOAD_ONLY limits first-boot model downloads to
+  # the top-10 world languages. mem_limit prevents a runaway model load from
+  # exhausting the Docker Desktop/host VM and crashing other services.
+  # Docs: https://github.com/LibreTranslate/LibreTranslate
   # ============================================================================
   libretranslate:
     image: libretranslate/libretranslate:latest
     container_name: chorus-libretranslate
+    mem_limit: 2g
     ports:
       - "5000:5000"
     volumes:
       - libretranslate_data:/app/.local/share/argos-translate
     environment:
-      - LT_LOAD_ONLY=en,es
-      - LT_UPDATE_MODELS=true
+      # Top-10 world languages by speaker count:
+      #   en English ~1.45B · zh Mandarin ~1.14B · hi Hindi ~609M
+      #   es Spanish ~559M · ar Arabic ~332M · fr French ~312M
+      #   bn Bengali ~278M · pt Portuguese ~264M · ru Russian ~255M
+      #   ur Urdu
+      # Extend this list as needed; each new pair downloads an Argos model once.
+      - LT_LOAD_ONLY=en,zh,hi,es,ar,fr,bn,pt,ru,ur
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:5000/languages"]
       interval: 20s
       timeout: 10s
-      retries: 10
-      start_period: 120s
+      retries: 12
+      start_period: 180s
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          memory: 1g
+          memory: 2g
           cpus: '1.0'
 
 volumes:

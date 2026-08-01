@@ -2,23 +2,25 @@
 // Uses the Navigator.language API which respects the user's OS/browser language preferences
 
 export const SUPPORTED_LANGUAGES = [
-  // Most common languages (top of list for easy access)
+  // Top 10 world languages by speaker count (matches LibreTranslate LT_LOAD_ONLY)
   { code: 'en', name: 'English', nativeName: 'English', flag: '🇬🇧' },
+  { code: 'zh', name: 'Chinese', nativeName: '中文', flag: '🇨🇳' },
+  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', flag: '🇮🇳' },
   { code: 'es', name: 'Spanish', nativeName: 'Español', flag: '🇪🇸' },
+  { code: 'ar', name: 'Arabic', nativeName: 'العربية', flag: '🇸🇦' },
   { code: 'fr', name: 'French', nativeName: 'Français', flag: '🇫🇷' },
+  { code: 'bn', name: 'Bengali', nativeName: 'বাংলা', flag: '🇧🇩' },
+  { code: 'pt', name: 'Portuguese', nativeName: 'Português', flag: '🇵🇹' },
+  { code: 'ru', name: 'Russian', nativeName: 'Русский', flag: '🇷🇺' },
+  { code: 'ur', name: 'Urdu', nativeName: 'اردو', flag: '🇵🇰' },
+  // Additional supported languages (still available; LibreTranslate LT_LOAD_ONLY can be extended)
   { code: 'de', name: 'German', nativeName: 'Deutsch', flag: '🇩🇪' },
   { code: 'it', name: 'Italian', nativeName: 'Italiano', flag: '🇮🇹' },
-  { code: 'pt', name: 'Portuguese', nativeName: 'Português', flag: '🇵🇹' },
   { code: 'ja', name: 'Japanese', nativeName: '日本語', flag: '🇯🇵' },
   { code: 'ko', name: 'Korean', nativeName: '한국어', flag: '🇰🇷' },
-  { code: 'zh', name: 'Chinese', nativeName: '中文', flag: '🇨🇳' },
-  { code: 'ar', name: 'Arabic', nativeName: 'العربية', flag: '🇸🇦' },
   { code: 'nl', name: 'Dutch', nativeName: 'Nederlands', flag: '🇳🇱' },
   { code: 'pl', name: 'Polish', nativeName: 'Polski', flag: '🇵🇱' },
-  { code: 'ru', name: 'Russian', nativeName: 'Русский', flag: '🇷🇺' },
   { code: 'sv', name: 'Swedish', nativeName: 'Svenska', flag: '🇸🇪' },
-
-  // Extended European
   { code: 'af', name: 'Afrikaans', nativeName: 'Afrikaans', flag: '🇿🇦' },
   { code: 'bg', name: 'Bulgarian', nativeName: 'Български', flag: '🇧🇬' },
   { code: 'bs', name: 'Bosnian', nativeName: 'Bosanski', flag: '🇧🇦' },
@@ -47,12 +49,8 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'sr', name: 'Serbian', nativeName: 'Српски', flag: '🇷🇸' },
   { code: 'tr', name: 'Turkish', nativeName: 'Türkçe', flag: '🇹🇷' },
   { code: 'uk', name: 'Ukrainian', nativeName: 'Українська', flag: '🇺🇦' },
-
-  // Asian
-  { code: 'bn', name: 'Bengali', nativeName: 'বাংলা', flag: '🇧🇩' },
   { code: 'gu', name: 'Gujarati', nativeName: 'ગુજરાતી', flag: '🇮🇳' },
   { code: 'he', name: 'Hebrew', nativeName: 'עברית', flag: '🇮🇱' },
-  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', flag: '🇮🇳' },
   { code: 'id', name: 'Indonesian', nativeName: 'Bahasa Indonesia', flag: '🇮🇩' },
   { code: 'kn', name: 'Kannada', nativeName: 'ಕನ್ನಡ', flag: '🇮🇳' },
   { code: 'lo', name: 'Lao', nativeName: 'ລາວ', flag: '🇱🇦' },
@@ -66,10 +64,7 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'ta', name: 'Tamil', nativeName: 'தமிழ்', flag: '🇮🇳' },
   { code: 'te', name: 'Telugu', nativeName: 'తెలుగు', flag: '🇮🇳' },
   { code: 'th', name: 'Thai', nativeName: 'ไทย', flag: '🇹🇭' },
-  { code: 'ur', name: 'Urdu', nativeName: 'اردو', flag: '🇵🇰' },
   { code: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt', flag: '🇻🇳' },
-
-  // African
   { code: 'am', name: 'Amharic', nativeName: 'አማርኛ', flag: '🇪🇹' },
   { code: 'ha', name: 'Hausa', nativeName: 'Hausa', flag: '🇳🇬' },
   { code: 'ig', name: 'Igbo', nativeName: 'Igbo', flag: '🇳🇬' },
@@ -81,8 +76,6 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'xh', name: 'Xhosa', nativeName: 'isiXhosa', flag: '🇿🇦' },
   { code: 'yo', name: 'Yoruba', nativeName: 'Yorùbá', flag: '🇳🇬' },
   { code: 'zu', name: 'Zulu', nativeName: 'isiZulu', flag: '🇿🇦' },
-
-  // Middle Eastern / Central Asian
   { code: 'az', name: 'Azerbaijani', nativeName: 'Azərbaycan', flag: '🇦🇿' },
   { code: 'fa', name: 'Persian', nativeName: 'فارسی', flag: '🇮🇷' },
   { code: 'kk', name: 'Kazakh', nativeName: 'Қазақ', flag: '🇰🇿' },
@@ -93,7 +86,6 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'tk', name: 'Turkmen', nativeName: 'Türkmen', flag: '🇹🇲' },
   { code: 'uz', name: 'Uzbek', nativeName: 'Oʻzbek', flag: '🇺🇿' },
 ]
-
 // Map browser language codes to our supported codes
 const LANGUAGE_MAP: Record<string, string> = {
   'en': 'en', 'en-US': 'en', 'en-GB': 'en', 'en-AU': 'en',
