@@ -15,12 +15,16 @@ const (
 	ProviderOpenAI ProviderType = "openai"
 	// ProviderDeepSeek uses DeepSeek API (OpenAI-compatible).
 	ProviderDeepSeek ProviderType = "deepseek"
+	// ProviderOpenRouter uses OpenRouter (OpenAI-compatible API).
+	ProviderOpenRouter ProviderType = "openrouter"
 	// ProviderOllama uses a local Ollama instance.
 	ProviderOllama ProviderType = "ollama"
 	// ProviderEngine uses the legacy llama.cpp translator engine.
 	ProviderEngine ProviderType = "translator-engine"
 	// ProviderNvidia uses NVIDIA AI Foundation endpoints (OpenAI-compatible).
 	ProviderNvidia ProviderType = "nvidia"
+	// ProviderLibreTranslate uses a local LibreTranslate (Argos/OPUS-MT) sidecar.
+	ProviderLibreTranslate ProviderType = "libretranslate"
 )
 
 // Config holds the configuration for creating a translation provider.
@@ -61,7 +65,7 @@ type Config struct {
 // Returns an error if the provider type is unknown.
 func NewProvider(cfg Config) (Provider, error) {
 	switch cfg.Provider {
-	case ProviderOpenCode, ProviderOpenAI, ProviderDeepSeek, ProviderNvidia:
+	case ProviderOpenCode, ProviderOpenAI, ProviderOpenRouter, ProviderDeepSeek, ProviderNvidia:
 		// All OpenAI-compatible providers use the same implementation.
 		baseURL := cfg.APIURL
 		if baseURL == "" {
@@ -70,6 +74,8 @@ func NewProvider(cfg Config) (Provider, error) {
 				baseURL = "https://api.opencode.com/v1"
 			case ProviderOpenAI:
 				baseURL = "https://api.openai.com/v1"
+			case ProviderOpenRouter:
+				baseURL = "https://openrouter.ai"
 			case ProviderDeepSeek:
 				baseURL = "https://api.deepseek.com/v1"
 			case ProviderNvidia:
@@ -105,14 +111,23 @@ func NewProvider(cfg Config) (Provider, error) {
 		}
 		return NewEngineProvider(baseURL), nil
 
+	case ProviderLibreTranslate:
+		baseURL := cfg.APIURL
+		if baseURL == "" {
+			baseURL = LibreTranslateDefaultBaseURL
+		}
+		return NewLibreTranslateProvider(baseURL, cfg.APIKey, cfg.Timeout), nil
+
 	default:
 		validProviders := []string{
 			string(ProviderOpenCode),
 			string(ProviderOpenAI),
+			string(ProviderOpenRouter),
 			string(ProviderDeepSeek),
 			string(ProviderNvidia),
 			string(ProviderOllama),
 			string(ProviderEngine),
+			string(ProviderLibreTranslate),
 		}
 		return nil, fmt.Errorf("unknown translation provider type: %q (valid: %s)",
 			cfg.Provider, strings.Join(validProviders, ", "))

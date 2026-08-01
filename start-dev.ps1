@@ -56,9 +56,9 @@ Log ""
 # ──────────────────────────────────────────────
 # 2. Start Docker services (infra only)
 # ──────────────────────────────────────────────
-Log "▶ [2/5] Starting Docker services (PostgreSQL, Redis)..." Yellow
+Log "▶ [2/5] Starting Docker services (PostgreSQL, Redis, Ollama, LibreTranslate)..." Yellow
 
-docker compose -f $ComposeFile up -d --remove-orphans --force-recreate ollama postgres redis 2>&1 | ForEach-Object {
+docker compose -f $ComposeFile up -d --remove-orphans --force-recreate ollama postgres redis libretranslate 2>&1 | ForEach-Object {
     $line = $_.ToString().Trim()
     if ($line -ne "") { Write-Host "  $line" }
 }
@@ -112,6 +112,20 @@ if ($ollamaReady) {
 } else {
     Warn "Ollama not ready yet - backend will fall through to other providers"
 }
+
+# Wait for LibreTranslate to be healthy before starting the backend.
+# LibreTranslate is FIRST in the translation chain, so the Go backend needs it
+# reachable on localhost:5000 from the start. First boot downloads the en/es
+# Argos models and can take a few minutes.
+Log "  Waiting for LibreTranslate to be healthy..." Yellow
+$ltReady = $false
+for ($i = 0; $i -lt 90; $i++) {
+    $status = docker inspect --format='{{.State.Health.Status}}' chorus-libretranslate 2>$null
+    if ($status -eq "healthy") { $ltReady = $true; break }
+    if ($i -gt 0 -and $i % 15 -eq 0) { Write-Host "  ...waiting for LibreTranslate ($($i*2)s)" }
+    Start-Sleep -Seconds 2
+}
+if ($ltReady) { Ok "LibreTranslate healthy on http://localhost:5000" } else { Warn "LibreTranslate not healthy yet - translation will fall through to LLM providers" }
 
 # ──────────────────────────────────────────────
 # 4. Run backend with air (hot-reload)
