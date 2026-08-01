@@ -61,6 +61,30 @@ services:
       - TRANSLATION_PROVIDER_API_URL=${TRANSLATION_PROVIDER_API_URL:-}
       - TRANSLATION_PROVIDER_API_KEY=${TRANSLATION_PROVIDER_API_KEY:-}
       - TRANSLATION_PROVIDER_MODEL=${TRANSLATION_PROVIDER_MODEL:-}
+      # Unified provider chain (recommended) — first successful provider wins,
+      # cloud quotas/rate limits are skipped automatically, local always last.
+      - TRANSLATION_PROVIDER_ORDER=${TRANSLATION_PROVIDER_ORDER:-libretranslate,openrouter,nvidia,opencode_go,ollama_local}
+      - GRAMMAR_ANALYSIS_PROVIDER_ORDER=${GRAMMAR_ANALYSIS_PROVIDER_ORDER:-openrouter,nvidia,opencode_go,ollama_local}
+      - TRANSLATION_CHAIN_TIMEOUT=${TRANSLATION_CHAIN_TIMEOUT:-120}
+      - PROVIDER_LIBRETRANSLATE_TYPE=libretranslate
+      - PROVIDER_LIBRETRANSLATE_API_URL=${PROVIDER_LIBRETRANSLATE_API_URL:-http://libretranslate:5000}
+      - PROVIDER_LIBRETRANSLATE_TIMEOUT=${PROVIDER_LIBRETRANSLATE_TIMEOUT:-10}
+      - PROVIDER_OPENROUTER_TYPE=openrouter
+      - PROVIDER_OPENROUTER_API_URL=${PROVIDER_OPENROUTER_API_URL:-https://openrouter.ai}
+      - PROVIDER_OPENROUTER_API_KEY=${PROVIDER_OPENROUTER_API_KEY:-}
+      - PROVIDER_OPENROUTER_MODEL=${PROVIDER_OPENROUTER_MODEL:-google/gemini-2.5-flash-lite:free}
+      - PROVIDER_NVIDIA_TYPE=nvidia
+      - PROVIDER_NVIDIA_API_URL=${PROVIDER_NVIDIA_API_URL:-https://integrate.api.nvidia.com/v1}
+      - PROVIDER_NVIDIA_API_KEY=${PROVIDER_NVIDIA_API_KEY:-}
+      - PROVIDER_NVIDIA_MODEL=${PROVIDER_NVIDIA_MODEL:-meta/llama-3.1-70b-instruct}
+      - PROVIDER_OPENCODE_GO_TYPE=opencode
+      - PROVIDER_OPENCODE_GO_API_URL=${PROVIDER_OPENCODE_GO_API_URL:-https://opencode.ai/zen/go/v1}
+      - PROVIDER_OPENCODE_GO_API_KEY=${PROVIDER_OPENCODE_GO_API_KEY:-}
+      - PROVIDER_OPENCODE_GO_MODEL=${PROVIDER_OPENCODE_GO_MODEL:-deepseek-v4-flash}
+      - PROVIDER_OLLAMA_LOCAL_TYPE=ollama
+      - PROVIDER_OLLAMA_LOCAL_API_URL=${PROVIDER_OLLAMA_LOCAL_API_URL:-http://ollama:11434}
+      - PROVIDER_OLLAMA_LOCAL_MODEL=${PROVIDER_OLLAMA_LOCAL_MODEL:-qwen2.5:3b}
+      - PROVIDER_OLLAMA_LOCAL_TIMEOUT=${PROVIDER_OLLAMA_LOCAL_TIMEOUT:-600}
       - PORT=8080
       - APPWRITE_ENDPOINT=${APPWRITE_ENDPOINT:-}
       - APPWRITE_PROJECT_ID=${APPWRITE_PROJECT_ID:-}
@@ -75,6 +99,8 @@ services:
         condition: service_started
       ollama:
         condition: service_started
+      libretranslate:
+        condition: service_healthy
     restart: always
     networks:
       - chorus-network
@@ -127,11 +153,46 @@ services:
       ollama pull qwen2.5:3b &&
       wait"
     healthcheck:
-      test: ["CMD", "ollama", "list"]
+      test: ["CMD", "ollama", "show", "qwen2.5:3b"]
       interval: 30s
       timeout: 10s
-      retries: 5
+      retries: 10
       start_period: 120s
+    restart: always
+
+  # ============================================================================
+  # LibreTranslate — fast local translation (Argos/OPUS-MT backend), CPU-only,
+  # ~20-30ms warm for chat-sized messages. First provider in the translation
+  # chain and the memory-efficient offline fallback. LT_LOAD_ONLY limits
+  # first-boot model downloads to the top-10 world languages.
+  # Docs: https://github.com/LibreTranslate/LibreTranslate
+  # ============================================================================
+  libretranslate:
+    image: libretranslate/libretranslate:latest
+    container_name: chorus-libretranslate
+    networks:
+      - chorus-network
+    ports:
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - libretranslate_data:/app/.local/share/argos-translate
+    environment:
+      # Top-10 world languages by speaker count:
+      #   en English · zh Mandarin · hi Hindi · es Spanish · ar Arabic
+      #   fr French · bn Bengali · pt Portuguese · ru Russian · ur Urdu
+      # Extend this list as needed; each new pair downloads an Argos model once.
+      - LT_LOAD_ONLY=en,zh,hi,es,ar,fr,bn,pt,ru,ur
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:5000/languages"]
+      interval: 20s
+      timeout: 10s
+      retries: 12
+      start_period: 180s
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+          cpus: '1.0'
     restart: always
 
   # ============================================================================
@@ -178,6 +239,8 @@ volumes:
   redis_data:
     driver: local
   ollama_data:
+    driver: local
+  libretranslate_data:
     driver: local
   translator_model_cache:
     driver: local

@@ -109,7 +109,7 @@ func (p *EngineProvider) Translate(ctx context.Context, req TranslateRequest) (T
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
-		return TranslateResponse{}, fmt.Errorf("engine returned status %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
+		return TranslateResponse{}, NewHTTPStatusError(p.Name(), resp.StatusCode, string(respBody))
 	}
 
 	var chatResp engineChatResponse

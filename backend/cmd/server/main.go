@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/chorus/messenger/internal/config"
@@ -30,6 +31,12 @@ func main() {
 	// Initialize log level
 	logutil.SetLevelFromString(cfg.LogLevel)
 	log.Printf("[Startup] Log level set to %q", cfg.LogLevel)
+
+	// Startup configuration checks: warn about missing/invalid provider keys
+	// so misconfigured cloud providers are obvious before traffic arrives.
+	// Missing keys do NOT stop the server — the chain skips those providers
+	// at runtime and falls through to the next (ultimately the local fallback).
+	logStartupConfigWarnings(cfg)
 
 	// Initialize Appwrite (if configured)
 	if cfg.AppwriteEndpoint != "" && cfg.AppwriteProjectID != "" {
@@ -71,6 +78,7 @@ func main() {
 	// Create translation provider chain.
 	translationProvider := buildTranslationProviderChain(cfg)
 	log.Printf("Using translation provider: %s", translationProvider.Name())
+	probeLocalProviders(translationProvider)
 	translationService := services.NewTranslationService(
 		translationProvider,
 		redisClient,
@@ -240,7 +248,10 @@ func main() {
 
 // buildTranslationProviderChain constructs a provider chain from config.
 // If TRANSLATION_PROVIDER_ORDER is set, it builds a ChainProvider from the
-// ordered list of aliases. Otherwise, it falls back to the legacy single-provider config.
+// ordered list of aliases. Providers that are missing required config (e.g. a
+// cloud provider with an empty API key) are skipped so the chain falls through
+// to the next one at runtime. Otherwise, it falls back to the legacy
+// single-provider config.
 func buildTranslationProviderChain(cfg *config.Config) translation.Provider {
 	if len(cfg.TranslationProviderOrder) > 0 {
 		var providers []translation.Provider
@@ -257,6 +268,11 @@ func buildTranslationProviderChain(cfg *config.Config) translation.Provider {
 				Model:    def.Model,
 				Timeout:  def.Timeout,
 			}
+			if !provCfg.Configured() {
+				log.Printf("Warning: provider %q (%s) is not configured (missing required env keys), skipping",
+					alias, def.Type)
+				continue
+			}
 			prov, err := translation.NewProvider(provCfg)
 			if err != nil {
 				log.Printf("Warning: failed to create provider %q: %v", alias, err)
@@ -266,7 +282,9 @@ func buildTranslationProviderChain(cfg *config.Config) translation.Provider {
 			log.Printf("  Translation provider %d: %s (%s)", len(providers), alias, prov.Name())
 		}
 		if len(providers) == 0 {
-			log.Fatal("No translation providers could be created from TRANSLATION_PROVIDER_ORDER")
+			log.Fatal("No translation providers could be created from TRANSLATION_PROVIDER_ORDER — " +
+				"set at least one API key for a cloud provider or ensure a local provider " +
+				"(libretranslate, ollama) is configured")
 		}
 		if len(providers) == 1 {
 			return providers[0]
@@ -304,12 +322,26 @@ func buildGrammarEndpoints(cfg *config.Config) []services.GrammarEndpoint {
 				log.Printf("Warning: provider %q in GRAMMAR_PROVIDER_ORDER not configured, skipping", alias)
 				continue
 			}
+			provCfg := translation.Config{
+				Provider: translation.ProviderType(def.Type),
+				APIURL:   def.APIURL,
+				APIKey:   def.APIKey,
+				Model:    def.Model,
+				Timeout:  def.Timeout,
+			}
+			if !provCfg.Configured() {
+				log.Printf("Warning: provider %q (%s) is not configured (missing required env keys), skipping",
+					alias, def.Type)
+				continue
+			}
 			ep := services.NewGrammarEndpoint(alias, def.Type, def.APIURL, def.APIKey, def.Model, def.Timeout)
 			endpoints = append(endpoints, ep)
 			log.Printf("  Grammar endpoint %d: %s (%s model=%s)", len(endpoints), alias, def.APIURL, def.Model)
 		}
 		if len(endpoints) == 0 {
-			log.Fatal("No grammar endpoints could be created from GRAMMAR_PROVIDER_ORDER")
+			log.Printf("Warning: no grammar AI endpoints could be created from GRAMMAR_PROVIDER_ORDER — " +
+				"grammar analysis will use the built-in regex fallback")
+			return nil
 		}
 		return endpoints
 	}
@@ -318,4 +350,87 @@ func buildGrammarEndpoints(cfg *config.Config) []services.GrammarEndpoint {
 	ep := services.NewGrammarEndpoint("legacy", "", cfg.GrammarAPIURL, cfg.GrammarAPIKey, cfg.GrammarModel, 0)
 	log.Printf("  Grammar endpoint: %s model=%s", cfg.GrammarAPIURL, cfg.GrammarModel)
 	return []services.GrammarEndpoint{ep}
+}
+
+// logStartupConfigWarnings prints the provider config validation results.
+// Missing keys are warnings, not fatal errors — the chain skips those providers
+// at runtime and falls through to the next one (ultimately the local fallback).
+func logStartupConfigWarnings(cfg *config.Config) {
+	warnings := cfg.Validate()
+	if len(warnings) == 0 {
+		log.Printf("[Startup] Provider configuration OK: all providers have required keys")
+		return
+	}
+	log.Printf("[Startup] Provider configuration warnings (%d):", len(warnings))
+	for _, w := range warnings {
+		if w.EnvKey != "" {
+			log.Printf("  [Startup] MISSING/INVALID %s (provider %q): %s", w.EnvKey, w.Provider, w.Message)
+		} else {
+			log.Printf("  [Startup] %s: %s", w.Provider, w.Message)
+		}
+	}
+	log.Printf("[Startup] Cloud providers with missing keys are skipped automatically; " +
+		"the local fallback (libretranslate/ollama) is always tried last.")
+}
+
+// probeLocalProviders performs lightweight readiness checks against the
+// offline/local providers in the chain. If an Ollama model is missing, it
+// auto-pulls it (instead of only warning) so the offline grammar/translation
+// provider works on first boot. Cloud providers are skipped (no probe).
+func probeLocalProviders(p translation.Provider) {
+	var providers []translation.Provider
+	if chain, ok := p.(*translation.ChainProvider); ok {
+		providers = chain.Providers()
+	} else {
+		providers = []translation.Provider{p}
+	}
+
+	for _, prov := range providers {
+		pingable, ok := prov.(translation.Pingable)
+		if !ok {
+			continue // cloud provider — no probe
+		}
+
+		probeCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		err := pingable.Ping(probeCtx)
+		cancel()
+		if err == nil {
+			log.Printf("[Startup] Local provider %s: reachable", prov.Name())
+			continue
+		}
+
+		// Self-heal: a missing Ollama model is pulled automatically instead of
+		// just warning. This blocks startup until the model is ready (bounded by
+		// OLLAMA_STARTUP_PULL_TIMEOUT). In Docker the ollama container pulls the
+		// model itself and the healthcheck gates backend start, so this is a no-op.
+		if ensure, ok := prov.(translation.ModelEnsurer); ok {
+			log.Printf("[Startup] Local provider %s: %v — auto-pulling model...", prov.Name(), err)
+			pullCtx, cancel := context.WithTimeout(context.Background(), startupPullTimeout())
+			pullErr := ensure.EnsureModel(pullCtx)
+			cancel()
+			if pullErr != nil {
+				log.Printf("[Startup] WARNING: auto-pull for %s failed: %v — will retry on demand", prov.Name(), pullErr)
+			} else {
+				log.Printf("[Startup] Local provider %s: model installed, ready", prov.Name())
+			}
+			continue
+		}
+
+		log.Printf("[Startup] WARNING: local provider %s is unreachable (%v). "+
+			"Translation will fall through to the next provider until it is up.",
+			prov.Name(), err)
+	}
+}
+
+// startupPullTimeout returns how long the backend blocks startup while
+// auto-pulling a missing Ollama model. Configurable via
+// OLLAMA_STARTUP_PULL_TIMEOUT (seconds); default 600s (10 minutes).
+func startupPullTimeout() time.Duration {
+	secs := 600
+	if v := os.Getenv("OLLAMA_STARTUP_PULL_TIMEOUT"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			secs = n
+		}
+	}
+	return time.Duration(secs) * time.Second
 }

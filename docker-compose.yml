@@ -80,7 +80,12 @@ services:
       - backend
     restart: unless-stopped
 
-  # Ollama (LLM fallback for analysis)
+  # Ollama — offline LLM for grammar analysis / word-by-word breakdowns and
+  # translation last-resort. CPU-only, no VRAM. The entrypoint pulls the model
+  # on first boot, and the healthcheck only passes once that model is installed,
+  # so the backend never starts before the local LLM is ready.
+  # Model: qwen2.5:3b (~2 GB RAM) — keep in sync with PROVIDER_OLLAMA_LOCAL_MODEL
+  # in backend/.env. Proven for strict JSON/structured output and multilingual.
   ollama:
     image: ollama/ollama:latest
     container_name: chorus-ollama
@@ -93,11 +98,17 @@ services:
       - OLLAMA_NUM_PARALLEL=1
       - OLLAMA_MAX_LOADED_MODELS=1
       - OLLAMA_KEEP_ALIVE=-1
+    entrypoint: >
+      sh -c "ollama serve &
+      sleep 3 &&
+      ollama pull qwen2.5:3b &&
+      wait"
     healthcheck:
-      test: ["CMD", "ollama", "list"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
+      test: ["CMD", "ollama", "show", "qwen2.5:3b"]
+      interval: 10s
+      timeout: 10s
+      retries: 60
+      start_period: 30s
     restart: unless-stopped
     deploy:
       resources:

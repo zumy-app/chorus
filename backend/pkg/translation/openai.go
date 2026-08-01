@@ -52,6 +52,12 @@ func (p *OpenAIProvider) Name() string {
 	return fmt.Sprintf("openai(%s)", p.model)
 }
 
+// NeedsKey reports whether this provider requires an API key. Used by the
+// chain's startup health check to flag misconfigured cloud providers.
+func (p *OpenAIProvider) NeedsKey() bool {
+	return p.apiKey == ""
+}
+
 // openAIChatMessage represents a message in the OpenAI chat format.
 type openAIChatMessage struct {
 	Role    string `json:"role"`
@@ -130,7 +136,7 @@ func (p *OpenAIProvider) Translate(ctx context.Context, req TranslateRequest) (T
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-		return TranslateResponse{}, fmt.Errorf("openai returned status %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
+		return TranslateResponse{}, NewHTTPStatusError(p.Name(), resp.StatusCode, string(respBody))
 	}
 
 	var chatResp openAIChatResponse

@@ -10,10 +10,12 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/chorus/messenger/internal/models"
 	"github.com/chorus/messenger/pkg/logutil"
+	"github.com/chorus/messenger/pkg/translation"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -82,6 +84,12 @@ func NewGrammarEndpoint(name, providerType, apiURL, apiKey, model string, timeou
 type GrammarService struct {
 	redis     *redis.Client
 	endpoints []GrammarEndpoint
+
+	// cooldowns tracks per-endpoint pause windows after rate limits / quota
+	// exhaustion / auth failures / 5xx, so a throttled cloud provider is
+	// skipped on subsequent requests instead of being hammered repeatedly.
+	mu        sync.Mutex
+	cooldowns map[string]time.Time
 }
 
 // NewGrammarService creates a new Grammar service with an ordered list of endpoints.
@@ -90,6 +98,7 @@ func NewGrammarService(redis *redis.Client, endpoints []GrammarEndpoint) *Gramma
 	return &GrammarService{
 		redis:     redis,
 		endpoints: endpoints,
+		cooldowns: make(map[string]time.Time),
 	}
 }
 
@@ -1161,8 +1170,8 @@ func (s *GrammarService) GenerateLearningContent(text, language, nativeLanguage,
 
 	var prompt string
 	switch action {
-case "breakdown":
-	prompt = fmt.Sprintf(`<role>You are an intuitive, friendly, culturally aware language tutor teaching %s to a %s speaker. Break down the text like a helpful peer, not a rigid lecturer.</role>
+	case "breakdown":
+		prompt = fmt.Sprintf(`<role>You are an intuitive, friendly, culturally aware language tutor teaching %s to a %s speaker. Break down the text like a helpful peer, not a rigid lecturer.</role>
 
 <task>
 1. Context Detection: Scan the text to see if it is a known song, poem, famous quote, historical speech, or slang-heavy piece. If detected, add a brief, 1-sentence casual intro identifying it (e.g., "Ah, this is from Shakira's song 'Monotonía'—let's break down the drama!").
@@ -1185,8 +1194,8 @@ case "breakdown":
 </input_text>
 `, langName, nativeLangName, text)
 
-case "examples":
-	prompt = fmt.Sprintf(`<role>You are an intuitive, friendly, and practical language tutor teaching %s to a %s speaker. Provide natural, conversational example sentences.</role>
+	case "examples":
+		prompt = fmt.Sprintf(`<role>You are an intuitive, friendly, and practical language tutor teaching %s to a %s speaker. Provide natural, conversational example sentences.</role>
 
 <task>
 Provide 3-5 example sentences using the key vocabulary or grammatical patterns found in the source text. Focus on real-world usability rather than stiff textbook phrases.
@@ -1203,8 +1212,8 @@ Each line must show the example sentence in %s, followed immediately by its natu
 </input_text>
 `, langName, nativeLangName, langName, nativeLangName, text)
 
-case "flashcards":
-	prompt = fmt.Sprintf(`<role>You are an intuitive, friendly, and practical language tutor teaching %s to a %s speaker. Create high-yield vocabulary and phrase flashcards based on the text.</role>
+	case "flashcards":
+		prompt = fmt.Sprintf(`<role>You are an intuitive, friendly, and practical language tutor teaching %s to a %s speaker. Create high-yield vocabulary and phrase flashcards based on the text.</role>
 
 <task>
 Create 3-5 flashcards, exactly one per line, focusing on the most useful words, idioms, or verb variations from the text that a language learner can immediately use in daily conversation.
@@ -1222,8 +1231,8 @@ Format each line strictly as: "Q: [target word or phrase]? A: [native translatio
 </input_text>
 `, langName, nativeLangName, text)
 
-case "custom":
-	prompt = fmt.Sprintf(`<role>You are an intuitive, friendly, and practical language tutor teaching %s to a %s speaker.</role>
+	case "custom":
+		prompt = fmt.Sprintf(`<role>You are an intuitive, friendly, and practical language tutor teaching %s to a %s speaker.</role>
 
 <task>
 Answer the student's question about the text in a helpful, warm, and highly educational peer-to-peer style. Keep your explanation brief, direct, and completely free of textbook jargon.
@@ -1241,9 +1250,9 @@ Student Question: "%s"
 </context>
 `, langName, nativeLangName, nativeLangName, text, customQuery)
 
-default:
-	return nil, fmt.Errorf("unknown learning action: %s", action)
-}
+	default:
+		return nil, fmt.Errorf("unknown learning action: %s", action)
+	}
 
 	// Use a 30-second timeout so the AI Tutor panel doesn't hang indefinitely.
 	result, providerUsed, err := s.callGrammarAPI(prompt, nativeLangName)
@@ -1301,7 +1310,14 @@ func nextActionsFor(action string) []string {
 // Returns the response text and the name of the provider that succeeded.
 func (s *GrammarService) callGrammarAPI(prompt, nativeLangName string) (string, string, error) {
 	var lastErr error
+	tried := 0
 	for i, ep := range s.endpoints {
+		if until, cooling := s.coolDownFor(ep.Name); cooling {
+			logutil.Debugf("[Grammar] skipping endpoint %s (cooling down until %s)",
+				ep.Name, until.Format(time.RFC3339))
+			continue
+		}
+		tried++
 		logutil.Infof("[Grammar] trying endpoint %d/%d: %s (url=%s, model=%s)",
 			i+1, len(s.endpoints), ep.Name, ep.APIURL, ep.Model)
 		start := time.Now()
@@ -1313,10 +1329,42 @@ func (s *GrammarService) callGrammarAPI(prompt, nativeLangName string) (string, 
 			return result, ep.Name, nil
 		}
 		lastErr = err
+		s.markFailure(ep.Name, err)
 		logutil.Warnf("[Grammar] endpoint %d/%d %s failed: %v — trying next",
 			i+1, len(s.endpoints), ep.Name, err)
 	}
+	if tried == 0 {
+		return "", "", fmt.Errorf("all %d endpoints cooling down or unavailable: %w", len(s.endpoints), lastErr)
+	}
 	return "", "", fmt.Errorf("all %d endpoints exhausted: %w", len(s.endpoints), lastErr)
+}
+
+// markFailure applies a cooldown to an endpoint when its error class (rate
+// limit, quota, auth, 5xx) warrants pausing it.
+func (s *GrammarService) markFailure(name string, err error) {
+	cooldown := translation.CooldownFor(err)
+	if cooldown <= 0 {
+		return
+	}
+	s.mu.Lock()
+	s.cooldowns[name] = time.Now().Add(cooldown)
+	s.mu.Unlock()
+	logutil.Warnf("[Grammar] endpoint %s cooling down for %v (%v)", name, cooldown, err)
+}
+
+// coolDownFor returns the endpoint's cooldown expiry if it is currently paused.
+func (s *GrammarService) coolDownFor(name string) (time.Time, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	until, ok := s.cooldowns[name]
+	if !ok {
+		return time.Time{}, false
+	}
+	if time.Now().After(until) {
+		delete(s.cooldowns, name)
+		return time.Time{}, false
+	}
+	return until, true
 }
 
 // call sends a single chat completion request to this endpoint.
@@ -1386,7 +1434,7 @@ func (ep *GrammarEndpoint) call(prompt, nativeLangName string) (string, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-		return "", fmt.Errorf("grammar API returned status %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
+		return "", translation.NewHTTPStatusError(ep.Name, resp.StatusCode, string(respBody))
 	}
 
 	if ep.ProviderType == "ollama" {

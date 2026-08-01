@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -206,4 +207,129 @@ func splitAndTrim(s string) []string {
 		}
 	}
 	return result
+}
+
+// Warning describes a configuration problem found during the startup check.
+// It never contains secret values — only env var names.
+type Warning struct {
+	Provider string // provider alias, e.g. "openrouter"
+	EnvKey   string // the env var that is missing/empty, if applicable
+	Message  string // human-readable description
+}
+
+// EnvKeyFor builds the canonical env var name for a provider field, e.g.
+// EnvKeyFor("openrouter", "API_KEY") == "PROVIDER_OPENROUTER_API_KEY".
+func EnvKeyFor(alias, field string) string {
+	return fmt.Sprintf("PROVIDER_%s_%s", strings.ToUpper(alias), field)
+}
+
+// Validate inspects the loaded provider config and returns a list of warnings
+// for missing or invalid configuration (empty API keys, referenced-but-undefined
+// providers, missing local fallbacks, ...). It is intended to run at startup;
+// a warning does not stop the server — the chain simply skips the broken
+// provider at runtime and falls through to the next one.
+func (c *Config) Validate() []Warning {
+	var warnings []Warning
+
+	// Chain aliases referenced in an order but never defined.
+	checkOrder := func(order []string, orderEnvKey string) {
+		for _, alias := range order {
+			def, ok := c.Providers[alias]
+			if !ok {
+				warnings = append(warnings, Warning{
+					Provider: alias,
+					EnvKey:   EnvKeyFor(alias, "TYPE"),
+					Message: fmt.Sprintf("%q appears in %s but has no PROVIDER_%s_* configuration — it will be skipped",
+						alias, orderEnvKey, strings.ToUpper(alias)),
+				})
+				continue
+			}
+			if strings.TrimSpace(def.Type) == "" {
+				warnings = append(warnings, Warning{
+					Provider: alias,
+					EnvKey:   EnvKeyFor(alias, "TYPE"),
+					Message:  fmt.Sprintf("provider %q has no TYPE (set %s)", alias, EnvKeyFor(alias, "TYPE")),
+				})
+			}
+		}
+	}
+	checkOrder(c.TranslationProviderOrder, "TRANSLATION_PROVIDER_ORDER")
+	checkOrder(c.GrammarProviderOrder, "GRAMMAR_ANALYSIS_PROVIDER_ORDER")
+
+	// Every defined provider: check required fields per type.
+	for alias, def := range c.Providers {
+		pType := translation.ProviderType(def.Type)
+		if def.Type == "" {
+			continue // already warned above
+		}
+		if translation.NeedsAPIKey(pType) {
+			if def.APIKey == "" {
+				warnings = append(warnings, Warning{
+					Provider: alias,
+					EnvKey:   EnvKeyFor(alias, "API_KEY"),
+					Message: fmt.Sprintf("provider %q (%s) needs an API key but %s is empty — it will be skipped",
+						alias, def.Type, EnvKeyFor(alias, "API_KEY")),
+				})
+			}
+			if def.APIURL == "" {
+				warnings = append(warnings, Warning{
+					Provider: alias,
+					EnvKey:   EnvKeyFor(alias, "API_URL"),
+					Message: fmt.Sprintf("provider %q (%s) has no API URL set — a built-in default will be used",
+						alias, def.Type),
+				})
+			}
+		}
+		if !translation.IsLocalProvider(pType) && def.Model == "" {
+			warnings = append(warnings, Warning{
+				Provider: alias,
+				EnvKey:   EnvKeyFor(alias, "MODEL"),
+				Message: fmt.Sprintf("provider %q (%s) has no MODEL set — a built-in default will be used",
+					alias, def.Type),
+			})
+		}
+	}
+
+	// Ensure each chain keeps an offline/local fallback so translation keeps
+	// working when every cloud key is missing or every cloud quota is exhausted.
+	if len(c.TranslationProviderOrder) > 0 && !orderHasLocal(c.TranslationProviderOrder, c.Providers) {
+		warnings = append(warnings, Warning{
+			Provider: "chain",
+			EnvKey:   "TRANSLATION_PROVIDER_ORDER",
+			Message:  "translation chain has no offline/local provider (ollama, libretranslate, translator-engine) as a guaranteed fallback",
+		})
+	}
+	if len(c.GrammarProviderOrder) > 0 && !orderHasLocal(c.GrammarProviderOrder, c.Providers) {
+		warnings = append(warnings, Warning{
+			Provider: "chain",
+			EnvKey:   "GRAMMAR_ANALYSIS_PROVIDER_ORDER",
+			Message:  "grammar chain has no offline/local provider (ollama) as a guaranteed fallback",
+		})
+	}
+
+	// Legacy single-provider mode (used only when no chain order is set).
+	if len(c.TranslationProviderOrder) == 0 &&
+		translation.NeedsAPIKey(translation.ProviderType(c.TranslationProviderName)) &&
+		c.TranslationProviderKey == "" {
+		warnings = append(warnings, Warning{
+			Provider: c.TranslationProviderName,
+			EnvKey:   "TRANSLATION_PROVIDER_API_KEY",
+			Message:  fmt.Sprintf("legacy translation provider %q needs an API key but TRANSLATION_PROVIDER_API_KEY is empty", c.TranslationProviderName),
+		})
+	}
+
+	return warnings
+}
+
+func orderHasLocal(order []string, providers map[string]ProviderDef) bool {
+	for _, alias := range order {
+		def, ok := providers[alias]
+		if !ok {
+			continue
+		}
+		if translation.IsLocalProvider(translation.ProviderType(def.Type)) {
+			return true
+		}
+	}
+	return false
 }
