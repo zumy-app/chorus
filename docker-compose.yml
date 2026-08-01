@@ -49,11 +49,35 @@ services:
       - APPWRITE_PROJECT_ID=${APPWRITE_PROJECT_ID:-6955733a001c10e7c020}
       - APPWRITE_API_KEY=${APPWRITE_API_KEY:-}
       - APPWRITE_DATABASE_ID=${APPWRITE_DATABASE_ID:-6955749200181b13d9d6}
+
+      # ─── External LLM provider chain (unified — translation AND grammar) ───
+      # nllb-local is FIRST: free, local, CPU-only NLLB-200 int8 translation.
+      - EXTERNAL_LLM_PROVIDER_ORDER=${EXTERNAL_LLM_PROVIDER_ORDER:-nllb-local,ollama_local,nvidia,opencode_go}
+      - TRANSLATION_CHAIN_TIMEOUT=${TRANSLATION_CHAIN_TIMEOUT:-300}
+      - PROVIDER_NLLB_LOCAL_TYPE=${PROVIDER_NLLB_LOCAL_TYPE:-nllb-local}
+      - PROVIDER_NLLB_LOCAL_API_URL=${PROVIDER_NLLB_LOCAL_API_URL:-http://nllb-local:5001}
+      - PROVIDER_NLLB_LOCAL_MODEL=${PROVIDER_NLLB_LOCAL_MODEL:-nllb-200-distilled-600M-ct2-int8}
+      - PROVIDER_NLLB_LOCAL_TIMEOUT=${PROVIDER_NLLB_LOCAL_TIMEOUT:-60}
+      - PROVIDER_OLLAMA_LOCAL_TYPE=${PROVIDER_OLLAMA_LOCAL_TYPE:-ollama}
+      - PROVIDER_OLLAMA_LOCAL_API_URL=${PROVIDER_OLLAMA_LOCAL_API_URL:-http://ollama:11434}
+      - PROVIDER_OLLAMA_LOCAL_MODEL=${PROVIDER_OLLAMA_LOCAL_MODEL:-qwen2.5:3b}
+      - PROVIDER_OLLAMA_LOCAL_TIMEOUT=${PROVIDER_OLLAMA_LOCAL_TIMEOUT:-600}
+      - PROVIDER_NVIDIA_TYPE=${PROVIDER_NVIDIA_TYPE:-nvidia}
+      - PROVIDER_NVIDIA_API_URL=${PROVIDER_NVIDIA_API_URL:-}
+      - PROVIDER_NVIDIA_API_KEY=${PROVIDER_NVIDIA_API_KEY:-}
+      - PROVIDER_NVIDIA_MODEL=${PROVIDER_NVIDIA_MODEL:-meta/llama-3.1-70b-instruct}
+      - PROVIDER_OPENCODE_GO_TYPE=${PROVIDER_OPENCODE_GO_TYPE:-opencode}
+      - PROVIDER_OPENCODE_GO_API_URL=${PROVIDER_OPENCODE_GO_API_URL:-}
+      - PROVIDER_OPENCODE_GO_API_KEY=${PROVIDER_OPENCODE_GO_API_KEY:-}
+      - PROVIDER_OPENCODE_GO_MODEL=${PROVIDER_OPENCODE_GO_MODEL:-deepseek-v4-flash}
+
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      nllb-local:
+        condition: service_started
     restart: unless-stopped
 
   frontend:
@@ -95,7 +119,44 @@ services:
           memory: 4g
           cpus: '2'
 
+  # ============================================================================
+  # NLLB-200 CTranslate2 sidecar ("nllb-local")
+  # Meta's NLLB-200 (distilled-600M) translated via the fast CTranslate2 int8
+  # backend on CPU only. First provider in the translation chain — free, local,
+  # no API key. Exposes JSON API on port 5001 (internal bridge network).
+  # ============================================================================
+  nllb-local:
+    build:
+      context: ./backend/nllb-serve
+      dockerfile: Dockerfile.sidecar
+    container_name: chorus-nllb-local
+    ports:
+      - "5001:5001"
+    volumes:
+      - nllb_models:/app/models
+    environment:
+      - NLLB_MODEL_DIR=/app/models/nllb_200_distilled_int8
+      - NLLB_SOURCE_MODEL=facebook/nllb-200-distilled-600M
+      - NLLB_INTER_THREADS=2
+      - NLLB_INTRA_THREADS=2
+      - NLLB_DEFAULT_SOURCE=eng_Latn
+      - NLLB_DEFAULT_TARGET=spa_Latn
+      - PORT=5001
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
   ollama_data:
+  nllb_models:

@@ -67,8 +67,13 @@ services:
       - TRANSLATION_PROVIDER_MODEL=${TRANSLATION_PROVIDER_MODEL:-}
 
       # ─── External LLM provider chain (unified — used for BOTH translation and grammar) ───
-      - EXTERNAL_LLM_PROVIDER_ORDER=${EXTERNAL_LLM_PROVIDER_ORDER:-}
+      # nllb-local is FIRST: free, local, CPU-only NLLB-200 int8 translation.
+      - EXTERNAL_LLM_PROVIDER_ORDER=${EXTERNAL_LLM_PROVIDER_ORDER:-nllb-local,ollama_local,nvidia,opencode_go}
       - TRANSLATION_CHAIN_TIMEOUT=${TRANSLATION_CHAIN_TIMEOUT:-300}
+      - PROVIDER_NLLB_LOCAL_TYPE=${PROVIDER_NLLB_LOCAL_TYPE:-nllb-local}
+      - PROVIDER_NLLB_LOCAL_API_URL=${PROVIDER_NLLB_LOCAL_API_URL:-http://nllb-local:5001}
+      - PROVIDER_NLLB_LOCAL_MODEL=${PROVIDER_NLLB_LOCAL_MODEL:-nllb-200-distilled-600M-ct2-int8}
+      - PROVIDER_NLLB_LOCAL_TIMEOUT=${PROVIDER_NLLB_LOCAL_TIMEOUT:-60}
       - PROVIDER_OPENCODE_GO_TYPE=${PROVIDER_OPENCODE_GO_TYPE:-}
       - PROVIDER_OPENCODE_GO_API_URL=${PROVIDER_OPENCODE_GO_API_URL:-}
       - PROVIDER_OPENCODE_GO_API_KEY=${PROVIDER_OPENCODE_GO_API_KEY:-}
@@ -92,6 +97,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      nllb-local:
+        condition: service_started
       translator-engine:
         condition: service_started
       ollama:
@@ -156,6 +163,44 @@ services:
     restart: always
 
   # ============================================================================
+  # NLLB-200 CTranslate2 sidecar ("nllb-local")
+  # Meta's NLLB-200 (distilled-600M) via the fast CTranslate2 int8 backend on
+  # CPU only. First provider in the translation chain — free, local, no key.
+  # Internal only (no host port): reached by the backend over chorus-network.
+  # ============================================================================
+  nllb-local:
+    build:
+      context: ./backend/nllb-serve
+      dockerfile: Dockerfile.sidecar
+    container_name: chorus-nllb-local
+    networks:
+      - chorus-network
+    expose:
+      - "5001"
+    volumes:
+      - nllb_models:/app/models
+    environment:
+      - NLLB_MODEL_DIR=/app/models/nllb_200_distilled_int8
+      - NLLB_SOURCE_MODEL=facebook/nllb-200-distilled-600M
+      - NLLB_INTER_THREADS=2
+      - NLLB_INTRA_THREADS=2
+      - NLLB_DEFAULT_SOURCE=eng_Latn
+      - NLLB_DEFAULT_TARGET=spa_Latn
+      - PORT=5001
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+
+  # ============================================================================
   # Translator Engine (Phase 1 — replaces NLLB)
   # llama.cpp server with a 7B-param translation model in GGUF format.
   # Exposes an OpenAI-compatible API at /v1/chat/completions.
@@ -201,6 +246,8 @@ volumes:
   ollama_data:
     driver: local
   translator_model_cache:
+    driver: local
+  nllb_models:
     driver: local
 
 networks:

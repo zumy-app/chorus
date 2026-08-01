@@ -1,0 +1,93 @@
+# =============================================================================
+# NLLB-200 CTranslate2 sidecar ("nllb-local")
+# -----------------------------------------------------------------------------
+# Lightweight CPU-only translation microservice for Meta's NLLB-200
+# (distilled-600M, int8 quantized) exposed on port 5001.
+#
+# The int8 model is converted once at image build time (no memory limits
+# during build), then seeded into the persistent model volume on first boot
+# so container restarts are completely instantaneous.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Stage 1: build the int8 model (needs PyTorch for the HF->CT2 conversion)
+# ---------------------------------------------------------------------------
+FROM python:3.11-slim AS model-builder
+
+WORKDIR /app
+
+# build-essential is required before compiling any native Python deps so the
+# C++ CTranslate2 bindings (and any sdist fallbacks) compile cleanly.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# CPU-only PyTorch — only used to convert the HF checkpoint to CTranslate2.
+RUN pip install --no-cache-dir \
+        torch==2.5.1 \
+        --index-url https://download.pytorch.org/whl/cpu
+
+RUN pip install --no-cache-dir \
+        ctranslate2==4.8.1 \
+        transformers==4.46.3 \
+        sentencepiece==0.2.0 \
+        huggingface_hub==0.26.2
+
+ENV NLLB_MODEL_DIR=/app/models/nllb_200_distilled_int8
+
+COPY server.py .
+
+# Download facebook/nllb-200-distilled-600M and convert to int8 (one-time cost).
+RUN python server.py --convert && \
+    ls -lh "${NLLB_MODEL_DIR}"
+
+# ---------------------------------------------------------------------------
+# Stage 2: slim runtime image
+# ---------------------------------------------------------------------------
+FROM python:3.11-slim AS runtime
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# CPU-only PyTorch is kept for the server's built-in on-the-fly conversion
+# fallback (NLLB_CONVERT_ON_BOOT / missing volume). It is never imported in
+# the normal inference path, so steady-state RAM stays at the int8 model size.
+RUN pip install --no-cache-dir \
+        torch==2.5.1 \
+        --index-url https://download.pytorch.org/whl/cpu
+
+RUN pip install --no-cache-dir \
+        ctranslate2==4.8.1 \
+        transformers==4.46.3 \
+        sentencepiece==0.2.0 \
+        huggingface_hub==0.26.2 \
+        fastapi==0.115.6 \
+        uvicorn==0.32.1 \
+        pydantic==2.10.4
+
+COPY server.py .
+
+# Baked model (from Stage 1) used to seed the persistent volume on first boot.
+COPY --from=model-builder /app/models /app/models-cache
+
+ENV NLLB_MODEL_DIR=/app/models/nllb_200_distilled_int8 \
+    HF_HOME=/app/hf_cache \
+    NLLB_INTER_THREADS=2 \
+    NLLB_INTRA_THREADS=2 \
+    NLLB_DEFAULT_SOURCE=eng_Latn \
+    NLLB_DEFAULT_TARGET=spa_Latn \
+    PORT=5001
+
+EXPOSE 5001
+
+# Seed the volume from the baked image when empty, then serve.
+CMD ["sh", "-c", "mkdir -p \"${NLLB_MODEL_DIR}\" && \
+    if [ ! -f \"${NLLB_MODEL_DIR}/model.bin\" ]; then \
+      echo 'Seeding model volume from baked image...'; \
+      cp -r /app/models-cache/. \"${NLLB_MODEL_DIR}/\"; \
+    fi && \
+    exec uvicorn server:app --host 0.0.0.0 --port 5001 --workers 1"]

@@ -21,12 +21,14 @@ const (
 	ProviderEngine ProviderType = "translator-engine"
 	// ProviderNvidia uses NVIDIA AI Foundation endpoints (OpenAI-compatible).
 	ProviderNvidia ProviderType = "nvidia"
+	// ProviderNLLB uses the local NLLB-200 CTranslate2 sidecar (nllb-local).
+	ProviderNLLB ProviderType = "nllb-local"
 )
 
 // Config holds the configuration for creating a translation provider.
 type Config struct {
 	// Provider is the name of the provider to create.
-	// Supported values: "opencode", "openai", "deepseek", "nvidia", "ollama", "translator-engine"
+	// Supported values: "opencode", "openai", "deepseek", "nvidia", "ollama", "translator-engine", "nllb-local"
 	Provider ProviderType `json:"provider"`
 
 	// APIURL is the base URL for the provider's API.
@@ -36,6 +38,7 @@ type Config struct {
 	//   - deepseek:  https://api.deepseek.com/v1
 	//   - ollama:    http://localhost:11434
 	//   - translator-engine: http://localhost:5002
+	//   - nllb-local: http://nllb-local:5001
 	APIURL string `json:"api_url"`
 
 	// APIKey is the API key for authentication.
@@ -105,6 +108,13 @@ func NewProvider(cfg Config) (Provider, error) {
 		}
 		return NewEngineProvider(baseURL), nil
 
+	case ProviderNLLB:
+		baseURL := cfg.APIURL
+		if baseURL == "" {
+			baseURL = NLLBDefaultBaseURL
+		}
+		return NewNLLBProvider(baseURL, cfg.Timeout), nil
+
 	default:
 		validProviders := []string{
 			string(ProviderOpenCode),
@@ -113,6 +123,7 @@ func NewProvider(cfg Config) (Provider, error) {
 			string(ProviderNvidia),
 			string(ProviderOllama),
 			string(ProviderEngine),
+			string(ProviderNLLB),
 		}
 		return nil, fmt.Errorf("unknown translation provider type: %q (valid: %s)",
 			cfg.Provider, strings.Join(validProviders, ", "))

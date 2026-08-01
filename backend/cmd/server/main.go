@@ -302,6 +302,10 @@ func buildGrammarEndpoints(cfg *config.Config) []services.GrammarEndpoint {
 				log.Printf("Warning: provider %q in EXTERNAL_LLM_PROVIDER_ORDER not configured, skipping", alias)
 				continue
 			}
+			if def.Type == string(translation.ProviderNLLB) {
+				log.Printf("  Grammar endpoint %q skipped: nllb-local (%s) is a translation-only service, using LLM fallbacks", alias, def.APIURL)
+				continue
+			}
 			ep := services.NewGrammarEndpoint(alias, def.Type, def.APIURL, def.APIKey, def.Model, def.Timeout)
 			endpoints = append(endpoints, ep)
 			log.Printf("  Grammar endpoint %d: %s (%s model=%s)", len(endpoints), alias, def.APIURL, def.Model)
