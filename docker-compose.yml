@@ -95,7 +95,38 @@ services:
           memory: 4g
           cpus: '2'
 
+  # ============================================================================
+  # LibreTranslate — fast local translation (Argos / OPUS-MT backend).
+  # Near-real-time (~100-300ms) for chat-sized messages. First provider in the
+  # translation chain. LT_LOAD_ONLY limits first-boot downloads to the
+  # languages this app uses (English + Spanish); extend as needed.
+  # API: POST /translate (form: q, source, target) on port 5000.
+  # ============================================================================
+  libretranslate:
+    image: libretranslate/libretranslate:latest
+    container_name: chorus-libretranslate
+    ports:
+      - "5000:5000"
+    volumes:
+      - libretranslate_data:/app/.local/share/argos-translate
+    environment:
+      - LT_LOAD_ONLY=en,es
+      - LT_UPDATE_MODELS=true
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:5000/languages"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+          cpus: '1.0'
+
 volumes:
   postgres_data:
   redis_data:
   ollama_data:
+  libretranslate_data:
