@@ -49,6 +49,28 @@ func (p *LibreTranslateProvider) Name() string {
 	return "libretranslate"
 }
 
+// Ping performs a lightweight readiness check against the LibreTranslate
+// /languages endpoint. Used by the startup probe to warn when the offline
+// translation sidecar is unreachable.
+func (p *LibreTranslateProvider) Ping(ctx context.Context) error {
+	if p.baseURL == "" {
+		return fmt.Errorf("%w: LibreTranslate URL is empty", ErrNotConfigured)
+	}
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, p.baseURL+"/languages", nil)
+	if err != nil {
+		return fmt.Errorf("libretranslate ping create request: %w", err)
+	}
+	resp, err := p.httpClient.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("libretranslate ping failed: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return NewHTTPStatusError(p.Name(), resp.StatusCode, "languages probe")
+	}
+	return nil
+}
+
 // libreTranslateResponse is the JSON payload returned by POST /translate.
 type libreTranslateResponse struct {
 	TranslatedText string `json:"translatedText"`
@@ -93,7 +115,7 @@ func (p *LibreTranslateProvider) Translate(ctx context.Context, req TranslateReq
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
-		return TranslateResponse{}, fmt.Errorf("libretranslate returned status %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
+		return TranslateResponse{}, NewHTTPStatusError(p.Name(), resp.StatusCode, string(respBody))
 	}
 
 	var out libreTranslateResponse
