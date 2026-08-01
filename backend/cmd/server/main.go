@@ -98,7 +98,7 @@ func main() {
 	searchService := services.NewSearchService(db, redisClient)
 
 	// Phase 3: Initialize Grammar service with endpoint chain
-	log.Printf("[Startup] GRAMMAR_PROVIDER_ORDER=%q from env", os.Getenv("GRAMMAR_PROVIDER_ORDER"))
+	log.Printf("[Startup] GRAMMAR_ANALYSIS_PROVIDER_ORDER=%q from env", os.Getenv("GRAMMAR_ANALYSIS_PROVIDER_ORDER"))
 	log.Printf("[Startup] TRANSLATION_PROVIDER_ORDER=%q from env", os.Getenv("TRANSLATION_PROVIDER_ORDER"))
 	log.Printf("[Startup] PROVIDER_OLLAMA_LOCAL_TYPE=%q", os.Getenv("PROVIDER_OLLAMA_LOCAL_TYPE"))
 	grammarService := services.NewGrammarService(redisClient, buildGrammarEndpoints(cfg))
