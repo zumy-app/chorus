@@ -89,7 +89,12 @@ func Load() *Config {
 
 	// Parse provider chain orders.
 	transOrder := getEnv("TRANSLATION_PROVIDER_ORDER", "")
-	grammarOrder := getEnv("GRAMMAR_PROVIDER_ORDER", "")
+	// GRAMMAR_ANALYSIS_PROVIDER_ORDER is the canonical name; keep the legacy
+	// GRAMMAR_PROVIDER_ORDER as a fallback for existing setups.
+	grammarOrder := getEnv("GRAMMAR_ANALYSIS_PROVIDER_ORDER", "")
+	if grammarOrder == "" {
+		grammarOrder = getEnv("GRAMMAR_PROVIDER_ORDER", "")
+	}
 
 	if transOrder != "" {
 		cfg.TranslationProviderOrder = splitAndTrim(transOrder)
@@ -169,7 +174,7 @@ func Load() *Config {
 		log.Printf("[Config] TRANSLATION_PROVIDER_ORDER not set, using legacy single-provider config")
 	}
 	if len(cfg.GrammarProviderOrder) == 0 {
-		log.Printf("[Config] GRAMMAR_PROVIDER_ORDER not set, using legacy single-provider config")
+		log.Printf("[Config] GRAMMAR_ANALYSIS_PROVIDER_ORDER not set, using legacy single-provider config")
 	}
 
 	return cfg

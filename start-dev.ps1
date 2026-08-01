@@ -269,6 +269,7 @@ Log "║   Backend  (API):  http://localhost:8080       ║" Cyan
 Log "║   Health check:    http://localhost:8080/health║" Cyan
 Log "║   PostgreSQL:      localhost:5432              ║" Cyan
 Log "║   Redis:           localhost:6379              ║" Cyan
+Log "║   LibreTranslate:  localhost:5000 (translation)║" Cyan
 Log "║                                                ║" Cyan
 Log "║   Stop infra:  docker compose down             ║" Cyan
 Log "║   Stop all:    docker compose down -v          ║" Cyan
