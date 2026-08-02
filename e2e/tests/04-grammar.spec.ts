@@ -52,8 +52,9 @@ test.describe('Grammar Breakdown', () => {
         .locator('xpath=ancestor::div[contains(@class, "flex")][1]')
       await messageWrapper.hover()
 
-      // The Grammar button should appear (only on non-own messages)
-      const grammarBtn = messageWrapper.getByRole('button', { name: /grammar/i })
+      // The Grammar button should appear (only on non-own messages).
+      // Label is localized ("📝 Grammar" / "📝 Gramática"), so match on emoji + stem.
+      const grammarBtn = messageWrapper.getByRole('button', { name: /📝\s*gram/i })
       await expect(grammarBtn).toBeVisible({ timeout: 5_000 })
     } finally {
       await senderContext.close()
@@ -87,7 +88,7 @@ test.describe('Grammar Breakdown', () => {
 
       // Verify the grammar panel appeared (amber-themed)
       try {
-        await expect(receiverPage.locator('text=📝 Grammar').first()).toBeVisible({ timeout: 30_000 })
+        await expect(receiverPage.locator('text=/📝\s*Gram/').first()).toBeVisible({ timeout: 30_000 })
       } catch {
         console.warn('⚠️ Grammar panel did not appear (Ollama may be unavailable)')
       }
@@ -281,14 +282,14 @@ test.describe('Grammar Breakdown', () => {
 
       // Verify panel is open and close it
       try {
-        await expect(receiverPage.locator('text=📝 Grammar').first()).toBeVisible({ timeout: 30_000 })
+        await expect(receiverPage.locator('text=/📝\s*Gram/').first()).toBeVisible({ timeout: 30_000 })
 
         // Click the close button (× in the grammar panel)
         const closeBtn = receiverPage.locator('.text-amber-600').filter({ hasText: '×' })
         await closeBtn.click()
 
         // Verify panel is closed
-        await expect(receiverPage.locator('text=📝 Grammar')).not.toBeVisible({ timeout: 5_000 })
+        await expect(receiverPage.locator('text=/📝\s*Gram/')).not.toBeVisible({ timeout: 5_000 })
       } catch {
         console.warn('⚠️ Grammar panel did not open or close as expected (Ollama may be unavailable)')
       }

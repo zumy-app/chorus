@@ -114,7 +114,9 @@ services:
       resources:
         limits:
           memory: 4g
-          cpus: '2'
+          cpus: '7'  # CPU-only local inference — allow most cores so qwen2.5:3b
+                     # generates fast enough for chat-scale grammar analysis.
+                     # Leave 1 core for the other services.
 
   # ============================================================================
   # LibreTranslate — fast local translation (Argos/OPUS-MT backend).
