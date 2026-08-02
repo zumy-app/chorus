@@ -27,10 +27,18 @@ type grammarChatMessage struct {
 
 // grammarChatRequest is the request body for /v1/chat/completions.
 type grammarChatRequest struct {
-	Model       string               `json:"model"`
-	Messages    []grammarChatMessage `json:"messages"`
-	Temperature float64              `json:"temperature,omitempty"`
-	MaxTokens   int                  `json:"max_tokens,omitempty"`
+	Model          string               `json:"model"`
+	Messages       []grammarChatMessage `json:"messages"`
+	Temperature    float64              `json:"temperature,omitempty"`
+	MaxTokens      int                  `json:"max_tokens,omitempty"`
+	ResponseFormat *grammarResponseFormat `json:"response_format,omitempty"`
+}
+
+// grammarResponseFormat forces the model to emit structured output (JSON) where
+// the provider supports it (OpenAI/OpenRouter-compatible APIs). This prevents
+// free-tier models from returning prose instead of the required JSON schema.
+type grammarResponseFormat struct {
+	Type string `json:"type"`
 }
 
 // ollamaChatRequest is the request body for Ollama's /api/chat endpoint.
@@ -1453,6 +1461,9 @@ func (ep *GrammarEndpoint) call(prompt, nativeLangName string) (string, error) {
 			},
 			Temperature: 0.3,
 			MaxTokens:   4096,
+			ResponseFormat: &grammarResponseFormat{
+				Type: "json_object",
+			},
 		}
 		body, err = json.Marshal(chatReq)
 	}

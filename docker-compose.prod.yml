@@ -81,10 +81,6 @@ services:
       - PROVIDER_OPENCODE_GO_API_URL=${PROVIDER_OPENCODE_GO_API_URL:-https://opencode.ai/zen/go/v1}
       - PROVIDER_OPENCODE_GO_API_KEY=${PROVIDER_OPENCODE_GO_API_KEY:-}
       - PROVIDER_OPENCODE_GO_MODEL=${PROVIDER_OPENCODE_GO_MODEL:-deepseek-v4-flash}
-      - PROVIDER_OLLAMA_LOCAL_TYPE=ollama
-      - PROVIDER_OLLAMA_LOCAL_API_URL=${PROVIDER_OLLAMA_LOCAL_API_URL:-http://ollama:11434}
-      - PROVIDER_OLLAMA_LOCAL_MODEL=${PROVIDER_OLLAMA_LOCAL_MODEL:-qwen2.5:3b}
-      - PROVIDER_OLLAMA_LOCAL_TIMEOUT=${PROVIDER_OLLAMA_LOCAL_TIMEOUT:-600}
       - PORT=8080
       - APPWRITE_ENDPOINT=${APPWRITE_ENDPOINT:-}
       - APPWRITE_PROJECT_ID=${APPWRITE_PROJECT_ID:-}
@@ -95,10 +91,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      translator-engine:
-        condition: service_started
-      ollama:
-        condition: service_started
       libretranslate:
         condition: service_healthy
     restart: always
@@ -135,31 +127,6 @@ services:
       - chorus-network
       - dokploy-network
 
-  # Ollama Translation Service (used for grammar, vocabulary, AI tutor)
-  ollama:
-    image: ollama/ollama:latest
-    container_name: chorus-ollama
-    networks:
-      - chorus-network
-    ports:
-      - "127.0.0.1:11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    environment:
-      - OLLAMA_KEEP_ALIVE=24h
-    entrypoint: >
-      sh -c "ollama serve &
-      sleep 3 &&
-      ollama pull qwen2.5:3b &&
-      wait"
-    healthcheck:
-      test: ["CMD", "ollama", "show", "qwen2.5:3b"]
-      interval: 30s
-      timeout: 10s
-      retries: 10
-      start_period: 120s
-    restart: always
-
   # ============================================================================
   # LibreTranslate — fast local translation (Argos/OPUS-MT backend), CPU-only,
   # ~20-30ms warm for chat-sized messages. First provider in the translation
@@ -191,46 +158,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: 2g
-          cpus: '1.0'
-    restart: always
-
-  # ============================================================================
-  # Translator Engine (Phase 1 — replaces NLLB)
-  # llama.cpp server with a 7B-param translation model in GGUF format.
-  # Exposes an OpenAI-compatible API at /v1/chat/completions.
-  # RAM limit: ~4.5 GB (fits a Q4_K_S 7B model comfortably).
-  # ============================================================================
-  translator-engine:
-    build:
-      context: ./backend/translator-engine
-      dockerfile: Dockerfile
-    container_name: chorus-translator-engine
-    networks:
-      - chorus-network
-    ports:
-      - "127.0.0.1:5001:5000"
-    volumes:
-      - translator_model_cache:/models
-    environment:
-      - HF_REPO=mradermacher/Synatra-7B-v0.3-Translation-GGUF
-      - HF_FILE=Synatra-7B-v0.3-Translation.Q4_K_S.gguf
-      - PORT=5000
-      - CTX_SIZE=2048
-      - THREADS=4
-      - TEMPERATURE=0.1
-    deploy:
-      resources:
-        limits:
-          memory: 4.5G
-        reservations:
-          memory: 3.8G
-    healthcheck:
-      test: ["CMD", "curl", "-sSf", "http://localhost:5000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 10
-      start_period: 600s
+          memory: 3g
+          cpus: '2.0'
     restart: always
 
 volumes:
@@ -238,11 +167,7 @@ volumes:
     driver: local
   redis_data:
     driver: local
-  ollama_data:
-    driver: local
   libretranslate_data:
-    driver: local
-  translator_model_cache:
     driver: local
 
 networks:
