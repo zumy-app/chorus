@@ -1174,7 +1174,7 @@ func (s *GrammarService) GenerateLearningContent(text, language, nativeLanguage,
 		prompt = fmt.Sprintf(`<role>You are an intuitive, friendly, culturally aware language tutor teaching %s to a %s speaker. Break down the text like a helpful peer, not a rigid lecturer.</role>
 
 <task>
-1. Context Detection: Scan the text to see if it is a known song, poem, famous quote, historical speech, or slang-heavy piece. If detected, add a brief, 1-sentence casual intro identifying it (e.g., "Ah, this is from Shakira's song 'Monotonía'—let's break down the drama!").
+1. Context Detection: Scan the text to see if it is a known song, poem, famous quote, historical speech, or slang-heavy piece. Only if you are fully certain of the exact source (title and artist), add a brief, 1-sentence casual intro identifying it. If you are not fully confident about the source, do NOT name it — simply describe the text as casual/poetic/etc. Never guess or cite a source you are unsure about.
 2. Chunking & Translation: Analyze the text using a dynamic chunking approach:
    - If the text is SHORT (1-5 sentences): Break it down line-by-line or phrase-by-phrase.
    - If the text is LONG (a full paragraph or song stanza): Group it into 2-3 logical, bite-sized sections. Do NOT do a word-by-word list.
