@@ -1506,12 +1506,16 @@ func (ep *GrammarEndpoint) call(prompt, nativeLangName string) (string, error) {
 	}
 
 	var chatResp grammarChatResponse
-	if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, 8192))
+	if err != nil {
+		return "", fmt.Errorf("grammar read response: %w", err)
+	}
+	if err := json.Unmarshal(raw, &chatResp); err != nil {
 		return "", fmt.Errorf("grammar decode response: %w", err)
 	}
 
 	if len(chatResp.Choices) == 0 {
-		return "", fmt.Errorf("grammar API: no choices in response")
+		return "", fmt.Errorf("grammar API: no choices in response (body=%s)", string(raw))
 	}
 
 	return strings.TrimSpace(chatResp.Choices[0].Message.Content), nil
