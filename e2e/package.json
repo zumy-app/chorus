@@ -8,7 +8,7 @@
     "test:headed": "playwright test --headed",
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
-    "test:core": "playwright test 01-auth 02-chat-creation 03-messaging-translation 04-grammar 05-ai-tutor",
+    "test:core": "playwright test 01-auth 02-chat-creation 03-messaging-translation 04-grammar 05-ai-tutor 11-grammar-ai-local",
     "test:report": "playwright show-report",
     "install-browsers": "playwright install chromium"
   },

@@ -104,6 +104,10 @@ export async function waitForTranslation(
 /**
  * Open the grammar analysis panel for a received (non-own) message.
  * Hovers the message bubble to reveal the "📝 Grammar" button, then clicks it.
+ *
+ * The button label is localized (e.g. "📝 Grammar" / "📝 Gramática"), so it is
+ * matched by its emoji prefix + case-insensitive stem rather than an exact
+ * English label.
  */
 export async function openGrammarAnalysis(page: Page, messageText: string) {
   // Find the message bubble (must be a received message, not own)
@@ -114,33 +118,31 @@ export async function openGrammarAnalysis(page: Page, messageText: string) {
   // Hover to reveal action buttons
   await outerWrapper.hover()
 
-  // Click the Grammar button (it appears as a sibling of the bubble inside the inner wrapper)
-  // Use exact text to avoid matching vocabulary buttons with similar names
-  const grammarBtn = outerWrapper.getByRole('button', { name: '📝 Grammar' })
+  // Click the Grammar button (it appears as a sibling of the bubble inside the inner wrapper).
+  // Language-agnostic matcher: "📝 Grammar" / "📝 Gramática" / "📝 Grammar check".
+  const grammarBtn = outerWrapper.getByRole('button', { name: /📝\s*Gram/i })
   await expect(grammarBtn).toBeVisible({ timeout: 10_000 })
   await grammarBtn.click()
 
-  // Wait for the grammar panel (amber-themed) to appear
-  // The grammar analysis depends on Ollama which may be slow or unavailable
-  try {
-    await expect(page.locator('text=📝 Grammar').first()).toBeVisible({ timeout: 30_000 })
-  } catch {
-    console.warn('⚠️ Grammar panel did not appear within 30s (Ollama service may be slow or unavailable)')
-    console.warn('   Grammar feature is degraded but the test can continue')
-    // Don't fail - grammar analysis is a secondary feature
-  }
+  // Wait for the grammar panel (amber-themed) to appear.
+  // The frontend calls analyze-ai and only renders the panel AFTER the local
+  // qwen model responds (~60-90s on a 7-core machine), so allow up to 180s.
+  await expect(page.locator('text=/📝\s*Gram/').first()).toBeVisible({ timeout: 180_000 })
 }
 
 /**
  * Open the AI Tutor panel from within the grammar analysis panel.
+ * The button label and panel title are localized ("🤖 AI Tutor" / "🤖 Tutor IA"
+ * / "🤖 Tuteur IA" / "🤖 KI-Tutor"), so match on the 🤖 emoji + /tutor|tuteur/.
  */
 export async function openAITutor(page: Page) {
-  const tutorBtn = page.getByRole('button', { name: /ai tutor/i })
+  const tutorBtn = page.getByRole('button', { name: /🤖/ })
   await expect(tutorBtn).toBeVisible({ timeout: 5_000 })
   await tutorBtn.click()
 
-  // Wait for the LearningPanel (indigo-themed, "AI Tutor" header) to appear
-  await expect(page.locator('span', { hasText: 'AI Tutor' })).toBeVisible({ timeout: 10_000 })
+  // Wait for the LearningPanel (indigo-themed, localized title) to appear.
+  // Title span is structural: div.bg-gradient-to-r.from-indigo-600 > span.text-white.
+  await expect(page.locator('div.bg-gradient-to-r.from-indigo-600 span.text-white')).toBeVisible({ timeout: 10_000 })
 }
 
 /**

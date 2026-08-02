@@ -61,6 +61,40 @@ type Config struct {
 	Timeout int `json:"timeout"`
 }
 
+// NeedsAPIKey reports whether a provider type requires an API key to function.
+// Local/offline providers (ollama, translator-engine, libretranslate) run
+// without one; every cloud/OpenAI-compatible provider needs a key.
+func NeedsAPIKey(t ProviderType) bool {
+	switch t {
+	case ProviderOpenCode, ProviderOpenAI, ProviderOpenRouter, ProviderDeepSeek, ProviderNvidia:
+		return true
+	default:
+		return false
+	}
+}
+
+// IsLocalProvider reports whether a provider type runs locally (offline) and
+// can therefore serve as a guaranteed fallback when cloud providers are
+// unavailable or exhausted.
+func IsLocalProvider(t ProviderType) bool {
+	switch t {
+	case ProviderOllama, ProviderEngine, ProviderLibreTranslate:
+		return true
+	default:
+		return false
+	}
+}
+
+// Configured reports whether the configuration has everything required to
+// create a working provider. Cloud providers need an API key; local/offline
+// providers always count as configured as long as the type is valid.
+func (c Config) Configured() bool {
+	if NeedsAPIKey(c.Provider) {
+		return c.APIKey != ""
+	}
+	return IsLocalProvider(c.Provider) || c.Provider == ""
+}
+
 // NewProvider creates a translation provider based on the given configuration.
 // Returns an error if the provider type is unknown.
 func NewProvider(cfg Config) (Provider, error) {

@@ -16,7 +16,8 @@ End-to-end test suite for the Chorus Multilingual Messenger using **Playwright**
 | `08-settings` | 7 | Profile settings, language selection, target languages |
 | `09-realtime` | 4 | WebSocket connection, typing indicators, real-time delivery |
 | `10-health` | 9 | Backend health, API endpoints, translator-engine, console errors |
-| **Total** | **60** | |
+| `11-grammar-ai-local` | 2 | ⭐ **Local-first**: grammar AI served by local Ollama `qwen2.5:3b` (`ollama_local`), structured analysis + caching |
+| **Total** | **62** | |
 
 ## 📋 Prerequisites
 
@@ -66,6 +67,7 @@ npm run test:ui
 ```bash
 npx playwright test 01-auth
 npx playwright test 03-messaging-translation
+npx playwright test 11-grammar-ai-local
 ```
 
 ### Run only the core suites (auth, chat, messaging, grammar, AI tutor)
@@ -130,7 +132,8 @@ e2e/
 │   ├── 07-search.spec.ts
 │   ├── 08-settings.spec.ts
 │   ├── 09-realtime.spec.ts
-│   └── 10-health.spec.ts
+│   ├── 10-health.spec.ts
+│   └── 11-grammar-ai-local.spec.ts  ⭐ Local qwen grammar analysis
 ├── package.json
 └── tsconfig.json
 ```
@@ -171,6 +174,20 @@ Tests run sequentially (`workers: 1`) because they share state (users, chats). P
 - Ollama must be running: `docker logs chorus-ollama`
 - Model must be pulled: `docker exec chorus-ollama ollama list`
 - If Ollama is down, grammar falls back to regex (tests 4.x still pass, 5.x may fail)
+
+### Grammar AI (11.x) tests are slow or timeout
+- Local CPU inference of `qwen2.5:3b` takes ~1-2 min per analysis — that is expected.
+- First run also warms the model; later calls are faster.
+- The model must be the one the backend is configured with. Verify the backend
+  picks up the local chain:
+  - `backend/.env`: `GRAMMAR_ANALYSIS_PROVIDER_ORDER=ollama_local` and
+    `PROVIDER_OLLAMA_LOCAL_MODEL=qwen2.5:3b` (must match the model pulled by the
+    `ollama` docker service in `docker-compose.yml`).
+  - If you changed `backend/.env`, restart the backend (air hot-reload watches
+    `.go` files, not `.env`).
+- If generation is < 5 tok/s, check the Ollama container CPU limit
+  (`docker inspect chorus-ollama --format '{{.HostConfig.NanoCpus}}'`). The
+  compose file must allow most cores (`deploy.resources.limits.cpus`).
 
 ### WebSocket tests fail
 - Check backend logs: `docker logs chorus-backend`

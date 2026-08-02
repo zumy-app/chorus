@@ -64,7 +64,8 @@ test.describe('AI Tutor', () => {
       await openGrammarAnalysis(receiverPage, testMsg)
 
       // Verify the AI Tutor button is visible within the grammar panel
-      const tutorBtn = receiverPage.getByRole('button', { name: /ai tutor/i })
+      // (localized label: "🤖 AI Tutor" / "🤖 Tutor IA" / ...)
+      const tutorBtn = receiverPage.getByRole('button', { name: /🤖/ })
       await expect(tutorBtn).toBeVisible({ timeout: 5_000 })
     } finally {
       await senderContext.close()
@@ -76,8 +77,8 @@ test.describe('AI Tutor', () => {
     const setup = await setupTutorScenario(browser, `The weather is beautiful today. ${Date.now()}`)
 
     try {
-      // Verify the LearningPanel header is visible
-      await expect(setup.receiverPage.locator('span', { hasText: 'AI Tutor' })).toBeVisible({
+      // Verify the LearningPanel header is visible (title span is structural, localized text)
+      await expect(setup.receiverPage.locator('div.bg-gradient-to-r.from-indigo-600 span.text-white')).toBeVisible({
         timeout: 10_000,
       })
 
@@ -95,9 +96,9 @@ test.describe('AI Tutor', () => {
 
     try {
       // The panel auto-runs 'breakdown' action on mount.
-      // Verify either the "Grammar Breakdown" label or loading indicator appears.
-      const breakdownLabel = setup.receiverPage.locator('text=📖 Grammar Breakdown')
-      const loadingIndicator = setup.receiverPage.locator('text=Analyzing...')
+      // Verify either the localized "Grammar Breakdown" label or loading indicator appears.
+      const breakdownLabel = setup.receiverPage.locator('text=/📖/')
+      const loadingIndicator = setup.receiverPage.locator('text=/analyz|analiz/i')
 
       // One of these should be visible
       const labelVisible = await breakdownLabel.isVisible().catch(() => false)
@@ -142,9 +143,9 @@ test.describe('AI Tutor', () => {
       const buttonCount = await actionButtons.count()
       expect(buttonCount).toBeGreaterThan(0)
 
-      // Check for at least one known action label
-      const examplesBtn = setup.receiverPage.getByRole('button', { name: /examples/i })
-      const flashcardsBtn = setup.receiverPage.getByRole('button', { name: /flashcards/i })
+      // Check for at least one known action label (localized: Examples/Ejemplos, Flashcards/Tarjetas)
+      const examplesBtn = setup.receiverPage.getByRole('button', { name: /exam|ejempl/i })
+      const flashcardsBtn = setup.receiverPage.getByRole('button', { name: /flashcard|tarjeta/i })
 
       const examplesVisible = await examplesBtn.isVisible().catch(() => false)
       const flashcardsVisible = await flashcardsBtn.isVisible().catch(() => false)
@@ -163,8 +164,8 @@ test.describe('AI Tutor', () => {
       const assistantMessage = setup.receiverPage.locator('.bg-white.border.border-indigo-100').first()
       await expect(assistantMessage).toBeVisible({ timeout: 45_000 })
 
-      // Click the "Examples" button
-      const examplesBtn = setup.receiverPage.getByRole('button', { name: /examples/i })
+      // Click the "Examples" button (localized: Examples/Ejemplos)
+      const examplesBtn = setup.receiverPage.getByRole('button', { name: /exam|ejempl/i })
       await expect(examplesBtn).toBeVisible({ timeout: 5_000 })
 
       // Count messages before
@@ -195,7 +196,7 @@ test.describe('AI Tutor', () => {
       const assistantMessage = setup.receiverPage.locator('.bg-white.border.border-indigo-100').first()
       await expect(assistantMessage).toBeVisible({ timeout: 45_000 })
 
-      const flashcardsBtn = setup.receiverPage.getByRole('button', { name: /flashcards/i })
+      const flashcardsBtn = setup.receiverPage.getByRole('button', { name: /flashcard|tarjeta/i })
       await expect(flashcardsBtn).toBeVisible({ timeout: 5_000 })
 
       const messagesBefore = await setup.receiverPage.locator('.bg-white.border.border-indigo-100').count()
@@ -218,15 +219,16 @@ test.describe('AI Tutor', () => {
       const assistantMessage = setup.receiverPage.locator('.bg-white.border.border-indigo-100').first()
       await expect(assistantMessage).toBeVisible({ timeout: 45_000 })
 
-      // Type a custom question
-      const questionInput = setup.receiverPage.locator('input[placeholder="Ask a question..."]')
+      // Type a custom question (input is inside the LearningPanel form, language-agnostic)
+      const panelForm = setup.receiverPage.locator('div.bg-white.border.border-indigo-200 form')
+      const questionInput = panelForm.locator('input[type="text"]')
       await expect(questionInput).toBeVisible()
       await questionInput.fill('What tense is used in this sentence?')
 
       const messagesBefore = await setup.receiverPage.locator('.bg-white.border.border-indigo-100').count()
 
       // Submit the question
-      await setup.receiverPage.getByRole('button', { name: 'Ask' }).click()
+      await panelForm.locator('button[type="submit"]').click()
 
       // Wait for the AI response
       await expect(
@@ -242,8 +244,8 @@ test.describe('AI Tutor', () => {
     const setup = await setupTutorScenario(browser, `Close tutor test. ${Date.now()}`)
 
     try {
-      // Verify panel is open
-      await expect(setup.receiverPage.locator('span', { hasText: 'AI Tutor' })).toBeVisible({
+      // Verify panel is open (title span is structural, localized text)
+      await expect(setup.receiverPage.locator('div.bg-gradient-to-r.from-indigo-600 span.text-white')).toBeVisible({
         timeout: 10_000,
       })
 
@@ -252,8 +254,8 @@ test.describe('AI Tutor', () => {
       const closeBtn = setup.receiverPage.locator('div.bg-gradient-to-r.from-indigo-600 button').filter({ hasText: '×' })
       await closeBtn.click()
 
-      // Verify panel is closed
-      await expect(setup.receiverPage.locator('span', { hasText: 'AI Tutor' })).not.toBeVisible({
+      // Verify panel is closed (title span is structural, localized text)
+      await expect(setup.receiverPage.locator('div.bg-gradient-to-r.from-indigo-600 span.text-white')).not.toBeVisible({
         timeout: 5_000,
       })
     } catch {
