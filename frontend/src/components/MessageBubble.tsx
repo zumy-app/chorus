@@ -48,10 +48,12 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
     : null
   const showTargetTranslation = targetTranslation && targetTranslation !== message.text
 
-  // Show fallback message after 3s during loading (indicates provider chain is trying alternatives)
+  // Show "Switching models..." only after the primary provider's realistic
+  // worst-case latency has passed (Gemini can take ~12s), so a normally-working
+  // request doesn't show a false "falling back" message.
   useEffect(() => {
     if (loadingGrammar) {
-      const timer = setTimeout(() => setShowFallbackMsg(true), 3000)
+      const timer = setTimeout(() => setShowFallbackMsg(true), 20000)
       return () => clearTimeout(timer)
     }
     setShowFallbackMsg(false)
