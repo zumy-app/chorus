@@ -109,7 +109,7 @@ func NewProvider(cfg Config) (Provider, error) {
 			case ProviderOpenAI:
 				baseURL = "https://api.openai.com/v1"
 			case ProviderOpenRouter:
-				baseURL = "https://openrouter.ai"
+				baseURL = "https://openrouter.ai/api/v1"
 			case ProviderDeepSeek:
 				baseURL = "https://api.deepseek.com/v1"
 			case ProviderNvidia:
