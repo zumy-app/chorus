@@ -1510,7 +1510,7 @@ func (ep *GrammarEndpoint) call(prompt, nativeLangName string, jsonMode bool) (s
 	}
 
 	var chatResp grammarChatResponse
-	raw, err := io.ReadAll(io.LimitReader(resp.Body, 8192))
+	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("grammar read response: %w", err)
 	}
@@ -1519,7 +1519,7 @@ func (ep *GrammarEndpoint) call(prompt, nativeLangName string, jsonMode bool) (s
 	}
 
 	if len(chatResp.Choices) == 0 {
-		return "", fmt.Errorf("grammar API: no choices in response (body=%s)", string(raw))
+		return "", fmt.Errorf("grammar API: no choices in response (body=%.500s)", string(raw))
 	}
 
 	return strings.TrimSpace(chatResp.Choices[0].Message.Content), nil
