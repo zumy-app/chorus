@@ -63,8 +63,8 @@ services:
       - TRANSLATION_PROVIDER_MODEL=${TRANSLATION_PROVIDER_MODEL:-}
       # Unified provider chain (recommended) — first successful provider wins,
       # cloud quotas/rate limits are skipped automatically, local always last.
-      - TRANSLATION_PROVIDER_ORDER=libretranslate,openrouter,nvidia,opencode_go
-      - GRAMMAR_ANALYSIS_PROVIDER_ORDER=openrouter,nvidia,opencode_go
+      - TRANSLATION_PROVIDER_ORDER=openrouter_translate,libretranslate,nvidia,opencode_go
+      - GRAMMAR_ANALYSIS_PROVIDER_ORDER=openrouter_grammar,nvidia,opencode_go
       - TRANSLATION_CHAIN_TIMEOUT=${TRANSLATION_CHAIN_TIMEOUT:-120}
       - PROVIDER_LIBRETRANSLATE_TYPE=libretranslate
       - PROVIDER_LIBRETRANSLATE_API_URL=http://libretranslate:5000
@@ -72,7 +72,19 @@ services:
       - PROVIDER_OPENROUTER_TYPE=openrouter
       - PROVIDER_OPENROUTER_API_URL=https://openrouter.ai/api/v1
       - PROVIDER_OPENROUTER_API_KEY=${PROVIDER_OPENROUTER_API_KEY:-}
-      - PROVIDER_OPENROUTER_MODEL=nvidia/nemotron-3-super-120b-a12b:free
+      - PROVIDER_OPENROUTER_MODEL=${PROVIDER_OPENROUTER_MODEL:-nvidia/nemotron-3-super-120b-a12b:free}
+      # Paid OpenRouter providers: translation uses a fast cheap model, grammar uses
+      # a stronger JSON-capable model. Separate aliases so each chain can pick one.
+      - PROVIDER_OPENROUTER_TRANSLATE_TYPE=openrouter
+      - PROVIDER_OPENROUTER_TRANSLATE_API_URL=https://openrouter.ai/api/v1
+      - PROVIDER_OPENROUTER_TRANSLATE_API_KEY=${PROVIDER_OPENROUTER_API_KEY:-}
+      - PROVIDER_OPENROUTER_TRANSLATE_MODEL=meta-llama/llama-3.1-8b-instruct
+      - PROVIDER_OPENROUTER_TRANSLATE_TIMEOUT=30
+      - PROVIDER_OPENROUTER_GRAMMAR_TYPE=openrouter
+      - PROVIDER_OPENROUTER_GRAMMAR_API_URL=https://openrouter.ai/api/v1
+      - PROVIDER_OPENROUTER_GRAMMAR_API_KEY=${PROVIDER_OPENROUTER_API_KEY:-}
+      - PROVIDER_OPENROUTER_GRAMMAR_MODEL=google/gemini-2.5-flash
+      - PROVIDER_OPENROUTER_GRAMMAR_TIMEOUT=60
       - PROVIDER_NVIDIA_TYPE=nvidia
       - PROVIDER_NVIDIA_API_URL=${PROVIDER_NVIDIA_API_URL:-https://integrate.api.nvidia.com/v1}
       - PROVIDER_NVIDIA_API_KEY=${PROVIDER_NVIDIA_API_KEY:-}
