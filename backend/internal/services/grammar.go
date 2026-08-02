@@ -739,19 +739,19 @@ Return ONLY valid JSON (no markdown, no code fences). Use this EXACT structure:
 	if idx := strings.LastIndex(cleaned, "```"); idx != -1 {
 		cleaned = strings.TrimSpace(cleaned[:idx])
 	}
-	// Find the first '{' character to strip any non-JSON prefix
-	if idx := strings.Index(cleaned, "{"); idx != -1 {
-		cleaned = cleaned[idx:]
-	}
-	// Find the last '}' to strip any non-JSON suffix
-	if idx := strings.LastIndex(cleaned, "}"); idx != -1 {
-		cleaned = cleaned[:idx+1]
-	}
 
-	// Parse the structured response using a flexible approach
-	aiResult, err := s.parseAIGrammarAnalysis(cleaned)
-	if err != nil {
-		logutil.Warnf("[Grammar] JSON parsing failed, falling back to regex: %v", err)
+	// Parse the structured response using a flexible approach. Models sometimes
+	// wrap the JSON in prose or emit multiple adjacent objects, so extract each
+	// top-level balanced JSON object and try them in order.
+	var aiResult *models.AIGrammarAnalysis
+	for _, obj := range extractJSONObjects(cleaned) {
+		if res, err := s.parseAIGrammarAnalysis(obj); err == nil {
+			aiResult = res
+			break
+		}
+	}
+	if aiResult == nil {
+		logutil.Warnf("[Grammar] JSON parsing failed (found %d candidate object(s)), falling back to regex", len(extractJSONObjects(cleaned)))
 		analysis, err := s.fallbackAIAnalysis(text, language, nativeLanguage)
 		return analysis, "regex-fallback", err
 	}
@@ -1016,6 +1016,49 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// extractJSONObjects returns every top-level balanced JSON object found in raw,
+// respecting string literals and escapes so braces inside values don't confuse
+// the scan. Models sometimes wrap the JSON in prose or return multiple objects;
+// each candidate is returned so callers can try them in order.
+func extractJSONObjects(raw string) []string {
+	var objects []string
+	depth := 0
+	inString := false
+	escaped := false
+	start := -1
+	for i := 0; i < len(raw); i++ {
+		c := raw[i]
+		if inString {
+			if escaped {
+				escaped = false
+			} else if c == '\\' {
+				escaped = true
+			} else if c == '"' {
+				inString = false
+			}
+			continue
+		}
+		switch c {
+		case '"':
+			inString = true
+		case '{':
+			if depth == 0 {
+				start = i
+			}
+			depth++
+		case '}':
+			if depth > 0 {
+				depth--
+				if depth == 0 && start >= 0 {
+					objects = append(objects, raw[start:i+1])
+					start = -1
+				}
+			}
+		}
+	}
+	return objects
 }
 
 // parseAIGrammarAnalysis parses the AI API JSON response flexibly,
