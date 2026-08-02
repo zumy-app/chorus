@@ -729,7 +729,7 @@ Return ONLY valid JSON (no markdown, no code fences). Use this EXACT structure:
 </rules>`, nativeLangName, text, "", langName)
 
 	logutil.Infof("[Grammar] Calling AI API for text: %.50s... (language=%s, native=%s)", text, language, nativeLanguage)
-	result, providerUsed, err := s.callGrammarAPI(prompt, nativeLangName)
+	result, providerUsed, err := s.callGrammarAPI(prompt, nativeLangName, true)
 	if err != nil {
 		logutil.Errorf("[Grammar] all AI endpoints failed: %v", err)
 		analysis, err := s.fallbackAIAnalysis(text, language, nativeLanguage)
@@ -1306,7 +1306,7 @@ Student Question: "%s"
 	}
 
 	// Use a 30-second timeout so the AI Tutor panel doesn't hang indefinitely.
-	result, providerUsed, err := s.callGrammarAPI(prompt, nativeLangName)
+	result, providerUsed, err := s.callGrammarAPI(prompt, nativeLangName, false)
 	if err != nil {
 		return &models.LearningContent{
 			Action:           action,
@@ -1359,7 +1359,9 @@ func nextActionsFor(action string) []string {
 
 // callGrammarAPI tries each configured endpoint in sequence.
 // Returns the response text and the name of the provider that succeeded.
-func (s *GrammarService) callGrammarAPI(prompt, nativeLangName string) (string, string, error) {
+// jsonMode forces response_format json_object (used only for the structured
+// grammar analysis; the AI Tutor learning prompts must return plain text).
+func (s *GrammarService) callGrammarAPI(prompt, nativeLangName string, jsonMode bool) (string, string, error) {
 	var lastErr error
 	tried := 0
 	for i, ep := range s.endpoints {
@@ -1372,7 +1374,7 @@ func (s *GrammarService) callGrammarAPI(prompt, nativeLangName string) (string, 
 		logutil.Infof("[Grammar] trying endpoint %d/%d: %s (url=%s, model=%s)",
 			i+1, len(s.endpoints), ep.Name, ep.APIURL, ep.Model)
 		start := time.Now()
-		result, err := ep.call(prompt, nativeLangName)
+		result, err := ep.call(prompt, nativeLangName, jsonMode)
 		logutil.Duration("Grammar", start, ep.Name)
 		if err == nil {
 			logutil.Infof("[Grammar] endpoint %d/%d %s succeeded (%d chars)",
@@ -1419,7 +1421,7 @@ func (s *GrammarService) coolDownFor(name string) (time.Time, bool) {
 }
 
 // call sends a single chat completion request to this endpoint.
-func (ep *GrammarEndpoint) call(prompt, nativeLangName string) (string, error) {
+func (ep *GrammarEndpoint) call(prompt, nativeLangName string, jsonMode bool) (string, error) {
 	start := time.Now()
 	defer func() {
 		logutil.Duration("GrammarEndpoint", start, ep.Name)
@@ -1461,9 +1463,11 @@ func (ep *GrammarEndpoint) call(prompt, nativeLangName string) (string, error) {
 			},
 			Temperature: 0.3,
 			MaxTokens:   4096,
-			ResponseFormat: &grammarResponseFormat{
+		}
+		if jsonMode {
+			chatReq.ResponseFormat = &grammarResponseFormat{
 				Type: "json_object",
-			},
+			}
 		}
 		body, err = json.Marshal(chatReq)
 	}
