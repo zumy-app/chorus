@@ -63,12 +63,12 @@ services:
       - TRANSLATION_PROVIDER_MODEL=${TRANSLATION_PROVIDER_MODEL:-}
       # Unified provider chain (recommended) — first successful provider wins,
       # cloud quotas/rate limits are skipped automatically, local always last.
-      - TRANSLATION_PROVIDER_ORDER=libretranslate,openrouter,nvidia,opencode_go,ollama_local
-      - GRAMMAR_ANALYSIS_PROVIDER_ORDER=openrouter,nvidia,opencode_go,ollama_local
+      - TRANSLATION_PROVIDER_ORDER=libretranslate,openrouter,nvidia,opencode_go
+      - GRAMMAR_ANALYSIS_PROVIDER_ORDER=openrouter,nvidia,opencode_go
       - TRANSLATION_CHAIN_TIMEOUT=${TRANSLATION_CHAIN_TIMEOUT:-120}
       - PROVIDER_LIBRETRANSLATE_TYPE=libretranslate
       - PROVIDER_LIBRETRANSLATE_API_URL=http://libretranslate:5000
-      - PROVIDER_LIBRETRANSLATE_TIMEOUT=${PROVIDER_LIBRETRANSLATE_TIMEOUT:-10}
+      - PROVIDER_LIBRETRANSLATE_TIMEOUT=${PROVIDER_LIBRETRANSLATE_TIMEOUT:-30}
       - PROVIDER_OPENROUTER_TYPE=openrouter
       - PROVIDER_OPENROUTER_API_URL=https://openrouter.ai/api/v1
       - PROVIDER_OPENROUTER_API_KEY=${PROVIDER_OPENROUTER_API_KEY:-}
