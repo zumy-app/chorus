@@ -1,7 +1,9 @@
 package services
 
 import (
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"strings"
 	"time"
@@ -162,6 +164,46 @@ func (s *AuthService) Register(req models.RegisterRequest) (*models.User, error)
 		return nil, err
 	}
 
+	return user, nil
+}
+
+// RegisterWithInvitation atomically consumes an email-bound invitation and
+// creates the user, preventing concurrent use of the same invitation.
+func (s *AuthService) RegisterWithInvitation(req models.RegisterRequest) (*models.User, error) {
+	passwordHash, err := s.HashPassword(req.Password)
+	if err != nil {
+		return nil, err
+	}
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	sum := sha256.Sum256([]byte(req.InviteToken))
+	var invitationID string
+	err = tx.QueryRow(`UPDATE invitations SET redeemed_at = CURRENT_TIMESTAMP
+		WHERE token_hash = $1 AND email = $2 AND redeemed_at IS NULL AND expires_at > CURRENT_TIMESTAMP
+		RETURNING id`, hex.EncodeToString(sum[:]), strings.ToLower(strings.TrimSpace(req.Email))).Scan(&invitationID)
+	if err != nil {
+		return nil, ErrInvalidInvitation
+	}
+	user := &models.User{}
+	err = tx.QueryRow(`
+		INSERT INTO users (username, email, password_hash, display_name, native_language, target_languages)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id, username, email, display_name, native_language, target_languages, created_at, last_active_at`,
+		req.Username, req.Email, passwordHash, req.DisplayName, req.NativeLanguage, pq.Array(req.TargetLanguages),
+	).Scan(&user.ID, &user.Username, &user.Email, &user.DisplayName, &user.NativeLanguage,
+		pq.Array(&user.TargetLanguages), &user.CreatedAt, &user.LastActiveAt)
+	if err != nil {
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
+			return nil, ErrEmailAlreadyRegistered
+		}
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
 	return user, nil
 }
 

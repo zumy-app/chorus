@@ -31,6 +31,14 @@ type Config struct {
 	AppwriteProjectID     string
 	AppwriteAPIKey        string
 	AppwriteDatabaseID    string
+	SMTPHost              string
+	SMTPPort              int
+	SMTPUsername          string
+	SMTPPassword          string
+	SMTPFromEmail         string
+	InviteBaseURL         string
+	InviteTTLHours        int
+	AdminEmails           []string
 
 	// Legacy single-provider config (used when PROVIDER_ORDER is not set).
 	TranslationProviderName  string
@@ -70,6 +78,14 @@ func Load() *Config {
 		AppwriteProjectID:     getEnv("APPWRITE_PROJECT_ID", ""),
 		AppwriteAPIKey:        getEnv("APPWRITE_API_KEY", ""),
 		AppwriteDatabaseID:    getEnv("APPWRITE_DATABASE_ID", ""),
+		SMTPHost:              getEnv("MAILU_SMTP_HOST", ""),
+		SMTPPort:              getEnvInt("MAILU_SMTP_PORT", 465),
+		SMTPUsername:          getEnv("MAILU_SMTP_USERNAME", ""),
+		SMTPPassword:          getEnv("MAILU_SMTP_PASSWORD", ""),
+		SMTPFromEmail:         getEnv("MAILU_SMTP_FROM", ""),
+		InviteBaseURL:         getEnv("INVITE_BASE_URL", "http://localhost:3000/register"),
+		InviteTTLHours:        getEnvInt("INVITE_TTL_HOURS", 168),
+		AdminEmails:           splitAndTrim(getEnv("WAITLIST_ADMIN_EMAILS", "")),
 
 		// Legacy single-provider config.
 		TranslationProviderName:  getEnv("TRANSLATION_PROVIDER_NAME", string(translation.ProviderOpenCode)),
@@ -86,6 +102,9 @@ func Load() *Config {
 		TranslationChainTimeout: getEnvInt("TRANSLATION_CHAIN_TIMEOUT", 120),
 
 		Providers: make(map[string]ProviderDef),
+	}
+	if len(cfg.AdminEmails) == 0 && cfg.SMTPUsername != "" {
+		cfg.AdminEmails = []string{cfg.SMTPUsername}
 	}
 
 	// Parse provider chain orders.

@@ -64,6 +64,25 @@ export interface RegisterRequest {
   displayName: string
   nativeLanguage: string
   targetLanguages: string[]
+  inviteToken: string
+}
+
+export interface WaitlistRequest {
+  email: string
+  spokenLanguage: string
+  targetLanguages: string[]
+  reasons: string[]
+}
+
+export interface WaitlistEntry {
+  id: string
+  email: string
+  spokenLanguage: string
+  targetLanguages: string[]
+  reasons: string[]
+  status: 'pending' | 'approved'
+  queuePosition: number
+  createdAt: string
 }
 
 export interface CreateChatRequest {

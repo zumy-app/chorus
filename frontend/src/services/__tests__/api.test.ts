@@ -62,6 +62,7 @@ describe('API Service', () => {
         displayName: 'Test',
         nativeLanguage: 'en',
         targetLanguages: ['es'],
+        inviteToken: 'valid-invite',
       })
 
       expect(result.user).toBeDefined()
@@ -117,6 +118,26 @@ describe('API Service', () => {
       const users = await authAPI.searchUsers('found')
       expect(users).toHaveLength(1)
       expect(users[0].username).toBe('founduser')
+    })
+  })
+
+  describe('waitlistAPI', () => {
+    it('submits waitlist interest via POST', async () => {
+      const mockAxios = createMockAxios({
+        post: vi.fn().mockResolvedValue({ data: { entry: { queuePosition: 7 } } }),
+      })
+      vi.doMock('axios', () => ({ default: { create: vi.fn(() => mockAxios) }, create: vi.fn(() => mockAxios) }))
+      const { waitlistAPI } = await import('../../services/api')
+
+      const result = await waitlistAPI.join({
+        email: 'learner@example.com',
+        spokenLanguage: 'en',
+        targetLanguages: ['es'],
+        reasons: ['For travel'],
+      })
+
+      expect(result.entry.queuePosition).toBe(7)
+      expect(mockAxios.post).toHaveBeenCalledWith('/waitlist', expect.objectContaining({ email: 'learner@example.com' }))
     })
   })
 
