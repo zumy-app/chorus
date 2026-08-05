@@ -3,6 +3,8 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import Waitlist from './pages/Waitlist'
+import AdminWaitlist from './pages/AdminWaitlist'
 import Chat from './pages/Chat'
 import { authAPI } from './services/api'
 import { wsService } from './services/websocket'
@@ -40,7 +42,7 @@ function App() {
   const handleLogin = async (tokens: { accessToken: string; refreshToken: string }) => {
     localStorage.setItem('accessToken', tokens.accessToken)
     localStorage.setItem('refreshToken', tokens.refreshToken)
-    
+
     const user = await authAPI.getMe()
     setUser(user)
     setIsAuthenticated(true)
@@ -67,10 +69,12 @@ function App() {
 
   return (
     <>
-    
+
 
       <Routes>
         <Route path="/" element={<Landing />} />
+        <Route path="/waitlist" element={<Waitlist />} />
+        <Route path="/admin/waitlist" element={isAuthenticated ? <AdminWaitlist /> : <Navigate to="/login" />} />
         <Route
           path="/login"
           element={

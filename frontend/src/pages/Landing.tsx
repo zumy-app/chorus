@@ -611,8 +611,8 @@ export default function Landing() {
                 {t.hero.subtitle}
               </p>
               <div className="flex gap-4 mb-12 flex-wrap">
-                <Link to="/register" className="px-8 py-4 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition text-lg">
-                  {t.hero.cta}
+                <Link to="/waitlist" className="px-8 py-4 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition text-lg">
+                  Join the waitlist
                 </Link>
                 <a href="#how-it-works" className="px-8 py-4 border-2 border-indigo-600 text-indigo-600 rounded-lg font-semibold hover:bg-indigo-50 transition text-lg">
                   {t.hero.seeHow}
@@ -724,8 +724,8 @@ export default function Landing() {
         <div className="max-w-4xl mx-auto text-center text-white">
           <h2 className="text-4xl md:text-5xl font-bold mb-4">{t.cta.title}</h2>
           <p className="text-xl mb-8 opacity-90">{t.cta.subtitle}</p>
-          <Link to="/register" className="px-8 py-4 bg-white text-indigo-600 rounded-lg font-bold text-lg hover:bg-gray-100 transition inline-block">
-            {t.cta.button}
+          <Link to="/waitlist" className="px-8 py-4 bg-white text-indigo-600 rounded-lg font-bold text-lg hover:bg-gray-100 transition inline-block">
+            Join the waitlist
           </Link>
         </div>
       </section>

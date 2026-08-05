@@ -42,9 +42,32 @@ Content-Type: application/json
   "password": "Password123!",    // Required, min 8 chars
   "displayName": "Alice",        // Required
   "nativeLanguage": "en",        // Required (language code)
-  "targetLanguages": ["es", "fr"] // Optional array of languages
+  "targetLanguages": ["es", "fr"], // Optional array of languages
+  "inviteToken": "email-bound-single-use-token" // Required in production
 }
 ```
+
+Registration is invite-only. The invitation must be valid, unexpired, unused, and tied to the submitted email.
+
+### Join Waitlist
+
+```http
+POST /waitlist
+Content-Type: application/json
+
+{
+  "email": "alice@example.com",
+  "spokenLanguage": "en",
+  "targetLanguages": ["es", "fr"],
+  "reasons": ["I want to learn a new language", "For travel"]
+}
+```
+
+The response includes the entry and its stable `queuePosition`. Re-submitting the same email is idempotent.
+
+### Waitlist Administration
+
+`GET /admin/waitlist` lists pending entries and `POST /admin/waitlist/:id/approve` issues an invitation. Both require a valid access token for an email configured in `WAITLIST_ADMIN_EMAILS`.
 
 **Response (201 Created):**
 ```json

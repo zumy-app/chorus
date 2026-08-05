@@ -72,6 +72,8 @@ func main() {
 	// Initialize core services
 	authService := services.NewAuthService(db, cfg.JWTSecret)
 	userService := services.NewUserService(db)
+	waitlistService := services.NewWaitlistService(db)
+	invitationService := services.NewInvitationService(db, time.Duration(cfg.InviteTTLHours)*time.Hour)
 	chatService := services.NewChatService(db)
 	messageService := services.NewMessageService(db, redisClient)
 
@@ -128,7 +130,16 @@ func main() {
 	go wsHub.Run()
 
 	// Initialize handlers
-	authHandler := handlers.NewAuthHandler(authService, userService)
+	authHandler := handlers.NewAuthHandler(authService, userService, invitationService)
+	emailSender := services.NewSMTPEmailSender(
+		cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUsername, cfg.SMTPPassword, cfg.SMTPFromEmail,
+	)
+	waitlistHandler := handlers.NewWaitlistHandler(waitlistService, emailSender)
+	adminWaitlistHandler := handlers.NewAdminWaitlistHandler(
+		db, userService, invitationService,
+		emailSender,
+		cfg.AdminEmails, cfg.InviteBaseURL,
+	)
 	chatHandler := handlers.NewChatHandler(chatService, userService, wsHub)
 	messageHandler := handlers.NewMessageHandler(messageService, chatService, translationService, wsHub)
 	wsHandler := handlers.NewWebSocketHandler(wsHub, authService)
@@ -164,7 +175,8 @@ func main() {
 	// Public routes
 	public := r.Group("/api/v1")
 	{
-		public.POST("/auth/register", authHandler.Register)
+		public.POST("/waitlist", middleware.IPRateLimiter(10, time.Hour), waitlistHandler.Submit)
+		public.POST("/auth/register", middleware.IPRateLimiter(10, time.Hour), authHandler.Register)
 		public.POST("/auth/login", authHandler.Login)
 		public.POST("/auth/refresh", authHandler.RefreshToken)
 	}
@@ -177,6 +189,8 @@ func main() {
 		protected.GET("/users/me", authHandler.GetMe)
 		protected.PUT("/users/me", authHandler.UpdateMe)
 		protected.GET("/users/search", authHandler.SearchUsers)
+		protected.GET("/admin/waitlist", adminWaitlistHandler.List)
+		protected.POST("/admin/waitlist/:id/approve", adminWaitlistHandler.Approve)
 
 		// Chat routes
 		protected.GET("/chats", chatHandler.GetUserChats)

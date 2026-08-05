@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { authAPI } from '../services/api'
 import { detectBrowserLanguage, getNativeLanguageName } from '../services/language'
 import LanguageSelector from '../components/LanguageSelector'
@@ -9,6 +9,8 @@ interface RegisterProps {
 }
 
 export default function Register({ onRegister }: RegisterProps) {
+  const [searchParams] = useSearchParams()
+  const inviteToken = searchParams.get('invite') || ''
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -36,6 +38,7 @@ export default function Register({ onRegister }: RegisterProps) {
         displayName: normalizedEmail.split('@')[0],
         nativeLanguage: selectedLang,
         targetLanguages: [],
+        inviteToken,
       })
       onRegister(response.tokens)
     } catch (err: any) {
@@ -91,6 +94,11 @@ export default function Register({ onRegister }: RegisterProps) {
           </p>
         </div>
 
+        {!inviteToken && (
+          <div className="bg-amber-100 border border-amber-300 text-amber-800 px-4 py-3 rounded mb-4">
+            Registration is invite-only. <Link to="/waitlist" className="font-semibold underline">Join the waitlist</Link>.
+          </div>
+        )}
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             {error}
@@ -130,7 +138,7 @@ export default function Register({ onRegister }: RegisterProps) {
 
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || !inviteToken}
             className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition disabled:opacity-50 text-lg"
           >
             {isLoading ? 'Creating account...' : 'Create Account'}
