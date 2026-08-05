@@ -16,8 +16,8 @@ import { resolve } from 'path'
  * alongside `start-dev.ps1` or a manual dev stack).
  */
 
-const BACKEND_HEALTH = 'http://localhost:8080/health'
-const FRONTEND_URL = 'http://localhost:3000'
+const BACKEND_HEALTH = process.env.E2E_BACKEND_HEALTH || 'http://localhost:8080/health'
+const FRONTEND_URL = process.env.E2E_FRONTEND_URL || 'http://localhost:3000'
 const MAX_WAIT_MS = 300_000 // 5 minutes
 const POLL_INTERVAL_MS = 5_000
 const ROOT_DIR = resolve(__dirname, '..')

@@ -20,9 +20,9 @@ type User struct {
 
 // Phase 2: Learning settings for grammar and vocabulary features
 type LearningSettings struct {
-	GrammarEnabled   bool   `json:"grammarEnabled" db:"grammar_enabled"`
-	VocabularyEnabled bool  `json:"vocabularyEnabled" db:"vocabulary_enabled"`
-	DifficultyLevel  string `json:"difficultyLevel" db:"difficulty_level"` // beginner, intermediate, advanced
+	GrammarEnabled    bool   `json:"grammarEnabled" db:"grammar_enabled"`
+	VocabularyEnabled bool   `json:"vocabularyEnabled" db:"vocabulary_enabled"`
+	DifficultyLevel   string `json:"difficultyLevel" db:"difficulty_level"` // beginner, intermediate, advanced
 }
 
 // Phase 2: Privacy settings
@@ -145,12 +145,12 @@ type LearnRequest struct {
 
 // Phase 3: Call session for voice/video
 type CallSession struct {
-	ID           string    `json:"id" db:"id"`
-	ChatID       string    `json:"chatId" db:"chat_id"`
-	Participants []string  `json:"participants" db:"-"`
-	Type         string    `json:"type" db:"type"` // audio, video
-	Status       string    `json:"status" db:"status"` // active, ended
-	StartedAt    time.Time `json:"startedAt" db:"started_at"`
+	ID           string     `json:"id" db:"id"`
+	ChatID       string     `json:"chatId" db:"chat_id"`
+	Participants []string   `json:"participants" db:"-"`
+	Type         string     `json:"type" db:"type"`     // audio, video
+	Status       string     `json:"status" db:"status"` // active, ended
+	StartedAt    time.Time  `json:"startedAt" db:"started_at"`
 	EndedAt      *time.Time `json:"endedAt,omitempty" db:"ended_at"`
 }
 
@@ -195,17 +195,17 @@ type ChatParticipant struct {
 }
 
 type Message struct {
-	ID                 string                 `json:"id" db:"id"`
-	ChatID             string                 `json:"chatId" db:"chat_id"`
-	SenderID           string                 `json:"senderId" db:"sender_id"`
-	Text               string                 `json:"text" db:"text"`
-	OriginalLanguage   string                 `json:"originalLanguage" db:"original_language"`
-	Translations       map[string]string      `json:"translations,omitempty" db:"translations"`
-	TranslationEnhanced bool                 `json:"translationEnhanced"`
-	DeliveryStatus     string                 `json:"deliveryStatus" db:"delivery_status"`
-	ReplyToID          *string                `json:"replyToId,omitempty" db:"reply_to_id"`
-	CreatedAt          time.Time              `json:"timestamp" db:"created_at"`
-	Sender             *User                  `json:"sender,omitempty" db:"-"`
+	ID                  string            `json:"id" db:"id"`
+	ChatID              string            `json:"chatId" db:"chat_id"`
+	SenderID            string            `json:"senderId" db:"sender_id"`
+	Text                string            `json:"text" db:"text"`
+	OriginalLanguage    string            `json:"originalLanguage" db:"original_language"`
+	Translations        map[string]string `json:"translations,omitempty" db:"translations"`
+	TranslationEnhanced bool              `json:"translationEnhanced"`
+	DeliveryStatus      string            `json:"deliveryStatus" db:"delivery_status"`
+	ReplyToID           *string           `json:"replyToId,omitempty" db:"reply_to_id"`
+	CreatedAt           time.Time         `json:"timestamp" db:"created_at"`
+	Sender              *User             `json:"sender,omitempty" db:"-"`
 }
 
 type AuthTokens struct {
@@ -221,6 +221,25 @@ type RegisterRequest struct {
 	DisplayName     string   `json:"displayName" binding:"omitempty,min=1,max=100"`
 	NativeLanguage  string   `json:"nativeLanguage" binding:"omitempty"`
 	TargetLanguages []string `json:"targetLanguages"`
+	InviteToken     string   `json:"inviteToken"`
+}
+
+type WaitlistRequest struct {
+	Email           string   `json:"email" binding:"required,email"`
+	SpokenLanguage  string   `json:"spokenLanguage" binding:"required"`
+	TargetLanguages []string `json:"targetLanguages" binding:"required,min=1"`
+	Reasons         []string `json:"reasons" binding:"required,min=1"`
+}
+
+type WaitlistEntry struct {
+	ID              string    `json:"id"`
+	Email           string    `json:"email"`
+	SpokenLanguage  string    `json:"spokenLanguage"`
+	TargetLanguages []string  `json:"targetLanguages"`
+	Reasons         []string  `json:"reasons"`
+	Status          string    `json:"status"`
+	QueuePosition   int       `json:"queuePosition"`
+	CreatedAt       time.Time `json:"createdAt"`
 }
 
 type LoginRequest struct {
@@ -313,15 +332,15 @@ type InitiateCallRequest struct {
 
 // Phase 2: Media attachment
 type MediaAttachment struct {
-	ID          string    `json:"id" db:"id"`
-	MessageID   string    `json:"messageId" db:"message_id"`
-	Type        string    `json:"type" db:"type"` // image, video, audio, document
-	FileName    string    `json:"fileName" db:"file_name"`
-	FileSize    int64     `json:"fileSize" db:"file_size"`
-	MimeType    string    `json:"mimeType" db:"mime_type"`
-	URL         string    `json:"url" db:"url"`
-	ThumbnailURL *string  `json:"thumbnailUrl,omitempty" db:"thumbnail_url"`
-	CreatedAt   time.Time `json:"createdAt" db:"created_at"`
+	ID           string    `json:"id" db:"id"`
+	MessageID    string    `json:"messageId" db:"message_id"`
+	Type         string    `json:"type" db:"type"` // image, video, audio, document
+	FileName     string    `json:"fileName" db:"file_name"`
+	FileSize     int64     `json:"fileSize" db:"file_size"`
+	MimeType     string    `json:"mimeType" db:"mime_type"`
+	URL          string    `json:"url" db:"url"`
+	ThumbnailURL *string   `json:"thumbnailUrl,omitempty" db:"thumbnail_url"`
+	CreatedAt    time.Time `json:"createdAt" db:"created_at"`
 }
 
 // Phase 2: Metrics for monitoring

@@ -89,6 +89,30 @@ func Migrate(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON refresh_tokens(token)`,
 
+		// Invite-only launch waitlist.
+		`CREATE TABLE IF NOT EXISTS waitlist_entries (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			email VARCHAR(255) UNIQUE NOT NULL,
+			spoken_language VARCHAR(10) NOT NULL,
+			target_languages TEXT[] NOT NULL,
+			reasons TEXT[] NOT NULL,
+			status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved')),
+			queue_position BIGSERIAL UNIQUE NOT NULL,
+			approved_at TIMESTAMP,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_waitlist_entries_status_position ON waitlist_entries(status, queue_position)`,
+		`CREATE TABLE IF NOT EXISTS invitations (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			waitlist_entry_id UUID NOT NULL REFERENCES waitlist_entries(id) ON DELETE CASCADE,
+			email VARCHAR(255) NOT NULL,
+			token_hash VARCHAR(64) UNIQUE NOT NULL,
+			expires_at TIMESTAMP NOT NULL,
+			redeemed_at TIMESTAMP,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_invitations_token_hash ON invitations(token_hash)`,
+
 		// Phase 2: Multi-device support - Clients table
 		`CREATE TABLE IF NOT EXISTS clients (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

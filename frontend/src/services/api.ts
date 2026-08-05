@@ -9,6 +9,8 @@ import type {
   RegisterRequest,
   CreateChatRequest,
   SendMessageRequest,
+  WaitlistRequest,
+  WaitlistEntry,
 } from '../types'
 
 // Get API URL based on environment
@@ -93,6 +95,21 @@ export const authAPI = {
   searchUsers: async (query: string) => {
     const response = await api.get<{ users: User[] }>(`/users/search?q=${query}`)
     return response.data.users
+  },
+}
+
+export const waitlistAPI = {
+  join: async (data: WaitlistRequest) => {
+    const response = await api.post<{ entry: WaitlistEntry; message: string }>('/waitlist', data)
+    return response.data
+  },
+  pending: async () => {
+    const response = await api.get<{ entries: WaitlistEntry[] }>('/admin/waitlist')
+    return response.data.entries
+  },
+  approve: async (id: string) => {
+    const response = await api.post<{ message: string }>(`/admin/waitlist/${id}/approve`)
+    return response.data
   },
 }
 

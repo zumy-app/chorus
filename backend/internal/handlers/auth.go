@@ -10,14 +10,20 @@ import (
 )
 
 type AuthHandler struct {
-	authService *services.AuthService
-	userService *services.UserService
+	authService       *services.AuthService
+	userService       *services.UserService
+	invitationService *services.InvitationService
 }
 
-func NewAuthHandler(authService *services.AuthService, userService *services.UserService) *AuthHandler {
+func NewAuthHandler(authService *services.AuthService, userService *services.UserService, invitationServices ...*services.InvitationService) *AuthHandler {
+	var invitationService *services.InvitationService
+	if len(invitationServices) > 0 {
+		invitationService = invitationServices[0]
+	}
 	return &AuthHandler{
-		authService: authService,
-		userService: userService,
+		authService:       authService,
+		userService:       userService,
+		invitationService: invitationService,
 	}
 }
 
@@ -40,10 +46,17 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	if strings.TrimSpace(req.NativeLanguage) == "" {
 		req.NativeLanguage = "en"
 	}
-
-	user, err := h.authService.Register(req)
+	var user *models.User
+	var err error
+	if h.invitationService != nil {
+		user, err = h.authService.RegisterWithInvitation(req)
+	} else {
+		user, err = h.authService.Register(req)
+	}
 	if err != nil {
 		switch {
+		case errors.Is(err, services.ErrInvalidInvitation):
+			c.JSON(403, gin.H{"error": "A valid invitation for this email is required."})
 		case errors.Is(err, services.ErrEmailAlreadyRegistered):
 			c.JSON(409, gin.H{"error": "Email is already registered"})
 		case errors.Is(err, services.ErrUsernameAlreadyRegistered):
