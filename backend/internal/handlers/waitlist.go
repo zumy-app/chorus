@@ -1,8 +1,8 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/chorus/messenger/internal/models"
@@ -26,25 +26,57 @@ func NewWaitlistHandler(service *services.WaitlistService, senders ...services.E
 func (h *WaitlistHandler) Submit(c *gin.Context) {
 	var req models.WaitlistRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Please provide your email, spoken language, learning languages, and at least one reason."})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Please provide your email, spoken languages, learning languages, and at least one reason."})
 		return
 	}
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
-	entry, err := h.service.Submit(req)
+	entry, alreadyJoined, err := h.service.Submit(req)
 	if err != nil {
 		if err == services.ErrInvalidWaitlistRequest {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		log.Printf("[Waitlist] submit failed for %q: %v", req.Email, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to join the waitlist. Please try again."})
 		return
 	}
+
+	var subject, html, message string
+	status := http.StatusCreated
+	if alreadyJoined {
+		subject, html = services.UpdatedWaitlistConfirmationEmail(entry.QueuePosition)
+		message = "You're already on the waitlist — we've updated your preferences. Your spot is waiting, stay tuned!"
+	} else {
+		subject, html = services.WaitlistConfirmationEmail(entry.QueuePosition)
+		message = "You've joined the waitlist. We'll email you a sign-up link when it's your turn."
+	}
+
+	emailSent := false
 	if h.email != nil {
-		if err := h.email.Send(entry.Email, "You're on the Chorus waitlist",
-			"<p>Thanks for joining the Chorus waitlist. Your place is #"+strconv.Itoa(entry.QueuePosition)+".</p>"); err != nil {
-			c.JSON(http.StatusAccepted, gin.H{"entry": entry, "message": "You have been added to the waitlist, but we could not send a confirmation email."})
-			return
+		if err := h.email.Send(entry.Email, subject, html); err == nil {
+			emailSent = true
+		} else {
+			log.Printf("[Waitlist] confirmation email to %q failed: %v", entry.Email, err)
 		}
 	}
-	c.JSON(http.StatusCreated, gin.H{"entry": entry, "message": "You have been added to the waitlist."})
+
+	payload := gin.H{
+		"entry":          entry,
+		"message":        message,
+		"alreadyJoined":  alreadyJoined,
+		"emailSent":      emailSent,
+		"checkSpamNotice": !emailSent,
+	}
+	if emailSent {
+		c.JSON(status, payload)
+		return
+	}
+	if alreadyJoined {
+		// Still a success — user is already in, prefs were refreshed.
+		c.JSON(http.StatusOK, payload)
+		return
+	}
+	// Fresh signup persisted but email could not be sent; tell them to watch for spam.
+	payload["message"] = "You've joined the waitlist, but we couldn't send a confirmation email."
+	c.JSON(http.StatusAccepted, payload)
 }

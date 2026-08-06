@@ -9,7 +9,7 @@ import (
 func TestValidateWaitlistRequestRequiresInterestFields(t *testing.T) {
 	err := ValidateWaitlistRequest(models.WaitlistRequest{
 		Email:           "learner@example.com",
-		SpokenLanguage:  "en",
+		SpokenLanguages: []string{"en"},
 		TargetLanguages: []string{"es"},
 		Reasons:         []string{"travel"},
 	})
