@@ -93,14 +93,26 @@ func Migrate(db *sql.DB) error {
 		`CREATE TABLE IF NOT EXISTS waitlist_entries (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			email VARCHAR(255) UNIQUE NOT NULL,
-			spoken_language VARCHAR(10) NOT NULL,
+			spoken_languages TEXT[] NOT NULL DEFAULT '{}',
 			target_languages TEXT[] NOT NULL,
 			reasons TEXT[] NOT NULL,
+			comments TEXT NOT NULL DEFAULT '',
 			status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved')),
 			queue_position BIGSERIAL UNIQUE NOT NULL,
 			approved_at TIMESTAMP,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
+		`ALTER TABLE waitlist_entries ADD COLUMN IF NOT EXISTS comments TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE waitlist_entries ADD COLUMN IF NOT EXISTS spoken_languages TEXT[] NOT NULL DEFAULT '{}'`,
+		`DO $$ BEGIN
+			IF EXISTS (SELECT 1 FROM information_schema.columns
+				WHERE table_name = 'waitlist_entries' AND column_name = 'spoken_language') THEN
+				EXECUTE 'UPDATE waitlist_entries SET spoken_languages = ARRAY[spoken_language]
+					WHERE spoken_language IS NOT NULL AND spoken_language <> ''''
+					AND (array_length(spoken_languages, 1) IS NULL OR array_length(spoken_languages, 1) = 0)';
+			END IF;
+		END $$;`,
+		`ALTER TABLE waitlist_entries DROP COLUMN IF EXISTS spoken_language`,
 		`CREATE INDEX IF NOT EXISTS idx_waitlist_entries_status_position ON waitlist_entries(status, queue_position)`,
 		`CREATE TABLE IF NOT EXISTS invitations (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -56,9 +56,9 @@ Log ""
 # ──────────────────────────────────────────────
 # 2. Start Docker services (infra only)
 # ──────────────────────────────────────────────
-Log "▶ [2/5] Starting Docker services (PostgreSQL, Redis, Ollama, LibreTranslate)..." Yellow
+Log "▶ [2/5] Starting Docker services (PostgreSQL, Redis)..." Yellow
 
-docker compose -f $ComposeFile up -d --remove-orphans --force-recreate ollama postgres redis libretranslate 2>&1 | ForEach-Object {
+docker compose -f $ComposeFile up -d --remove-orphans --force-recreate  postgres redis  2>&1 | ForEach-Object {
     $line = $_.ToString().Trim()
     if ($line -ne "") { Write-Host "  $line" }
 }
@@ -86,46 +86,6 @@ for ($i = 0; $i -lt 15; $i++) {
 }
 if ($redisReady) { Ok "Redis healthy" } else { Warn "Redis not healthy yet" }
 
-# Wait for Ollama to be healthy (docker healthcheck), then ensure the model exists
-Log "  Waiting for Ollama to be healthy..." Yellow
-$ollamaReady = $false
-for ($i = 0; $i -lt 30; $i++) {
-    $status = docker inspect --format='{{.State.Health.Status}}' chorus-ollama 2>$null
-    if ($status -eq "healthy") { $ollamaReady = $true; break }
-    if ($i -gt 0 -and $i % 10 -eq 0) { Write-Host "  ...waiting for Ollama ($($i*2)s)" }
-    Start-Sleep -Seconds 2
-}
-if ($ollamaReady) {
-    # Check if the model exists, if not pull it
-    $modelList = docker exec chorus-ollama ollama list 2>$null | Out-String
-    if ($modelList -notmatch "llama3.2:3b-instruct-q4_K_M") {
-        Warn "Model not found. Pulling llama3.2:3b-instruct-q4_K_M (may take 2-5 min)..."
-        docker exec chorus-ollama ollama pull llama3.2:3b-instruct-q4_K_M
-        if ($LASTEXITCODE -eq 0) {
-            Ok "Model ready (llama3.2:3b-instruct-q4_K_M)"
-        } else {
-            Warn "Failed to pull model. Check if Ollama has internet access."
-        }
-    } else {
-        Ok "Ollama healthy (llama3.2:3b-instruct-q4_K_M ready)"
-    }
-} else {
-    Warn "Ollama not ready yet - backend will fall through to other providers"
-}
-
-# Wait for LibreTranslate to be healthy before starting the backend.
-# LibreTranslate is FIRST in the translation chain, so the Go backend needs it
-# reachable on localhost:5000 from the start. First boot downloads the en/es
-# Argos models and can take a few minutes.
-Log "  Waiting for LibreTranslate to be healthy..." Yellow
-$ltReady = $false
-for ($i = 0; $i -lt 90; $i++) {
-    $status = docker inspect --format='{{.State.Health.Status}}' chorus-libretranslate 2>$null
-    if ($status -eq "healthy") { $ltReady = $true; break }
-    if ($i -gt 0 -and $i % 15 -eq 0) { Write-Host "  ...waiting for LibreTranslate ($($i*2)s)" }
-    Start-Sleep -Seconds 2
-}
-if ($ltReady) { Ok "LibreTranslate healthy on http://localhost:5000" } else { Warn "LibreTranslate not healthy yet - translation will fall through to LLM providers" }
 
 # ──────────────────────────────────────────────
 # 4. Run backend with air (hot-reload)
@@ -269,7 +229,6 @@ Log "║   Backend  (API):  http://localhost:8080       ║" Cyan
 Log "║   Health check:    http://localhost:8080/health║" Cyan
 Log "║   PostgreSQL:      localhost:5432              ║" Cyan
 Log "║   Redis:           localhost:6379              ║" Cyan
-Log "║   LibreTranslate:  localhost:5000 (translation)║" Cyan
 Log "║                                                ║" Cyan
 Log "║   Stop infra:  docker compose down             ║" Cyan
 Log "║   Stop all:    docker compose down -v          ║" Cyan
