@@ -57,9 +57,10 @@ Content-Type: application/json
 
 {
   "email": "alice@example.com",
-  "spokenLanguage": "en",
+  "spokenLanguages": ["en", "fr"],
   "targetLanguages": ["es", "fr"],
-  "reasons": ["I want to learn a new language", "For travel"]
+  "reasons": ["I want to learn a new language", "For travel"],
+  "comments": "Optional additional notes"
 }
 ```
 

@@ -100,7 +100,12 @@ export const authAPI = {
 
 export const waitlistAPI = {
   join: async (data: WaitlistRequest) => {
-    const response = await api.post<{ entry: WaitlistEntry; message: string }>('/waitlist', data)
+    const response = await api.post<{
+      entry: WaitlistEntry
+      message: string
+      alreadyJoined?: boolean
+      emailSent?: boolean
+    }>('/waitlist', data)
     return response.data
   },
   pending: async () => {

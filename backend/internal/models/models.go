@@ -226,17 +226,19 @@ type RegisterRequest struct {
 
 type WaitlistRequest struct {
 	Email           string   `json:"email" binding:"required,email"`
-	SpokenLanguage  string   `json:"spokenLanguage" binding:"required"`
+	SpokenLanguages []string `json:"spokenLanguages" binding:"required,min=1"`
 	TargetLanguages []string `json:"targetLanguages" binding:"required,min=1"`
 	Reasons         []string `json:"reasons" binding:"required,min=1"`
+	Comments        string   `json:"comments"`
 }
 
 type WaitlistEntry struct {
 	ID              string    `json:"id"`
 	Email           string    `json:"email"`
-	SpokenLanguage  string    `json:"spokenLanguage"`
+	SpokenLanguages []string  `json:"spokenLanguages"`
 	TargetLanguages []string  `json:"targetLanguages"`
 	Reasons         []string  `json:"reasons"`
+	Comments        string    `json:"comments"`
 	Status          string    `json:"status"`
 	QueuePosition   int       `json:"queuePosition"`
 	CreatedAt       time.Time `json:"createdAt"`

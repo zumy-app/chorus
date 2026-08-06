@@ -41,7 +41,7 @@ func (h *AdminWaitlistHandler) List(c *gin.Context) {
 	if !h.authorize(c) {
 		return
 	}
-	rows, err := h.db.Query(`SELECT id, email, spoken_language, target_languages, reasons, status, queue_position, created_at
+	rows, err := h.db.Query(`SELECT id, email, spoken_languages, target_languages, reasons, comments, status, queue_position, created_at
 		FROM waitlist_entries WHERE status = 'pending' ORDER BY queue_position`)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Unable to load waitlist"})
@@ -51,7 +51,7 @@ func (h *AdminWaitlistHandler) List(c *gin.Context) {
 	entries := []models.WaitlistEntry{}
 	for rows.Next() {
 		var entry models.WaitlistEntry
-		if err := rows.Scan(&entry.ID, &entry.Email, &entry.SpokenLanguage, pq.Array(&entry.TargetLanguages), pq.Array(&entry.Reasons), &entry.Status, &entry.QueuePosition, &entry.CreatedAt); err != nil {
+		if err := rows.Scan(&entry.ID, &entry.Email, pq.Array(&entry.SpokenLanguages), pq.Array(&entry.TargetLanguages), pq.Array(&entry.Reasons), &entry.Comments, &entry.Status, &entry.QueuePosition, &entry.CreatedAt); err != nil {
 			c.JSON(500, gin.H{"error": "Unable to load waitlist"})
 			return
 		}
@@ -77,7 +77,8 @@ func (h *AdminWaitlistHandler) Approve(c *gin.Context) {
 		return
 	}
 	link := h.inviteURL + "?invite=" + token
-	if err := h.email.Send(entry.Email, "Your Chorus invitation", "<p>You are off the waitlist.</p><p><a href=\""+link+"\">Create your account</a></p>"); err != nil {
+	subject, html := services.InvitationEmail(link)
+	if err := h.email.Send(entry.Email, subject, html); err != nil {
 		c.JSON(502, gin.H{"error": "Invitation created, but email delivery failed. Please retry."})
 		return
 	}

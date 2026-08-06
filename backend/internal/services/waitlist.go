@@ -9,10 +9,10 @@ import (
 	"github.com/lib/pq"
 )
 
-var ErrInvalidWaitlistRequest = errors.New("email, spoken language, target languages, and at least one reason are required")
+var ErrInvalidWaitlistRequest = errors.New("email, spoken languages, target languages, and at least one reason are required")
 
 func ValidateWaitlistRequest(req models.WaitlistRequest) error {
-	if strings.TrimSpace(req.Email) == "" || strings.TrimSpace(req.SpokenLanguage) == "" ||
+	if strings.TrimSpace(req.Email) == "" || len(req.SpokenLanguages) == 0 ||
 		len(req.TargetLanguages) == 0 || len(req.Reasons) == 0 {
 		return ErrInvalidWaitlistRequest
 	}
@@ -23,24 +23,30 @@ type WaitlistService struct{ db *sql.DB }
 
 func NewWaitlistService(db *sql.DB) *WaitlistService { return &WaitlistService{db: db} }
 
-// Submit is idempotent per email and returns the original queue position.
-func (s *WaitlistService) Submit(req models.WaitlistRequest) (*models.WaitlistEntry, error) {
+// Submit is idempotent per email. Re-submitting the same email updates the
+// stored preferences and returns the original queue position, along with
+// alreadyJoined=true so callers can tell the user their prefs were refreshed.
+func (s *WaitlistService) Submit(req models.WaitlistRequest) (*models.WaitlistEntry, bool, error) {
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
-	req.SpokenLanguage = strings.TrimSpace(req.SpokenLanguage)
 	if err := ValidateWaitlistRequest(req); err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	entry := &models.WaitlistEntry{}
+	var inserted bool
 	err := s.db.QueryRow(`
-		INSERT INTO waitlist_entries (email, spoken_language, target_languages, reasons)
-		VALUES ($1, $2, $3, $4)
-		ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
-		RETURNING id, email, spoken_language, target_languages, reasons, status, queue_position, created_at`,
-		req.Email, req.SpokenLanguage, pq.Array(req.TargetLanguages), pq.Array(req.Reasons),
-	).Scan(&entry.ID, &entry.Email, &entry.SpokenLanguage, pq.Array(&entry.TargetLanguages),
-		pq.Array(&entry.Reasons), &entry.Status, &entry.QueuePosition, &entry.CreatedAt)
+		INSERT INTO waitlist_entries (email, spoken_languages, target_languages, reasons, comments)
+		VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (email) DO UPDATE SET
+			spoken_languages = EXCLUDED.spoken_languages,
+			target_languages = EXCLUDED.target_languages,
+			reasons = EXCLUDED.reasons,
+			comments = EXCLUDED.comments
+		RETURNING (xmax = 0) AS inserted, id, email, spoken_languages, target_languages, reasons, comments, status, queue_position, created_at`,
+		req.Email, pq.Array(req.SpokenLanguages), pq.Array(req.TargetLanguages), pq.Array(req.Reasons), req.Comments,
+	).Scan(&inserted, &entry.ID, &entry.Email, pq.Array(&entry.SpokenLanguages), pq.Array(&entry.TargetLanguages),
+		pq.Array(&entry.Reasons), &entry.Comments, &entry.Status, &entry.QueuePosition, &entry.CreatedAt)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
-	return entry, nil
+	return entry, !inserted, nil
 }

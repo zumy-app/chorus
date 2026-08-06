@@ -131,7 +131,7 @@ describe('API Service', () => {
 
       const result = await waitlistAPI.join({
         email: 'learner@example.com',
-        spokenLanguage: 'en',
+        spokenLanguages: ['en', 'fr'],
         targetLanguages: ['es'],
         reasons: ['For travel'],
       })

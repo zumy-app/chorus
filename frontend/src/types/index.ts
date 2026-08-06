@@ -69,17 +69,19 @@ export interface RegisterRequest {
 
 export interface WaitlistRequest {
   email: string
-  spokenLanguage: string
+  spokenLanguages: string[]
   targetLanguages: string[]
   reasons: string[]
+  comments?: string
 }
 
 export interface WaitlistEntry {
   id: string
   email: string
-  spokenLanguage: string
+  spokenLanguages: string[]
   targetLanguages: string[]
   reasons: string[]
+  comments?: string
   status: 'pending' | 'approved'
   queuePosition: number
   createdAt: string
