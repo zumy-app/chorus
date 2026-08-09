@@ -65,7 +65,14 @@ A comprehensive guide to understanding the Chorus messenger application's archit
         (Axios)            (ws://)
            │                   │
 ┌──────────┴───────────────────┴───────────────────────────────────┐
+│               Layer 4 Load Balancer (TCP)                          │
+│     Nginx/HAProxy · leastconn · maxconn caps                     │
+│     no sticky sessions (stateless → any server serves any conn)  │
+└──────────┬───────────────────┬───────────────────────────────────┘
+           │                   │  (round-robin to chat servers)
+┌──────────┴───────────────────┴───────────────────────────────────┐
 │                      Backend Layer (Go)                          │
+│                      (chat server replicas)                      │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │           Gin HTTP Server + WebSocket Hub               │   │
 │  │                                                          │   │
@@ -94,11 +101,12 @@ A comprehensive guide to understanding the Chorus messenger application's archit
 │                              │                                   │
 │        ┌─────────────────────┼──────────────────┐                │
 │        ▼                     ▼                  ▼                │
-│   ┌─────────────┐  ┌──────────────┐  ┌──────────────┐           │
-│   │PostgreSQL   │  │   Redis      │  │  External    │           │
-│   │Database     │  │   Cache +    │  │  Services    │           │
-│   │             │  │   Pub/Sub    │  │ (Google API) │           │
-│   └─────────────┘  └──────────────┘  └──────────────┘           │
+│   ┌─────────────┐  ┌──────────────────┐    ┌──────────────┐     │
+│   │PostgreSQL   │  │   Redis          │    │  External    │     │
+│   │Database     │  │   Cache +        │    │  Services    │     │
+│   │             │  │   Pub/Sub        │    │ (Google API) │     │
+│   │             │  │   Conn. Registry │    │              │     │
+│   └─────────────┘  └──────────────────┘    └──────────────┘     │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -191,7 +199,8 @@ The backend follows a **3-layer architecture**:
 | **MessageService** | Store/retrieve messages, handle delivery status, pagination |
 | **TranslationService** | Detect language, translate via Google API or mock, caching |
 | **WebSocketHub** | Client connection management, in-memory message broadcasting |
-| **PubSubService** | Redis Pub/Sub channels, cross-server event distribution |
+| **PubSubService** | Redis Pub/Sub channels, fan-out events, targeted inter-server routing |
+| **ConnectionRegistry** | Redis-backed registry `ws:registry:{userId}` of user → server/WebSocket; written on connect, cleared on disconnect, queried to route messages across chat servers |
 | **PresenceService** | Online status tracking, presence events via Redis |
 | **InboxService** | Queue messages for offline clients, multi-device management |
 | **SearchService** | Full-text search using PostgreSQL GIN indexes |
@@ -442,7 +451,11 @@ class WebSocketService {
 │     │      timestamp: "..."                        │
 │     │    }                                          │
 │     │  }                                            │
-│     └─ Send to Redis Pub/Sub (for other servers)   │
+│     └─ For remote recipients:                      │
+│        ├─ Lookup Redis connection registry         │
+│        │  GET ws:registry:{userId} → {serverID}    │
+│        └─ Publish targeted delivery to that server │
+│           (Redis Pub/Sub channel "server:{S2}")    │
 │                                                     │
 └──────────────┬──────────────────────────────────────┘
       ┌────────┴──────────┐
@@ -751,18 +764,31 @@ WebSocketHub.Broadcast() sends to all connected clients
 All clients in that chat receive via WebSocket
 ```
 
-**Multiple Servers (Scaled):**
+**Multiple Servers (Scaled) — L4 LB + Redis Connection Registry:**
 ```
-Server 1: Client A sends message
+L4 LB accepts client connections (HTTP + WebSocket) round-robin
   ↓
-Store in PostgreSQL (shared)
+Any chat server (S1, S2, …) can serve any user (stateless, no stickiness)
   ↓
-Publish to Redis Pub/Sub: "chat:{chatId}"
+On WebSocket connect, the serving server writes the Connection Registry:
+  SET ws:registry:{userId} = {serverID, connID}  (refresh-TTL heartbeat)
+On disconnect, it clears/expires that entry
   ↓
-All servers receive event
+ChatServer S1 receives message from Connected Client A
   ↓
-Each server broadcasts to its connected clients
+Store in PostgreSQL (shared durable source of truth)
+  ↓
+For each recipient B:
+  Redis GET ws:registry:{userIdB} → finds S2 + WebSocket connID
+  ↓
+Publish targeted delivery to S2 (Redis Pub/Sub channel "server:{S2}")
+  ↓
+S2 delivers to the exact connection of user B via the WebSocket hub
+  ↓
+Offline recipients (no registry entry) are served from Postgres history on reconnect
 ```
+
+**Events vs. routing note:** Pub/Sub is used for *fan-out events* that benefit all parties (typing, presence, broadcast notifications) and for *targeted routing* between servers (per the flow above). The registry is the lookup that tells a server *which* other server/connection a user is on, so messages are routed to the right target server instead of being broadcast blindly to every server.
 
 ### Message Types
 
@@ -791,6 +817,7 @@ Each server broadcasts to its connected clients
 | Vocabulary lists | `vocab:{userId}:all` | 1h | Pagination cache |
 | Presence status | `presence:{userId}` | 5m | Online status with TTL |
 | User's clients | `user:{userId}:clients` | Runtime | Multi-device tracking |
+| WebSocket connection registry | `ws:registry:{userId}` | Refresh TTL | Maps a user → `{serverID, connID}` so a message landing on any server can be routed to the server/connection holding that user |
 
 ### Database Query Optimization
 
@@ -829,14 +856,35 @@ WHERE m.chat_id = $1
 services:
   postgres:        # Port 5432 (internal)
   redis:           # Port 6379 (internal)
-  backend:         # Port 8080 (external)
-  frontend:        # Port 3000 (external)
+  lb:              # L4 TCP load balancer (e.g., Nginx/HAProxy) · external
+  backend:         # Chat server (HTTP + WebSocket) · replicated, internal
+  frontend:        # Port 3000 (external, static)
 ```
 
 **Scaling:**
-- Horizontal: Run multiple backend instances (load balanced)
-- All connect to shared PostgreSQL + Redis
-- Pub/Sub automatically syncs across instances
+- Horizontal: Run N chat-server replicas behind a **Layer 4 (TCP) load balancer**
+- L4 LB load-balances both REST and WebSocket connections; **no sticky sessions** — chat servers are stateless, so any replica can serve any connection
+- All replicas share PostgreSQL (source of truth) + Redis
+- Redis Pub/Sub routes messages between replicas
+- The Redis **connection registry** maps each connected user → server/WebSocket so any replica can find a recipient on another replica
+- The L4 LB health-checks replicas and stops routing to unhealthy ones
+
+### Load Balancing Strategy
+
+**Phase 1 (default): commodity L4 LB (HAProxy/Nginx), no custom code**
+
+- Algorithm: **`leastconn`** (least-connections). WebSockets are long-lived, so balancing by *number of open connections* approximates spare capacity better than round-robin. Round-robin would concentrate new flows and is not suitable for long-lived WS.
+- Each server gets a **`maxconn`** cap. When a server's connection count hits its cap, the LB treats it as saturated and stops new connections to it.
+- **Health checks** (TCP/HTTP heartbeat) pull a degraded server out of rotation automatically.
+- A dumb L4 LB has **no direct knowledge of CPU/memory** — capacity is approximated via connection counts + caps + health checks, which is sufficient for Phase 1.
+
+**Phase 2+ (only if needed): capacity-aware routing via the Redis registry**
+
+- Each chat server already publishes telemetry in Redis (connection counts, heartbeat). Extend it to include load signals (e.g., `conn:{serverId}` counter, CPU/latency on a beat).
+- The LB (or a small custom Go LB) reads the registry and prefers the **least-loaded** server instead of just least-connected.
+- Only build a custom Go LB when HAProxy heuristics genuinely misload — start dumb, add awareness when hot-spots.
+
+**Env vars for the LB mode:** `LB_ALGORITHM=leastconn|least-load`, `LB_MAXCONN_PER_SERVER`, `LB_HEALTHCHECK_INTERVAL`.
 
 ### Environment Variables
 
@@ -845,6 +893,7 @@ services:
 ENVIRONMENT=production
 DATABASE_URL=postgres://...
 REDIS_URL=...
+SERVER_ID=<unique-instance-id-used-in-ws-registry>
 JWT_SECRET=<strong-random-key>
 GOOGLE_TRANSLATE_API_KEY=...
 PORT=8080
@@ -885,7 +934,7 @@ VITE_API_URL=/api/v1  # Or http://api.example.com/api/v1
 1. **Layered Architecture** — Clean separation: handlers → services → database
 2. **Dependency Injection** — Services created with dependencies in main.go
 3. **Repository Pattern** — Services encapsulate database queries
-4. **Pub/Sub for Scalability** — Redis for cross-server event distribution
+4. **Pub/Sub + Connection Registry for Scalability** — Redis Pub/Sub for fan-out and inter-server routing; Redis registry (`ws:registry:{userId}`) for user → server/WebSocket lookup so targeted delivery works across a fleet behind an L4 LB
 5. **Graceful Degradation** — Optional APIs (Google) with fallbacks
 6. **Token Refresh Pattern** — Automatic token renewal on client
 7. **Spaced Repetition** — Vocabulary review scheduling based on algorithm
