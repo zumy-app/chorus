@@ -75,9 +75,28 @@ openssl rand -base64 64
 DB_PASSWORD=YourStrongPassword123
 JWT_SECRET=xK8mZpL4qR9vN2wB5yE7hJ3fA1cG6iD0sT5uP8oM9nL2kV4rW7xZ1yC3vB6nM0...
 GOOGLE_TRANSLATE_API_KEY=   # Optional — leave blank for mock translations
+
+# ─── Waitlist & admin (REQUIRED for invite-only registration) ───────────────
+# Comma-separated allowlist of emails that can access /admin/waitlist and send
+# invites. These are forwarded to the backend container by docker-compose.prod.yml.
+WAITLIST_ADMIN_EMAILS=you@your-domain.com
+INVITE_BASE_URL=https://chorus.talk/register
+INVITE_TTL_HOURS=168
+
+# ─── Mailu SMTP (REQUIRED to deliver waitlist confirmations + invites) ──────
+MAILU_SMTP_HOST=mail.your-domain.com
+MAILU_SMTP_PORT=465
+MAILU_SMTP_USERNAME=your-mailbox@your-domain.com
+MAILU_SMTP_PASSWORD=...
+MAILU_SMTP_FROM=your-mailbox@your-domain.com
 ```
 
 > ⚠️ **Security**: Never commit `.env.prod` to git. It's already in `.gitignore`.
+>
+> ⚠️ **Note**: Env vars are only injected into the backend container if
+> `docker-compose.prod.yml` references them (e.g. `- WAITLIST_ADMIN_EMAILS=${WAITLIST_ADMIN_EMAILS:-}`).
+> If you add a new variable in Dokploy but the compose file doesn't list it under
+> the backend service's `environment:`, the backend never sees it.
 
 ---
 
