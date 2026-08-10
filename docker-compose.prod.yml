@@ -94,6 +94,17 @@ services:
       - PROVIDER_OPENCODE_GO_API_KEY=${PROVIDER_OPENCODE_GO_API_KEY:-}
       - PROVIDER_OPENCODE_GO_MODEL=${PROVIDER_OPENCODE_GO_MODEL:-deepseek-v4-flash}
       - PORT=8080
+      # Waitlist / invite-only registration (REQUIRED for /admin/waitlist).
+      # WAITLIST_ADMIN_EMAILS is a comma-separated allowlist of admin emails.
+      - WAITLIST_ADMIN_EMAILS=${WAITLIST_ADMIN_EMAILS:-}
+      - INVITE_BASE_URL=${INVITE_BASE_URL:-https://chorus.talk/register}
+      - INVITE_TTL_HOURS=${INVITE_TTL_HOURS:-168}
+      # Mailu SMTP — used to send waitlist confirmations and invites.
+      - MAILU_SMTP_HOST=${MAILU_SMTP_HOST:-}
+      - MAILU_SMTP_PORT=${MAILU_SMTP_PORT:-465}
+      - MAILU_SMTP_USERNAME=${MAILU_SMTP_USERNAME:-}
+      - MAILU_SMTP_PASSWORD=${MAILU_SMTP_PASSWORD:-}
+      - MAILU_SMTP_FROM=${MAILU_SMTP_FROM:-}
       - APPWRITE_ENDPOINT=${APPWRITE_ENDPOINT:-}
       - APPWRITE_PROJECT_ID=${APPWRITE_PROJECT_ID:-}
       - APPWRITE_API_KEY=${APPWRITE_API_KEY:-}
