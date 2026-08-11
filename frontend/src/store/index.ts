@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { User, Chat, Message } from '../types'
-import { chatAPI, messageAPI } from '../services/api'
+import { chatAPI, messageAPI, adminAPI } from '../services/api'
 import { wsService } from '../services/websocket'
 
 // --- Slug helpers ---
@@ -49,12 +49,15 @@ export function findChatBySlug(chats: Chat[], slug: string, currentUserId?: stri
 
 interface AppState {
   user: User | null
+  isAdmin: boolean
   chats: Chat[]
   activeChat: Chat | null
   messages: Record<string, Message[]>
   
   // Actions
   setUser: (user: User | null) => void
+  setAdmin: (isAdmin: boolean) => void
+  refreshAdminStatus: () => Promise<void>
   loadChats: () => Promise<void>
   setActiveChat: (chat: Chat | null) => void
   loadMessages: (chatId: string) => Promise<void>
@@ -70,11 +73,22 @@ interface AppState {
 
 export const useStore = create<AppState>((set, get) => ({
   user: null,
+  isAdmin: false,
   chats: [],
   activeChat: null,
   messages: {},
 
   setUser: (user) => set({ user }),
+  setAdmin: (isAdmin) => set({ isAdmin }),
+
+  refreshAdminStatus: async () => {
+    try {
+      const isAdmin = await adminAPI.isAdmin()
+      set({ isAdmin })
+    } catch {
+      set({ isAdmin: false })
+    }
+  },
 
   loadChats: async () => {
     try {

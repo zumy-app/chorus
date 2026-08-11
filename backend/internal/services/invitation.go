@@ -32,9 +32,12 @@ func (s *InvitationService) Create(entryID, email string) (string, error) {
 		return "", err
 	}
 	token := hex.EncodeToString(raw)
+	// Compute expires_at in SQL (CURRENT_TIMESTAMP) so it stays consistent with
+	// the validity check no matter what timezone the backend runs in.
 	_, err := s.db.Exec(`INSERT INTO invitations (waitlist_entry_id, email, token_hash, expires_at)
-		VALUES ($1, $2, $3, $4)`, entryID, strings.ToLower(strings.TrimSpace(email)),
-		invitationHash(token), time.Now().Add(s.ttl))
+		VALUES ($1, $2, $3, CURRENT_TIMESTAMP + $4 * INTERVAL '1 hour')`,
+		entryID, strings.ToLower(strings.TrimSpace(email)),
+		invitationHash(token), int(s.ttl.Hours()))
 	if err != nil {
 		return "", err
 	}

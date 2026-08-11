@@ -18,7 +18,7 @@ interface ChatProps {
 export default function Chat({ onLogout }: ChatProps) {
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
-  const { user, loadChats, activeChat, chats, setActiveChat, navigateToSlug, updateUser } = useStore()
+  const { user, isAdmin, loadChats, activeChat, chats, setActiveChat, navigateToSlug, updateUser } = useStore()
   const [showNewChatModal, setShowNewChatModal] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
@@ -203,6 +203,14 @@ export default function Chat({ onLogout }: ChatProps) {
                   >
                     <span>ℹ️</span> About Chorus
                   </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => { setShowProfileMenu(false); navigate('/admin/waitlist') }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-indigo-600 hover:bg-indigo-50 flex items-center gap-3"
+                    >
+                      <span>🛠️</span> Admin Controls
+                    </button>
+                  )}
                   <hr className="my-1" />
                   <button
                     onClick={() => { setShowProfileMenu(false); onLogout() }}

@@ -189,7 +189,7 @@ func TestRegisterHandler_DuplicateEmail(t *testing.T) {
 
 func TestRegisterHandler_InvalidInput(t *testing.T) {
 	router := setupTestRouter()
-	h := NewAuthHandler(nil, nil)
+	h := NewAuthHandler(nil, nil, nil, nil, "")
 	router.POST("/api/v1/auth/register", h.Register)
 
 	// Missing email and password

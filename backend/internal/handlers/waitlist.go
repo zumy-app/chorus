@@ -76,7 +76,8 @@ func (h *WaitlistHandler) Submit(c *gin.Context) {
 		c.JSON(http.StatusOK, payload)
 		return
 	}
-	// Fresh signup persisted but email could not be sent; tell them to watch for spam.
-	payload["message"] = "You've joined the waitlist, but we couldn't send a confirmation email."
+	// Fresh signup persisted but the first send attempt failed. The email is
+	// queued in the durable outbox and retried automatically.
+	payload["message"] = "You've joined the waitlist. Your confirmation email is queued and on its way."
 	c.JSON(http.StatusAccepted, payload)
 }

@@ -36,7 +36,9 @@ type Config struct {
 	SMTPUsername          string
 	SMTPPassword          string
 	SMTPFromEmail         string
+	SMTPFromName          string
 	InviteBaseURL         string
+	PasswordResetBaseURL  string
 	InviteTTLHours        int
 	AdminEmails           []string
 
@@ -67,6 +69,11 @@ type Config struct {
 
 // Load reads configuration from environment variables.
 func Load() *Config {
+	smtpUsername := getEnv("MAILU_SMTP_USERNAME", "")
+	smtpFrom := getEnv("MAILU_SMTP_FROM", "")
+	if smtpFrom == "" {
+		smtpFrom = smtpUsername
+	}
 	cfg := &Config{
 		Environment:           getEnv("ENVIRONMENT", "development"),
 		DatabaseURL:           getEnv("DATABASE_URL", "postgres://messenger:password@localhost:5432/messenger_dev?sslmode=disable"),
@@ -80,10 +87,12 @@ func Load() *Config {
 		AppwriteDatabaseID:    getEnv("APPWRITE_DATABASE_ID", ""),
 		SMTPHost:              getEnv("MAILU_SMTP_HOST", ""),
 		SMTPPort:              getEnvInt("MAILU_SMTP_PORT", 465),
-		SMTPUsername:          getEnv("MAILU_SMTP_USERNAME", ""),
+		SMTPUsername:          smtpUsername,
 		SMTPPassword:          getEnv("MAILU_SMTP_PASSWORD", ""),
-		SMTPFromEmail:         getEnv("MAILU_SMTP_FROM", ""),
+		SMTPFromEmail:         smtpFrom,
+		SMTPFromName:          getEnv("MAILU_SMTP_FROM_NAME", "Chorus"),
 		InviteBaseURL:         getEnv("INVITE_BASE_URL", "http://localhost:3000/register"),
+		PasswordResetBaseURL:  getEnv("PASSWORD_RESET_BASE_URL", "http://localhost:3000/reset-password"),
 		InviteTTLHours:        getEnvInt("INVITE_TTL_HOURS", 168),
 		AdminEmails:           splitAndTrim(getEnv("WAITLIST_ADMIN_EMAILS", "")),
 

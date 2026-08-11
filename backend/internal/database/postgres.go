@@ -89,6 +89,18 @@ func Migrate(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON refresh_tokens(token)`,
 
+		// Password reset tokens (forgot password flow).
+		`CREATE TABLE IF NOT EXISTS password_resets (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			token_hash VARCHAR(64) UNIQUE NOT NULL,
+			expires_at TIMESTAMP NOT NULL,
+			used_at TIMESTAMP,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_password_resets_user_id ON password_resets(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_password_resets_token_hash ON password_resets(token_hash)`,
+
 		// Invite-only launch waitlist.
 		`CREATE TABLE IF NOT EXISTS waitlist_entries (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -114,6 +126,26 @@ func Migrate(db *sql.DB) error {
 		END $$;`,
 		`ALTER TABLE waitlist_entries DROP COLUMN IF EXISTS spoken_language`,
 		`CREATE INDEX IF NOT EXISTS idx_waitlist_entries_status_position ON waitlist_entries(status, queue_position)`,
+		`ALTER TABLE waitlist_entries DROP CONSTRAINT IF EXISTS waitlist_entries_status_check`,
+		`ALTER TABLE waitlist_entries ADD CONSTRAINT waitlist_entries_status_check CHECK (status IN ('pending', 'approved', 'declined'))`,
+
+		// Durable email outbox: every notification is persisted here before it
+		// is handed to SMTP so none are lost, and failed sends are retried by
+		// the NotificationService background worker.
+		`CREATE TABLE IF NOT EXISTS email_outbox (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			recipient VARCHAR(255) NOT NULL,
+			subject TEXT NOT NULL,
+			body TEXT NOT NULL,
+			status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'failed')),
+			attempts INTEGER NOT NULL DEFAULT 0,
+			last_error TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			next_attempt_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			sent_at TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_email_outbox_status_next ON email_outbox(status, next_attempt_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_email_outbox_recipient ON email_outbox(recipient)`,
 		`CREATE TABLE IF NOT EXISTS invitations (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			waitlist_entry_id UUID NOT NULL REFERENCES waitlist_entries(id) ON DELETE CASCADE,

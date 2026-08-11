@@ -1,6 +1,7 @@
 package services
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
@@ -23,7 +24,12 @@ type AuthService struct {
 var (
 	ErrEmailAlreadyRegistered    = errors.New("email already registered")
 	ErrUsernameAlreadyRegistered = errors.New("username already registered")
+	ErrUserNotFound              = errors.New("user not found")
+	ErrInvalidResetToken         = errors.New("reset token is invalid, expired, or already used")
 )
+
+// passwordResetTTL is how long a password reset link stays valid.
+const passwordResetTTL = 60 * time.Minute
 
 func NewAuthService(db *sql.DB, jwtSecret string) *AuthService {
 	return &AuthService{
@@ -240,4 +246,71 @@ func (s *AuthService) Login(username, password string) (*models.User, error) {
 	s.db.Exec(updateQuery, user.ID)
 
 	return user, nil
+}
+
+// CreatePasswordResetToken generates a single-use reset token for the given
+// email and stores only its hash. It returns ErrUserNotFound if no account
+// matches. Previously issued (unused) tokens for the user are invalidated.
+func (s *AuthService) CreatePasswordResetToken(email string) (string, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+	var userID string
+	err := s.db.QueryRow(`SELECT id FROM users WHERE email = $1`, email).Scan(&userID)
+	if err != nil {
+		return "", ErrUserNotFound
+	}
+	if _, err := s.db.Exec(`DELETE FROM password_resets WHERE user_id = $1 AND used_at IS NULL`, userID); err != nil {
+		return "", err
+	}
+	raw := make([]byte, 32)
+	if _, err := rand.Read(raw); err != nil {
+		return "", err
+	}
+	token := hex.EncodeToString(raw)
+	sum := sha256.Sum256([]byte(token))
+	// Compute expires_at in SQL (CURRENT_TIMESTAMP) so it stays consistent with
+	// the comparison below no matter what timezone the backend runs in.
+	_, err = s.db.Exec(`INSERT INTO password_resets (user_id, token_hash, expires_at)
+		VALUES ($1, $2, CURRENT_TIMESTAMP + $3 * INTERVAL '1 minute')`,
+		userID, hex.EncodeToString(sum[:]), int(passwordResetTTL.Minutes()))
+	if err != nil {
+		return "", err
+	}
+	return token, nil
+}
+
+// ResetPassword atomically consumes a valid reset token and sets the new
+// password. It returns the user ID on success. The caller should invalidate
+// the user's refresh tokens afterwards.
+func (s *AuthService) ResetPassword(token, newPassword string) (string, error) {
+	newHash, err := s.HashPassword(newPassword)
+	if err != nil {
+		return "", err
+	}
+	tx, err := s.db.Begin()
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback()
+	sum := sha256.Sum256([]byte(token))
+	var userID string
+	err = tx.QueryRow(`UPDATE password_resets SET used_at = CURRENT_TIMESTAMP
+		WHERE token_hash = $1 AND used_at IS NULL AND expires_at > CURRENT_TIMESTAMP
+		RETURNING user_id`, hex.EncodeToString(sum[:])).Scan(&userID)
+	if err != nil {
+		return "", ErrInvalidResetToken
+	}
+	if _, err := tx.Exec(`UPDATE users SET password_hash = $1 WHERE id = $2`, newHash, userID); err != nil {
+		return "", err
+	}
+	if err := tx.Commit(); err != nil {
+		return "", err
+	}
+	return userID, nil
+}
+
+// DeleteUserRefreshTokens revokes every refresh token a user has, e.g. after a
+// password reset, forcing all devices to log in again.
+func (s *AuthService) DeleteUserRefreshTokens(userID string) error {
+	_, err := s.db.Exec(`DELETE FROM refresh_tokens WHERE user_id = $1`, userID)
+	return err
 }
