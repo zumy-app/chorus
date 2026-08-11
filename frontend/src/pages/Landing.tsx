@@ -11,7 +11,7 @@ import LanguageSelector from '../components/LanguageSelector'
 // nav, hero, stats, features, how-it-works, languages, CTA and footer.
 // =============================================================================
 interface LandingStrings {
-  nav: { features: string; how: string; languages: string; launch: string }
+  nav: { features: string; how: string; languages: string; launch: string; login: string }
   hero: {
     badge: string // "Updated: {count} languages"
     titleA: string
@@ -34,7 +34,7 @@ const TOP10 = ['en', 'zh', 'hi', 'es', 'ar', 'fr', 'bn', 'pt', 'ru', 'ur']
 
 const STRINGS: Record<string, LandingStrings> = {
   en: {
-    nav: { features: 'Features', how: 'How It Works', languages: 'Languages', launch: 'Launch App' },
+    nav: { features: 'Features', how: 'How It Works', languages: 'Languages', launch: 'Launch App', login: 'Log In' },
     hero: {
       badge: 'Available in {count} languages',
       titleA: 'Break Language Barriers',
@@ -85,7 +85,7 @@ const STRINGS: Record<string, LandingStrings> = {
   },
 
   zh: {
-    nav: { features: '功能', how: '工作原理', languages: '语言', launch: '启动应用' },
+    nav: { features: '功能', how: '工作原理', languages: '语言', launch: '启动应用', login: '登录' },
     hero: {
       badge: '支持 {count} 种语言',
       titleA: '打破语言障碍',
@@ -136,7 +136,7 @@ const STRINGS: Record<string, LandingStrings> = {
   },
 
   hi: {
-    nav: { features: 'विशेषताएं', how: 'यह कैसे काम करता है', languages: 'भाषाएं', launch: 'ऐप शुरू करें' },
+    nav: { features: 'विशेषताएं', how: 'यह कैसे काम करता है', languages: 'भाषाएं', launch: 'ऐप शुरू करें', login: 'लॉग इन' },
     hero: {
       badge: '{count} भाषाओं में उपलब्ध',
       titleA: 'भाषा की बाधाएं तोड़ें',
@@ -187,7 +187,7 @@ const STRINGS: Record<string, LandingStrings> = {
   },
 
   es: {
-    nav: { features: 'Características', how: 'Cómo Funciona', languages: 'Idiomas', launch: 'Abrir App' },
+    nav: { features: 'Características', how: 'Cómo Funciona', languages: 'Idiomas', launch: 'Abrir App', login: 'Iniciar sesión' },
     hero: {
       badge: 'Disponible en {count} idiomas',
       titleA: 'Rompe Barreras Lingüísticas',
@@ -238,7 +238,7 @@ const STRINGS: Record<string, LandingStrings> = {
   },
 
   ar: {
-    nav: { features: 'الميزات', how: 'كيف يعمل', languages: 'اللغات', launch: 'تشغيل التطبيق' },
+    nav: { features: 'الميزات', how: 'كيف يعمل', languages: 'اللغات', launch: 'تشغيل التطبيق', login: 'تسجيل الدخول' },
     hero: {
       badge: 'متوفر بـ {count} لغات',
       titleA: 'اكسر حواجز اللغة',
@@ -289,7 +289,7 @@ const STRINGS: Record<string, LandingStrings> = {
   },
 
   fr: {
-    nav: { features: 'Fonctionnalités', how: 'Comment ça Marche', languages: 'Langues', launch: 'Lancer l\'App' },
+    nav: { features: 'Fonctionnalités', how: 'Comment ça Marche', languages: 'Langues', launch: 'Lancer l\'App', login: 'Connexion' },
     hero: {
       badge: 'Disponible en {count} langues',
       titleA: 'Brisez les Barrières Linguistiques',
@@ -340,7 +340,7 @@ const STRINGS: Record<string, LandingStrings> = {
   },
 
   bn: {
-    nav: { features: 'বৈশিষ্ট্য', how: 'কীভাবে কাজ করে', languages: 'ভাষা', launch: 'অ্যাপ চালু করুন' },
+    nav: { features: 'বৈশিষ্ট্য', how: 'কীভাবে কাজ করে', languages: 'ভাষা', launch: 'অ্যাপ চালু করুন', login: 'লগ ইন' },
     hero: {
       badge: '{count}টি ভাষায় উপলব্ধ',
       titleA: 'ভাষার বাধা ভাঙুন',
@@ -391,7 +391,7 @@ const STRINGS: Record<string, LandingStrings> = {
   },
 
   pt: {
-    nav: { features: 'Recursos', how: 'Como Funciona', languages: 'Idiomas', launch: 'Abrir App' },
+    nav: { features: 'Recursos', how: 'Como Funciona', languages: 'Idiomas', launch: 'Abrir App', login: 'Entrar' },
     hero: {
       badge: 'Disponível em {count} idiomas',
       titleA: 'Quebre Barreiras Linguísticas',
@@ -442,7 +442,7 @@ const STRINGS: Record<string, LandingStrings> = {
   },
 
   ru: {
-    nav: { features: 'Возможности', how: 'Как это работает', languages: 'Языки', launch: 'Открыть приложение' },
+    nav: { features: 'Возможности', how: 'Как это работает', languages: 'Языки', launch: 'Открыть приложение', login: 'Войти' },
     hero: {
       badge: 'Доступно на {count} языках',
       titleA: 'Сломайте языковые барьеры',
@@ -493,7 +493,7 @@ const STRINGS: Record<string, LandingStrings> = {
   },
 
   ur: {
-    nav: { features: 'خصوصیات', how: 'یہ کیسے کام کرتا ہے', languages: 'زبانیں', launch: 'ایپ شروع کریں' },
+    nav: { features: 'خصوصیات', how: 'یہ کیسے کام کرتا ہے', languages: 'زبانیں', launch: 'ایپ شروع کریں', login: 'لاگ ان' },
     hero: {
       badge: '{count} زبانوں میں دستیاب',
       titleA: 'زبان کی رکاوٹیں توڑیں',
@@ -602,6 +602,9 @@ export default function Landing() {
               </svg>
             </a>
             <Link to="/waitlist" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition whitespace-nowrap">Join the waitlist</Link>
+            <Link to="/login" className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:border-indigo-600 hover:text-indigo-600 transition whitespace-nowrap">
+              {t.nav.login}
+            </Link>
           </div>
         </div>
       </nav>
@@ -622,10 +625,13 @@ export default function Landing() {
                 {t.hero.subtitle}
               </p>
               <div className="flex gap-4 mb-12 flex-wrap">
-                <Link to="/waitlist" className="px-8 py-4 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition text-lg">
+                <Link to="/login" className="px-8 py-4 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition text-lg">
+                  {t.nav.login}
+                </Link>
+                <Link to="/waitlist" className="px-8 py-4 border-2 border-indigo-600 text-indigo-600 rounded-lg font-semibold hover:bg-indigo-50 transition text-lg">
                   Join the waitlist
                 </Link>
-                <a href="#how-it-works" className="px-8 py-4 border-2 border-indigo-600 text-indigo-600 rounded-lg font-semibold hover:bg-indigo-50 transition text-lg">
+                <a href="#how-it-works" className="px-8 py-4 border-2 border-gray-300 text-gray-600 rounded-lg font-semibold hover:bg-gray-50 transition text-lg">
                   {t.hero.seeHow}
                 </a>
               </div>

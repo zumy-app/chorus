@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"log"
 	"strings"
 
 	"github.com/chorus/messenger/internal/models"
@@ -13,17 +14,17 @@ type AuthHandler struct {
 	authService       *services.AuthService
 	userService       *services.UserService
 	invitationService *services.InvitationService
+	emailSender       services.EmailSender
+	resetBaseURL      string
 }
 
-func NewAuthHandler(authService *services.AuthService, userService *services.UserService, invitationServices ...*services.InvitationService) *AuthHandler {
-	var invitationService *services.InvitationService
-	if len(invitationServices) > 0 {
-		invitationService = invitationServices[0]
-	}
+func NewAuthHandler(authService *services.AuthService, userService *services.UserService, invitationService *services.InvitationService, emailSender services.EmailSender, resetBaseURL string) *AuthHandler {
 	return &AuthHandler{
 		authService:       authService,
 		userService:       userService,
 		invitationService: invitationService,
+		emailSender:       emailSender,
+		resetBaseURL:      strings.TrimRight(resetBaseURL, "?"),
 	}
 }
 
@@ -79,6 +80,14 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
+	// Best-effort welcome email; never fail registration because of it.
+	if h.emailSender != nil {
+		subject, html := services.RegistrationWelcomeEmail(user.DisplayName)
+		if err := h.emailSender.Send(user.Email, subject, html); err != nil {
+			log.Printf("Failed to send registration welcome email to %s: %v", user.Email, err)
+		}
+	}
+
 	c.JSON(201, gin.H{
 		"user": user,
 		"tokens": models.AuthTokens{
@@ -122,6 +131,63 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			ExpiresIn:    86400,
 		},
 	})
+}
+
+func (h *AuthHandler) ForgotPassword(c *gin.Context) {
+	var req models.ForgotPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": "Please provide a valid email address."})
+		return
+	}
+	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
+
+	// Respond identically whether or not the account exists to avoid leaking
+	// which emails are registered.
+	respond := func() {
+		c.JSON(200, gin.H{"message": "If an account exists for that email, a password reset link has been sent."})
+	}
+
+	token, err := h.authService.CreatePasswordResetToken(req.Email)
+	if err != nil {
+		if errors.Is(err, services.ErrUserNotFound) {
+			respond()
+			return
+		}
+		log.Printf("Failed to create password reset token for %s: %v", req.Email, err)
+		respond()
+		return
+	}
+
+	link := h.resetBaseURL + "?token=" + token
+	subject, html := services.PasswordResetEmail(link)
+	if h.emailSender == nil {
+		log.Printf("Password reset email for %s not sent: SMTP sender not configured", req.Email)
+		respond()
+		return
+	}
+	if err := h.emailSender.Send(req.Email, subject, html); err != nil {
+		log.Printf("Failed to send password reset email to %s: %v", req.Email, err)
+	}
+	respond()
+}
+
+func (h *AuthHandler) ResetPassword(c *gin.Context) {
+	var req models.ResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid request. A new password of at least 8 characters is required."})
+		return
+	}
+
+	userID, err := h.authService.ResetPassword(req.Token, req.Password)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "This reset link is invalid or has expired."})
+		return
+	}
+	if err := h.authService.DeleteUserRefreshTokens(userID); err != nil {
+		log.Printf("Failed to revoke refresh tokens for user %s after password reset: %v", userID, err)
+	}
+
+	c.JSON(200, gin.H{"message": "Your password has been reset. Please log in with your new password."})
 }
 
 func (h *AuthHandler) RefreshToken(c *gin.Context) {

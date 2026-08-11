@@ -7,7 +7,7 @@ import (
 )
 
 func TestSMTPEmailSenderRejectsMissingMailuConfiguration(t *testing.T) {
-	sender := NewSMTPEmailSender("", 587, "", "", "")
+	sender := NewSMTPEmailSender("", 587, "", "", "", "Chorus")
 	if err := sender.Send("learner@example.com", "Welcome", "<p>Welcome</p>"); err == nil {
 		t.Fatal("expected SMTP sender to reject missing Mailu configuration")
 	}
@@ -24,7 +24,7 @@ func TestSMTPEmailSenderLiveDelivery(t *testing.T) {
 	from := os.Getenv("MAILU_SMTP_FROM")
 	sender := NewSMTPEmailSender(
 		os.Getenv("MAILU_SMTP_HOST"), port, os.Getenv("MAILU_SMTP_USERNAME"),
-		os.Getenv("MAILU_SMTP_PASSWORD"), from,
+		os.Getenv("MAILU_SMTP_PASSWORD"), from, "Chorus",
 	)
 	if err := sender.Send(from, "Chorus SMTP delivery test", "<p>Mailu SMTP is configured for Chorus.</p>"); err != nil {
 		t.Fatalf("Mailu SMTP delivery failed: %v", err)

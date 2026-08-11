@@ -82,9 +82,32 @@ export interface WaitlistEntry {
   targetLanguages: string[]
   reasons: string[]
   comments?: string
-  status: 'pending' | 'approved'
+  status: 'pending' | 'approved' | 'declined'
   queuePosition: number
   createdAt: string
+  approvedAt?: string
+}
+
+export interface EmailOutboxEntry {
+  id: string
+  recipient: string
+  subject: string
+  status: 'pending' | 'sent' | 'failed'
+  attempts: number
+  lastError?: string
+  createdAt: string
+  nextAttemptAt: string
+  sentAt?: string
+}
+
+export interface AdminStats {
+  totalUsers: number
+  waitlistPending: number
+  waitlistApproved: number
+  waitlistDeclined: number
+  emailsPending: number
+  emailsSent: number
+  emailsFailed: number
 }
 
 export interface CreateChatRequest {

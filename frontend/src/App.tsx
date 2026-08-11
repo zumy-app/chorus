@@ -3,6 +3,8 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import Waitlist from './pages/Waitlist'
 import AdminWaitlist from './pages/AdminWaitlist'
 import Chat from './pages/Chat'
@@ -13,10 +15,8 @@ import { useStore } from './store'
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const { setUser } = useStore()
+  const { isAdmin, setUser, setAdmin, refreshAdminStatus } = useStore()
   const navigate = useNavigate()
-
-
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -26,10 +26,12 @@ function App() {
           const user = await authAPI.getMe()
           setUser(user)
           setIsAuthenticated(true)
+          refreshAdminStatus()
           wsService.connect(token)
         } catch (error) {
           localStorage.removeItem('accessToken')
           localStorage.removeItem('refreshToken')
+          setAdmin(false)
           setIsAuthenticated(false)
         }
       }
@@ -37,7 +39,7 @@ function App() {
     }
 
     checkAuth()
-  }, [setUser])
+  }, [setUser, setAdmin, refreshAdminStatus])
 
   const handleLogin = async (tokens: { accessToken: string; refreshToken: string }) => {
     localStorage.setItem('accessToken', tokens.accessToken)
@@ -46,6 +48,7 @@ function App() {
     const user = await authAPI.getMe()
     setUser(user)
     setIsAuthenticated(true)
+    refreshAdminStatus()
     wsService.connect(tokens.accessToken)
     navigate('/chat')
   }
@@ -54,6 +57,7 @@ function App() {
     localStorage.removeItem('accessToken')
     localStorage.removeItem('refreshToken')
     setUser(null)
+    setAdmin(false)
     setIsAuthenticated(false)
     wsService.disconnect()
     navigate('/login')
@@ -74,7 +78,14 @@ function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/waitlist" element={<Waitlist />} />
-        <Route path="/admin/waitlist" element={isAuthenticated ? <AdminWaitlist /> : <Navigate to="/login" />} />
+        <Route
+          path="/admin/waitlist"
+          element={
+            isAuthenticated && isAdmin
+              ? <AdminWaitlist />
+              : <Navigate to={isAuthenticated ? '/' : '/login'} />
+          }
+        />
         <Route
           path="/login"
           element={
@@ -86,6 +97,14 @@ function App() {
           element={
             isAuthenticated ? <Navigate to="/chat" /> : <Register onRegister={handleLogin} />
           }
+        />
+        <Route
+          path="/forgot-password"
+          element={isAuthenticated ? <Navigate to="/chat" /> : <ForgotPassword />}
+        />
+        <Route
+          path="/reset-password"
+          element={isAuthenticated ? <Navigate to="/chat" /> : <ResetPassword />}
         />
         <Route
           path="/chat"

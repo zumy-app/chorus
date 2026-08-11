@@ -320,3 +320,127 @@ func TestDeleteRefreshToken(t *testing.T) {
 		t.Fatalf("unmet expectations: %v", err)
 	}
 }
+
+func TestCreatePasswordResetToken_Success(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to create sqlmock: %v", err)
+	}
+	defer db.Close()
+
+	s := &AuthService{db: db}
+
+	mock.ExpectQuery(`SELECT id FROM users WHERE email = \$1`).
+		WithArgs("learner@example.com").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("user-1"))
+	mock.ExpectExec(`DELETE FROM password_resets WHERE user_id = \$1 AND used_at IS NULL`).
+		WithArgs("user-1").
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`INSERT INTO password_resets \(user_id, token_hash, expires_at\)\s+VALUES \(\$1, \$2, CURRENT_TIMESTAMP \+ \$3 \* INTERVAL '1 minute'\)`).
+		WithArgs("user-1", sqlmock.AnyArg(), 60).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	token, err := s.CreatePasswordResetToken("Learner@Example.com")
+	if err != nil {
+		t.Fatalf("CreatePasswordResetToken failed: %v", err)
+	}
+	if len(token) != 64 {
+		t.Fatalf("expected 64-char token, got %d chars", len(token))
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+func TestCreatePasswordResetToken_UnknownEmail(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to create sqlmock: %v", err)
+	}
+	defer db.Close()
+
+	s := &AuthService{db: db}
+
+	mock.ExpectQuery(`SELECT id FROM users WHERE email = \$1`).
+		WithArgs("nobody@example.com").
+		WillReturnError(sql.ErrNoRows)
+
+	_, err = s.CreatePasswordResetToken("nobody@example.com")
+	if !errors.Is(err, ErrUserNotFound) {
+		t.Fatalf("expected ErrUserNotFound, got %v", err)
+	}
+}
+
+func TestResetPassword_Success(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to create sqlmock: %v", err)
+	}
+	defer db.Close()
+
+	s := &AuthService{db: db}
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`UPDATE password_resets SET used_at = CURRENT_TIMESTAMP`).
+		WithArgs(sqlmock.AnyArg()).
+		WillReturnRows(sqlmock.NewRows([]string{"user_id"}).AddRow("user-1"))
+	mock.ExpectExec(`UPDATE users SET password_hash = \$1 WHERE id = \$2`).
+		WithArgs(sqlmock.AnyArg(), "user-1").
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	userID, err := s.ResetPassword("some-token", "NewPassword123!")
+	if err != nil {
+		t.Fatalf("ResetPassword failed: %v", err)
+	}
+	if userID != "user-1" {
+		t.Fatalf("expected user-1, got %s", userID)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+func TestResetPassword_InvalidToken(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to create sqlmock: %v", err)
+	}
+	defer db.Close()
+
+	s := &AuthService{db: db}
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`UPDATE password_resets SET used_at = CURRENT_TIMESTAMP`).
+		WithArgs(sqlmock.AnyArg()).
+		WillReturnError(sql.ErrNoRows)
+
+	_, err = s.ResetPassword("bad-token", "NewPassword123!")
+	if !errors.Is(err, ErrInvalidResetToken) {
+		t.Fatalf("expected ErrInvalidResetToken, got %v", err)
+	}
+}
+
+func TestDeleteUserRefreshTokens(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to create sqlmock: %v", err)
+	}
+	defer db.Close()
+
+	s := &AuthService{db: db}
+
+	mock.ExpectExec(`DELETE FROM refresh_tokens WHERE user_id = \$1`).
+		WithArgs("user-1").
+		WillReturnResult(sqlmock.NewResult(0, 3))
+
+	if err := s.DeleteUserRefreshTokens("user-1"); err != nil {
+		t.Fatalf("DeleteUserRefreshTokens failed: %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}

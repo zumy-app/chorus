@@ -60,3 +60,29 @@ func InvitationEmail(signupLink string) (string, string) {
 		fmt.Sprintf(emailText, "Welcome to Chorus!")
 	return subject, wrapHTML(content)
 }
+
+// PasswordResetEmail returns the subject and HTML body for the forgot-password
+// flow. The link is valid for 60 minutes and single-use.
+func PasswordResetEmail(resetLink string) (string, string) {
+	subject := "Reset your Chorus password"
+	content := fmt.Sprintf(emailText, "We received a request to reset your Chorus password.") +
+		fmt.Sprintf(emailText, "If this was you, click the button below to choose a new password:") +
+		fmt.Sprintf(emailButton, resetLink, "Reset your password") +
+		fmt.Sprintf(emailText, "This link is valid for 60 minutes and can only be used once.") +
+		fmt.Sprintf(emailText, "If you didn't request this, you can safely ignore this email — your password won't change.") +
+		fmt.Sprintf(emailText, "If the button doesn't work, copy and paste this link into your browser: "+resetLink)
+	return subject, wrapHTML(content)
+}
+
+// RegistrationWelcomeEmail returns the subject and HTML body sent to a newly
+// registered user.
+func RegistrationWelcomeEmail(displayName string) (string, string) {
+	subject := "Welcome to Chorus!"
+	content := fmt.Sprintf(emailText, "Hi "+displayName+", welcome to Chorus!") +
+		fmt.Sprintf(emailText, "You can now send messages across languages with built-in translation, grammar help, and more.") +
+		fmt.Sprintf(emailText, "Start a conversation and explore what Chorus can do:") +
+		fmt.Sprintf(emailButton, "https://chorus.talk", "Open Chorus") +
+		fmt.Sprintf(emailText, "If you have questions, we're on Discord:") +
+		fmt.Sprintf(`<p style="margin:0 0 10px 0"><a href="`+DiscordInviteURL+`">Join the Chorus Discord</a></p>`)
+	return subject, wrapHTML(content)
+}

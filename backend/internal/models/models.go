@@ -242,11 +242,47 @@ type WaitlistEntry struct {
 	Status          string    `json:"status"`
 	QueuePosition   int       `json:"queuePosition"`
 	CreatedAt       time.Time `json:"createdAt"`
+	ApprovedAt      *time.Time `json:"approvedAt,omitempty"`
+}
+
+// EmailOutboxEntry is a row in the durable email outbox. Status is one of
+// pending, sent, or failed. Pending rows are retried by the background worker
+// with exponential backoff until they succeed or exhaust max attempts.
+type EmailOutboxEntry struct {
+	ID            string     `json:"id"`
+	Recipient     string     `json:"recipient"`
+	Subject       string     `json:"subject"`
+	Status        string     `json:"status"`
+	Attempts      int        `json:"attempts"`
+	LastError     string     `json:"lastError,omitempty"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	NextAttemptAt time.Time  `json:"nextAttemptAt"`
+	SentAt        *time.Time `json:"sentAt,omitempty"`
+}
+
+// AdminStats aggregates high-level numbers for the admin dashboard.
+type AdminStats struct {
+	TotalUsers         int `json:"totalUsers"`
+	WaitlistPending    int `json:"waitlistPending"`
+	WaitlistApproved   int `json:"waitlistApproved"`
+	WaitlistDeclined   int `json:"waitlistDeclined"`
+	EmailsPending      int `json:"emailsPending"`
+	EmailsSent         int `json:"emailsSent"`
+	EmailsFailed       int `json:"emailsFailed"`
 }
 
 type LoginRequest struct {
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
+}
+
+type ForgotPasswordRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
+type ResetPasswordRequest struct {
+	Token    string `json:"token" binding:"required"`
+	Password string `json:"password" binding:"required,min=8"`
 }
 
 type CreateChatRequest struct {

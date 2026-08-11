@@ -130,14 +130,20 @@ func main() {
 	go wsHub.Run()
 
 	// Initialize handlers
-	authHandler := handlers.NewAuthHandler(authService, userService, invitationService)
 	emailSender := services.NewSMTPEmailSender(
-		cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUsername, cfg.SMTPPassword, cfg.SMTPFromEmail,
+		cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUsername, cfg.SMTPPassword, cfg.SMTPFromEmail, cfg.SMTPFromName,
 	)
-	waitlistHandler := handlers.NewWaitlistHandler(waitlistService, emailSender)
+	// Durable notification layer: every email is persisted to the outbox and
+	// retried on failure, giving delivery guarantees for all notifications.
+	notificationService := services.NewNotificationService(db, emailSender)
+	notificationService.Start()
+	defer notificationService.Stop()
+
+	authHandler := handlers.NewAuthHandler(authService, userService, invitationService, notificationService, cfg.PasswordResetBaseURL)
+	waitlistHandler := handlers.NewWaitlistHandler(waitlistService, notificationService)
 	adminWaitlistHandler := handlers.NewAdminWaitlistHandler(
 		db, userService, invitationService,
-		emailSender,
+		notificationService,
 		cfg.AdminEmails, cfg.InviteBaseURL,
 	)
 	chatHandler := handlers.NewChatHandler(chatService, userService, wsHub)
@@ -179,6 +185,8 @@ func main() {
 		public.POST("/auth/register", middleware.IPRateLimiter(10, time.Hour), authHandler.Register)
 		public.POST("/auth/login", authHandler.Login)
 		public.POST("/auth/refresh", authHandler.RefreshToken)
+		public.POST("/auth/forgot-password", middleware.IPRateLimiter(5, time.Hour), authHandler.ForgotPassword)
+		public.POST("/auth/reset-password", authHandler.ResetPassword)
 	}
 
 	// Protected routes
@@ -191,6 +199,12 @@ func main() {
 		protected.GET("/users/search", authHandler.SearchUsers)
 		protected.GET("/admin/waitlist", adminWaitlistHandler.List)
 		protected.POST("/admin/waitlist/:id/approve", adminWaitlistHandler.Approve)
+		protected.POST("/admin/waitlist/:id/decline", adminWaitlistHandler.Decline)
+		protected.POST("/admin/waitlist/:id/resend-invite", adminWaitlistHandler.ResendInvite)
+		protected.GET("/admin/stats", adminWaitlistHandler.Stats)
+		protected.GET("/admin/emails", adminWaitlistHandler.Emails)
+		protected.POST("/admin/emails/:id/retry", adminWaitlistHandler.RetryEmail)
+		protected.GET("/admin/status", adminWaitlistHandler.Status)
 
 		// Chat routes
 		protected.GET("/chats", chatHandler.GetUserChats)

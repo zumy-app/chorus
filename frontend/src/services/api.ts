@@ -11,6 +11,8 @@ import type {
   SendMessageRequest,
   WaitlistRequest,
   WaitlistEntry,
+  EmailOutboxEntry,
+  AdminStats,
 } from '../types'
 
 // Get API URL based on environment
@@ -82,6 +84,16 @@ export const authAPI = {
     return response.data
   },
 
+  forgotPassword: async (email: string) => {
+    const response = await api.post<{ message: string }>('/auth/forgot-password', { email })
+    return response.data
+  },
+
+  resetPassword: async (token: string, password: string) => {
+    const response = await api.post<{ message: string }>('/auth/reset-password', { token, password })
+    return response.data
+  },
+
   getMe: async () => {
     const response = await api.get<User>('/users/me')
     return response.data
@@ -108,12 +120,51 @@ export const waitlistAPI = {
     }>('/waitlist', data)
     return response.data
   },
-  pending: async () => {
-    const response = await api.get<{ entries: WaitlistEntry[] }>('/admin/waitlist')
+}
+
+export const adminAPI = {
+  isAdmin: async () => {
+    const response = await api.get<{ isAdmin: boolean }>('/admin/status')
+    return response.data.isAdmin
+  },
+
+  stats: async () => {
+    const response = await api.get<AdminStats>('/admin/stats')
+    return response.data
+  },
+
+  listWaitlist: async (status?: string, q?: string) => {
+    const params = new URLSearchParams()
+    if (status) params.append('status', status)
+    if (q) params.append('q', q)
+    const response = await api.get<{ entries: WaitlistEntry[] }>(`/admin/waitlist?${params}`)
     return response.data.entries
   },
+
   approve: async (id: string) => {
     const response = await api.post<{ message: string }>(`/admin/waitlist/${id}/approve`)
+    return response.data
+  },
+
+  decline: async (id: string) => {
+    const response = await api.post<{ message: string }>(`/admin/waitlist/${id}/decline`)
+    return response.data
+  },
+
+  resendInvite: async (id: string) => {
+    const response = await api.post<{ message: string }>(`/admin/waitlist/${id}/resend-invite`)
+    return response.data
+  },
+
+  emails: async (status?: string) => {
+    const params = new URLSearchParams()
+    if (status) params.append('status', status)
+    const response = await api.get<{ emails: EmailOutboxEntry[] }>(`/admin/emails?${params}`)
+    return response.data.emails
+  },
+
+  retryEmail: async (id: string) => {
+    const response = await api.post<{ message: string }>(`/admin/emails/${id}/retry`)
     return response.data
   },
 }
