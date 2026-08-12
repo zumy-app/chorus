@@ -16,7 +16,7 @@ End-to-end test suite for the Chorus Multilingual Messenger using **Playwright**
 | `08-settings` | 7 | Profile settings, language selection, target languages |
 | `09-realtime` | 4 | WebSocket connection, typing indicators, real-time delivery |
 | `10-health` | 9 | Backend health, API endpoints, translator-engine, console errors |
-| `11-grammar-ai-local` | 2 | ⭐ **Local-first**: grammar AI served by local Ollama `qwen2.5:3b` (`ollama_local`), structured analysis + caching |
+| `11-grammar-ai-local` | 2 | ⭐ **Local-first**: grammar AI served by local Ollama `qwen2.5:3b` (`ollama`), structured analysis + caching |
 | **Total** | **62** | |
 
 ## 📋 Prerequisites
@@ -180,8 +180,8 @@ Tests run sequentially (`workers: 1`) because they share state (users, chats). P
 - First run also warms the model; later calls are faster.
 - The model must be the one the backend is configured with. Verify the backend
   picks up the local chain:
-  - `backend/.env`: `GRAMMAR_ANALYSIS_PROVIDER_ORDER=ollama_local` and
-    `PROVIDER_OLLAMA_LOCAL_MODEL=qwen2.5:3b` (must match the model pulled by the
+  - `backend/.env`: `GRAMMAR_FALLBACK_ORDER=ollama` and
+    `MODEL_GRAMMAR_OLLAMA=qwen2.5:3b` (must match the model pulled by the
     `ollama` docker service in `docker-compose.yml`).
   - If you changed `backend/.env`, restart the backend (air hot-reload watches
     `.go` files, not `.env`).

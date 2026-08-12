@@ -6,15 +6,14 @@ import { ENGLISH_USER } from '../fixtures/users'
  * Test Suite 11: Grammar AI — Local Qwen (Offline-First) ⭐
  *
  * Verifies that grammar analysis is served by the LOCAL Ollama provider
- * (qwen2.5:3b, alias `ollama_local`) as the priority provider, and that the
+ * (qwen2.5:3b, alias `ollama`) as the priority provider, and that the
  * AI-generated structured analysis is valid. This is the offline-first
  * guarantee: grammar analysis must work with no cloud API keys, entirely on
  * the local machine.
  *
  * The backend exposes `/api/v1/grammar/analyze-ai`, which returns
  * `provider_used` — the alias of the endpoint that actually generated the
- * analysis. With GRAMMAR_ANALYSIS_PROVIDER_ORDER=ollama_local, that must be
- * `ollama_local`.
+ * analysis. With GRAMMAR_FALLBACK_ORDER=ollama, that must be `ollama`.
  *
  * NOTE: Local CPU-only inference of qwen2.5:3b is slow (~1 min for a full
  * analysis). Each request uses unique text so results are never served from
@@ -56,7 +55,7 @@ test.describe('Grammar AI — Local Qwen', () => {
     expect(data.text).toBe(text)
 
     // ⭐ The whole point: grammar analysis must route to the local qwen provider.
-    expect(data.provider_used).toBe('ollama_local')
+    expect(data.provider_used).toBe('ollama')
 
     const analysis = data.analysis
     expect(analysis).toBeTruthy()

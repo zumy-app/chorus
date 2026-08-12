@@ -97,53 +97,36 @@ func TestLoadNewStyleProviderKeys(t *testing.T) {
 	}
 }
 
-func TestLoadLegacyProviderKeys(t *testing.T) {
+func TestLoadIgnoresLegacyProviderKeys(t *testing.T) {
 	setEnv(t, map[string]string{
-		"TRANSLATION_PROVIDER_ORDER":      "openrouter,nvidia",
+		"TRANSLATION_PROVIDER_ORDER":    "openrouter",
+		"TRANSLATION_PROVIDER_NAME":     "opencode",
+		"TRANSLATION_PROVIDER_API_URL":  "https://opencode.ai/zen/go/v1",
+		"TRANSLATION_PROVIDER_API_KEY":  "sk-legacy",
+		"TRANSLATION_PROVIDER_MODEL":    "legacy-model",
+		"PROVIDER_OPENROUTER_TYPE":      "openrouter",
+		"PROVIDER_OPENROUTER_API_URL":   "https://openrouter.ai/api/v1",
+		"PROVIDER_OPENROUTER_API_KEY":   "sk-ignored",
+		"PROVIDER_OPENROUTER_MODEL":     "legacy-model",
 		"GRAMMAR_ANALYSIS_PROVIDER_ORDER": "openrouter",
-		"PROVIDER_OPENROUTER_TYPE":        "openrouter",
-		"PROVIDER_OPENROUTER_API_URL":     "https://openrouter.ai/api/v1",
-		"PROVIDER_OPENROUTER_API_KEY":     "sk-legacy",
-		"PROVIDER_OPENROUTER_MODEL":       "google/gemma-4-26b-a4b-it:free",
-		"PROVIDER_NVIDIA_TYPE":            "nvidia",
-		"PROVIDER_NVIDIA_API_URL":         "https://integrate.api.nvidia.com/v1",
-		"PROVIDER_NVIDIA_API_KEY":         "nvapi-legacy",
-		"PROVIDER_NVIDIA_MODEL":           "meta/llama-3.1-70b-instruct",
-		"PROVIDER_OLLAMA_LOCAL_TYPE":      "ollama",
-		"PROVIDER_OLLAMA_LOCAL_API_URL":   "http://ollama:11434",
-		"PROVIDER_OLLAMA_LOCAL_MODEL":     "qwen2.5:3b",
-		"PROVIDER_OLLAMA_LOCAL_TIMEOUT":   "600",
+		"GRAMMAR_API_URL":               "https://example.com/v1",
+		"GRAMMAR_API_KEY":               "grammar-key",
 	})
 
 	cfg := Load()
 
-	if len(cfg.TranslationProviderOrder) != 2 || cfg.TranslationProviderOrder[0] != "openrouter" || cfg.TranslationProviderOrder[1] != "nvidia" {
-		t.Fatalf("TranslationProviderOrder = %v", cfg.TranslationProviderOrder)
+	// Legacy order keys are ignored: no chain is built from them.
+	if len(cfg.TranslationProviderOrder) != 0 {
+		t.Fatalf("legacy TRANSLATION_PROVIDER_ORDER should be ignored, got order = %v", cfg.TranslationProviderOrder)
 	}
-	if len(cfg.GrammarProviderOrder) != 1 || cfg.GrammarProviderOrder[0] != "openrouter" {
-		t.Fatalf("GrammarProviderOrder = %v", cfg.GrammarProviderOrder)
-	}
-
-	or := cfg.Providers["openrouter"]
-	if or.URL != "https://openrouter.ai/api/v1" || or.Key != "sk-legacy" {
-		t.Fatalf("legacy openrouter def = %+v", or)
-	}
-	if or.EffectiveType() != "openrouter" {
-		t.Fatalf("legacy openrouter EffectiveType = %q", or.EffectiveType())
-	}
-	if or.TranslationModel() != "google/gemma-4-26b-a4b-it:free" || or.GrammarModel() != "google/gemma-4-26b-a4b-it:free" {
-		t.Fatalf("legacy openrouter models = t:%q g:%q", or.TranslationModel(), or.GrammarModel())
+	if len(cfg.GrammarProviderOrder) != 0 {
+		t.Fatalf("legacy GRAMMAR_ANALYSIS_PROVIDER_ORDER should be ignored, got order = %v", cfg.GrammarProviderOrder)
 	}
 
-	ol, ok := cfg.Providers["ollama_local"]
-	if !ok {
-		ol, ok = cfg.Providers["ollamalocal"]
-	}
-	if !ok {
-		t.Fatalf("ollama_local not found in providers: %v", cfg.Providers)
-	}
-	if ol.URL != "http://ollama:11434" || ol.Timeout != 600 {
-		t.Fatalf("legacy ollama def = %+v", ol)
+	// Legacy single-provider keys and legacy per-provider suffixes
+	// (_TYPE, _API_URL, _API_KEY, _MODEL) are ignored.
+	if _, ok := cfg.Providers["openrouter"]; ok {
+		t.Fatalf("legacy PROVIDER_OPENROUTER_* keys should be ignored, got providers = %v", cfg.Providers)
 	}
 }
 
