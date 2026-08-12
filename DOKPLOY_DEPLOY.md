@@ -304,6 +304,24 @@ If using Cloudflare **Proxied (orange cloud)**:
 docker exec -it chorus-postgres psql -U messenger -d messenger_prod -c "SELECT 1"
 ```
 
+If the backend logs `pq: password authentication failed for user "messenger"`,
+it usually means the `postgres_data` volume was initialized with an older
+`DB_PASSWORD`. The official Postgres image only applies `POSTGRES_PASSWORD` when
+the data volume is empty, so changing `DB_PASSWORD` alone does NOT update the
+stored password — the backend then connects with the new value while the DB
+still expects the old one.
+
+This deploy sets a custom entrypoint (`deploy/postgres/entrypoint.sh`) that
+re-syncs the `messenger` user's password to `${DB_PASSWORD}` on every container
+start, so redeploys keep working automatically. Two caveats:
+
+- The script must be LF-formatted: `dos2unix deploy/postgres/entrypoint.sh`
+  (or commit it with LF line endings, which is required on Windows).
+- If you change `DB_PASSWORD`, the backend and postgres containers must be
+  recreated (`docker compose -f docker-compose.prod.yml up -d --force-recreate postgres backend`),
+  not just restarted, so the entrypoint re-runs and the backend picks up the
+  new connection string.
+
 ### Issue: WebSocket not working
 
 The nginx config has a 24-hour read timeout for WebSocket connections. If issues occur:

@@ -19,6 +19,13 @@ services:
       - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # Re-syncs the app user's password to ${DB_PASSWORD} at every container
+      # start. The official image only honors POSTGRES_PASSWORD on an empty
+      # volume, so redeploys against an existing volume would otherwise get a
+      # "password authentication failed for user messenger" in the backend.
+      # Requires LF line endings (use `dos2unix deploy/postgres/entrypoint.sh`).
+      - ./deploy/postgres/entrypoint.sh:/entrypoint.sh:ro
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U messenger"]
       interval: 10s
