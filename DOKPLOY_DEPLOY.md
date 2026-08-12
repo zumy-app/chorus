@@ -72,7 +72,8 @@ openssl rand -base64 64
 ### 3. Fill in your `.env.prod`
 
 ```
-DB_PASSWORD=YourStrongPassword123
+# Note: DB_PASSWORD is no longer needed — the compose hardcodes the DB password
+# and the postgres entrypoint re-syncs it on every start. JWT_SECRET is required.
 JWT_SECRET=xK8mZpL4qR9vN2wB5yE7hJ3fA1cG6iD0sT5uP8oM9nL2kV4rW7xZ1yC3vB6nM0...
 GOOGLE_TRANSLATE_API_KEY=   # Optional — leave blank for mock translations
 
@@ -306,21 +307,26 @@ docker exec -it chorus-postgres psql -U messenger -d messenger_prod -c "SELECT 1
 
 If the backend logs `pq: password authentication failed for user "messenger"`,
 it usually means the `postgres_data` volume was initialized with an older
-`DB_PASSWORD`. The official Postgres image only applies `POSTGRES_PASSWORD` when
-the data volume is empty, so changing `DB_PASSWORD` alone does NOT update the
-stored password — the backend then connects with the new value while the DB
-still expects the old one.
+password. The official Postgres image only applies `POSTGRES_PASSWORD` when the
+data volume is empty, so redeploying alone does NOT update the stored password —
+the backend then connects with the new value while the DB still expects the old
+one, and the postgres logs also show a `password authentication failed` every
+time the backend retries.
 
 This deploy sets a custom entrypoint (`deploy/postgres/entrypoint.sh`) that
-re-syncs the `messenger` user's password to `${DB_PASSWORD}` on every container
-start, so redeploys keep working automatically. Two caveats:
+re-syncs the `messenger` user's password to `POSTGRES_PASSWORD` on every
+container start, so redeploys keep working automatically. Two caveats:
 
 - The script must be LF-formatted: `dos2unix deploy/postgres/entrypoint.sh`
   (or commit it with LF line endings, which is required on Windows).
-- If you change `DB_PASSWORD`, the backend and postgres containers must be
-  recreated (`docker compose -f docker-compose.prod.yml up -d --force-recreate postgres backend`),
-  not just restarted, so the entrypoint re-runs and the backend picks up the
-  new connection string.
+- The `postgres` container must be **recreated**, not just restarted, for the
+  entrypoint to run with the new image/config. A Dokploy "Redeploy" does this
+  automatically because the compose config changed.
+
+If the postgres logs also repeat `FATAL: database "messenger" does not exist`,
+that's just the container healthcheck probing without a database name —
+`pg_isready -U messenger` defaults to a database named `messenger`. The current
+compose uses `pg_isready -U messenger -d messenger_prod` to avoid the noise.
 
 ### Issue: WebSocket not working
 
@@ -353,7 +359,7 @@ If a deployment fails or breaks the site:
 ## Security Checklist
 
 - [ ] JWT_SECRET is a long (>64 chars) random string
-- [ ] DB_PASSWORD is different from default
+- [ ] DB password in compose (POSTGRES_PASSWORD / DATABASE_URL) is not dashed default
 - [ ] PostgreSQL port not exposed publicly (127.0.0.1 or Dokploy internal only)
 - [ ] Redis port not exposed publicly (127.0.0.1 or Dokploy internal only)
 - [ ] HTTPS is working (Let's Encrypt via Dokploy)

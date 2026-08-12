@@ -13,13 +13,16 @@ services:
     environment:
       POSTGRES_DB: messenger_prod
       POSTGRES_USER: messenger
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-ChangeMe123}
+      # Hardcoded (same value as DATABASE_URL below) so the deployment has zero
+      # dependence on Dokploy env vars. The entrypoint re-syncs the DB user's
+      # password to this value on every start.
+      POSTGRES_PASSWORD: ChorusProd2026
     ports:
       # Expose only if you need external DB access (remove in production)
       - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      # Re-syncs the app user's password to ${DB_PASSWORD} at every container
+      # Re-syncs the app user's password to POSTGRES_PASSWORD at every container
       # start. The official image only honors POSTGRES_PASSWORD on an empty
       # volume, so redeploys against an existing volume would otherwise get a
       # "password authentication failed for user messenger" in the backend.
@@ -27,7 +30,9 @@ services:
       - ./deploy/postgres/entrypoint.sh:/entrypoint.sh:ro
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U messenger"]
+      # -d prevents `pg_isready` from probing a database named after the user,
+      # which produced repeated `database "messenger" does not exist` FATALs.
+      test: ["CMD-SHELL", "pg_isready -U messenger -d messenger_prod"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -61,7 +66,7 @@ services:
     # No host port — Dokploy routes internally
     environment:
       - ENVIRONMENT=production
-      - DATABASE_URL=postgres://messenger:${DB_PASSWORD:-ChangeMe123}@postgres:5432/messenger_prod?sslmode=disable
+      - DATABASE_URL=postgres://messenger:ChorusProd2026@postgres:5432/messenger_prod?sslmode=disable
       - REDIS_URL=redis:6379
       - JWT_SECRET=${JWT_SECRET}
       - TRANSLATION_PROVIDER_NAME=${TRANSLATION_PROVIDER_NAME:-opencode}
