@@ -14,8 +14,9 @@ trap 'kill -TERM $pg_pid 2>/dev/null; wait $pg_pid 2>/dev/null; exit 0' TERM INT
 SUPERUSER="${POSTGRES_USER:-postgres}"
 
 # Wait for the real server (not the temp one used during first-boot init) to
-# accept local connections on the default socket directory.
-until pg_isready -h /var/run/postgresql -U "${SUPERUSER}" -q 2>/dev/null; do
+# accept local connections on the default socket directory. Probe the `postgres`
+# db explicitly so pg_isready doesn't hit a database named after the user.
+until pg_isready -h /var/run/postgresql -U "${SUPERUSER}" -d postgres -q 2>/dev/null; do
   sleep 1
 done
 
