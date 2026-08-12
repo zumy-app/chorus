@@ -27,10 +27,13 @@ done
 # psql variables :"name" / :'pw' are escaped by psql, so special characters in
 # the password (or user) are safe.
 if [ -n "${POSTGRES_PASSWORD}" ]; then
-  psql -h /var/run/postgresql -U "${SUPERUSER}" -d postgres -v ON_ERROR_STOP=1 \
-    -v uname="${POSTGRES_USER:-messenger}" -v pw="${POSTGRES_PASSWORD}" \
-    -c "ALTER USER :\"uname\" WITH PASSWORD :'pw';" >/dev/null 2>&1 || \
-    echo "[entrypoint] WARNING: could not sync password for user '${POSTGRES_USER:-messenger}'" >&2
+  if err=$(printf '%s\n' "ALTER USER :\"uname\" WITH PASSWORD :'pw';" | \
+      psql -h /var/run/postgresql -U "${SUPERUSER}" -d postgres -v ON_ERROR_STOP=1 \
+      -v uname="${POSTGRES_USER:-messenger}" -v pw="${POSTGRES_PASSWORD}" 2>&1 >/dev/null); then
+    echo "[entrypoint] password for user '${POSTGRES_USER:-messenger}' synced to POSTGRES_PASSWORD"
+  else
+    echo "[entrypoint] ERROR: could not sync password for user '${POSTGRES_USER:-messenger}': $err" >&2
+  fi
 fi
 
 wait $pg_pid
