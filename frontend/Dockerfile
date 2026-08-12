@@ -12,8 +12,8 @@ ENV NODE_ENV=production
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies (include dev deps needed for the build)
+RUN npm ci --include=dev
 
 # Copy source code
 COPY . .
