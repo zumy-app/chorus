@@ -10,8 +10,15 @@ type User struct {
 	DisplayName     string    `json:"displayName" db:"display_name"`
 	NativeLanguage  string    `json:"nativeLanguage" db:"native_language"`
 	TargetLanguages []string  `json:"targetLanguages" db:"target_languages"`
+	Role            string    `json:"role" db:"role"` // member, moderator, admin
 	CreatedAt       time.Time `json:"createdAt" db:"created_at"`
 	LastActiveAt    time.Time `json:"lastActiveAt" db:"last_active_at"`
+	// SuspendedAt is a reversible soft ban; the account cannot authenticate
+	// while non-nil.
+	SuspendedAt *time.Time `json:"suspendedAt,omitempty" db:"suspended_at"`
+	// DeletedAt is a permanent soft delete; the account is blocked and hidden
+	// from the user directory.
+	DeletedAt *time.Time `json:"deletedAt,omitempty" db:"deleted_at"`
 	// Phase 2: Learning settings
 	LearningSettings *LearningSettings `json:"learningSettings,omitempty" db:"-"`
 	// Phase 2: Privacy settings
@@ -233,15 +240,15 @@ type WaitlistRequest struct {
 }
 
 type WaitlistEntry struct {
-	ID              string    `json:"id"`
-	Email           string    `json:"email"`
-	SpokenLanguages []string  `json:"spokenLanguages"`
-	TargetLanguages []string  `json:"targetLanguages"`
-	Reasons         []string  `json:"reasons"`
-	Comments        string    `json:"comments"`
-	Status          string    `json:"status"`
-	QueuePosition   int       `json:"queuePosition"`
-	CreatedAt       time.Time `json:"createdAt"`
+	ID              string     `json:"id"`
+	Email           string     `json:"email"`
+	SpokenLanguages []string   `json:"spokenLanguages"`
+	TargetLanguages []string   `json:"targetLanguages"`
+	Reasons         []string   `json:"reasons"`
+	Comments        string     `json:"comments"`
+	Status          string     `json:"status"`
+	QueuePosition   int        `json:"queuePosition"`
+	CreatedAt       time.Time  `json:"createdAt"`
 	ApprovedAt      *time.Time `json:"approvedAt,omitempty"`
 }
 
@@ -262,13 +269,37 @@ type EmailOutboxEntry struct {
 
 // AdminStats aggregates high-level numbers for the admin dashboard.
 type AdminStats struct {
-	TotalUsers         int `json:"totalUsers"`
-	WaitlistPending    int `json:"waitlistPending"`
-	WaitlistApproved   int `json:"waitlistApproved"`
-	WaitlistDeclined   int `json:"waitlistDeclined"`
-	EmailsPending      int `json:"emailsPending"`
-	EmailsSent         int `json:"emailsSent"`
-	EmailsFailed       int `json:"emailsFailed"`
+	TotalUsers            int `json:"totalUsers"`
+	WaitlistPending       int `json:"waitlistPending"`
+	WaitlistApproved      int `json:"waitlistApproved"`
+	WaitlistDeclined      int `json:"waitlistDeclined"`
+	EmailsPending         int `json:"emailsPending"`
+	EmailsSent            int `json:"emailsSent"`
+	EmailsFailed          int `json:"emailsFailed"`
+	TranslationsPending   int `json:"translationsPending"`
+	TranslationsFailed    int `json:"translationsFailed"`
+	TranslationsCompleted int `json:"translationsCompleted"`
+	Moderators            int `json:"moderators"`
+	Admins                int `json:"admins"`
+	SuspendedUsers        int `json:"suspendedUsers"`
+}
+
+// TranslationJob is a durable record of one (message, target language)
+// translation request. Status is one of pending, processing, done, failed.
+type TranslationJob struct {
+	ID          string     `json:"id"`
+	MessageID   string     `json:"messageId"`
+	ChatID      string     `json:"chatId"`
+	Text        string     `json:"text"`
+	SourceLang  string     `json:"sourceLang,omitempty"`
+	TargetLang  string     `json:"targetLang"`
+	Status      string     `json:"status"`
+	Result      string     `json:"result,omitempty"`
+	Attempts    int        `json:"attempts"`
+	LastError   string     `json:"lastError,omitempty"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	NextAttempt time.Time  `json:"nextAttempt"`
+	CompletedAt *time.Time `json:"completedAt,omitempty"`
 }
 
 type LoginRequest struct {

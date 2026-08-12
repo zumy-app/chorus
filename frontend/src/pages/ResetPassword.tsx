@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { authAPI } from '../services/api'
 import { detectBrowserLanguage, getNativeLanguageName } from '../services/language'
 import LanguageSelector from '../components/LanguageSelector'
 
 export default function ResetPassword() {
+  const { t } = useTranslation()
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token') || ''
   const [password, setPassword] = useState('')
@@ -27,7 +29,7 @@ export default function ResetPassword() {
     setMessage('')
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match.')
+      setError(t('auth.passwordsDoNotMatch'))
       return
     }
 
@@ -39,7 +41,7 @@ export default function ResetPassword() {
       setPassword('')
       setConfirmPassword('')
     } catch (err: any) {
-      setError(err.response?.data?.error || 'This reset link is invalid or has expired.')
+      setError(err.response?.data?.error || t('auth.resetLinkInvalid'))
     } finally {
       setIsLoading(false)
     }
@@ -63,14 +65,14 @@ export default function ResetPassword() {
               <path d="M10 2a6 6 0 00-6 6v1H3a1 1 0 00-1 1v7a1 1 0 001 1h14a1 1 0 001-1v-7a1 1 0 00-1-1h-1V8a6 6 0 00-6-6zM6 8a4 4 0 018 0v1H6V8zm6 4a1 1 0 00-2 0v1a1 1 0 002 0v-1z"></path>
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-gray-800">Choose a new password</h1>
-          <p className="text-gray-500 mt-1">Multilingual Messenger</p>
-          <p className="text-xs text-gray-400 mt-1">Language: {nativeLangName}</p>
+          <h1 className="text-3xl font-bold text-gray-800">{t('auth.chooseNewPassword')}</h1>
+          <p className="text-gray-500 mt-1">{t('auth.tagline')}</p>
+          <p className="text-xs text-gray-400 mt-1">{t('auth.language', { name: nativeLangName })}</p>
         </div>
 
         {!token && (
           <div className="bg-amber-100 border border-amber-300 text-amber-800 px-4 py-3 rounded mb-4">
-            This reset link is missing its token. Check the link in your email, or request a new one.
+            {t('auth.resetLinkMissing')}
           </div>
         )}
 
@@ -89,13 +91,13 @@ export default function ResetPassword() {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-gray-700 text-sm font-bold mb-2">
-              New password
+              {t('auth.newPassword')}
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 8 characters"
+              placeholder={t('common.minCharsPlaceholder')}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
               required
               minLength={8}
@@ -105,13 +107,13 @@ export default function ResetPassword() {
 
           <div>
             <label className="block text-gray-700 text-sm font-bold mb-2">
-              Confirm password
+              {t('auth.confirmPassword')}
             </label>
             <input
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Re-enter your new password"
+              placeholder={t('auth.reEnterPassword')}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
               required
               minLength={8}
@@ -123,14 +125,14 @@ export default function ResetPassword() {
             disabled={isLoading || !token}
             className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition disabled:opacity-50 text-lg"
           >
-            {isLoading ? 'Resetting...' : 'Reset password'}
+            {isLoading ? t('auth.resetting') : t('auth.resetPassword')}
           </button>
         </form>
 
         <p className="text-center text-gray-600 mt-6">
-          Remembered it?{' '}
+          {t('auth.remembered')}{' '}
           <Link to="/login" className="text-indigo-600 font-semibold hover:underline">
-            Back to login
+            {t('auth.backToLogin')}
           </Link>
         </p>
       </div>

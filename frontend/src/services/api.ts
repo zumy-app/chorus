@@ -13,6 +13,9 @@ import type {
   WaitlistEntry,
   EmailOutboxEntry,
   AdminStats,
+  AdminStatus,
+  TranslationJob,
+  ProviderHealth,
 } from '../types'
 
 // Get API URL based on environment
@@ -123,9 +126,19 @@ export const waitlistAPI = {
 }
 
 export const adminAPI = {
+  status: async () => {
+    const response = await api.get<AdminStatus>('/admin/status')
+    return response.data
+  },
+
   isAdmin: async () => {
-    const response = await api.get<{ isAdmin: boolean }>('/admin/status')
-    return response.data.isAdmin
+    const data = await adminAPI.status()
+    return data.isAdmin
+  },
+
+  isModerator: async () => {
+    const data = await adminAPI.status()
+    return data.isModerator
   },
 
   stats: async () => {
@@ -166,6 +179,54 @@ export const adminAPI = {
   retryEmail: async (id: string) => {
     const response = await api.post<{ message: string }>(`/admin/emails/${id}/retry`)
     return response.data
+  },
+
+  listUsers: async (params: { q?: string; role?: string; status?: string; limit?: number } = {}) => {
+    const query = new URLSearchParams()
+    if (params.q) query.append('q', params.q)
+    if (params.role) query.append('role', params.role)
+    if (params.status) query.append('status', params.status)
+    if (params.limit) query.append('limit', String(params.limit))
+    const response = await api.get<{ users: User[]; total: number }>(`/admin/users?${query}`)
+    return response.data
+  },
+
+  setUserRole: async (id: string, role: string) => {
+    const response = await api.put<{ user: User }>(`/admin/users/${id}/role`, { role })
+    return response.data
+  },
+
+  suspendUser: async (id: string) => {
+    const response = await api.post<{ message: string }>(`/admin/users/${id}/suspend`)
+    return response.data
+  },
+
+  unsuspendUser: async (id: string) => {
+    const response = await api.post<{ message: string }>(`/admin/users/${id}/unsuspend`)
+    return response.data
+  },
+
+  deleteUser: async (id: string) => {
+    const response = await api.delete<{ message: string }>(`/admin/users/${id}`)
+    return response.data
+  },
+
+  listTranslations: async (status?: string, q?: string) => {
+    const query = new URLSearchParams()
+    if (status && status !== 'all') query.append('status', status)
+    if (q) query.append('q', q)
+    const response = await api.get<{ jobs: TranslationJob[]; total: number }>(`/admin/translations?${query}`)
+    return response.data
+  },
+
+  retryTranslation: async (id: string) => {
+    const response = await api.post<{ message: string }>(`/admin/translations/${id}/retry`)
+    return response.data
+  },
+
+  translationHealth: async () => {
+    const response = await api.get<{ providers: ProviderHealth[] }>('/admin/translations/health')
+    return response.data.providers
   },
 }
 

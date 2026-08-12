@@ -1,7 +1,7 @@
 # Chorus Messenger - Docker Integration Complete ✅
 
 ## Summary
-Successfully deployed all services using Docker with Appwrite configuration integrated. All services are running and integration tests pass successfully.
+Successfully deployed all services using Docker. All services are running and integration tests pass successfully.
 
 ## Services Running
 
@@ -24,25 +24,12 @@ All tests passed successfully:
 6. ✅ **Database Connection** - PostgreSQL ready and accepting connections
 7. ✅ **Redis Connection** - Redis ready and responding to commands
 
-## Appwrite Configuration
-
-The backend is configured to connect to Appwrite:
-
-```
-Endpoint: https://appwrite.zumy.app/v1
-Project ID: 6955733a001c10e7c020
-Database ID: 6955749200181b13d9d6
-```
-
-Note: Appwrite SDK integration is prepared (configuration loaded) and ready for full implementation when needed. Currently using PostgreSQL for core database operations.
-
 ## Fixed Issues
 
 1. ✅ **TypeScript Errors** - Fixed NodeJS.Timeout type issue in frontend
 2. ✅ **WebSocket Channels** - Capitalized exported fields for Go
 3. ✅ **PostgreSQL Array Handling** - Fixed targetLanguages array using pq.Array
-4. ✅ **Docker Build** - Updated to Go 1.23 for Appwrite SDK compatibility
-5. ✅ **Login Support** - Added email/username dual login support
+4. ✅ **Login Support** - Added email/username dual login support
 
 ## Quick Start Commands
 
@@ -106,14 +93,12 @@ All configured in [.env](backend/.env):
 - Database connection strings
 - JWT secret
 - Redis URL  
-- Appwrite configuration
 - Google Translate API key (optional)
 
 ## Next Steps
 
 1. **Frontend Integration**: Update frontend to connect to backend API
-2. **Appwrite Migration**: Optionally migrate from PostgreSQL to Appwrite databases
-3. **Real-time Features**: Test WebSocket connections for live chat
+2. **Real-time Features**: Test WebSocket connections for live chat
 4. **Translation Service**: Configure Google Translate API for message translation
 5. **Production Deployment**: Configure for production environment
 

@@ -50,6 +50,8 @@ export function findChatBySlug(chats: Chat[], slug: string, currentUserId?: stri
 interface AppState {
   user: User | null
   isAdmin: boolean
+  isModerator: boolean
+  userRole: string
   chats: Chat[]
   activeChat: Chat | null
   messages: Record<string, Message[]>
@@ -57,6 +59,7 @@ interface AppState {
   // Actions
   setUser: (user: User | null) => void
   setAdmin: (isAdmin: boolean) => void
+  setRole: (role: string) => void
   refreshAdminStatus: () => Promise<void>
   loadChats: () => Promise<void>
   setActiveChat: (chat: Chat | null) => void
@@ -74,19 +77,26 @@ interface AppState {
 export const useStore = create<AppState>((set, get) => ({
   user: null,
   isAdmin: false,
+  isModerator: false,
+  userRole: '',
   chats: [],
   activeChat: null,
   messages: {},
 
   setUser: (user) => set({ user }),
   setAdmin: (isAdmin) => set({ isAdmin }),
+  setRole: (role) => {
+    const isAdmin = role === 'admin'
+    const isModerator = isAdmin || role === 'moderator'
+    set({ userRole: role, isAdmin, isModerator })
+  },
 
   refreshAdminStatus: async () => {
     try {
-      const isAdmin = await adminAPI.isAdmin()
-      set({ isAdmin })
+      const status = await adminAPI.status()
+      get().setRole(status.role)
     } catch {
-      set({ isAdmin: false })
+      set({ isAdmin: false, isModerator: false, userRole: '' })
     }
   },
 

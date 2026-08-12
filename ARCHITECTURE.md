@@ -126,8 +126,7 @@ backend/
 │   │   └── config.go            ← Environment configuration loading
 │   ├── database/
 │   │   ├── postgres.go          ← PostgreSQL connection & migrations
-│   │   ├── redis.go             ← Redis client setup
-│   │   └── appwrite.go          ← Appwrite (optional) integration
+│   │   └── redis.go             ← Redis client setup
 │   ├── models/
 │   │   └── models.go            ← Data structures (User, Chat, Message, etc.)
 │   ├── services/

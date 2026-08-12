@@ -11,6 +11,7 @@ import (
 	"github.com/chorus/messenger/internal/database"
 	"github.com/chorus/messenger/internal/handlers"
 	"github.com/chorus/messenger/internal/middleware"
+	"github.com/chorus/messenger/internal/models"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/chorus/messenger/pkg/logutil"
 	"github.com/chorus/messenger/pkg/translation"
@@ -38,19 +39,6 @@ func main() {
 	// at runtime and falls through to the next (ultimately the local fallback).
 	logStartupConfigWarnings(cfg)
 
-	// Initialize Appwrite (if configured)
-	if cfg.AppwriteEndpoint != "" && cfg.AppwriteProjectID != "" {
-		_, err := database.ConnectAppwrite(
-			cfg.AppwriteEndpoint,
-			cfg.AppwriteProjectID,
-			cfg.AppwriteAPIKey,
-			cfg.AppwriteDatabaseID,
-		)
-		if err != nil {
-			log.Printf("Warning: Failed to connect to Appwrite: %v", err)
-		}
-	}
-
 	// Initialize database
 	db, err := database.Connect(cfg.DatabaseURL)
 	if err != nil {
@@ -61,6 +49,11 @@ func main() {
 	// Run migrations
 	if err := database.Migrate(db); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
+	}
+
+	// Seed admin roles from the legacy admin-emails allowlist.
+	if err := services.EnsureAdminRoles(db, cfg.AdminEmails); err != nil {
+		log.Fatalf("Failed to seed admin roles: %v", err)
 	}
 
 	// Initialize Redis (optional in lean local mode)
@@ -97,6 +90,32 @@ func main() {
 
 	// Phase 2: Initialize Inbox service for offline message delivery
 	_ = services.NewInboxService(db, redisClient)
+
+	// Durable, near-real-time translation queue: translation_jobs rows are the
+	// source of truth, Redis pub/sub is the trigger, a sweeper retries failures,
+	// and startup recovery re-queues incomplete work. Completions fan out to chat
+	// participants over the WebSocket hub and (for multi-instance) Redis pub/sub.
+	translationQueue := services.NewTranslationQueueService(
+		db,
+		redisClient,
+		translationService,
+		func(messageID string) (*models.Message, error) {
+			return messageService.GetMessageByID(context.Background(), messageID)
+		},
+		func(chatID string, message *models.Message) {
+			participants, _ := chatService.GetParticipants(chatID)
+			userIDs := make([]string, 0, len(participants))
+			for _, p := range participants {
+				userIDs = append(userIDs, p.UserID)
+			}
+			wsHub.SendToChat(chatID, userIDs, "message_updated", message)
+			if pubsubService != nil {
+				pubsubService.PublishToChat(chatID, userIDs, "message_updated", message)
+			}
+		},
+	)
+	translationQueue.Start()
+	defer translationQueue.Stop()
 
 	var presenceService *services.PresenceService
 	if redisClient != nil {
@@ -144,10 +163,13 @@ func main() {
 	adminWaitlistHandler := handlers.NewAdminWaitlistHandler(
 		db, userService, invitationService,
 		notificationService,
+		translationQueue,
 		cfg.AdminEmails, cfg.InviteBaseURL,
 	)
+	adminUsersHandler := handlers.NewAdminUsersHandler(userService, authService)
+	adminTranslationsHandler := handlers.NewAdminTranslationsHandler(translationQueue, translationService)
 	chatHandler := handlers.NewChatHandler(chatService, userService, wsHub)
-	messageHandler := handlers.NewMessageHandler(messageService, chatService, translationService, wsHub)
+	messageHandler := handlers.NewMessageHandler(messageService, chatService, translationQueue, wsHub)
 	wsHandler := handlers.NewWebSocketHandler(wsHub, authService)
 
 	// Phase 2 & 3 handlers
@@ -191,20 +213,42 @@ func main() {
 
 	// Protected routes
 	protected := r.Group("/api/v1")
-	protected.Use(middleware.AuthMiddleware(authService))
+	protected.Use(middleware.AuthMiddleware(authService, userService))
 	{
 		// User routes
 		protected.GET("/users/me", authHandler.GetMe)
 		protected.PUT("/users/me", authHandler.UpdateMe)
 		protected.GET("/users/search", authHandler.SearchUsers)
-		protected.GET("/admin/waitlist", adminWaitlistHandler.List)
-		protected.POST("/admin/waitlist/:id/approve", adminWaitlistHandler.Approve)
-		protected.POST("/admin/waitlist/:id/decline", adminWaitlistHandler.Decline)
-		protected.POST("/admin/waitlist/:id/resend-invite", adminWaitlistHandler.ResendInvite)
-		protected.GET("/admin/stats", adminWaitlistHandler.Stats)
-		protected.GET("/admin/emails", adminWaitlistHandler.Emails)
-		protected.POST("/admin/emails/:id/retry", adminWaitlistHandler.RetryEmail)
+
+		// Non-gated status probe used by the client to learn the caller's role.
 		protected.GET("/admin/status", adminWaitlistHandler.Status)
+
+		// Admin routes (admin role + legacy email allowlist fallback).
+		admin := protected.Group("/admin")
+		admin.Use(middleware.RequireRole(services.RoleAdmin))
+		{
+			admin.GET("/waitlist", adminWaitlistHandler.List)
+			admin.POST("/waitlist/:id/approve", adminWaitlistHandler.Approve)
+			admin.POST("/waitlist/:id/decline", adminWaitlistHandler.Decline)
+			admin.POST("/waitlist/:id/resend-invite", adminWaitlistHandler.ResendInvite)
+			admin.GET("/stats", adminWaitlistHandler.Stats)
+			admin.GET("/emails", adminWaitlistHandler.Emails)
+			admin.POST("/emails/:id/retry", adminWaitlistHandler.RetryEmail)
+			admin.PUT("/users/:id/role", adminUsersHandler.SetRole)
+			admin.DELETE("/users/:id", adminUsersHandler.Delete)
+		}
+
+		// Moderator routes (moderator or admin).
+		moderator := protected.Group("/admin")
+		moderator.Use(middleware.RequireRole(services.RoleModerator))
+		{
+			moderator.GET("/users", adminUsersHandler.List)
+			moderator.POST("/users/:id/suspend", adminUsersHandler.Suspend)
+			moderator.POST("/users/:id/unsuspend", adminUsersHandler.Unsuspend)
+			moderator.GET("/translations", adminTranslationsHandler.List)
+			moderator.POST("/translations/:id/retry", adminTranslationsHandler.Retry)
+			moderator.GET("/translations/health", adminTranslationsHandler.Health)
+		}
 
 		// Chat routes
 		protected.GET("/chats", chatHandler.GetUserChats)
@@ -275,42 +319,42 @@ func main() {
 }
 
 // buildTranslationProviderChain constructs a provider chain from config.
-// If TRANSLATION_PROVIDER_ORDER is set, it builds a ChainProvider from the
-// ordered list of aliases. Providers that are missing required config (e.g. a
+// If TRANSLATION_FALLBACK_ORDER is set, it builds a ChainProvider from the
+// ordered list of providers. Providers that are missing required config (e.g. a
 // cloud provider with an empty API key) are skipped so the chain falls through
 // to the next one at runtime. Otherwise, it falls back to the legacy
 // single-provider config.
 func buildTranslationProviderChain(cfg *config.Config) translation.Provider {
 	if len(cfg.TranslationProviderOrder) > 0 {
 		var providers []translation.Provider
-		for _, alias := range cfg.TranslationProviderOrder {
-			def, ok := cfg.Providers[alias]
+		for _, name := range cfg.TranslationProviderOrder {
+			def, ok := cfg.Providers[name]
 			if !ok {
-				log.Printf("Warning: provider %q in TRANSLATION_PROVIDER_ORDER not configured, skipping", alias)
+				log.Printf("Warning: provider %q in TRANSLATION_FALLBACK_ORDER not configured, skipping", name)
 				continue
 			}
 			provCfg := translation.Config{
-				Provider: translation.ProviderType(def.Type),
-				APIURL:   def.APIURL,
-				APIKey:   def.APIKey,
-				Model:    def.Model,
+				Provider: translation.ProviderType(def.EffectiveType()),
+				APIURL:   def.URL,
+				APIKey:   def.Key,
+				Model:    def.TranslationModel(),
 				Timeout:  def.Timeout,
 			}
 			if !provCfg.Configured() {
 				log.Printf("Warning: provider %q (%s) is not configured (missing required env keys), skipping",
-					alias, def.Type)
+					name, def.EffectiveType())
 				continue
 			}
 			prov, err := translation.NewProvider(provCfg)
 			if err != nil {
-				log.Printf("Warning: failed to create provider %q: %v", alias, err)
+				log.Printf("Warning: failed to create provider %q: %v", name, err)
 				continue
 			}
 			providers = append(providers, prov)
-			log.Printf("  Translation provider %d: %s (%s)", len(providers), alias, prov.Name())
+			log.Printf("  Translation provider %d: %s (%s)", len(providers), name, prov.Name())
 		}
 		if len(providers) == 0 {
-			log.Fatal("No translation providers could be created from TRANSLATION_PROVIDER_ORDER — " +
+			log.Fatal("No translation providers could be created from TRANSLATION_FALLBACK_ORDER — " +
 				"set at least one API key for a cloud provider or ensure a local provider " +
 				"(libretranslate, ollama) is configured")
 		}
@@ -335,39 +379,39 @@ func buildTranslationProviderChain(cfg *config.Config) translation.Provider {
 }
 
 // buildGrammarEndpoints constructs an ordered list of GrammarEndpoints from config.
-// If GRAMMAR_PROVIDER_ORDER is set, it follows that order. Otherwise it falls back
-// to the legacy GRAMMAR_API_* env vars.
+// If GRAMMAR_FALLBACK_ORDER is set, it follows that order. Otherwise it falls
+// back to the legacy GRAMMAR_API_* env vars.
 func buildGrammarEndpoints(cfg *config.Config) []services.GrammarEndpoint {
-	log.Printf("[Startup] GrammarProviderOrder=%v, Providers keys:", cfg.GrammarProviderOrder)
+	log.Printf("[Startup] GrammarFallbackOrder=%v, Providers:", cfg.GrammarProviderOrder)
 	for k, v := range cfg.Providers {
-		log.Printf("  Provider %q: type=%q url=%q model=%q", k, v.Type, v.APIURL, v.Model)
+		log.Printf("  Provider %q: type=%q url=%q gmodel=%q tmodel=%q", k, v.EffectiveType(), v.URL, v.GrammarModel(), v.TranslationModel())
 	}
 	if len(cfg.GrammarProviderOrder) > 0 {
 		var endpoints []services.GrammarEndpoint
-		for _, alias := range cfg.GrammarProviderOrder {
-			def, ok := cfg.Providers[alias]
+		for _, name := range cfg.GrammarProviderOrder {
+			def, ok := cfg.Providers[name]
 			if !ok {
-				log.Printf("Warning: provider %q in GRAMMAR_PROVIDER_ORDER not configured, skipping", alias)
+				log.Printf("Warning: provider %q in GRAMMAR_FALLBACK_ORDER not configured, skipping", name)
 				continue
 			}
 			provCfg := translation.Config{
-				Provider: translation.ProviderType(def.Type),
-				APIURL:   def.APIURL,
-				APIKey:   def.APIKey,
-				Model:    def.Model,
+				Provider: translation.ProviderType(def.EffectiveType()),
+				APIURL:   def.URL,
+				APIKey:   def.Key,
+				Model:    def.GrammarModel(),
 				Timeout:  def.Timeout,
 			}
 			if !provCfg.Configured() {
 				log.Printf("Warning: provider %q (%s) is not configured (missing required env keys), skipping",
-					alias, def.Type)
+					name, def.EffectiveType())
 				continue
 			}
-			ep := services.NewGrammarEndpoint(alias, def.Type, def.APIURL, def.APIKey, def.Model, def.Timeout)
+			ep := services.NewGrammarEndpoint(name, def.EffectiveType(), def.URL, def.Key, def.GrammarModel(), def.Timeout)
 			endpoints = append(endpoints, ep)
-			log.Printf("  Grammar endpoint %d: %s (%s model=%s)", len(endpoints), alias, def.APIURL, def.Model)
+			log.Printf("  Grammar endpoint %d: %s (%s model=%s)", len(endpoints), name, def.URL, def.GrammarModel())
 		}
 		if len(endpoints) == 0 {
-			log.Printf("Warning: no grammar AI endpoints could be created from GRAMMAR_PROVIDER_ORDER — " +
+			log.Printf("Warning: no grammar AI endpoints could be created from GRAMMAR_FALLBACK_ORDER — " +
 				"grammar analysis will use the built-in regex fallback")
 			return nil
 		}

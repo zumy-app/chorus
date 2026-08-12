@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { SUPPORTED_LANGUAGES } from '../services/language'
 
 interface LanguagePickerProps {
@@ -20,6 +21,7 @@ export default function LanguagePicker({
   exclude = [],
   onChange,
 }: LanguagePickerProps) {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const selectedArr = multiple
     ? (selected as string[])
@@ -72,7 +74,7 @@ export default function LanguagePicker({
                     type="button"
                     onClick={() => onChange(code, false)}
                     className="text-primary hover:text-primary/70"
-                    aria-label={`Remove ${lang.name}`}
+                    aria-label={t('languagePicker.remove', { name: lang.name })}
                   >
                     ×
                   </button>
@@ -105,7 +107,7 @@ export default function LanguagePicker({
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Type another language…"
+          placeholder={t('languagePicker.typeAnother')}
           className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
         />
         {q && (
@@ -113,7 +115,7 @@ export default function LanguagePicker({
             {results.length === 0 && !text ? (
               <div />
             ) : results.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-gray-400">No matching languages.</div>
+              <div className="px-4 py-3 text-sm text-gray-400">{t('languagePicker.noMatches')}</div>
             ) : (
               results.map((lang) => (
                 <button

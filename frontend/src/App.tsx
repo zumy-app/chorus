@@ -15,7 +15,7 @@ import { useStore } from './store'
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const { isAdmin, setUser, setAdmin, refreshAdminStatus } = useStore()
+  const { isAdmin, isModerator, setUser, setAdmin, refreshAdminStatus } = useStore()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -82,6 +82,22 @@ function App() {
           path="/admin/waitlist"
           element={
             isAuthenticated && isAdmin
+              ? <AdminWaitlist defaultTab="waitlist" />
+              : <Navigate to={isAuthenticated ? (isModerator ? '/admin' : '/') : '/login'} />
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            isAuthenticated && isModerator
+              ? <AdminWaitlist defaultTab="users" />
+              : <Navigate to={isAuthenticated ? '/' : '/login'} />
+          }
+        />
+        <Route
+          path="/admin/:tab"
+          element={
+            isAuthenticated && isModerator
               ? <AdminWaitlist />
               : <Navigate to={isAuthenticated ? '/' : '/login'} />
           }

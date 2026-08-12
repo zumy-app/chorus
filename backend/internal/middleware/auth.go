@@ -7,7 +7,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func AuthMiddleware(authService *services.AuthService) gin.HandlerFunc {
+// AuthMiddleware validates the Bearer token, loads the user, and blocks
+// suspended/deleted accounts. It sets userID and userRole in the context so
+// downstream handlers and the RequireRole middleware can use them without a
+// second DB round-trip.
+func AuthMiddleware(authService *services.AuthService, userService *services.UserService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -32,7 +36,42 @@ func AuthMiddleware(authService *services.AuthService) gin.HandlerFunc {
 			return
 		}
 
+		user, err := userService.GetByID(userID)
+		if err != nil {
+			c.JSON(401, gin.H{"error": "User not found"})
+			c.Abort()
+			return
+		}
+		// Suspended/deleted accounts are blocked immediately, revoking access
+		// even before their JWT expires.
+		if user.SuspendedAt != nil || user.DeletedAt != nil {
+			c.JSON(403, gin.H{"error": "Account is disabled"})
+			c.Abort()
+			return
+		}
+
+		role := user.Role
+		if !services.ValidRole(role) {
+			role = services.RoleMember
+		}
+
 		c.Set("userID", userID)
+		c.Set("userRole", role)
+		c.Next()
+	}
+}
+
+// RequireRole gates a handler to users whose role is at least the given role.
+// It reads userRole (set by AuthMiddleware) instead of re-querying the DB.
+func RequireRole(minRole string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		role, _ := c.Get("userRole")
+		roleStr, _ := role.(string)
+		if !services.RoleAtLeast(roleStr, minRole) {
+			c.JSON(403, gin.H{"error": "You do not have permission to perform this action"})
+			c.Abort()
+			return
+		}
 		c.Next()
 	}
 }

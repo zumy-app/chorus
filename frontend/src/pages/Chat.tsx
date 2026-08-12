@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useStore, getChatSlug } from '../store'
 import ChatList from '../components/ChatList'
 import ChatArea from '../components/ChatArea'
@@ -16,9 +17,10 @@ interface ChatProps {
 }
 
 export default function Chat({ onLogout }: ChatProps) {
+  const { t } = useTranslation()
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
-  const { user, isAdmin, loadChats, activeChat, chats, setActiveChat, navigateToSlug, updateUser } = useStore()
+  const { user, isModerator, loadChats, activeChat, chats, setActiveChat, navigateToSlug, updateUser } = useStore()
   const [showNewChatModal, setShowNewChatModal] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
@@ -109,11 +111,11 @@ export default function Chat({ onLogout }: ChatProps) {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center max-w-md p-8">
             <p className="text-5xl mb-4">🔗</p>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Chat not found</h2>
-            <p className="text-gray-500 mb-6">This link doesn't match any of your chats. It may be expired or you might not have access.</p>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">{t('chat.chatNotFound')}</h2>
+            <p className="text-gray-500 mb-6">{t('chat.chatNotFoundDesc')}</p>
             <button onClick={() => navigate('/chat', { replace: true })}
                     className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:opacity-90 transition font-semibold">
-              Go to Chats
+              {t('chat.goToChats')}
             </button>
           </div>
         </div>
@@ -128,7 +130,7 @@ export default function Chat({ onLogout }: ChatProps) {
           onClick={() => setShowAbout(false)}
           className="fixed top-4 left-4 z-50 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-lg hover:bg-gray-50 font-semibold"
         >
-          ← Back to Chat
+          {t('chat.backToChat')}
         </button>
         <About />
       </div>
@@ -163,7 +165,7 @@ export default function Chat({ onLogout }: ChatProps) {
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
               className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 text-white font-bold text-sm flex items-center justify-center hover:opacity-90 transition"
-              title={user?.displayName || 'Profile'}
+              title={user?.displayName || t('chat.profile')}
             >
               {user?.displayName?.charAt(0).toUpperCase() || '?'}
             </button>
@@ -189,26 +191,26 @@ export default function Chat({ onLogout }: ChatProps) {
                     onClick={() => { setShowVocabulary(true); setShowProfileMenu(false) }}
                     className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                   >
-                    <span>📚</span> Vocabulary
+                    <span>📚</span> {t('chat.vocabulary')}
                   </button>
                   <button
                     onClick={() => { setShowSettings(true); setShowProfileMenu(false) }}
                     className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                   >
-                    <span>⚙️</span> Settings
+                    <span>⚙️</span> {t('chat.settings')}
                   </button>
                   <button
                     onClick={() => { setShowAbout(true); setShowProfileMenu(false) }}
                     className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                   >
-                    <span>ℹ️</span> About Chorus
+                    <span>ℹ️</span> {t('chat.about')}
                   </button>
-                  {isAdmin && (
+                  {isModerator && (
                     <button
-                      onClick={() => { setShowProfileMenu(false); navigate('/admin/waitlist') }}
+                      onClick={() => { setShowProfileMenu(false); navigate('/admin') }}
                       className="w-full px-4 py-2.5 text-left text-sm text-indigo-600 hover:bg-indigo-50 flex items-center gap-3"
                     >
-                      <span>🛠️</span> Admin Controls
+                      <span>🛠️</span> {t('chat.adminControls')}
                     </button>
                   )}
                   <hr className="my-1" />
@@ -216,7 +218,7 @@ export default function Chat({ onLogout }: ChatProps) {
                     onClick={() => { setShowProfileMenu(false); onLogout() }}
                     className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3"
                   >
-                    <span>🚪</span> Sign Out
+                    <span>🚪</span> {t('chat.signOut')}
                   </button>
                 </div>
               </div>
@@ -238,13 +240,13 @@ export default function Chat({ onLogout }: ChatProps) {
               onClick={() => setShowNewChatModal(true)}
               className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-2.5 px-4 rounded-lg hover:opacity-90 transition font-semibold"
             >
-              + New Chat
+              {t('chat.newChat')}
             </button>
             <button
               onClick={() => setShowSearch(true)}
               className="w-full border border-gray-300 text-gray-700 py-2.5 px-4 rounded-lg hover:bg-gray-50 transition font-medium flex items-center justify-center gap-2"
             >
-              <span>🔍</span> Search Messages
+              <span>🔍</span> {t('chat.searchMessages')}
             </button>
           </div>
 
@@ -262,7 +264,7 @@ export default function Chat({ onLogout }: ChatProps) {
               <button
                 onClick={handleBackToList}
                 className="p-2 hover:bg-gray-100 rounded-lg transition"
-                aria-label="Back to chats"
+                aria-label={t('chat.backToChats')}
               >
                 <svg className="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -275,8 +277,8 @@ export default function Chat({ onLogout }: ChatProps) {
                       ? activeChat.participants?.find(p => p.user?.id !== user?.id)?.user
                       : null
                     return activeChat.type === 'group'
-                      ? activeChat.name || 'Unnamed Group'
-                      : otherParticipant?.displayName || 'Unknown User'
+                      ? activeChat.name || t('chat.unnamedGroup')
+                      : otherParticipant?.displayName || t('chat.unknownUser')
                   })()}
                 </div>
               </div>

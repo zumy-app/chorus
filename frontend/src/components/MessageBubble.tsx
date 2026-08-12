@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { formatDistanceToNow } from 'date-fns'
+import { useTranslation } from 'react-i18next'
 import type { Message } from '../types'
 import { vocabularyAPI, grammarAPI } from '../services/api'
 import GrammarPanel from './GrammarPanel'
@@ -11,21 +12,8 @@ interface MessageBubbleProps {
   targetLanguage?: string
 }
 
-// Localized labels for grammar UI based on user's native language
-const grammarLabels: Record<string, Record<string, string>> = {
-  en: { grammar: 'Grammar', patterns: 'Patterns', wordByWord: 'Word-by-Word', aiTutor: 'AI Tutor', analyzing: 'Analyzing...', inYourLang: 'In your language:', translating: 'Translating...' },
-  es: { grammar: 'Gramática', patterns: 'Patrones', wordByWord: 'Palabra por Palabra', aiTutor: 'Tutor IA', analyzing: 'Analizando...', inYourLang: 'En tu idioma:', translating: 'Traduciendo...' },
-  fr: { grammar: 'Grammaire', patterns: 'Règles', wordByWord: 'Mot à Mot', aiTutor: 'Tuteur IA', analyzing: 'Analyse...', inYourLang: 'Dans votre langue:', translating: 'Traduction...' },
-  de: { grammar: 'Grammatik', patterns: 'Muster', wordByWord: 'Wort für Wort', aiTutor: 'KI-Tutor', analyzing: 'Analysiere...', inYourLang: 'In Ihrer Sprache:', translating: 'Übersetzen...' },
-  pt: { grammar: 'Gramática', patterns: 'Padrões', wordByWord: 'Palavra por Palavra', aiTutor: 'Tutor IA', analyzing: 'Analisando...', inYourLang: 'No seu idioma:', translating: 'Traduzindo...' },
-  it: { grammar: 'Grammatica', patterns: 'Schemi', wordByWord: 'Parola per Parola', aiTutor: 'Tutor IA', analyzing: 'Analizzando...', inYourLang: 'Nella tua lingua:', translating: 'Traducendo...' },
-}
-
-function getLabel(key: string, lang: string): string {
-  return grammarLabels[lang]?.[key] || grammarLabels.en[key] || key
-}
-
 export default function MessageBubble({ message, isOwn, nativeLanguage, targetLanguage }: MessageBubbleProps) {
+  const { t } = useTranslation()
   const [showActions, setShowActions] = useState(false)
   const [savedWord, setSavedWord] = useState<string | null>(null)
   const [showGrammar, setShowGrammar] = useState(false)
@@ -143,7 +131,7 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
           {isTranslationPending && (
             <div className={`mt-2 pt-2 border-t ${isOwn ? 'border-white/30' : 'border-gray-200'} text-sm`}>
               <div className={`text-xs mb-1 ${isOwn ? 'text-white/75' : 'text-gray-500'}`}>
-                🌐 {getLabel('translating', nativeLanguage)}
+                🌐 {t('grammar.translating')}
               </div>
               <div className="flex items-center gap-1.5">
                 <span className={`inline-block w-1.5 h-1.5 rounded-full ${isOwn ? 'bg-white/60' : 'bg-gray-400'} animate-pulse`}
@@ -160,9 +148,9 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
           {showNativeTranslation && (
             <div className={`mt-2 pt-2 border-t ${isOwn ? 'border-white/30' : 'border-gray-200'} text-sm`}>
               <div className={`text-xs mb-1 flex items-center gap-1 ${isOwn ? 'text-white/75' : 'text-gray-500'}`}>
-                <span>🌐 {getLabel('inYourLang', nativeLanguage)}</span>
+                <span>🌐 {t('grammar.inYourLang')}</span>
                 {!isOwn && !message.translationEnhanced && (
-                  <span className="inline-flex items-center text-[10px] text-amber-500 animate-pulse" title="AI-enhanced translation pending">
+                  <span className="inline-flex items-center text-[10px] text-amber-500 animate-pulse" title={t('grammar.translating')}>
                     ✨
                   </span>
                 )}
@@ -177,7 +165,7 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
           {showTargetTranslation && (
             <div className={`mt-2 pt-2 border-t ${isOwn ? 'border-white/30' : 'border-gray-200'} text-sm`}>
               <div className={`text-xs mb-1 ${isOwn ? 'text-white/75' : 'text-gray-500'}`}>
-                📖 Learning ({targetLanguage?.toUpperCase()}):
+                📖 {t('grammar.learning', { lang: targetLanguage?.toUpperCase() })}
               </div>
               <div className={`italic opacity-90 whitespace-pre-wrap break-words ${isOwn ? 'text-white/90' : 'text-gray-600'}`}>
                 {targetTranslation}
@@ -213,10 +201,10 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
               {loadingGrammar ? (
                 <span className="flex items-center gap-1">
                   <span className="inline-block w-1 h-1 bg-amber-600 rounded-full animate-pulse" />
-                  {showFallbackMsg ? '🔄 Switching models...' : getLabel('analyzing', nativeLanguage)}
+                  {showFallbackMsg ? t('grammar.switchingModels') : t('grammar.analyzing')}
                 </span>
               ) : (
-                `📝 ${getLabel('grammar', nativeLanguage)}`
+                `📝 ${t('grammar.grammar')}`
               )}
             </button>
             {words.slice(0, 3).map((word: string) => (
@@ -224,9 +212,9 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
                 key={word}
                 onClick={() => handleSaveWord(word)}
                 className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition"
-                title={`Save "${word}" to vocabulary`}
+                title={t('grammar.saveWord', { word })}
               >
-                {savedWord === word ? '✅ Saved' : `+ ${word.substring(0, 12)}`}
+                {savedWord === word ? t('common.saved') : `+ ${word.substring(0, 12)}`}
               </button>
             ))}
           </div>

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { detectBrowserLanguage, SUPPORTED_LANGUAGES } from '../services/language'
 
 interface LanguageSelectorProps {
@@ -13,9 +14,11 @@ interface LanguageSelectorProps {
 export default function LanguageSelector({ currentLang, onLanguageChange, variant = 'compact' }: LanguageSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const { i18n, t } = useTranslation()
 
   const detectedLang = detectBrowserLanguage()
-  const activeLang = currentLang || detectedLang
+  const globalLang = i18n?.language || (typeof localStorage !== 'undefined' ? localStorage.getItem('preferredLanguage') : null) || detectedLang
+  const activeLang = currentLang || globalLang
   const activeLanguage = SUPPORTED_LANGUAGES.find(l => l.code === activeLang) || SUPPORTED_LANGUAGES[0]
 
   // Show language code text for English (avoids UK flag confusion), flag emoji for others
@@ -32,6 +35,8 @@ export default function LanguageSelector({ currentLang, onLanguageChange, varian
   }, [])
 
   const handleSelect = (code: string) => {
+    localStorage.setItem('preferredLanguage', code)
+    if (i18n?.changeLanguage) i18n.changeLanguage(code)
     onLanguageChange(code)
     setIsOpen(false)
   }
@@ -42,7 +47,7 @@ export default function LanguageSelector({ currentLang, onLanguageChange, varian
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm"
-          title="Select language"
+          title={t('languagePicker.selectLanguage')}
         >
           <span className="text-base">{activeLanguage.flag}</span>
           <span className="hidden sm:inline text-gray-700 font-medium">{activeLanguage.nativeName}</span>
@@ -54,7 +59,7 @@ export default function LanguageSelector({ currentLang, onLanguageChange, varian
         {isOpen && (
           <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-[100]">
             <div className="p-2">
-              <p className="text-xs text-gray-500 px-3 py-1.5 font-medium uppercase tracking-wider">Select Language</p>
+<p className="text-xs text-gray-500 px-3 py-1.5 font-medium uppercase tracking-wider">{t('languagePicker.selectLanguage')}</p>
               {SUPPORTED_LANGUAGES.map((lang) => (
                 <button
                   key={lang.code}
@@ -88,7 +93,7 @@ export default function LanguageSelector({ currentLang, onLanguageChange, varian
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition text-sm font-bold"
-        title={`Language: ${activeLanguage.nativeName}`}
+        title={`${t('auth.language', { name: activeLanguage.nativeName })}`}
       >
         {displayLabel}
       </button>
@@ -96,7 +101,7 @@ export default function LanguageSelector({ currentLang, onLanguageChange, varian
       {isOpen && (
         <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-[100]">
           <div className="p-2">
-            <p className="text-xs text-gray-500 px-3 py-1.5 font-medium uppercase tracking-wider">Select Language</p>
+            <p className="text-xs text-gray-500 px-3 py-1.5 font-medium uppercase tracking-wider">{t('languagePicker.selectLanguage')}</p>
             {SUPPORTED_LANGUAGES.map((lang) => (
               <button
                 key={lang.code}

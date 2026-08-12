@@ -106,7 +106,3 @@ Write-Host "  Frontend: http://localhost:3000" -ForegroundColor Cyan
 Write-Host "  Backend:  http://localhost:8080" -ForegroundColor Cyan
 Write-Host "  PostgreSQL: localhost:5432" -ForegroundColor Cyan
 Write-Host "  Redis: localhost:6379" -ForegroundColor Cyan
-Write-Host "`nAppwrite Configuration:" -ForegroundColor Yellow
-Write-Host "  Endpoint: https://appwrite.zumy.app/v1" -ForegroundColor Cyan
-Write-Host "  Project ID: 6955733a001c10e7c020" -ForegroundColor Cyan
-Write-Host "  Database ID: 6955749200181b13d9d6" -ForegroundColor Cyan

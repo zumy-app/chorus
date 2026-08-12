@@ -109,6 +109,19 @@ func (s *TranslationService) TranslateMultiple(text string, targetLangs []string
 	return translations, nil
 }
 
+// ProviderHealth reports the readiness of each provider in the configured
+// chain. Used by the admin console to diagnose translation config issues
+// (e.g. a cloud provider with a missing API key).
+func (s *TranslationService) ProviderHealth() []translation.ProviderHealth {
+	if s.provider == nil {
+		return []translation.ProviderHealth{{Name: "none", Ready: false, Reason: "no translation provider configured"}}
+	}
+	if chain, ok := s.provider.(*translation.ChainProvider); ok {
+		return chain.Healthy()
+	}
+	return []translation.ProviderHealth{{Name: s.provider.Name(), Ready: true}}
+}
+
 // EnqueueOllamaTranslation is a legacy no-op kept for compatibility.
 func (s *TranslationService) EnqueueOllamaTranslation(messageID, text string, targetLangs []string) error {
 	return nil

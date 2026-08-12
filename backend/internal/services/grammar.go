@@ -27,10 +27,10 @@ type grammarChatMessage struct {
 
 // grammarChatRequest is the request body for /v1/chat/completions.
 type grammarChatRequest struct {
-	Model          string               `json:"model"`
-	Messages       []grammarChatMessage `json:"messages"`
-	Temperature    float64              `json:"temperature,omitempty"`
-	MaxTokens      int                  `json:"max_tokens,omitempty"`
+	Model          string                 `json:"model"`
+	Messages       []grammarChatMessage   `json:"messages"`
+	Temperature    float64                `json:"temperature,omitempty"`
+	MaxTokens      int                    `json:"max_tokens,omitempty"`
 	ResponseFormat *grammarResponseFormat `json:"response_format,omitempty"`
 }
 
@@ -80,12 +80,35 @@ func NewGrammarEndpoint(name, providerType, apiURL, apiKey, model string, timeou
 	return GrammarEndpoint{
 		Name:         name,
 		ProviderType: providerType,
-		APIURL:       strings.TrimRight(apiURL, "/"),
+		APIURL:       strings.TrimRight(normalizeProviderURL(providerType, apiURL), "/"),
 		APIKey:       apiKey,
 		Model:        model,
 		Timeout:      d,
 		client:       &http.Client{Timeout: d},
 	}
+}
+
+// normalizeProviderURL repairs common misconfigurations where the API URL
+// points at a provider's bare domain instead of its OpenAI-compatible endpoint,
+// which would otherwise return an HTML page (decode failure) instead of JSON.
+func normalizeProviderURL(providerType, url string) string {
+	base := strings.TrimRight(url, "/")
+	if base == "" {
+		return base
+	}
+	switch providerType {
+	case "openrouter":
+		// Canonical OpenAI-compatible endpoint: https://openrouter.ai/api/v1
+		if base == "https://openrouter.ai" || base == "http://openrouter.ai" {
+			return base + "/api/v1"
+		}
+	case "nvidia":
+		// Canonical endpoint: https://integrate.api.nvidia.com/v1
+		if base == "https://integrate.api.nvidia.com" || base == "http://integrate.api.nvidia.com" {
+			return base + "/v1"
+		}
+	}
+	return base
 }
 
 // GrammarService handles grammar analysis for language learning
@@ -1515,7 +1538,10 @@ func (ep *GrammarEndpoint) call(prompt, nativeLangName string, jsonMode bool) (s
 		return "", fmt.Errorf("grammar read response: %w", err)
 	}
 	if err := json.Unmarshal(raw, &chatResp); err != nil {
-		return "", fmt.Errorf("grammar decode response: %w", err)
+		// Surface the status/content-type so a misconfigured URL that returns
+		// HTML (e.g. hitting a provider's landing page) is diagnosable.
+		return "", fmt.Errorf("grammar decode response: %w (status=%d, content-type=%s, body=%.300s)",
+			err, resp.StatusCode, resp.Header.Get("Content-Type"), string(raw))
 	}
 
 	if len(chatResp.Choices) == 0 {

@@ -1,31 +1,29 @@
 package handlers
 
 import (
-	"log"
-
 	"github.com/chorus/messenger/internal/models"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/gin-gonic/gin"
 )
 
 type MessageHandler struct {
-	messageService     *services.MessageService
-	chatService        *services.ChatService
-	translationService *services.TranslationService
-	wsHub              *services.WebSocketHub
+	messageService   *services.MessageService
+	chatService      *services.ChatService
+	translationQueue *services.TranslationQueueService
+	wsHub            *services.WebSocketHub
 }
 
 func NewMessageHandler(
 	messageService *services.MessageService,
 	chatService *services.ChatService,
-	translationService *services.TranslationService,
+	translationQueue *services.TranslationQueueService,
 	wsHub *services.WebSocketHub,
 ) *MessageHandler {
 	return &MessageHandler{
-		messageService:     messageService,
-		chatService:        chatService,
-		translationService: translationService,
-		wsHub:              wsHub,
+		messageService:   messageService,
+		chatService:      chatService,
+		translationQueue: translationQueue,
+		wsHub:            wsHub,
 	}
 }
 
@@ -105,9 +103,10 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 		}
 
 		// Detect and store the original language based on sender's native language
+		sourceLang := "auto"
 		if senderLangs, ok := participantLangs[userID]; ok && len(senderLangs) > 0 {
-			nativeLang := senderLangs[0]
-			if nativeLang != "" {
+			if nativeLang := senderLangs[0]; nativeLang != "" {
+				sourceLang = nativeLang
 				h.messageService.UpdateOriginalLanguage(message.ID, nativeLang)
 				message.OriginalLanguage = nativeLang
 			}
@@ -121,41 +120,20 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 			}
 		}
 
-		h.translateAndBroadcast(message, targetLangs, chatID)
+		// Durable, near-real-time translation queue (DB outbox + Redis pub/sub
+		// trigger + retry sweeper + startup recovery). Completions are pushed to
+		// chat participants via message_updated as they arrive.
+		h.translationQueue.EnqueueForMessage(message, sourceLang, keys(targetLangs))
 	}()
 }
 
-func (h *MessageHandler) translateAndBroadcast(message *models.Message, targetLangs map[string]bool, chatID string) {
-	langs := make([]string, 0, len(targetLangs))
-	for lang := range targetLangs {
-		langs = append(langs, lang)
+// keys returns the keys of a set (helper for target-language de-duplication).
+func keys(set map[string]bool) []string {
+	out := make([]string, 0, len(set))
+	for k := range set {
+		out = append(out, k)
 	}
-
-	translations := make(map[string]string)
-	for _, lang := range langs {
-		trans, err := h.translationService.Translate(message.Text, lang)
-		if err != nil {
-			log.Printf("[Translate] translation failed for lang %s: %v", lang, err)
-		} else if trans != "" {
-			translations[lang] = trans
-		}
-	}
-
-	if len(translations) > 0 {
-		if err := h.messageService.UpdateTranslations(message.ID, translations); err != nil {
-			log.Printf("[Translate] failed to update translations: %v", err)
-			return
-		}
-		message.Translations = translations
-		message.TranslationEnhanced = true
-
-		participants, _ := h.chatService.GetParticipants(chatID)
-		userIDs := make([]string, 0, len(participants))
-		for _, p := range participants {
-			userIDs = append(userIDs, p.UserID)
-		}
-		h.wsHub.SendToChat(chatID, userIDs, "message_updated", message)
-	}
+	return out
 }
 
 func (h *MessageHandler) MarkAsRead(c *gin.Context) {

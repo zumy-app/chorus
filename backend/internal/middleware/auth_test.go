@@ -124,3 +124,54 @@ func TestAuthMiddleware_ValidBearer(t *testing.T) {
 		t.Fatalf("expected userID=user-1, got %v", resp["userID"])
 	}
 }
+
+func TestRequireRole_AllowsSufficientRole(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	for _, tc := range []struct {
+		role string
+		min  string
+	}{
+		{"member", "member"},
+		{"moderator", "member"},
+		{"moderator", "moderator"},
+		{"admin", "admin"},
+		{"admin", "moderator"},
+	} {
+		router := gin.New()
+		router.Use(func(c *gin.Context) { c.Set("userRole", tc.role); c.Next() })
+		router.GET("/x", RequireRole(tc.min), func(c *gin.Context) { c.JSON(200, gin.H{"ok": true}) })
+
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/x", nil)
+		router.ServeHTTP(w, req)
+		if w.Code != 200 {
+			t.Fatalf("role %q against min %q: expected 200, got %d", tc.role, tc.min, w.Code)
+		}
+	}
+}
+
+func TestRequireRole_DeniesInsufficientRole(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	for _, tc := range []struct {
+		role string
+		min  string
+	}{
+		{"member", "moderator"},
+		{"member", "admin"},
+		{"moderator", "admin"},
+		{"", "member"},
+	} {
+		router := gin.New()
+		router.Use(func(c *gin.Context) { c.Set("userRole", tc.role); c.Next() })
+		router.GET("/x", RequireRole(tc.min), func(c *gin.Context) { c.JSON(200, gin.H{"ok": true}) })
+
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/x", nil)
+		router.ServeHTTP(w, req)
+		if w.Code != 403 {
+			t.Fatalf("role %q against min %q: expected 403, got %d", tc.role, tc.min, w.Code)
+		}
+	}
+}

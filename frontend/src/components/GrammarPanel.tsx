@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import LearningPanel from './LearningPanel'
 
 interface GrammarPanelProps {
@@ -8,17 +9,6 @@ interface GrammarPanelProps {
   messageLanguage: string
   onClose: () => void
   providerUsed?: string
-}
-
-const labels: Record<string, Record<string, string>> = {
-  en: { overview: 'Overview', wordByWord: 'Word by Word', grammar: 'Grammar', aiTutor: 'AI Tutor', keyPhrases: 'Key Phrases', sentenceStructure: 'How it\'s built', noData: 'No data available', context: 'When to use' },
-  es: { overview: 'Resumen', wordByWord: 'Palabra por Palabra', grammar: 'Gramática', aiTutor: 'Tutor IA', keyPhrases: 'Frases Clave', sentenceStructure: 'Cómo se construye', noData: 'Sin datos', context: 'Cuándo usar' },
-  fr: { overview: 'Aperçu', wordByWord: 'Mot à Mot', grammar: 'Grammaire', aiTutor: 'Tuteur IA', keyPhrases: 'Phrases Clés', sentenceStructure: 'Comment c\'est construit', noData: 'Pas de données', context: 'Quand utiliser' },
-  de: { overview: 'Übersicht', wordByWord: 'Wort für Wort', grammar: 'Grammatik', aiTutor: 'KI-Tutor', keyPhrases: 'Schlüsselphrasen', sentenceStructure: 'Wie es aufgebaut ist', noData: 'Keine Daten', context: 'Wann verwenden' },
-}
-
-function t(key: string, lang: string): string {
-  return labels[lang]?.[key] || labels.en[key] || key
 }
 
 const typeColors: Record<string, string> = {
@@ -34,14 +24,15 @@ const typeColors: Record<string, string> = {
 }
 
 export default function GrammarPanel({ analysis, nativeLanguage, messageText, messageLanguage, onClose, providerUsed }: GrammarPanelProps) {
+  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<'overview' | 'wordByWord' | 'grammar'>('overview')
   const [showLearning, setShowLearning] = useState(false)
   const [expandedWord, setExpandedWord] = useState<number | null>(null)
 
   const tabs = [
-    { id: 'overview' as const, label: t('overview', nativeLanguage), icon: '💡' },
-    { id: 'wordByWord' as const, label: t('wordByWord', nativeLanguage), icon: '🔤' },
-    { id: 'grammar' as const, label: t('grammar', nativeLanguage), icon: '📝' },
+    { id: 'overview' as const, label: t('grammar.overview'), icon: '💡' },
+    { id: 'wordByWord' as const, label: t('grammar.wordByWord'), icon: '🔤' },
+    { id: 'grammar' as const, label: t('grammar.grammar'), icon: '📝' },
   ]
 
   return (
@@ -66,7 +57,7 @@ export default function GrammarPanel({ analysis, nativeLanguage, messageText, me
             onClick={() => setShowLearning(true)}
             className="text-[11px] px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition font-medium"
           >
-            🤖 {t('aiTutor', nativeLanguage)}
+            🤖 {t('grammar.aiTutor')}
           </button>
           <button onClick={onClose} className="text-amber-600 hover:text-amber-800 text-lg leading-none ml-1">×</button>
         </div>
@@ -103,7 +94,7 @@ export default function GrammarPanel({ analysis, nativeLanguage, messageText, me
             {analysis.sentenceStructure && (
               <div className="bg-white/70 rounded-lg p-2.5 border border-amber-100">
                 <div className="text-[10px] font-semibold text-amber-700 uppercase tracking-wide mb-1">
-                  {t('sentenceStructure', nativeLanguage)}
+                  {t('grammar.howItsBuilt')}
                 </div>
                 <p className="text-xs text-amber-900 leading-relaxed">{analysis.sentenceStructure}</p>
               </div>
@@ -113,7 +104,7 @@ export default function GrammarPanel({ analysis, nativeLanguage, messageText, me
             {analysis.keyPhrases && analysis.keyPhrases.length > 0 && (
               <div>
                 <div className="text-[10px] font-semibold text-amber-700 uppercase tracking-wide mb-1.5">
-                  {t('keyPhrases', nativeLanguage)}
+                  {t('grammar.keyPhrases')}
                 </div>
                 <div className="space-y-1.5">
                   {analysis.keyPhrases.map((kp: any, i: number) => (
@@ -134,7 +125,7 @@ export default function GrammarPanel({ analysis, nativeLanguage, messageText, me
 
             {/* Fallback: if no summary and no key phrases */}
             {!analysis.summary && (!analysis.keyPhrases || analysis.keyPhrases.length === 0) && (
-              <p className="text-xs text-amber-600 italic">{t('noData', nativeLanguage)}</p>
+              <p className="text-xs text-amber-600 italic">{t('grammar.noData')}</p>
             )}
           </div>
         )}
@@ -165,12 +156,12 @@ export default function GrammarPanel({ analysis, nativeLanguage, messageText, me
                       <div className="px-2 pb-2 border-t border-amber-100 pt-1.5">
                         {item.translation && (
                           <div className="text-xs text-gray-700 mb-1">
-                            <span className="font-medium text-amber-700">Meaning:</span> {item.translation}
+                            <span className="font-medium text-amber-700">{t('grammar.meaning')}</span> {item.translation}
                           </div>
                         )}
                         {item.note && (
                           <div className="text-[11px] text-gray-600">
-                            <span className="font-medium text-amber-700">Note:</span> {item.note}
+                            <span className="font-medium text-amber-700">{t('grammar.note')}</span> {item.note}
                           </div>
                         )}
                         {item.explanation && !item.translation && (
@@ -182,7 +173,7 @@ export default function GrammarPanel({ analysis, nativeLanguage, messageText, me
                 )
               })
             ) : (
-              <p className="text-xs text-amber-600 italic">{t('noData', nativeLanguage)}</p>
+              <p className="text-xs text-amber-600 italic">{t('grammar.noData')}</p>
             )}
           </div>
         )}
@@ -206,7 +197,7 @@ export default function GrammarPanel({ analysis, nativeLanguage, messageText, me
                 </div>
               ))
             ) : (
-              <p className="text-xs text-amber-600 italic">{t('noData', nativeLanguage)}</p>
+              <p className="text-xs text-amber-600 italic">{t('grammar.noData')}</p>
             )}
           </div>
         )}
