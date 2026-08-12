@@ -17,19 +17,27 @@ type AdminWaitlistHandler struct {
 	users         *services.UserService
 	invitations   *services.InvitationService
 	notifications *services.NotificationService
+	translations  *services.TranslationQueueService
 	adminEmails   map[string]bool
 	inviteURL     string
 }
 
-func NewAdminWaitlistHandler(db *sql.DB, users *services.UserService, invitations *services.InvitationService, notifications *services.NotificationService, adminEmails []string, inviteURL string) *AdminWaitlistHandler {
+func NewAdminWaitlistHandler(db *sql.DB, users *services.UserService, invitations *services.InvitationService, notifications *services.NotificationService, translations *services.TranslationQueueService, adminEmails []string, inviteURL string) *AdminWaitlistHandler {
 	allowed := make(map[string]bool, len(adminEmails))
 	for _, email := range adminEmails {
 		allowed[strings.ToLower(strings.TrimSpace(email))] = true
 	}
-	return &AdminWaitlistHandler{db: db, users: users, invitations: invitations, notifications: notifications, adminEmails: allowed, inviteURL: strings.TrimRight(inviteURL, "?")}
+	return &AdminWaitlistHandler{db: db, users: users, invitations: invitations, notifications: notifications, translations: translations, adminEmails: allowed, inviteURL: strings.TrimRight(inviteURL, "?")}
 }
 
+// authorize requires the admin role. The role is set by AuthMiddleware; the
+// legacy email allowlist is kept as a fallback for deployments not yet using
+// roles (EnsureAdminRoles seeds it at startup anyway).
 func (h *AdminWaitlistHandler) authorize(c *gin.Context) bool {
+	role, _ := c.Get("userRole")
+	if services.RoleAtLeast(roleString(role), services.RoleAdmin) {
+		return true
+	}
 	user, err := h.users.GetByID(c.GetString("userID"))
 	if err != nil || !h.adminEmails[strings.ToLower(user.Email)] {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Admin access required"})
@@ -38,15 +46,22 @@ func (h *AdminWaitlistHandler) authorize(c *gin.Context) bool {
 	return true
 }
 
-// Status reports whether the authenticated user is an admin. Unlike authorize
-// it never 403s — the response body is authoritative.
+// Status reports the authenticated user's role and admin/moderator flags.
+// Unlike authorize it never 403s — the response body is authoritative.
 func (h *AdminWaitlistHandler) Status(c *gin.Context) {
 	user, err := h.users.GetByID(c.GetString("userID"))
+	role := services.RoleMember
 	isAdmin := false
+	isModerator := false
 	if err == nil {
-		isAdmin = h.adminEmails[strings.ToLower(user.Email)]
+		role = user.Role
+		if !services.ValidRole(role) {
+			role = services.RoleMember
+		}
+		isAdmin = services.RoleAtLeast(role, services.RoleAdmin) || h.adminEmails[strings.ToLower(user.Email)]
+		isModerator = isAdmin || services.RoleAtLeast(role, services.RoleModerator)
 	}
-	c.JSON(http.StatusOK, gin.H{"isAdmin": isAdmin})
+	c.JSON(http.StatusOK, gin.H{"role": role, "isAdmin": isAdmin, "isModerator": isModerator})
 }
 
 // List returns waitlist entries. Query params: status (pending|approved|declined|all,
@@ -163,7 +178,8 @@ func (h *AdminWaitlistHandler) ResendInvite(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "Invitation re-sent"})
 }
 
-// Stats aggregates user, waitlist and email-delivery numbers for the admin UI.
+// Stats aggregates user, waitlist, email-delivery and translation numbers for
+// the admin UI.
 func (h *AdminWaitlistHandler) Stats(c *gin.Context) {
 	if !h.authorize(c) {
 		return
@@ -172,13 +188,19 @@ func (h *AdminWaitlistHandler) Stats(c *gin.Context) {
 	count := func(query string, dest *int) {
 		h.db.QueryRow(query).Scan(dest)
 	}
-	count(`SELECT COUNT(*) FROM users`, &s.TotalUsers)
+	count(`SELECT COUNT(*) FROM users WHERE deleted_at IS NULL`, &s.TotalUsers)
+	count(`SELECT COUNT(*) FROM users WHERE role = 'moderator' AND deleted_at IS NULL`, &s.Moderators)
+	count(`SELECT COUNT(*) FROM users WHERE role = 'admin' AND deleted_at IS NULL`, &s.Admins)
+	count(`SELECT COUNT(*) FROM users WHERE suspended_at IS NOT NULL AND deleted_at IS NULL`, &s.SuspendedUsers)
 	count(`SELECT COUNT(*) FROM waitlist_entries WHERE status = 'pending'`, &s.WaitlistPending)
 	count(`SELECT COUNT(*) FROM waitlist_entries WHERE status = 'approved'`, &s.WaitlistApproved)
 	count(`SELECT COUNT(*) FROM waitlist_entries WHERE status = 'declined'`, &s.WaitlistDeclined)
 	count(`SELECT COUNT(*) FROM email_outbox WHERE status = 'pending'`, &s.EmailsPending)
 	count(`SELECT COUNT(*) FROM email_outbox WHERE status = 'sent'`, &s.EmailsSent)
 	count(`SELECT COUNT(*) FROM email_outbox WHERE status = 'failed'`, &s.EmailsFailed)
+	if h.translations != nil {
+		s.TranslationsPending, _, s.TranslationsCompleted, s.TranslationsFailed = h.translations.Stats() // pending, processing, done, failed
+	}
 	c.JSON(200, s)
 }
 
@@ -205,4 +227,13 @@ func (h *AdminWaitlistHandler) RetryEmail(c *gin.Context) {
 		return
 	}
 	c.JSON(200, gin.H{"message": "Email sent"})
+}
+
+// roleString safely extracts the role stored in the request context by
+// AuthMiddleware.
+func roleString(v interface{}) string {
+	if s, ok := v.(string); ok {
+		return s
+	}
+	return ""
 }

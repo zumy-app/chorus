@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { authAPI } from '../services/api'
 import { detectBrowserLanguage, getNativeLanguageName } from '../services/language'
 import LanguageSelector from '../components/LanguageSelector'
@@ -9,6 +10,7 @@ interface RegisterProps {
 }
 
 export default function Register({ onRegister }: RegisterProps) {
+  const { t } = useTranslation()
   const [searchParams] = useSearchParams()
   const inviteToken = searchParams.get('invite') || ''
   const [email, setEmail] = useState('')
@@ -47,7 +49,7 @@ export default function Register({ onRegister }: RegisterProps) {
         (typeof err?.response?.data === 'string'
           ? err.response.data
           : err?.response?.data?.error) ||
-        'Registration failed'
+        t('auth.registrationFailed')
 
       if (status === 409 || errorMessage.toLowerCase().includes('already')) {
         try {
@@ -58,7 +60,7 @@ export default function Register({ onRegister }: RegisterProps) {
           onRegister(loginResponse.tokens)
           return
         } catch {
-          setError('Account exists but login failed. Please try Login.')
+          setError(t('auth.accountExistsLoginFailed'))
           return
         }
       }
@@ -88,15 +90,15 @@ export default function Register({ onRegister }: RegisterProps) {
               <path d="M7.5 7.5a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z"></path>
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-gray-800">Join Chorus</h1>
+          <h1 className="text-3xl font-bold text-gray-800">{t('auth.joinChorus')}</h1>
           <p className="text-gray-500 mt-2">
-            Your language: <strong>{nativeLangName}</strong>
+            {t('auth.yourLanguage')} <strong>{nativeLangName}</strong>
           </p>
         </div>
 
         {!inviteToken && (
           <div className="bg-amber-100 border border-amber-300 text-amber-800 px-4 py-3 rounded mb-4">
-            Registration is invite-only. <Link to="/waitlist" className="font-semibold underline">Join the waitlist</Link>.
+            {t('auth.inviteOnly')}{' '}<Link to="/waitlist" className="font-semibold underline">{t('auth.joinWaitlist')}</Link>.
           </div>
         )}
         {error && (
@@ -108,13 +110,13 @@ export default function Register({ onRegister }: RegisterProps) {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-gray-700 text-sm font-bold mb-2">
-              Email
+              {t('common.email')}
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              placeholder={t('common.emailPlaceholder')}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
               required
               autoFocus
@@ -123,13 +125,13 @@ export default function Register({ onRegister }: RegisterProps) {
 
           <div>
             <label className="block text-gray-700 text-sm font-bold mb-2">
-              Password
+              {t('common.password')}
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 8 characters"
+              placeholder={t('common.minCharsPlaceholder')}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
               required
               minLength={8}
@@ -141,19 +143,19 @@ export default function Register({ onRegister }: RegisterProps) {
             disabled={isLoading || !inviteToken}
             className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition disabled:opacity-50 text-lg"
           >
-            {isLoading ? 'Creating account...' : 'Create Account'}
+            {isLoading ? t('auth.creatingAccount') : t('auth.createAccount')}
           </button>
         </form>
 
         <p className="text-center text-gray-600 mt-6">
-          Already have an account?{' '}
+          {t('auth.alreadyHaveAccount')}{' '}
           <Link to="/login" className="text-indigo-600 font-semibold hover:underline">
-            Log in
+            {t('auth.logIn')}
           </Link>
         </p>
 
         <p className="text-center text-xs text-gray-400 mt-4">
-          You can set up your display name and learning languages later.
+          {t('auth.setupLater')}
         </p>
       </div>
     </div>

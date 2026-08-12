@@ -18,10 +18,10 @@ func TestUserGetByID_Success(t *testing.T) {
 
 	s := NewUserService(db)
 
-	mock.ExpectQuery(`SELECT id, username, email, display_name, native_language, target_languages, created_at, last_active_at FROM users WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT id, username, email, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at FROM users WHERE id = \$1`).
 		WithArgs("user-1").
-		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "display_name", "native_language", "target_languages", "created_at", "last_active_at"}).
-			AddRow("user-1", "testuser", "test@example.com", "Test User", "en", pq.Array([]string{"es"}), time.Now(), time.Now()))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "display_name", "native_language", "target_languages", "role", "created_at", "last_active_at", "suspended_at", "deleted_at"}).
+			AddRow("user-1", "testuser", "test@example.com", "Test User", "en", pq.Array([]string{"es"}), "member", time.Now(), time.Now(), nil, nil))
 
 	user, err := s.GetByID("user-1")
 	if err != nil {
@@ -33,7 +33,12 @@ func TestUserGetByID_Success(t *testing.T) {
 	if user.Email != "test@example.com" {
 		t.Fatalf("expected test@example.com, got %s", user.Email)
 	}
-
+	if user.Role != "member" {
+		t.Fatalf("expected member role, got %s", user.Role)
+	}
+	if user.SuspendedAt != nil {
+		t.Fatal("expected user to be active")
+	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("unmet expectations: %v", err)
 	}
@@ -48,7 +53,7 @@ func TestUserGetByID_NotFound(t *testing.T) {
 
 	s := NewUserService(db)
 
-	mock.ExpectQuery(`SELECT id, username, email, display_name, native_language, target_languages, created_at, last_active_at FROM users WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT id, username, email, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at FROM users WHERE id = \$1`).
 		WithArgs("nonexistent").
 		WillReturnError(sqlmock.ErrCancelled)
 
@@ -77,10 +82,10 @@ func TestUserUpdate_Success(t *testing.T) {
 		TargetLanguages: []string{"en", "de"},
 	}
 
-	mock.ExpectQuery(`UPDATE users SET display_name = COALESCE\(NULLIF\(\$2, ''\), display_name\), native_language = COALESCE\(NULLIF\(\$3, ''\), native_language\), target_languages = COALESCE\(\$4, target_languages\) WHERE id = \$1 RETURNING id, username, email, display_name, native_language, target_languages, created_at, last_active_at`).
+	mock.ExpectQuery(`UPDATE users SET display_name = COALESCE\(NULLIF\(\$2, ''\), display_name\), native_language = COALESCE\(NULLIF\(\$3, ''\), native_language\), target_languages = COALESCE\(\$4, target_languages\) WHERE id = \$1 RETURNING id, username, email, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at`).
 		WithArgs("user-1", sqlmock.AnyArg(), sqlmock.AnyArg(), pq.Array(req.TargetLanguages)).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "display_name", "native_language", "target_languages", "created_at", "last_active_at"}).
-			AddRow("user-1", "testuser", "test@example.com", "Updated Name", "fr", pq.Array([]string{"en", "de"}), time.Now(), time.Now()))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "display_name", "native_language", "target_languages", "role", "created_at", "last_active_at", "suspended_at", "deleted_at"}).
+			AddRow("user-1", "testuser", "test@example.com", "Updated Name", "fr", pq.Array([]string{"en", "de"}), "member", time.Now(), time.Now(), nil, nil))
 
 	user, err := s.Update("user-1", req)
 	if err != nil {

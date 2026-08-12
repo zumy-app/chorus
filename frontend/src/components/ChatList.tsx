@@ -1,15 +1,17 @@
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useStore, getChatSlug } from '../store'
 import { formatDistanceToNow } from 'date-fns'
 
 export default function ChatList() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { chats, activeChat, user, setActiveChat } = useStore()
 
   if (chats.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-gray-500 p-4 text-center">
-        No chats yet. Create a new chat to get started!
+        {t('chat.noChatsYet')}
       </div>
     )
   }
@@ -29,8 +31,8 @@ export default function ChatList() {
           : null
 
         const chatName = chat.type === 'group' 
-          ? chat.name || 'Unnamed Group'
-          : otherParticipant?.displayName || 'Unknown User'
+          ? chat.name || t('chat.unnamedGroup')
+          : otherParticipant?.displayName || t('chat.unknownUser')
 
         return (
           <div
@@ -47,7 +49,7 @@ export default function ChatList() {
                 </div>
                 {chat.type === 'group' && (
                   <div className="text-xs text-gray-500">
-                    {chat.participants?.length || 0} members
+                    {t('common.members', { count: chat.participants?.length || 0 })}
                   </div>
                 )}
                 {chat.lastMessage && (

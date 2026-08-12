@@ -140,8 +140,15 @@ func (p *OpenAIProvider) Translate(ctx context.Context, req TranslateRequest) (T
 	}
 
 	var chatResp openAIChatResponse
-	if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
-		return TranslateResponse{}, fmt.Errorf("openai decode response: %w", err)
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return TranslateResponse{}, fmt.Errorf("openai read response: %w", err)
+	}
+	if err := json.Unmarshal(raw, &chatResp); err != nil {
+		// Surface status/content-type: a misconfigured base URL (bare domain
+		// instead of the /v1 endpoint) returns an HTML page, not JSON.
+		return TranslateResponse{}, fmt.Errorf("openai decode response: %w (status=%d, content-type=%s, body=%.300s)",
+			err, resp.StatusCode, resp.Header.Get("Content-Type"), string(raw))
 	}
 
 	if len(chatResp.Choices) == 0 {

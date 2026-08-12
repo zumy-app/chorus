@@ -11,12 +11,68 @@ import (
 )
 
 // ProviderDef holds the configuration for a single provider in the chain.
+//
+// New-style env keys (canonical):
+//
+//	PROVIDER_<NAME>_URL     -> URL          (e.g. PROVIDER_OPENROUTER_URL)
+//	PROVIDER_<NAME>_KEY     -> Key          (e.g. PROVIDER_OPENROUTER_KEY)
+//	PROVIDER_<NAME>_TIMEOUT -> Timeout
+//	MODEL_TRANSLATION_<NAME> -> ModelTranslation
+//	MODEL_GRAMMAR_<NAME>     -> ModelGrammar
+//
+// Legacy keys are still accepted so existing deployments keep working:
+// PROVIDER_<ALIAS>_TYPE, PROVIDER_<ALIAS>_API_URL, PROVIDER_<ALIAS>_API_KEY,
+// PROVIDER_<ALIAS>_MODEL. When TYPE is empty it is derived from the provider
+// name (openrouter, opencode, nvidia, ollama, libretranslate, ...).
 type ProviderDef struct {
-	Type    string // "opencode", "ollama", "translator-engine", etc.
-	APIURL  string
-	APIKey  string
-	Model   string
-	Timeout int // seconds; 0 = use default
+	Name             string // canonical name, e.g. "openrouter"
+	Type             string // provider type; derived from Name when empty
+	URL              string // base URL
+	Key              string // API key
+	Timeout          int    // seconds; 0 = use provider default
+	ModelTranslation string // model used when this provider handles a translation
+	ModelGrammar     string // model used when this provider handles grammar analysis
+	LegacyModel      string // legacy single model (applies to both tasks)
+}
+
+// TranslationModel returns the model to use for translation jobs.
+func (d ProviderDef) TranslationModel() string {
+	if d.ModelTranslation != "" {
+		return d.ModelTranslation
+	}
+	return d.LegacyModel
+}
+
+// GrammarModel returns the model to use for grammar analysis.
+func (d ProviderDef) GrammarModel() string {
+	if d.ModelGrammar != "" {
+		return d.ModelGrammar
+	}
+	return d.LegacyModel
+}
+
+// EffectiveType returns the provider type, deriving it from the canonical
+// name when no explicit TYPE override was provided.
+func (d ProviderDef) EffectiveType() string {
+	if d.Type != "" {
+		return d.Type
+	}
+	if t, ok := providerTypeByName[d.Name]; ok {
+		return string(t)
+	}
+	return ""
+}
+
+// providerTypeByName maps canonical provider names to their provider type.
+var providerTypeByName = map[string]translation.ProviderType{
+	"openrouter":        translation.ProviderOpenRouter,
+	"opencode":          translation.ProviderOpenCode,
+	"openai":            translation.ProviderOpenAI,
+	"deepseek":          translation.ProviderDeepSeek,
+	"nvidia":            translation.ProviderNvidia,
+	"ollama":            translation.ProviderOllama,
+	"libretranslate":    translation.ProviderLibreTranslate,
+	"translator-engine": translation.ProviderEngine,
 }
 
 // Config holds all application configuration.
@@ -27,10 +83,6 @@ type Config struct {
 	JWTSecret             string
 	GoogleTranslateAPIKey string
 	Port                  string
-	AppwriteEndpoint      string
-	AppwriteProjectID     string
-	AppwriteAPIKey        string
-	AppwriteDatabaseID    string
 	SMTPHost              string
 	SMTPPort              int
 	SMTPUsername          string
@@ -81,10 +133,6 @@ func Load() *Config {
 		JWTSecret:             getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
 		GoogleTranslateAPIKey: getEnv("GOOGLE_TRANSLATE_API_KEY", ""),
 		Port:                  getEnv("PORT", "8080"),
-		AppwriteEndpoint:      getEnv("APPWRITE_ENDPOINT", ""),
-		AppwriteProjectID:     getEnv("APPWRITE_PROJECT_ID", ""),
-		AppwriteAPIKey:        getEnv("APPWRITE_API_KEY", ""),
-		AppwriteDatabaseID:    getEnv("APPWRITE_DATABASE_ID", ""),
 		SMTPHost:              getEnv("MAILU_SMTP_HOST", ""),
 		SMTPPort:              getEnvInt("MAILU_SMTP_PORT", 465),
 		SMTPUsername:          smtpUsername,
@@ -116,14 +164,10 @@ func Load() *Config {
 		cfg.AdminEmails = []string{cfg.SMTPUsername}
 	}
 
-	// Parse provider chain orders.
-	transOrder := getEnv("TRANSLATION_PROVIDER_ORDER", "")
-	// GRAMMAR_ANALYSIS_PROVIDER_ORDER is the canonical name; keep the legacy
-	// GRAMMAR_PROVIDER_ORDER as a fallback for existing setups.
-	grammarOrder := getEnv("GRAMMAR_ANALYSIS_PROVIDER_ORDER", "")
-	if grammarOrder == "" {
-		grammarOrder = getEnv("GRAMMAR_PROVIDER_ORDER", "")
-	}
+	// Parse provider chain orders. The new *FallbackOrder keys are canonical;
+	// the legacy *ProviderOrder keys remain supported for existing setups.
+	transOrder := getEnv("TRANSLATION_FALLBACK_ORDER", getEnv("TRANSLATION_PROVIDER_ORDER", ""))
+	grammarOrder := getEnv("GRAMMAR_FALLBACK_ORDER", getEnv("GRAMMAR_ANALYSIS_PROVIDER_ORDER", getEnv("GRAMMAR_PROVIDER_ORDER", "")))
 
 	if transOrder != "" {
 		cfg.TranslationProviderOrder = splitAndTrim(transOrder)
@@ -133,77 +177,104 @@ func Load() *Config {
 	}
 
 	// Parse individual provider definitions.
-	// Format: PROVIDER_<ALIAS>_<KEY>
-	// Example: PROVIDER_PRIMARY_TYPE=opencode
-	//          PROVIDER_PRIMARY_API_URL=https://opencode.ai/zen/go/v1
-	//          PROVIDER_PRIMARY_API_KEY=sk-...
+	// New style:  PROVIDER_<NAME>_URL / _KEY / _TIMEOUT, MODEL_TRANSLATION_<NAME>,
+	//             MODEL_GRAMMAR_<NAME>
+	// Legacy:     PROVIDER_<ALIAS>_TYPE / _API_URL / _API_KEY / _MODEL / _TIMEOUT
+	//
+	// Suffixes are matched longest-first so "_API_KEY" wins over "_KEY" and
+	// multi-part names like "opencode_go" are handled correctly.
+	knownFields := []struct {
+		suffix string
+		field  string
+	}{
+		{"_API_KEY", "KEY"},
+		{"_API_URL", "URL"},
+		{"_TIMEOUT", "TIMEOUT"},
+		{"_MODEL", "MODEL"},
+		{"_TYPE", "TYPE"},
+		{"_KEY", "KEY"},
+		{"_URL", "URL"},
+	}
 	for _, env := range os.Environ() {
 		if !strings.HasPrefix(env, "PROVIDER_") {
 			continue
 		}
-		// env is "PROVIDER_<ALIAS>_<KEY>=<VALUE>"
 		eqIdx := strings.Index(env, "=")
 		if eqIdx == -1 {
 			continue
 		}
-		key := env[:eqIdx]     // PROVIDER_ALIAS_KEY
-		value := env[eqIdx+1:] // the value
-
-		// Strip "PROVIDER_" prefix -> "ALIAS_KEY"
+		key := env[:eqIdx]
+		value := env[eqIdx+1:]
 		rest := key[len("PROVIDER_"):]
 
-		// Match known field suffixes from longest to shortest
-		// so "API_KEY" is matched before just "KEY", and multi-part
-		// aliases like "opencode_go" are handled correctly.
-		type suffixEntry struct {
-			suffix string // with leading underscore, e.g. "_API_KEY"
-			field  string // the field name, e.g. "API_KEY"
-		}
-		knownFields := []suffixEntry{
-			{"_API_KEY", "API_KEY"},
-			{"_API_URL", "API_URL"},
-			{"_TIMEOUT", "TIMEOUT"},
-			{"_MODEL", "MODEL"},
-			{"_TYPE", "TYPE"},
-		}
-		var alias string
-		var field string
+		var name, field string
 		for _, entry := range knownFields {
 			if strings.HasSuffix(rest, entry.suffix) {
-				alias = strings.ToLower(rest[:len(rest)-len(entry.suffix)])
+				name = strings.ToLower(rest[:len(rest)-len(entry.suffix)])
 				field = entry.field
 				break
 			}
 		}
-		if alias == "" {
+		if name == "" {
 			continue
 		}
 
-		def := cfg.Providers[alias]
+		def := cfg.Providers[name]
 		switch field {
-		case "TYPE":
-			def.Type = value
-		case "API_URL":
-			def.APIURL = value
-		case "API_KEY":
-			def.APIKey = value
-		case "MODEL":
-			def.Model = value
+		case "URL":
+			def.URL = value
+		case "KEY":
+			def.Key = value
 		case "TIMEOUT":
 			if v, err := strconv.Atoi(value); err == nil {
 				def.Timeout = v
 			}
+		case "TYPE":
+			def.Type = value
+		case "MODEL":
+			def.LegacyModel = value
 		}
-		cfg.Providers[alias] = def
+		def.Name = name
+		cfg.Providers[name] = def
+	}
+
+	// Task-specific models: MODEL_TRANSLATION_<NAME> / MODEL_GRAMMAR_<NAME>.
+	for _, env := range os.Environ() {
+		var prefix, field string
+		switch {
+		case strings.HasPrefix(env, "MODEL_TRANSLATION_"):
+			prefix, field = "MODEL_TRANSLATION_", "ModelTranslation"
+		case strings.HasPrefix(env, "MODEL_GRAMMAR_"):
+			prefix, field = "MODEL_GRAMMAR_", "ModelGrammar"
+		default:
+			continue
+		}
+		eqIdx := strings.Index(env, "=")
+		if eqIdx == -1 {
+			continue
+		}
+		name := strings.ToLower(env[len(prefix):eqIdx])
+		if name == "" {
+			continue
+		}
+		def := cfg.Providers[name]
+		def.Name = name
+		switch field {
+		case "ModelTranslation":
+			def.ModelTranslation = env[eqIdx+1:]
+		case "ModelGrammar":
+			def.ModelGrammar = env[eqIdx+1:]
+		}
+		cfg.Providers[name] = def
 	}
 
 	// If no order is specified, default to legacy single-provider mode.
 	// The caller (main.go) handles this by checking len(TranslationProviderOrder)==0.
 	if len(cfg.TranslationProviderOrder) == 0 {
-		log.Printf("[Config] TRANSLATION_PROVIDER_ORDER not set, using legacy single-provider config")
+		log.Printf("[Config] TRANSLATION_FALLBACK_ORDER not set, using legacy single-provider config")
 	}
 	if len(cfg.GrammarProviderOrder) == 0 {
-		log.Printf("[Config] GRAMMAR_ANALYSIS_PROVIDER_ORDER not set, using legacy single-provider config")
+		log.Printf("[Config] GRAMMAR_FALLBACK_ORDER not set, using legacy single-provider config")
 	}
 
 	return cfg
@@ -240,15 +311,27 @@ func splitAndTrim(s string) []string {
 // Warning describes a configuration problem found during the startup check.
 // It never contains secret values — only env var names.
 type Warning struct {
-	Provider string // provider alias, e.g. "openrouter"
+	Provider string // provider name, e.g. "openrouter"
 	EnvKey   string // the env var that is missing/empty, if applicable
 	Message  string // human-readable description
 }
 
 // EnvKeyFor builds the canonical env var name for a provider field, e.g.
-// EnvKeyFor("openrouter", "API_KEY") == "PROVIDER_OPENROUTER_API_KEY".
+// EnvKeyFor("openrouter", "KEY") == "PROVIDER_OPENROUTER_KEY".
 func EnvKeyFor(alias, field string) string {
 	return fmt.Sprintf("PROVIDER_%s_%s", strings.ToUpper(alias), field)
+}
+
+// ModelTranslationKeyFor returns the env var for a provider's translation model,
+// e.g. ModelTranslationKeyFor("openrouter") == "MODEL_TRANSLATION_OPENROUTER".
+func ModelTranslationKeyFor(alias string) string {
+	return fmt.Sprintf("MODEL_TRANSLATION_%s", strings.ToUpper(alias))
+}
+
+// ModelGrammarKeyFor returns the env var for a provider's grammar model,
+// e.g. ModelGrammarKeyFor("openrouter") == "MODEL_GRAMMAR_OPENROUTER".
+func ModelGrammarKeyFor(alias string) string {
+	return fmt.Sprintf("MODEL_GRAMMAR_%s", strings.ToUpper(alias))
 }
 
 // Validate inspects the loaded provider config and returns a list of warnings
@@ -266,55 +349,73 @@ func (c *Config) Validate() []Warning {
 			if !ok {
 				warnings = append(warnings, Warning{
 					Provider: alias,
-					EnvKey:   EnvKeyFor(alias, "TYPE"),
+					EnvKey:   EnvKeyFor(alias, "KEY"),
 					Message: fmt.Sprintf("%q appears in %s but has no PROVIDER_%s_* configuration — it will be skipped",
 						alias, orderEnvKey, strings.ToUpper(alias)),
 				})
 				continue
 			}
-			if strings.TrimSpace(def.Type) == "" {
+			if def.EffectiveType() == "" {
 				warnings = append(warnings, Warning{
 					Provider: alias,
 					EnvKey:   EnvKeyFor(alias, "TYPE"),
-					Message:  fmt.Sprintf("provider %q has no TYPE (set %s)", alias, EnvKeyFor(alias, "TYPE")),
+					Message: fmt.Sprintf("provider %q is not a known provider name (set %s or use a supported name)",
+						alias, EnvKeyFor(alias, "TYPE")),
 				})
 			}
 		}
 	}
-	checkOrder(c.TranslationProviderOrder, "TRANSLATION_PROVIDER_ORDER")
-	checkOrder(c.GrammarProviderOrder, "GRAMMAR_ANALYSIS_PROVIDER_ORDER")
+	checkOrder(c.TranslationProviderOrder, "TRANSLATION_FALLBACK_ORDER")
+	checkOrder(c.GrammarProviderOrder, "GRAMMAR_FALLBACK_ORDER")
 
 	// Every defined provider: check required fields per type.
 	for alias, def := range c.Providers {
-		pType := translation.ProviderType(def.Type)
-		if def.Type == "" {
+		pType := translation.ProviderType(def.EffectiveType())
+		if pType == "" {
 			continue // already warned above
 		}
 		if translation.NeedsAPIKey(pType) {
-			if def.APIKey == "" {
+			if def.Key == "" {
 				warnings = append(warnings, Warning{
 					Provider: alias,
-					EnvKey:   EnvKeyFor(alias, "API_KEY"),
+					EnvKey:   EnvKeyFor(alias, "KEY"),
 					Message: fmt.Sprintf("provider %q (%s) needs an API key but %s is empty — it will be skipped",
-						alias, def.Type, EnvKeyFor(alias, "API_KEY")),
+						alias, def.EffectiveType(), EnvKeyFor(alias, "KEY")),
 				})
 			}
-			if def.APIURL == "" {
+			if def.URL == "" {
 				warnings = append(warnings, Warning{
 					Provider: alias,
-					EnvKey:   EnvKeyFor(alias, "API_URL"),
-					Message: fmt.Sprintf("provider %q (%s) has no API URL set — a built-in default will be used",
-						alias, def.Type),
+					EnvKey:   EnvKeyFor(alias, "URL"),
+					Message: fmt.Sprintf("provider %q (%s) has no %s — a built-in default will be used",
+						alias, def.EffectiveType(), EnvKeyFor(alias, "URL")),
 				})
 			}
 		}
-		if !translation.IsLocalProvider(pType) && def.Model == "" {
-			warnings = append(warnings, Warning{
-				Provider: alias,
-				EnvKey:   EnvKeyFor(alias, "MODEL"),
-				Message: fmt.Sprintf("provider %q (%s) has no MODEL set — a built-in default will be used",
-					alias, def.Type),
-			})
+		if !translation.IsLocalProvider(pType) {
+			models := []struct {
+				key   string
+				value string
+			}{
+				{ModelTranslationKeyFor(alias), def.ModelTranslation},
+				{ModelGrammarKeyFor(alias), def.ModelGrammar},
+			}
+			if def.LegacyModel == "" {
+				missing := []string{}
+				for _, m := range models {
+					if m.value == "" {
+						missing = append(missing, m.key)
+					}
+				}
+				if len(missing) > 0 {
+					warnings = append(warnings, Warning{
+						Provider: alias,
+						EnvKey:   strings.Join(missing, " / "),
+						Message: fmt.Sprintf("provider %q (%s) has no task model set (%s) — built-in defaults will be used",
+							alias, def.EffectiveType(), strings.Join(missing, ", ")),
+					})
+				}
+			}
 		}
 	}
 
@@ -323,14 +424,14 @@ func (c *Config) Validate() []Warning {
 	if len(c.TranslationProviderOrder) > 0 && !orderHasLocal(c.TranslationProviderOrder, c.Providers) {
 		warnings = append(warnings, Warning{
 			Provider: "chain",
-			EnvKey:   "TRANSLATION_PROVIDER_ORDER",
+			EnvKey:   "TRANSLATION_FALLBACK_ORDER",
 			Message:  "translation chain has no offline/local provider (ollama, libretranslate, translator-engine) as a guaranteed fallback",
 		})
 	}
 	if len(c.GrammarProviderOrder) > 0 && !orderHasLocal(c.GrammarProviderOrder, c.Providers) {
 		warnings = append(warnings, Warning{
 			Provider: "chain",
-			EnvKey:   "GRAMMAR_ANALYSIS_PROVIDER_ORDER",
+			EnvKey:   "GRAMMAR_FALLBACK_ORDER",
 			Message:  "grammar chain has no offline/local provider (ollama) as a guaranteed fallback",
 		})
 	}
@@ -355,7 +456,7 @@ func orderHasLocal(order []string, providers map[string]ProviderDef) bool {
 		if !ok {
 			continue
 		}
-		if translation.IsLocalProvider(translation.ProviderType(def.Type)) {
+		if translation.IsLocalProvider(translation.ProviderType(def.EffectiveType())) {
 			return true
 		}
 	}

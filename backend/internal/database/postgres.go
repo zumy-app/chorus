@@ -276,6 +276,39 @@ func Migrate(db *sql.DB) error {
 			window_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY (user_id, action_type)
 		)`,
+
+		// Roles & account state: role gates admin/moderation endpoints,
+		// suspended_at is a reversible soft ban, deleted_at is a permanent
+		// soft delete (account is blocked but history/chats remain intact).
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'member'`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS suspended_at TIMESTAMP`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP`,
+		`CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)`,
+		`CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users(deleted_at) WHERE deleted_at IS NULL`,
+
+		// Durable translation jobs: one row per (message, target language).
+		// Rows are the source of truth; Redis pub/sub is only the near-real-time
+		// trigger. The queue worker + sweeper + startup recovery are implemented
+		// in TranslationQueueService.
+		`CREATE TABLE IF NOT EXISTS translation_jobs (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			message_id UUID NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+			chat_id UUID NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+			text TEXT NOT NULL,
+			source_lang VARCHAR(10),
+			target_lang VARCHAR(10) NOT NULL,
+			status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'done', 'failed')),
+			result TEXT,
+			attempts INTEGER NOT NULL DEFAULT 0,
+			last_error TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			next_attempt_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			processing_at TIMESTAMP,
+			completed_at TIMESTAMP,
+			UNIQUE(message_id, target_lang)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_translation_jobs_status ON translation_jobs(status, next_attempt_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_translation_jobs_message ON translation_jobs(message_id)`,
 	}
 
 	for _, migration := range migrations {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { vocabularyAPI } from '../services/api'
 import { formatDistanceToNow } from 'date-fns'
 
@@ -23,6 +24,7 @@ interface VocabularyProps {
 }
 
 export default function Vocabulary({ onClose }: VocabularyProps) {
+  const { t } = useTranslation()
   const [entries, setEntries] = useState<VocabularyEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [tab, setTab] = useState<'all' | 'due'>('due')
@@ -67,7 +69,7 @@ export default function Vocabulary({ onClose }: VocabularyProps) {
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col">
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-gray-900">📚 Vocabulary</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{t('storage.vocabulary')}</h2>
             <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">×</button>
           </div>
 
@@ -76,19 +78,19 @@ export default function Vocabulary({ onClose }: VocabularyProps) {
             <div className="grid grid-cols-4 gap-3 mb-4">
               <div className="bg-indigo-50 rounded-lg p-3 text-center">
                 <div className="text-2xl font-bold text-indigo-600">{stats.totalVocabulary || 0}</div>
-                <div className="text-xs text-gray-600">Total Words</div>
+                <div className="text-xs text-gray-600">{t('storage.totalWords')}</div>
               </div>
               <div className="bg-green-50 rounded-lg p-3 text-center">
                 <div className="text-2xl font-bold text-green-600">{stats.masteredCount || 0}</div>
-                <div className="text-xs text-gray-600">Mastered</div>
+                <div className="text-xs text-gray-600">{t('storage.mastered')}</div>
               </div>
               <div className="bg-yellow-50 rounded-lg p-3 text-center">
                 <div className="text-2xl font-bold text-yellow-600">{stats.dueToday || 0}</div>
-                <div className="text-xs text-gray-600">Due Today</div>
+                <div className="text-xs text-gray-600">{t('storage.dueToday')}</div>
               </div>
               <div className="bg-blue-50 rounded-lg p-3 text-center">
                 <div className="text-2xl font-bold text-blue-600">{Math.round((stats.accuracy || 0) * 100)}%</div>
-                <div className="text-xs text-gray-600">Accuracy</div>
+                <div className="text-xs text-gray-600">{t('storage.accuracy')}</div>
               </div>
             </div>
           )}
@@ -101,7 +103,7 @@ export default function Vocabulary({ onClose }: VocabularyProps) {
                 tab === 'due' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              Due for Review {stats?.dueToday ? `(${stats.dueToday})` : ''}
+              {t('storage.dueForReview', { count: stats?.dueToday || 0 })}
             </button>
             <button
               onClick={() => setTab('all')}
@@ -109,24 +111,24 @@ export default function Vocabulary({ onClose }: VocabularyProps) {
                 tab === 'all' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              All Words ({stats?.totalVocabulary || 0})
+              {t('storage.allWords', { count: stats?.totalVocabulary || 0 })}
             </button>
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
           {isLoading ? (
-            <div className="text-center text-gray-500 py-8">Loading...</div>
+            <div className="text-center text-gray-500 py-8">{t('common.loading')}</div>
           ) : entries.length === 0 ? (
             <div className="text-center text-gray-500 py-12">
               <p className="text-5xl mb-4">🎉</p>
               <p className="text-lg font-medium mb-2">
-                {tab === 'due' ? 'No words due for review!' : 'No vocabulary saved yet'}
+                {tab === 'due' ? t('storage.noWordsDue') : t('storage.noWordsSaved')}
               </p>
               <p className="text-sm">
                 {tab === 'due'
-                  ? 'Great job keeping up with your studies!'
-                  : 'Save words from your conversations to build your vocabulary.'}
+                  ? t('storage.greatJob')
+                  : t('storage.saveWordsHint')}
               </p>
             </div>
           ) : (
@@ -147,15 +149,15 @@ export default function Vocabulary({ onClose }: VocabularyProps) {
                       )}
                       {entry.context?.sentence && (
                         <p className="text-xs text-gray-400 mt-1">
-                          Context: "{entry.context.sentence}"
+                          {t('storage.context', { text: entry.context.sentence })}
                         </p>
                       )}
                       {entry.learningData && (
                         <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                          <span>Reviewed {entry.learningData.reviewCount}x</span>
-                          <span>Interval: {entry.learningData.interval}d</span>
+                          <span>{t('storage.reviewed', { count: entry.learningData.reviewCount })}</span>
+                          <span>{t('storage.interval', { count: entry.learningData.interval })}</span>
                           {entry.learningData.nextReview && (
-                            <span>Next: {formatDistanceToNow(new Date(entry.learningData.nextReview), { addSuffix: true })}</span>
+                            <span>{t('storage.next', { date: formatDistanceToNow(new Date(entry.learningData.nextReview), { addSuffix: true }) })}</span>
                           )}
                         </div>
                       )}
@@ -165,14 +167,14 @@ export default function Vocabulary({ onClose }: VocabularyProps) {
                         <button
                           onClick={() => handlePractice(entry.id, true)}
                           className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-sm hover:bg-green-200 transition"
-                          title="I knew this"
+                          title={t('storage.knewThis')}
                         >
                           ✓
                         </button>
                         <button
                           onClick={() => handlePractice(entry.id, false)}
                           className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm hover:bg-red-200 transition"
-                          title="I didn't know this"
+                          title={t('storage.didntKnow')}
                         >
                           ✗
                         </button>

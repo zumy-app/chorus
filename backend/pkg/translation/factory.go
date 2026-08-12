@@ -95,13 +95,47 @@ func (c Config) Configured() bool {
 	return IsLocalProvider(c.Provider) || c.Provider == ""
 }
 
+// normalizeBaseURL returns the canonical OpenAI-compatible endpoint when the
+// configured URL points at a provider's bare domain (a common misconfiguration
+// that would return an HTML page instead of JSON). Otherwise the URL is returned
+// unchanged so custom/self-hosted endpoints keep working.
+func normalizeBaseURL(t ProviderType, baseURL string) string {
+	if baseURL == "" {
+		return baseURL
+	}
+	base := strings.TrimRight(baseURL, "/")
+	switch t {
+	case ProviderOpenRouter:
+		if base == "https://openrouter.ai" || base == "http://openrouter.ai" || base == "openrouter.ai" {
+			return base + "/api/v1"
+		}
+	case ProviderNvidia:
+		if base == "https://integrate.api.nvidia.com" || base == "http://integrate.api.nvidia.com" || base == "integrate.api.nvidia.com" {
+			return base + "/v1"
+		}
+	case ProviderOpenAI:
+		if base == "https://api.openai.com" || base == "http://api.openai.com" {
+			return base + "/v1"
+		}
+	case ProviderDeepSeek:
+		if base == "https://api.deepseek.com" || base == "http://api.deepseek.com" {
+			return base + "/v1"
+		}
+	case ProviderOpenCode:
+		if base == "https://opencode.ai" || base == "http://opencode.ai" {
+			return base + "/zen/go/v1"
+		}
+	}
+	return base
+}
+
 // NewProvider creates a translation provider based on the given configuration.
 // Returns an error if the provider type is unknown.
 func NewProvider(cfg Config) (Provider, error) {
 	switch cfg.Provider {
 	case ProviderOpenCode, ProviderOpenAI, ProviderOpenRouter, ProviderDeepSeek, ProviderNvidia:
 		// All OpenAI-compatible providers use the same implementation.
-		baseURL := cfg.APIURL
+		baseURL := normalizeBaseURL(cfg.Provider, cfg.APIURL)
 		if baseURL == "" {
 			switch cfg.Provider {
 			case ProviderOpenCode:

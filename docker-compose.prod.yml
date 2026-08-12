@@ -105,10 +105,6 @@ services:
       - MAILU_SMTP_USERNAME=${MAILU_SMTP_USERNAME:-}
       - MAILU_SMTP_PASSWORD=${MAILU_SMTP_PASSWORD:-}
       - MAILU_SMTP_FROM=${MAILU_SMTP_FROM:-}
-      - APPWRITE_ENDPOINT=${APPWRITE_ENDPOINT:-}
-      - APPWRITE_PROJECT_ID=${APPWRITE_PROJECT_ID:-}
-      - APPWRITE_API_KEY=${APPWRITE_API_KEY:-}
-      - APPWRITE_DATABASE_ID=${APPWRITE_DATABASE_ID:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -127,10 +123,6 @@ services:
       dockerfile: Dockerfile
       args:
         - NGINX_CONFIG=nginx.prod.conf
-        - VITE_APPWRITE_ENDPOINT=${VITE_APPWRITE_ENDPOINT:-}
-        - VITE_APPWRITE_PROJECT_ID=${VITE_APPWRITE_PROJECT_ID:-}
-        - VITE_APPWRITE_DATABASE_ID=${VITE_APPWRITE_DATABASE_ID:-}
-        - VITE_APPWRITE_CLIENT_API_KEY=${VITE_APPWRITE_CLIENT_API_KEY:-}
     container_name: chorus-frontend
     labels:
       - "traefik.enable=true"

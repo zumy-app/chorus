@@ -1,4 +1,7 @@
+import { useTranslation } from 'react-i18next'
+
 export default function About() {
+  const { t } = useTranslation()
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       <div className="max-w-3xl mx-auto px-6 py-16">
@@ -9,33 +12,29 @@ export default function About() {
               <path d="M7.5 7.5a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z"></path>
             </svg>
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">About Chorus</h1>
-          <p className="text-xl text-gray-600">Breaking language barriers through real-time communication</p>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">{t('about.title')}</h1>
+          <p className="text-xl text-gray-600">{t('about.subtitle')}</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Our Mission</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('about.mission')}</h2>
           <p className="text-gray-600 leading-relaxed mb-6">
-            Chorus is a multilingual messenger designed to connect people across language barriers. 
-            We believe that language should never be a barrier to meaningful communication. 
-            Our platform provides real-time translation in 9 languages, making it easy for anyone 
-            to chat with people from around the world.
+            {t('about.missionP1')}
           </p>
           <p className="text-gray-600 leading-relaxed">
-            Whether you're learning a new language, connecting with international friends, 
-            or doing business across borders, Chorus makes communication seamless and natural.
+            {t('about.missionP2')}
           </p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Key Features</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('about.features')}</h2>
           <ul className="space-y-4">
             {[
-              { icon: '🌐', title: 'Instant Translation', desc: 'Messages are automatically translated to your preferred language in real-time.' },
-              { icon: '✏️', title: 'Grammar Analysis', desc: 'AI-powered grammar checking with CEFR difficulty assessment helps you learn while you chat.' },
-              { icon: '📚', title: 'Vocabulary Builder', desc: 'Smart spaced repetition system helps you remember new words from your conversations.' },
-              { icon: '👥', title: 'Group Chats', desc: 'Create multilingual group conversations with up to 100 participants.' },
-              { icon: '🔒', title: 'Privacy First', desc: 'Your conversations are encrypted and secure.' },
+              { icon: '🌐', title: t('about.featuresItems.translation.title'), desc: t('about.featuresItems.translation.desc') },
+              { icon: '✏️', title: t('about.featuresItems.grammar.title'), desc: t('about.featuresItems.grammar.desc') },
+              { icon: '📚', title: t('about.featuresItems.vocabulary.title'), desc: t('about.featuresItems.vocabulary.desc') },
+              { icon: '👥', title: t('about.featuresItems.groups.title'), desc: t('about.featuresItems.groups.desc') },
+              { icon: '🔒', title: t('about.featuresItems.privacy.title'), desc: t('about.featuresItems.privacy.desc') },
             ].map((feature, i) => (
               <li key={i} className="flex items-start space-x-4">
                 <span className="text-2xl">{feature.icon}</span>
@@ -49,7 +48,7 @@ export default function About() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Supported Languages</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('about.supportedLanguages')}</h2>
           <div className="grid grid-cols-3 gap-4">
             {[
               { flag: '🇬🇧', name: 'English' },
@@ -71,8 +70,8 @@ export default function About() {
         </div>
 
         <div className="text-center text-gray-500 text-sm">
-          <p>Version 2.0.0</p>
-          <p className="mt-1">© 2026 Chorus. All rights reserved.</p>
+          <p>{t('about.version')}</p>
+          <p className="mt-1">{t('about.copyright')}</p>
         </div>
       </div>
     </div>

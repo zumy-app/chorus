@@ -5,8 +5,11 @@ export interface User {
   displayName: string
   nativeLanguage: string
   targetLanguages: string[]
+  role: 'member' | 'moderator' | 'admin'
   createdAt: string
   lastActiveAt: string
+  suspendedAt?: string | null
+  deletedAt?: string | null
 }
 
 export interface Chat {
@@ -102,12 +105,46 @@ export interface EmailOutboxEntry {
 
 export interface AdminStats {
   totalUsers: number
+  moderators: number
+  admins: number
+  suspendedUsers: number
   waitlistPending: number
   waitlistApproved: number
   waitlistDeclined: number
   emailsPending: number
   emailsSent: number
   emailsFailed: number
+  translationsPending: number
+  translationsCompleted: number
+  translationsFailed: number
+}
+
+export interface TranslationJob {
+  id: string
+  messageId: string
+  chatId: string
+  text: string
+  sourceLang: string
+  targetLang: string
+  status: 'pending' | 'processing' | 'done' | 'failed'
+  result: string
+  attempts: number
+  lastError?: string
+  createdAt: string
+  nextAttemptAt?: string
+  completedAt?: string
+}
+
+export interface AdminStatus {
+  role: 'member' | 'moderator' | 'admin'
+  isAdmin: boolean
+  isModerator: boolean
+}
+
+export interface ProviderHealth {
+  name: string
+  ready: boolean
+  reason?: string
 }
 
 export interface CreateChatRequest {

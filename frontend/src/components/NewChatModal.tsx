@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useStore } from '../store'
 import { authAPI } from '../services/api'
 import type { User } from '../types'
@@ -8,6 +9,7 @@ interface NewChatModalProps {
 }
 
 export default function NewChatModal({ onClose }: NewChatModalProps) {
+  const { t } = useTranslation()
   const { createChat, setActiveChat } = useStore()
   const [chatType, setChatType] = useState<'direct' | 'group'>('direct')
   const [groupName, setGroupName] = useState('')
@@ -53,7 +55,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
       onClose()
     } catch (error) {
       console.error('Failed to create chat:', error)
-      alert('Failed to create chat')
+      alert(t('newChat.failed'))
     } finally {
       setIsLoading(false)
     }
@@ -64,7 +66,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] flex flex-col">
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-gray-900">New Chat</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{t('newChat.title')}</h2>
             <button
               onClick={onClose}
               className="text-gray-500 hover:text-gray-700 text-2xl"
@@ -82,7 +84,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              Direct Chat
+              {t('newChat.direct')}
             </button>
             <button
               onClick={() => setChatType('group')}
@@ -92,7 +94,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              Group Chat
+              {t('newChat.group')}
             </button>
           </div>
 
@@ -101,7 +103,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
               type="text"
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
-              placeholder="Group name..."
+              placeholder={t('newChat.groupNamePlaceholder')}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary mb-4"
             />
           )}
@@ -110,7 +112,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
             type="text"
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
-            placeholder="Search users..."
+            placeholder={t('newChat.searchUsersPlaceholder')}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
@@ -119,7 +121,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
           {selectedUsers.length > 0 && (
             <div className="mb-4">
               <div className="text-sm font-semibold text-gray-700 mb-2">
-                Selected ({selectedUsers.length})
+                {t('newChat.selected', { count: selectedUsers.length })}
               </div>
               <div className="flex flex-wrap gap-2">
                 {selectedUsers.map((user) => (
@@ -143,7 +145,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
           {searchResults.length > 0 && (
             <div>
               <div className="text-sm font-semibold text-gray-700 mb-2">
-                Search Results
+                {t('newChat.searchResults')}
               </div>
               <div className="space-y-2">
                 {searchResults.map((user) => {
@@ -178,7 +180,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
             disabled={selectedUsers.length === 0 || isLoading}
             className="w-full bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? 'Creating...' : 'Create Chat'}
+            {isLoading ? t('newChat.creating') : t('newChat.create')}
           </button>
         </div>
       </div>
