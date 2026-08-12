@@ -77,7 +77,7 @@ services:
   # translation last-resort. CPU-only, no VRAM. The entrypoint pulls the model
   # on first boot, and the healthcheck only passes once that model is installed,
   # so the backend never starts before the local LLM is ready.
-  # Model: qwen2.5:3b (~2 GB RAM) — keep in sync with PROVIDER_OLLAMA_LOCAL_MODEL
+  # Model: qwen2.5:3b (~2 GB RAM) — keep in sync with MODEL_TRANSLATION_OLLAMA
   # in backend/.env. Proven for strict JSON/structured output and multilingual.
   ollama:
     image: ollama/ollama:latest

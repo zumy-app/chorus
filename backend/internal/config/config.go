@@ -12,7 +12,7 @@ import (
 
 // ProviderDef holds the configuration for a single provider in the chain.
 //
-// New-style env keys (canonical):
+// Env keys (canonical):
 //
 //	PROVIDER_<NAME>_URL     -> URL          (e.g. PROVIDER_OPENROUTER_URL)
 //	PROVIDER_<NAME>_KEY     -> Key          (e.g. PROVIDER_OPENROUTER_KEY)
@@ -20,43 +20,30 @@ import (
 //	MODEL_TRANSLATION_<NAME> -> ModelTranslation
 //	MODEL_GRAMMAR_<NAME>     -> ModelGrammar
 //
-// Legacy keys are still accepted so existing deployments keep working:
-// PROVIDER_<ALIAS>_TYPE, PROVIDER_<ALIAS>_API_URL, PROVIDER_<ALIAS>_API_KEY,
-// PROVIDER_<ALIAS>_MODEL. When TYPE is empty it is derived from the provider
-// name (openrouter, opencode, nvidia, ollama, libretranslate, ...).
+// The provider type is derived from the canonical name (openrouter, opencode,
+// nvidia, ollama, libretranslate, ...), so the order keys in a chain must use
+// those names.
 type ProviderDef struct {
 	Name             string // canonical name, e.g. "openrouter"
-	Type             string // provider type; derived from Name when empty
 	URL              string // base URL
 	Key              string // API key
 	Timeout          int    // seconds; 0 = use provider default
 	ModelTranslation string // model used when this provider handles a translation
 	ModelGrammar     string // model used when this provider handles grammar analysis
-	LegacyModel      string // legacy single model (applies to both tasks)
 }
 
 // TranslationModel returns the model to use for translation jobs.
 func (d ProviderDef) TranslationModel() string {
-	if d.ModelTranslation != "" {
-		return d.ModelTranslation
-	}
-	return d.LegacyModel
+	return d.ModelTranslation
 }
 
 // GrammarModel returns the model to use for grammar analysis.
 func (d ProviderDef) GrammarModel() string {
-	if d.ModelGrammar != "" {
-		return d.ModelGrammar
-	}
-	return d.LegacyModel
+	return d.ModelGrammar
 }
 
-// EffectiveType returns the provider type, deriving it from the canonical
-// name when no explicit TYPE override was provided.
+// EffectiveType returns the provider type, deriving it from the provider name.
 func (d ProviderDef) EffectiveType() string {
-	if d.Type != "" {
-		return d.Type
-	}
 	if t, ok := providerTypeByName[d.Name]; ok {
 		return string(t)
 	}
@@ -94,12 +81,6 @@ type Config struct {
 	InviteTTLHours        int
 	AdminEmails           []string
 
-	// Legacy single-provider config (used when PROVIDER_ORDER is not set).
-	TranslationProviderName  string
-	TranslationProviderURL   string
-	TranslationProviderKey   string
-	TranslationProviderModel string
-
 	// TranslationChainTimeout is the total timeout for the translation chain
 	// (across all providers tried sequentially), in seconds.
 	TranslationChainTimeout int
@@ -107,12 +88,7 @@ type Config struct {
 	// LogLevel controls verbosity: "debug", "info", "warn", "error"
 	LogLevel string
 
-	// Grammar AI analysis legacy config.
-	GrammarAPIURL string
-	GrammarAPIKey string
-	GrammarModel  string
-
-	// Provider chain — ordered list of aliases (e.g. ["primary", "secondary", "local"]).
+	// Provider chain — ordered list of aliases (e.g. ["openrouter", "ollama"]).
 	// Each alias maps into the Providers map.
 	TranslationProviderOrder []string
 	GrammarProviderOrder     []string
@@ -144,17 +120,7 @@ func Load() *Config {
 		InviteTTLHours:        getEnvInt("INVITE_TTL_HOURS", 168),
 		AdminEmails:           splitAndTrim(getEnv("WAITLIST_ADMIN_EMAILS", "")),
 
-		// Legacy single-provider config.
-		TranslationProviderName:  getEnv("TRANSLATION_PROVIDER_NAME", string(translation.ProviderOpenCode)),
-		TranslationProviderURL:   getEnv("TRANSLATION_PROVIDER_API_URL", ""),
-		TranslationProviderKey:   getEnv("TRANSLATION_PROVIDER_API_KEY", ""),
-		TranslationProviderModel: getEnv("TRANSLATION_PROVIDER_MODEL", ""),
-
 		LogLevel: getEnv("LOG_LEVEL", "info"),
-
-		GrammarAPIURL: getEnv("GRAMMAR_API_URL", "https://opencode.ai/zen/go/v1"),
-		GrammarAPIKey: getEnv("GRAMMAR_API_KEY", ""),
-		GrammarModel:  getEnv("GRAMMAR_MODEL", "deepseek-v4-flash"),
 
 		TranslationChainTimeout: getEnvInt("TRANSLATION_CHAIN_TIMEOUT", 120),
 
@@ -164,10 +130,9 @@ func Load() *Config {
 		cfg.AdminEmails = []string{cfg.SMTPUsername}
 	}
 
-	// Parse provider chain orders. The new *FallbackOrder keys are canonical;
-	// the legacy *ProviderOrder keys remain supported for existing setups.
-	transOrder := getEnv("TRANSLATION_FALLBACK_ORDER", getEnv("TRANSLATION_PROVIDER_ORDER", ""))
-	grammarOrder := getEnv("GRAMMAR_FALLBACK_ORDER", getEnv("GRAMMAR_ANALYSIS_PROVIDER_ORDER", getEnv("GRAMMAR_PROVIDER_ORDER", "")))
+	// Parse provider chain orders.
+	transOrder := getEnv("TRANSLATION_FALLBACK_ORDER", "")
+	grammarOrder := getEnv("GRAMMAR_FALLBACK_ORDER", "")
 
 	if transOrder != "" {
 		cfg.TranslationProviderOrder = splitAndTrim(transOrder)
@@ -176,22 +141,13 @@ func Load() *Config {
 		cfg.GrammarProviderOrder = splitAndTrim(grammarOrder)
 	}
 
-	// Parse individual provider definitions.
-	// New style:  PROVIDER_<NAME>_URL / _KEY / _TIMEOUT, MODEL_TRANSLATION_<NAME>,
-	//             MODEL_GRAMMAR_<NAME>
-	// Legacy:     PROVIDER_<ALIAS>_TYPE / _API_URL / _API_KEY / _MODEL / _TIMEOUT
-	//
-	// Suffixes are matched longest-first so "_API_KEY" wins over "_KEY" and
-	// multi-part names like "opencode_go" are handled correctly.
+	// Parse individual provider definitions: PROVIDER_<NAME>_URL / _KEY / _TIMEOUT,
+// plus MODEL_TRANSLATION_<NAME> and MODEL_GRAMMAR_<NAME> below.
 	knownFields := []struct {
 		suffix string
 		field  string
 	}{
-		{"_API_KEY", "KEY"},
-		{"_API_URL", "URL"},
 		{"_TIMEOUT", "TIMEOUT"},
-		{"_MODEL", "MODEL"},
-		{"_TYPE", "TYPE"},
 		{"_KEY", "KEY"},
 		{"_URL", "URL"},
 	}
@@ -229,10 +185,6 @@ func Load() *Config {
 			if v, err := strconv.Atoi(value); err == nil {
 				def.Timeout = v
 			}
-		case "TYPE":
-			def.Type = value
-		case "MODEL":
-			def.LegacyModel = value
 		}
 		def.Name = name
 		cfg.Providers[name] = def
@@ -268,13 +220,11 @@ func Load() *Config {
 		cfg.Providers[name] = def
 	}
 
-	// If no order is specified, default to legacy single-provider mode.
-	// The caller (main.go) handles this by checking len(TranslationProviderOrder)==0.
 	if len(cfg.TranslationProviderOrder) == 0 {
-		log.Printf("[Config] TRANSLATION_FALLBACK_ORDER not set, using legacy single-provider config")
+		log.Printf("[Config] TRANSLATION_FALLBACK_ORDER not set — no translation providers will be configured")
 	}
 	if len(cfg.GrammarProviderOrder) == 0 {
-		log.Printf("[Config] GRAMMAR_FALLBACK_ORDER not set, using legacy single-provider config")
+		log.Printf("[Config] GRAMMAR_FALLBACK_ORDER not set — grammar analysis will use the regex fallback")
 	}
 
 	return cfg
@@ -400,21 +350,19 @@ func (c *Config) Validate() []Warning {
 				{ModelTranslationKeyFor(alias), def.ModelTranslation},
 				{ModelGrammarKeyFor(alias), def.ModelGrammar},
 			}
-			if def.LegacyModel == "" {
-				missing := []string{}
-				for _, m := range models {
-					if m.value == "" {
-						missing = append(missing, m.key)
-					}
+			missing := []string{}
+			for _, m := range models {
+				if m.value == "" {
+					missing = append(missing, m.key)
 				}
-				if len(missing) > 0 {
-					warnings = append(warnings, Warning{
-						Provider: alias,
-						EnvKey:   strings.Join(missing, " / "),
-						Message: fmt.Sprintf("provider %q (%s) has no task model set (%s) — built-in defaults will be used",
-							alias, def.EffectiveType(), strings.Join(missing, ", ")),
-					})
-				}
+			}
+			if len(missing) > 0 {
+				warnings = append(warnings, Warning{
+					Provider: alias,
+					EnvKey:   strings.Join(missing, " / "),
+					Message: fmt.Sprintf("provider %q (%s) has no task model set (%s) — built-in defaults will be used",
+						alias, def.EffectiveType(), strings.Join(missing, ", ")),
+				})
 			}
 		}
 	}
@@ -433,17 +381,6 @@ func (c *Config) Validate() []Warning {
 			Provider: "chain",
 			EnvKey:   "GRAMMAR_FALLBACK_ORDER",
 			Message:  "grammar chain has no offline/local provider (ollama) as a guaranteed fallback",
-		})
-	}
-
-	// Legacy single-provider mode (used only when no chain order is set).
-	if len(c.TranslationProviderOrder) == 0 &&
-		translation.NeedsAPIKey(translation.ProviderType(c.TranslationProviderName)) &&
-		c.TranslationProviderKey == "" {
-		warnings = append(warnings, Warning{
-			Provider: c.TranslationProviderName,
-			EnvKey:   "TRANSLATION_PROVIDER_API_KEY",
-			Message:  fmt.Sprintf("legacy translation provider %q needs an API key but TRANSLATION_PROVIDER_API_KEY is empty", c.TranslationProviderName),
 		})
 	}
 

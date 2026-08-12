@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strings"
 	"strconv"
 	"time"
 
@@ -127,9 +128,7 @@ func main() {
 	searchService := services.NewSearchService(db, redisClient)
 
 	// Phase 3: Initialize Grammar service with endpoint chain
-	log.Printf("[Startup] GRAMMAR_ANALYSIS_PROVIDER_ORDER=%q from env", os.Getenv("GRAMMAR_ANALYSIS_PROVIDER_ORDER"))
-	log.Printf("[Startup] TRANSLATION_PROVIDER_ORDER=%q from env", os.Getenv("TRANSLATION_PROVIDER_ORDER"))
-	log.Printf("[Startup] PROVIDER_OLLAMA_LOCAL_TYPE=%q", os.Getenv("PROVIDER_OLLAMA_LOCAL_TYPE"))
+	log.Printf("[Startup] TRANSLATION_FALLBACK_ORDER=%q from env", os.Getenv("TRANSLATION_FALLBACK_ORDER"))
 	grammarService := services.NewGrammarService(redisClient, buildGrammarEndpoints(cfg))
 
 	// Phase 3: Initialize Vocabulary service
@@ -319,109 +318,111 @@ func main() {
 }
 
 // buildTranslationProviderChain constructs a provider chain from config.
-// If TRANSLATION_FALLBACK_ORDER is set, it builds a ChainProvider from the
-// ordered list of providers. Providers that are missing required config (e.g. a
-// cloud provider with an empty API key) are skipped so the chain falls through
-// to the next one at runtime. Otherwise, it falls back to the legacy
-// single-provider config.
+// It follows TRANSLATION_FALLBACK_ORDER. Providers that are missing required
+// config (e.g. a cloud provider with an empty API key) are skipped so the chain
+// falls through to the next one at runtime.
 func buildTranslationProviderChain(cfg *config.Config) translation.Provider {
-	if len(cfg.TranslationProviderOrder) > 0 {
-		var providers []translation.Provider
-		for _, name := range cfg.TranslationProviderOrder {
-			def, ok := cfg.Providers[name]
-			if !ok {
-				log.Printf("Warning: provider %q in TRANSLATION_FALLBACK_ORDER not configured, skipping", name)
-				continue
-			}
-			provCfg := translation.Config{
-				Provider: translation.ProviderType(def.EffectiveType()),
-				APIURL:   def.URL,
-				APIKey:   def.Key,
-				Model:    def.TranslationModel(),
-				Timeout:  def.Timeout,
-			}
-			if !provCfg.Configured() {
-				log.Printf("Warning: provider %q (%s) is not configured (missing required env keys), skipping",
-					name, def.EffectiveType())
-				continue
-			}
-			prov, err := translation.NewProvider(provCfg)
-			if err != nil {
-				log.Printf("Warning: failed to create provider %q: %v", name, err)
-				continue
-			}
-			providers = append(providers, prov)
-			log.Printf("  Translation provider %d: %s (%s)", len(providers), name, prov.Name())
-		}
-		if len(providers) == 0 {
-			log.Fatal("No translation providers could be created from TRANSLATION_FALLBACK_ORDER — " +
-				"set at least one API key for a cloud provider or ensure a local provider " +
-				"(libretranslate, ollama) is configured")
-		}
-		if len(providers) == 1 {
-			return providers[0]
-		}
-		return translation.NewChainProvider(providers)
+	if len(cfg.TranslationProviderOrder) == 0 {
+		log.Fatal("TRANSLATION_FALLBACK_ORDER is not set — no translation providers are configured. " +
+			"Set TRANSLATION_FALLBACK_ORDER plus PROVIDER_<NAME>_URL / _KEY and MODEL_TRANSLATION_<NAME> " +
+			"(and MODEL_GRAMMAR_<NAME> for grammar) per provider.")
 	}
-
-	// Legacy fallback: single provider from TRANSLATION_PROVIDER_NAME etc.
-	provCfg := translation.Config{
-		Provider: translation.ProviderType(cfg.TranslationProviderName),
-		APIURL:   cfg.TranslationProviderURL,
-		APIKey:   cfg.TranslationProviderKey,
-		Model:    cfg.TranslationProviderModel,
+	var providers []translation.Provider
+	for _, name := range cfg.TranslationProviderOrder {
+		def, ok := cfg.Providers[name]
+		if !ok {
+			log.Printf("Warning: provider %q in TRANSLATION_FALLBACK_ORDER not configured, skipping", name)
+			continue
+		}
+		provCfg := translation.Config{
+			Provider: translation.ProviderType(def.EffectiveType()),
+			APIURL:   def.URL,
+			APIKey:   def.Key,
+			Model:    def.TranslationModel(),
+			Timeout:  def.Timeout,
+		}
+		if !provCfg.Configured() {
+			log.Printf("Warning: provider %q (%s) is not configured (missing: %s), skipping",
+				name, def.EffectiveType(), strings.Join(missingProviderEnvKeys(name, def), ", "))
+			continue
+		}
+		prov, err := translation.NewProvider(provCfg)
+		if err != nil {
+			log.Printf("Warning: failed to create provider %q: %v", name, err)
+			continue
+		}
+		providers = append(providers, prov)
+		log.Printf("  Translation provider %d: %s (%s)", len(providers), name, prov.Name())
 	}
-	prov, err := translation.NewProvider(provCfg)
-	if err != nil {
-		log.Fatalf("Failed to create translation provider: %v", err)
+	if len(providers) == 0 {
+		log.Fatal("No translation providers could be created from TRANSLATION_FALLBACK_ORDER — " +
+			"set at least one API key for a cloud provider or ensure a local provider " +
+			"(libretranslate, ollama) is configured")
 	}
-	return prov
+	if len(providers) == 1 {
+		return providers[0]
+	}
+	return translation.NewChainProvider(providers)
 }
 
-// buildGrammarEndpoints constructs an ordered list of GrammarEndpoints from config.
-// If GRAMMAR_FALLBACK_ORDER is set, it follows that order. Otherwise it falls
-// back to the legacy GRAMMAR_API_* env vars.
+// missingProviderEnvKeys returns the canonical env var names that must be set
+// for a provider to be created from a ProviderDef. When a provider is skipped
+// because it isn't configured, the exact keys are printed so the operator knows
+// what to set instead of seeing a generic "missing required env keys".
+func missingProviderEnvKeys(name string, def config.ProviderDef) []string {
+	var missing []string
+	pType := translation.ProviderType(def.EffectiveType())
+	if translation.NeedsAPIKey(pType) && def.Key == "" {
+		missing = append(missing, config.EnvKeyFor(name, "KEY"))
+	}
+	if translation.NeedsAPIKey(pType) && def.URL == "" {
+		missing = append(missing, config.EnvKeyFor(name, "URL"))
+	}
+	return missing
+}
+
+// buildGrammarEndpoints constructs an ordered list of GrammarEndpoints from
+// config. It follows GRAMMAR_FALLBACK_ORDER; when no order is set, grammar
+// analysis falls back to the built-in regex.
 func buildGrammarEndpoints(cfg *config.Config) []services.GrammarEndpoint {
 	log.Printf("[Startup] GrammarFallbackOrder=%v, Providers:", cfg.GrammarProviderOrder)
 	for k, v := range cfg.Providers {
 		log.Printf("  Provider %q: type=%q url=%q gmodel=%q tmodel=%q", k, v.EffectiveType(), v.URL, v.GrammarModel(), v.TranslationModel())
 	}
-	if len(cfg.GrammarProviderOrder) > 0 {
-		var endpoints []services.GrammarEndpoint
-		for _, name := range cfg.GrammarProviderOrder {
-			def, ok := cfg.Providers[name]
-			if !ok {
-				log.Printf("Warning: provider %q in GRAMMAR_FALLBACK_ORDER not configured, skipping", name)
-				continue
-			}
-			provCfg := translation.Config{
-				Provider: translation.ProviderType(def.EffectiveType()),
-				APIURL:   def.URL,
-				APIKey:   def.Key,
-				Model:    def.GrammarModel(),
-				Timeout:  def.Timeout,
-			}
-			if !provCfg.Configured() {
-				log.Printf("Warning: provider %q (%s) is not configured (missing required env keys), skipping",
-					name, def.EffectiveType())
-				continue
-			}
-			ep := services.NewGrammarEndpoint(name, def.EffectiveType(), def.URL, def.Key, def.GrammarModel(), def.Timeout)
-			endpoints = append(endpoints, ep)
-			log.Printf("  Grammar endpoint %d: %s (%s model=%s)", len(endpoints), name, def.URL, def.GrammarModel())
-		}
-		if len(endpoints) == 0 {
-			log.Printf("Warning: no grammar AI endpoints could be created from GRAMMAR_FALLBACK_ORDER — " +
-				"grammar analysis will use the built-in regex fallback")
-			return nil
-		}
-		return endpoints
+	if len(cfg.GrammarProviderOrder) == 0 {
+		log.Printf("Warning: GRAMMAR_FALLBACK_ORDER is not set — " +
+			"grammar analysis will use the built-in regex fallback")
+		return nil
 	}
-
-	// Legacy fallback: single endpoint from GRAMMAR_API_* env vars.
-	ep := services.NewGrammarEndpoint("legacy", "", cfg.GrammarAPIURL, cfg.GrammarAPIKey, cfg.GrammarModel, 0)
-	log.Printf("  Grammar endpoint: %s model=%s", cfg.GrammarAPIURL, cfg.GrammarModel)
-	return []services.GrammarEndpoint{ep}
+	var endpoints []services.GrammarEndpoint
+	for _, name := range cfg.GrammarProviderOrder {
+		def, ok := cfg.Providers[name]
+		if !ok {
+			log.Printf("Warning: provider %q in GRAMMAR_FALLBACK_ORDER not configured, skipping", name)
+			continue
+		}
+		provCfg := translation.Config{
+			Provider: translation.ProviderType(def.EffectiveType()),
+			APIURL:   def.URL,
+			APIKey:   def.Key,
+			Model:    def.GrammarModel(),
+			Timeout:  def.Timeout,
+		}
+		if !provCfg.Configured() {
+			log.Printf("Warning: provider %q (%s) is not configured (missing: %s), skipping",
+				name, def.EffectiveType(), strings.Join(missingProviderEnvKeys(name, def), ", "))
+			continue
+		}
+		ep := services.NewGrammarEndpoint(name, def.EffectiveType(), def.URL, def.Key, def.GrammarModel(), def.Timeout)
+		endpoints = append(endpoints, ep)
+		log.Printf("  Grammar endpoint %d: %s (%s model=%s)", len(endpoints), name, def.URL, def.GrammarModel())
+	}
+	if len(endpoints) == 0 {
+		log.Printf("Warning: no grammar AI endpoints could be created from GRAMMAR_FALLBACK_ORDER — " +
+			"grammar analysis will use the built-in regex fallback")
+		return nil
+	}
+	return endpoints
 }
 
 // logStartupConfigWarnings prints the provider config validation results.

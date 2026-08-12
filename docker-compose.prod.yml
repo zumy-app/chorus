@@ -69,42 +69,30 @@ services:
       - DATABASE_URL=postgres://messenger:ChorusProd2026@postgres:5432/messenger_prod?sslmode=disable
       - REDIS_URL=redis:6379
       - JWT_SECRET=${JWT_SECRET}
-      - TRANSLATION_PROVIDER_NAME=${TRANSLATION_PROVIDER_NAME:-opencode}
-      - TRANSLATION_PROVIDER_API_URL=${TRANSLATION_PROVIDER_API_URL:-}
-      - TRANSLATION_PROVIDER_API_KEY=${TRANSLATION_PROVIDER_API_KEY:-}
-      - TRANSLATION_PROVIDER_MODEL=${TRANSLATION_PROVIDER_MODEL:-}
-      # Unified provider chain (recommended) — first successful provider wins,
+      # Provider chain (canonical schema) — first successful provider wins,
       # cloud quotas/rate limits are skipped automatically, local always last.
-      - TRANSLATION_PROVIDER_ORDER=openrouter_translate,libretranslate,nvidia,opencode_go
-      - GRAMMAR_ANALYSIS_PROVIDER_ORDER=openrouter_grammar,nvidia,opencode_go
+      # Provider type is derived from the provider name, so chain aliases are
+      # the canonical names (openrouter, nvidia, opencode, ollama, ...).
+      - TRANSLATION_FALLBACK_ORDER=openrouter,libretranslate,nvidia,opencode
+      - GRAMMAR_FALLBACK_ORDER=openrouter,nvidia,opencode
       - TRANSLATION_CHAIN_TIMEOUT=${TRANSLATION_CHAIN_TIMEOUT:-120}
-      - PROVIDER_LIBRETRANSLATE_TYPE=libretranslate
-      - PROVIDER_LIBRETRANSLATE_API_URL=http://libretranslate:5000
+      - PROVIDER_LIBRETRANSLATE_URL=http://libretranslate:5000
       - PROVIDER_LIBRETRANSLATE_TIMEOUT=60
-      - PROVIDER_OPENROUTER_TYPE=openrouter
-      - PROVIDER_OPENROUTER_API_URL=https://openrouter.ai/api/v1
-      - PROVIDER_OPENROUTER_API_KEY=${PROVIDER_OPENROUTER_API_KEY:-}
-      - PROVIDER_OPENROUTER_MODEL=${PROVIDER_OPENROUTER_MODEL:-nvidia/nemotron-3-super-120b-a12b:free}
-      # Paid OpenRouter providers: translation uses a fast cheap model, grammar uses
-      # a stronger JSON-capable model. Separate aliases so each chain can pick one.
-      - PROVIDER_OPENROUTER_TRANSLATE_TYPE=openrouter
-      - PROVIDER_OPENROUTER_TRANSLATE_API_URL=https://openrouter.ai/api/v1
-      - PROVIDER_OPENROUTER_TRANSLATE_API_KEY=${PROVIDER_OPENROUTER_API_KEY:-}
-      - PROVIDER_OPENROUTER_TRANSLATE_MODEL=meta-llama/llama-3.1-8b-instruct
-      - PROVIDER_OPENROUTER_TRANSLATE_TIMEOUT=30
-      - PROVIDER_OPENROUTER_GRAMMAR_TYPE=openrouter
-      - PROVIDER_OPENROUTER_GRAMMAR_API_URL=https://openrouter.ai/api/v1
-      - PROVIDER_OPENROUTER_GRAMMAR_API_KEY=${PROVIDER_OPENROUTER_API_KEY:-}
-      - PROVIDER_OPENROUTER_GRAMMAR_MODEL=google/gemini-2.5-flash
-      - PROVIDER_OPENROUTER_GRAMMAR_TIMEOUT=60
-      - PROVIDER_NVIDIA_TYPE=nvidia
-      - PROVIDER_NVIDIA_API_URL=${PROVIDER_NVIDIA_API_URL:-https://integrate.api.nvidia.com/v1}
-      - PROVIDER_NVIDIA_API_KEY=${PROVIDER_NVIDIA_API_KEY:-}
-      - PROVIDER_NVIDIA_MODEL=${PROVIDER_NVIDIA_MODEL:-meta/llama-3.1-70b-instruct}
-      - PROVIDER_OPENCODE_GO_TYPE=opencode
-      - PROVIDER_OPENCODE_GO_API_URL=${PROVIDER_OPENCODE_GO_API_URL:-https://opencode.ai/zen/go/v1}
-      - PROVIDER_OPENCODE_GO_API_KEY=${PROVIDER_OPENCODE_GO_API_KEY:-}
-      - PROVIDER_OPENCODE_GO_MODEL=${PROVIDER_OPENCODE_GO_MODEL:-deepseek-v4-flash}
+      # OpenRouter (primary LLM): translation uses a fast cheap model, grammar
+      # uses a stronger JSON-capable model.
+      - PROVIDER_OPENROUTER_URL=https://openrouter.ai/api/v1
+      - PROVIDER_OPENROUTER_KEY=${PROVIDER_OPENROUTER_KEY:-}
+      - PROVIDER_OPENROUTER_TIMEOUT=60
+      - MODEL_TRANSLATION_OPENROUTER=${MODEL_TRANSLATION_OPENROUTER:-meta-llama/llama-3.1-8b-instruct}
+      - MODEL_GRAMMAR_OPENROUTER=${MODEL_GRAMMAR_OPENROUTER:-google/gemini-2.5-flash}
+      - PROVIDER_NVIDIA_URL=${PROVIDER_NVIDIA_URL:-https://integrate.api.nvidia.com/v1}
+      - PROVIDER_NVIDIA_KEY=${PROVIDER_NVIDIA_KEY:-}
+      - MODEL_TRANSLATION_NVIDIA=${MODEL_TRANSLATION_NVIDIA:-meta/llama-3.1-70b-instruct}
+      - MODEL_GRAMMAR_NVIDIA=${MODEL_GRAMMAR_NVIDIA:-meta/llama-3.1-8b-instruct}
+      - PROVIDER_OPENCODE_URL=${PROVIDER_OPENCODE_URL:-https://opencode.ai/zen/go/v1}
+      - PROVIDER_OPENCODE_KEY=${PROVIDER_OPENCODE_KEY:-}
+      - MODEL_TRANSLATION_OPENCODE=${MODEL_TRANSLATION_OPENCODE:-deepseek-v4-flash}
+      - MODEL_GRAMMAR_OPENCODE=${MODEL_GRAMMAR_OPENCODE:-deepseek-v4-flash}
       - PORT=8080
       # Waitlist / invite-only registration (REQUIRED for /admin/waitlist).
       # WAITLIST_ADMIN_EMAILS is a comma-separated allowlist of admin emails.
