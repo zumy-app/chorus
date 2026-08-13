@@ -97,13 +97,23 @@ test.describe('AI Tutor', () => {
     try {
       // The panel auto-runs 'breakdown' action on mount.
       // Verify either the localized "Grammar Breakdown" label or loading indicator appears.
-      const breakdownLabel = setup.receiverPage.locator('text=/📖/')
-      const loadingIndicator = setup.receiverPage.locator('text=/analyz|analiz/i')
+      // The request can resolve in a few milliseconds (offline fallback) or take longer
+      // (real AI provider), so poll for whichever state shows up first.
+      // Note: .first() is required — isVisible() throws a strict-mode violation when
+      // the text locator matches several elements (older messages, panel header, etc.).
+      const breakdownLabel = setup.receiverPage.locator('text=/📖/').first()
+      const loadingIndicator = setup.receiverPage.locator('text=/analyz|analiz/i').first()
 
-      // One of these should be visible
-      const labelVisible = await breakdownLabel.isVisible().catch(() => false)
-      const loadingVisible = await loadingIndicator.isVisible().catch(() => false)
-      expect(labelVisible || loadingVisible).toBeTruthy()
+      await expect
+        .poll(
+          async () => {
+            const labelVisible = await breakdownLabel.isVisible().catch(() => false)
+            const loadingVisible = await loadingIndicator.isVisible().catch(() => false)
+            return labelVisible || loadingVisible
+          },
+          { timeout: 10_000, message: 'expected breakdown label (📖) or loading indicator to appear' },
+        )
+        .toBe(true)
     } finally {
       await setup.senderContext.close()
       await setup.receiverContext.close()
@@ -144,8 +154,10 @@ test.describe('AI Tutor', () => {
       expect(buttonCount).toBeGreaterThan(0)
 
       // Check for at least one known action label (localized: Examples/Ejemplos, Flashcards/Tarjetas)
-      const examplesBtn = setup.receiverPage.getByRole('button', { name: /exam|ejempl/i })
-      const flashcardsBtn = setup.receiverPage.getByRole('button', { name: /flashcard|tarjeta/i })
+      // .first() is required: React StrictMode (dev) double-mounts the panel, so each
+      // suggested-action button exists twice and isVisible() would throw strict-mode.
+      const examplesBtn = setup.receiverPage.getByRole('button', { name: /exam|ejempl/i }).first()
+      const flashcardsBtn = setup.receiverPage.getByRole('button', { name: /flashcard|tarjeta/i }).first()
 
       const examplesVisible = await examplesBtn.isVisible().catch(() => false)
       const flashcardsVisible = await flashcardsBtn.isVisible().catch(() => false)
@@ -165,7 +177,7 @@ test.describe('AI Tutor', () => {
       await expect(assistantMessage).toBeVisible({ timeout: 45_000 })
 
       // Click the "Examples" button (localized: Examples/Ejemplos)
-      const examplesBtn = setup.receiverPage.getByRole('button', { name: /exam|ejempl/i })
+      const examplesBtn = setup.receiverPage.getByRole('button', { name: /exam|ejempl/i }).first()
       await expect(examplesBtn).toBeVisible({ timeout: 5_000 })
 
       // Count messages before
@@ -196,7 +208,7 @@ test.describe('AI Tutor', () => {
       const assistantMessage = setup.receiverPage.locator('.bg-white.border.border-indigo-100').first()
       await expect(assistantMessage).toBeVisible({ timeout: 45_000 })
 
-      const flashcardsBtn = setup.receiverPage.getByRole('button', { name: /flashcard|tarjeta/i })
+      const flashcardsBtn = setup.receiverPage.getByRole('button', { name: /flashcard|tarjeta/i }).first()
       await expect(flashcardsBtn).toBeVisible({ timeout: 5_000 })
 
       const messagesBefore = await setup.receiverPage.locator('.bg-white.border.border-indigo-100').count()

@@ -361,7 +361,7 @@ func (s *BillingService) PlanHistory(ctx context.Context, userID string) ([]mode
 		return nil, err
 	}
 	defer rows.Close()
-	var out []models.PlanChange
+	out := make([]models.PlanChange, 0)
 	for rows.Next() {
 		var pc models.PlanChange
 		if err := rows.Scan(&pc.ID, &pc.UserID, &pc.ActorID, &pc.FromPlan, &pc.ToPlan, &pc.GraceUntil, &pc.Source, &pc.Reason, &pc.CreatedAt); err != nil {
@@ -411,7 +411,7 @@ func (s *BillingService) ListPremiumUsers(ctx context.Context, q string, limit, 
 	}
 	defer rows.Close()
 
-	var out []models.PremiumUserRow
+	out := make([]models.PremiumUserRow, 0)
 	for rows.Next() {
 		row, err := s.scanPremiumUserRow(rows)
 		if err != nil {
@@ -492,7 +492,7 @@ func (s *BillingService) TopUsersByUsage(ctx context.Context, limit int) ([]mode
 		return nil, err
 	}
 	defer rows.Close()
-	var out []models.PremiumUserRow
+	out := make([]models.PremiumUserRow, 0)
 	for rows.Next() {
 		row, err := s.scanPremiumUserRow(rows)
 		if err != nil {
