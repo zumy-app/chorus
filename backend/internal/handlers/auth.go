@@ -11,20 +11,22 @@ import (
 )
 
 type AuthHandler struct {
-	authService       *services.AuthService
-	userService       *services.UserService
-	invitationService *services.InvitationService
-	emailSender       services.EmailSender
-	resetBaseURL      string
+	authService        *services.AuthService
+	userService        *services.UserService
+	invitationService  *services.InvitationService
+	emailSender        services.EmailSender
+	entitlementService *services.EntitlementService
+	resetBaseURL       string
 }
 
-func NewAuthHandler(authService *services.AuthService, userService *services.UserService, invitationService *services.InvitationService, emailSender services.EmailSender, resetBaseURL string) *AuthHandler {
+func NewAuthHandler(authService *services.AuthService, userService *services.UserService, invitationService *services.InvitationService, emailSender services.EmailSender, entitlementService *services.EntitlementService, resetBaseURL string) *AuthHandler {
 	return &AuthHandler{
-		authService:       authService,
-		userService:       userService,
-		invitationService: invitationService,
-		emailSender:       emailSender,
-		resetBaseURL:      strings.TrimRight(resetBaseURL, "?"),
+		authService:        authService,
+		userService:        userService,
+		invitationService:  invitationService,
+		emailSender:        emailSender,
+		entitlementService: entitlementService,
+		resetBaseURL:       strings.TrimRight(resetBaseURL, "?"),
 	}
 }
 
@@ -228,6 +230,22 @@ func (h *AuthHandler) GetMe(c *gin.Context) {
 	}
 
 	c.JSON(200, user)
+}
+
+// GetMyEntitlements returns the fully-resolved entitlements for the current
+// user: effective plan, grace deadline, quotas, and whether monetization
+// surfaces (upsell, ads) apply. Phase 0 resolves only; nothing is gated yet.
+func (h *AuthHandler) GetMyEntitlements(c *gin.Context) {
+	userID := c.GetString("userID")
+
+	user, err := h.userService.GetByID(userID)
+	if err != nil {
+		c.JSON(404, gin.H{"error": "User not found"})
+		return
+	}
+
+	entitlements := h.entitlementService.ResolveNow(user)
+	c.JSON(200, entitlements)
 }
 
 func (h *AuthHandler) UpdateMe(c *gin.Context) {

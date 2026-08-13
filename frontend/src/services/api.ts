@@ -16,6 +16,7 @@ import type {
   AdminStatus,
   TranslationJob,
   ProviderHealth,
+  Entitlements,
 } from '../types'
 
 // Get API URL based on environment
@@ -99,6 +100,11 @@ export const authAPI = {
 
   getMe: async () => {
     const response = await api.get<User>('/users/me')
+    return response.data
+  },
+
+  getEntitlements: async () => {
+    const response = await api.get<Entitlements>('/users/me/entitlements')
     return response.data
   },
 

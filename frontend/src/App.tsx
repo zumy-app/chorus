@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import Landing from './pages/Landing'
+import Pricing from './pages/Pricing'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
@@ -15,7 +16,7 @@ import { useStore } from './store'
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const { isAdmin, isModerator, setUser, setAdmin, refreshAdminStatus } = useStore()
+  const { isAdmin, isModerator, setUser, setEntitlements, setAdmin, refreshAdminStatus, refreshEntitlements } = useStore()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -27,6 +28,7 @@ function App() {
           setUser(user)
           setIsAuthenticated(true)
           refreshAdminStatus()
+          refreshEntitlements()
           wsService.connect(token)
         } catch (error) {
           localStorage.removeItem('accessToken')
@@ -39,7 +41,7 @@ function App() {
     }
 
     checkAuth()
-  }, [setUser, setAdmin, refreshAdminStatus])
+  }, [setUser, setAdmin, refreshAdminStatus, refreshEntitlements])
 
   const handleLogin = async (tokens: { accessToken: string; refreshToken: string }) => {
     localStorage.setItem('accessToken', tokens.accessToken)
@@ -49,6 +51,7 @@ function App() {
     setUser(user)
     setIsAuthenticated(true)
     refreshAdminStatus()
+    refreshEntitlements()
     wsService.connect(tokens.accessToken)
     navigate('/chat')
   }
@@ -57,6 +60,7 @@ function App() {
     localStorage.removeItem('accessToken')
     localStorage.removeItem('refreshToken')
     setUser(null)
+    setEntitlements(null)
     setAdmin(false)
     setIsAuthenticated(false)
     wsService.disconnect()
@@ -77,6 +81,7 @@ function App() {
 
       <Routes>
         <Route path="/" element={<Landing />} />
+        <Route path="/pricing" element={<Pricing />} />
         <Route path="/waitlist" element={<Waitlist />} />
         <Route
           path="/admin/waitlist"

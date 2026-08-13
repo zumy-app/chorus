@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useStore } from '../store'
 import { authAPI } from '../services/api'
 import { SUPPORTED_LANGUAGES } from '../services/language'
+import PlanCard from '../components/PlanCard'
 
 interface SettingsProps {
   onClose: () => void
@@ -51,6 +52,8 @@ export default function Settings({ onClose }: SettingsProps) {
         </div>
 
         <div className="p-6 space-y-6">
+          <PlanCard />
+
           {message && (
             <div className={`px-4 py-3 rounded-lg text-sm ${
               isSuccess ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'

@@ -81,6 +81,11 @@ type Config struct {
 	InviteTTLHours        int
 	AdminEmails           []string
 
+	// SelfHost, when true, marks this deployment as a self-hosted instance.
+	// Entitlements are resolved as unlimited, and monetization surfaces
+	// (upsell nudges, plan badges, ads) are suppressed entirely.
+	SelfHost bool
+
 	// TranslationChainTimeout is the total timeout for the translation chain
 	// (across all providers tried sequentially), in seconds.
 	TranslationChainTimeout int
@@ -119,6 +124,7 @@ func Load() *Config {
 		PasswordResetBaseURL:  getEnv("PASSWORD_RESET_BASE_URL", "http://localhost:3000/reset-password"),
 		InviteTTLHours:        getEnvInt("INVITE_TTL_HOURS", 168),
 		AdminEmails:           splitAndTrim(getEnv("WAITLIST_ADMIN_EMAILS", "")),
+		SelfHost:              getEnvBool("SELFHOST", false),
 
 		LogLevel: getEnv("LOG_LEVEL", "info"),
 
@@ -142,7 +148,7 @@ func Load() *Config {
 	}
 
 	// Parse individual provider definitions: PROVIDER_<NAME>_URL / _KEY / _TIMEOUT,
-// plus MODEL_TRANSLATION_<NAME> and MODEL_GRAMMAR_<NAME> below.
+	// plus MODEL_TRANSLATION_<NAME> and MODEL_GRAMMAR_<NAME> below.
 	knownFields := []struct {
 		suffix string
 		field  string
@@ -242,6 +248,17 @@ func getEnvInt(key string, defaultVal int) int {
 		if n, err := strconv.Atoi(v); err == nil {
 			return n
 		}
+	}
+	return defaultVal
+}
+
+func getEnvBool(key string, defaultVal bool) bool {
+	v := os.Getenv(key)
+	if v == "" {
+		return defaultVal
+	}
+	if b, err := strconv.ParseBool(v); err == nil {
+		return b
 	}
 	return defaultVal
 }

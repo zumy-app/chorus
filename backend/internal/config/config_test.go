@@ -99,18 +99,18 @@ func TestLoadNewStyleProviderKeys(t *testing.T) {
 
 func TestLoadIgnoresLegacyProviderKeys(t *testing.T) {
 	setEnv(t, map[string]string{
-		"TRANSLATION_PROVIDER_ORDER":    "openrouter",
-		"TRANSLATION_PROVIDER_NAME":     "opencode",
-		"TRANSLATION_PROVIDER_API_URL":  "https://opencode.ai/zen/go/v1",
-		"TRANSLATION_PROVIDER_API_KEY":  "sk-legacy",
-		"TRANSLATION_PROVIDER_MODEL":    "legacy-model",
-		"PROVIDER_OPENROUTER_TYPE":      "openrouter",
-		"PROVIDER_OPENROUTER_API_URL":   "https://openrouter.ai/api/v1",
-		"PROVIDER_OPENROUTER_API_KEY":   "sk-ignored",
-		"PROVIDER_OPENROUTER_MODEL":     "legacy-model",
+		"TRANSLATION_PROVIDER_ORDER":      "openrouter",
+		"TRANSLATION_PROVIDER_NAME":       "opencode",
+		"TRANSLATION_PROVIDER_API_URL":    "https://opencode.ai/zen/go/v1",
+		"TRANSLATION_PROVIDER_API_KEY":    "sk-legacy",
+		"TRANSLATION_PROVIDER_MODEL":      "legacy-model",
+		"PROVIDER_OPENROUTER_TYPE":        "openrouter",
+		"PROVIDER_OPENROUTER_API_URL":     "https://openrouter.ai/api/v1",
+		"PROVIDER_OPENROUTER_API_KEY":     "sk-ignored",
+		"PROVIDER_OPENROUTER_MODEL":       "legacy-model",
 		"GRAMMAR_ANALYSIS_PROVIDER_ORDER": "openrouter",
-		"GRAMMAR_API_URL":               "https://example.com/v1",
-		"GRAMMAR_API_KEY":               "grammar-key",
+		"GRAMMAR_API_URL":                 "https://example.com/v1",
+		"GRAMMAR_API_KEY":                 "grammar-key",
 	})
 
 	cfg := Load()
@@ -158,5 +158,31 @@ func TestProviderTypeDerivation(t *testing.T) {
 		if got := def.EffectiveType(); got != want {
 			t.Errorf("EffectiveType(%s) = %q, want %q", name, got, want)
 		}
+	}
+}
+
+func TestLoadSelfHostFlag(t *testing.T) {
+	// Default: hosted.
+	t.Setenv("SELFHOST", "")
+	if cfg := Load(); cfg.SelfHost {
+		t.Fatal("expected SelfHost=false by default")
+	}
+
+	// Explicit true.
+	t.Setenv("SELFHOST", "true")
+	if cfg := Load(); !cfg.SelfHost {
+		t.Fatal("expected SelfHost=true when SELFHOST=true")
+	}
+
+	// Truthy numeric value.
+	t.Setenv("SELFHOST", "1")
+	if cfg := Load(); !cfg.SelfHost {
+		t.Fatal("expected SelfHost=true when SELFHOST=1")
+	}
+
+	// Unparseable value falls back to default.
+	t.Setenv("SELFHOST", "not-a-bool")
+	if cfg := Load(); cfg.SelfHost {
+		t.Fatal("expected SelfHost=false when SELFHOST is unparseable")
 	}
 }

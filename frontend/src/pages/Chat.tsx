@@ -11,6 +11,7 @@ import LanguageSelector from '../components/LanguageSelector'
 import { authAPI } from '../services/api'
 import Settings from './Settings'
 import About from './About'
+import PlanBadge from '../components/PlanBadge'
 
 interface ChatProps {
   onLogout: () => void
@@ -20,7 +21,7 @@ export default function Chat({ onLogout }: ChatProps) {
   const { t } = useTranslation()
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
-  const { user, isModerator, loadChats, activeChat, chats, setActiveChat, navigateToSlug, updateUser } = useStore()
+  const { user, isModerator, loadChats, activeChat, chats, setActiveChat, navigateToSlug, updateUser, entitlements } = useStore()
   const [showNewChatModal, setShowNewChatModal] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
@@ -156,6 +157,7 @@ export default function Chat({ onLogout }: ChatProps) {
 
         {/* Right: Language selector + Profile */}
         <div className="flex items-center gap-2">
+          <PlanBadge />
           <LanguageSelector
             currentLang={user?.nativeLanguage}
             onLanguageChange={handleLanguageChange}
@@ -205,6 +207,14 @@ export default function Chat({ onLogout }: ChatProps) {
                   >
                     <span>ℹ️</span> {t('chat.about')}
                   </button>
+                  {entitlements?.effectivePlan === 'free' && (
+                    <button
+                      onClick={() => { setShowProfileMenu(false); navigate('/pricing') }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-amber-600 hover:bg-amber-50 flex items-center gap-3"
+                    >
+                      <span>✨</span> {t('plan.upgrade')}
+                    </button>
+                  )}
                   {isModerator && (
                     <button
                       onClick={() => { setShowProfileMenu(false); navigate('/admin') }}
