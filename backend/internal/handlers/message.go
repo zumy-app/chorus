@@ -14,6 +14,7 @@ type MessageHandler struct {
 	userService        *services.UserService
 	entitlementService *services.EntitlementService
 	translationQueue   *services.TranslationQueueService
+	moderation         *services.ModerationService
 	wsHub              *services.WebSocketHub
 }
 
@@ -23,6 +24,7 @@ func NewMessageHandler(
 	userService *services.UserService,
 	entitlementService *services.EntitlementService,
 	translationQueue *services.TranslationQueueService,
+	moderation *services.ModerationService,
 	wsHub *services.WebSocketHub,
 ) *MessageHandler {
 	return &MessageHandler{
@@ -31,6 +33,7 @@ func NewMessageHandler(
 		userService:        userService,
 		entitlementService: entitlementService,
 		translationQueue:   translationQueue,
+		moderation:         moderation,
 		wsHub:              wsHub,
 	}
 }
@@ -77,6 +80,20 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 	if err != nil || !isParticipant {
 		c.JSON(403, gin.H{"error": "Access denied"})
 		return
+	}
+
+	// Safety rail: if a block relationship exists with any participant, the
+	// chat is frozen for this sender (either direction blocks messaging).
+	if h.moderation != nil {
+		blocked, err := h.moderation.ChatBlocked(c.Request.Context(), chatID, userID)
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Failed to check blocked users"})
+			return
+		}
+		if blocked {
+			c.JSON(403, gin.H{"error": "You cannot send messages in this chat"})
+			return
+		}
 	}
 
 	var req models.SendMessageRequest
@@ -127,17 +144,23 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 		if ent.Features.FasterResponses {
 			priority = 1
 		}
-		// Free plan: messages longer than the char limit are stored but not
-		// translated. Notify participants so the UI can show the premium nudge.
-		if ent.Features.TranslationCharLimit != nil && len([]rune(message.Text)) > *ent.Features.TranslationCharLimit {
-			log.Printf("[Translate] message %s blocked: %d chars > free limit %d", message.ID, len([]rune(message.Text)), *ent.Features.TranslationCharLimit)
-			h.wsHub.SendToChat(chatID, userIDs, "translation_blocked", gin.H{
-				"messageId": message.ID,
-				"chatId":    chatID,
-				"charLimit": *ent.Features.TranslationCharLimit,
-				"reason":    "message_too_long",
-			})
-			return
+		// Message-size gate (words): free = 280, premium = 1,000. Longer
+		// messages are stored but not translated. Notify participants so the
+		// UI can show the premium nudge. There are NO per-day usage quotas.
+		if ent.Features.TranslationWordLimit != nil {
+			words := services.WordCount(message.Text)
+			if words > *ent.Features.TranslationWordLimit {
+				log.Printf("[Translate] message %s blocked: %d words > plan limit %d", message.ID, words, *ent.Features.TranslationWordLimit)
+				h.wsHub.SendToChat(chatID, userIDs, "translation_blocked", gin.H{
+					"messageId": message.ID,
+					"chatId":    chatID,
+					"wordLimit": *ent.Features.TranslationWordLimit,
+					"wordCount": words,
+					"charLimit": ent.Features.TranslationCharLimit,
+					"reason":    "message_too_long",
+				})
+				return
+			}
 		}
 
 		// Build target languages for translation

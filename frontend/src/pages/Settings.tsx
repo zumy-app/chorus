@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useStore } from '../store'
-import { authAPI } from '../services/api'
+import { authAPI, moderationAPI } from '../services/api'
 import { SUPPORTED_LANGUAGES } from '../services/language'
 import PlanCard from '../components/PlanCard'
+import type { Block } from '../types'
 
 interface SettingsProps {
   onClose: () => void
@@ -18,6 +19,32 @@ export default function Settings({ onClose }: SettingsProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [isSuccess, setIsSuccess] = useState(false)
+  const [blockedUsers, setBlockedUsers] = useState<Block[]>([])
+  const [loadingBlocked, setLoadingBlocked] = useState(false)
+
+  const loadBlocked = async () => {
+    setLoadingBlocked(true)
+    try {
+      setBlockedUsers(await moderationAPI.getBlocked())
+    } catch (err) {
+      console.error('Failed to load blocked users:', err)
+    } finally {
+      setLoadingBlocked(false)
+    }
+  }
+
+  useEffect(() => {
+    loadBlocked()
+  }, [])
+
+  const handleUnblock = async (userId: string) => {
+    try {
+      await moderationAPI.unblock(userId)
+      setBlockedUsers(prev => prev.filter(b => b.blockedId !== userId))
+    } catch (err) {
+      console.error('Failed to unblock user:', err)
+    }
+  }
 
   const handleSave = async () => {
     setIsLoading(true)
@@ -125,6 +152,39 @@ export default function Settings({ onClose }: SettingsProps) {
                 </label>
               ))}
             </div>
+          </div>
+
+          {/* Blocked Users */}
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2">
+              🚫 {t('settings.blockedUsers')}
+            </label>
+            {loadingBlocked ? (
+              <p className="text-sm text-gray-500">{t('common.loading')}</p>
+            ) : blockedUsers.length === 0 ? (
+              <p className="text-sm text-gray-500">{t('settings.noBlockedUsers')}</p>
+            ) : (
+              <ul className="divide-y divide-gray-100 border border-gray-200 rounded-lg overflow-hidden">
+                {blockedUsers.map((b) => (
+                  <li key={b.id} className="flex items-center justify-between px-4 py-3 bg-white">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">
+                        {b.blocked?.displayName || b.blocked?.username || t('common.unknown')}
+                      </p>
+                      {b.blocked?.username && (
+                        <p className="text-xs text-gray-500 truncate">@{b.blocked.username}</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleUnblock(b.blockedId)}
+                      className="ml-4 px-3 py-1.5 text-xs border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 whitespace-nowrap"
+                    >
+                      {t('settings.unblock')}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 

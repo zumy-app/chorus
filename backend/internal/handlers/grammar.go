@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/chorus/messenger/internal/models"
@@ -10,12 +11,14 @@ import (
 
 type GrammarHandler struct {
 	grammarService *services.GrammarService
+	grammarQueue   *services.GrammarQueueService
 	messageService *services.MessageService
 }
 
-func NewGrammarHandler(gs *services.GrammarService, ms *services.MessageService) *GrammarHandler {
+func NewGrammarHandler(gs *services.GrammarService, gq *services.GrammarQueueService, ms *services.MessageService) *GrammarHandler {
 	return &GrammarHandler{
 		grammarService: gs,
+		grammarQueue:   gq,
 		messageService: ms,
 	}
 }
@@ -187,7 +190,11 @@ func (h *GrammarHandler) GetGrammarReport(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": report})
 }
 
-// AnalyzeTextWithAI performs AI-powered grammar analysis on arbitrary text
+// AnalyzeTextWithAI performs AI-powered grammar analysis on arbitrary text.
+// Analysis runs asynchronously: the request is enqueued and the job id is
+// returned immediately. The result is delivered to the requesting user over the
+// WebSocket "grammar_analysis" event and can be polled via GET /grammar/analyze/:jobId.
+// Already-cached analyses are returned synchronously without enqueueing.
 // POST /api/v1/grammar/analyze-ai
 func (h *GrammarHandler) AnalyzeTextWithAI(c *gin.Context) {
 	userID := c.GetString("userID")
@@ -200,6 +207,8 @@ func (h *GrammarHandler) AnalyzeTextWithAI(c *gin.Context) {
 		Text           string `json:"text" binding:"required"`
 		Language       string `json:"language" binding:"required"`
 		NativeLanguage string `json:"nativeLanguage"`
+		MessageID      string `json:"messageId"`
+		ChatID         string `json:"chatId"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
@@ -211,20 +220,59 @@ func (h *GrammarHandler) AnalyzeTextWithAI(c *gin.Context) {
 		nativeLang = "en"
 	}
 
-	analysis, providerUsed, err := h.grammarService.GenerateAIAnalysis(req.Text, req.Language, nativeLang)
+	if h.grammarQueue == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Grammar queue not available"})
+		return
+	}
+
+	// Hot path: already analyzed on a previous request — return instantly.
+	if analysis, provider, ok := h.grammarService.CachedAIAnalysis(req.Text, req.Language, nativeLang); ok {
+		c.JSON(http.StatusOK, gin.H{
+			"jobId":        "",
+			"status":       "done",
+			"analysis":     analysis,
+			"providerUsed": provider,
+		})
+		return
+	}
+
+	jobID, err := h.grammarQueue.EnqueueForAnalysis(userID, req.ChatID, req.MessageID, req.Text, req.Language, nativeLang)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "AI grammar analysis failed"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data": gin.H{
-			"text":          req.Text,
-			"language":      req.Language,
-			"analysis":      analysis,
-			"provider_used": providerUsed,
-		},
+	c.JSON(http.StatusAccepted, gin.H{
+		"jobId":     jobID,
+		"status":    "queued",
+		"messageId": req.MessageID,
 	})
+}
+
+// GetGrammarJob returns the state and (completed) result of a grammar analysis
+// job owned by the requesting user. Used for WebSocket resync/recovery.
+// GET /api/v1/grammar/analyze/:jobId
+func (h *GrammarHandler) GetGrammarJob(c *gin.Context) {
+	userID := c.GetString("userID")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	jobID := c.Param("jobId")
+	if jobID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "jobId is required"})
+		return
+	}
+
+	job, err := h.grammarQueue.GetJob(jobID, userID)
+	if err != nil {
+		log.Printf("[Grammar] get job %s for user %s: %v", jobID, userID, err)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Grammar job not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, job)
 }
 
 // LearnGrammar generates interactive learning content (breakdown, examples, flashcards, custom)

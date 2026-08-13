@@ -17,6 +17,17 @@ import type {
   TranslationJob,
   ProviderHealth,
   Entitlements,
+  SubscriptionInfo,
+  CheckoutResponse,
+  PremiumUserRow,
+  PremiumAnalytics,
+  PlanChange,
+  GrantPlanRequest,
+  Block,
+  Report,
+  ReportRequest,
+  ReportStats,
+  GrammarJob,
 } from '../types'
 
 // Get API URL based on environment
@@ -234,6 +245,81 @@ export const adminAPI = {
     const response = await api.get<{ providers: ProviderHealth[] }>('/admin/translations/health')
     return response.data.providers
   },
+
+  premiumUsers: async (q?: string, limit = 50, offset = 0) => {
+    const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+    if (q) params.append('q', q)
+    const response = await api.get<{ users: PremiumUserRow[]; total: number }>('/admin/premium/users?' + params)
+    return response.data
+  },
+
+  premiumAnalytics: async () => {
+    const response = await api.get<PremiumAnalytics>('/admin/premium/analytics')
+    return response.data
+  },
+
+  grantPlan: async (id: string, data: GrantPlanRequest) => {
+    const response = await api.put<{ message: string }>(`/admin/users/${id}/plan`, data)
+    return response.data
+  },
+
+  revokePlan: async (id: string, clearGraceInDays = 0, reason?: string) => {
+    const response = await api.post<{ message: string }>(`/admin/users/${id}/plan/revoke`, {
+      plan: 'free',
+      clearGraceInDays,
+      reason,
+    })
+    return response.data
+  },
+
+  planHistory: async (id: string) => {
+    const response = await api.get<{ history: PlanChange[] }>(`/admin/users/${id}/plan-history`)
+    return response.data.history
+  },
+
+  listReports: async (status?: string, q?: string, limit = 50, offset = 0) => {
+    const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+    if (status && status !== 'all') params.append('status', status)
+    if (q) params.append('q', q)
+    const response = await api.get<{ reports: Report[]; total: number }>(`/admin/reports?${params}`)
+    return response.data
+  },
+
+  reportStats: async () => {
+    const response = await api.get<ReportStats>('/admin/reports/stats')
+    return response.data
+  },
+
+  resolveReport: async (id: string) => {
+    const response = await api.post<{ message: string }>(`/admin/reports/${id}/resolve`)
+    return response.data
+  },
+
+  dismissReport: async (id: string, note?: string) => {
+    const response = await api.post<{ message: string }>(`/admin/reports/${id}/dismiss`, { note })
+    return response.data
+  },
+}
+
+export const moderationAPI = {
+  block: async (blockedUserId: string, reason?: string) => {
+    const response = await api.post<{ message: string }>('/blocks', { blockedUserId, reason })
+    return response.data
+  },
+
+  unblock: async (userId: string) => {
+    await api.delete(`/blocks/${userId}`)
+  },
+
+  getBlocked: async () => {
+    const response = await api.get<{ blocks: Block[]; total: number }>('/blocks')
+    return response.data.blocks
+  },
+
+  report: async (data: ReportRequest) => {
+    const response = await api.post<Report>('/reports', data)
+    return response.data
+  },
 }
 
 export const chatAPI = {
@@ -329,15 +415,53 @@ export const vocabularyAPI = {
   },
 }
 
+export const billingAPI = {
+  getMySubscription: async () => {
+    const response = await api.get<SubscriptionInfo>('/users/me/subscription')
+    return response.data
+  },
+
+  checkout: async (plan: 'monthly' | 'annual', returnUrl?: string, cancelUrl?: string) => {
+    const params = new URLSearchParams()
+    if (returnUrl) params.append('return_url', returnUrl)
+    if (cancelUrl) params.append('cancel_url', cancelUrl)
+    const query = params.toString()
+    const response = await api.post<CheckoutResponse>(
+      `/users/me/subscription/checkout${query ? `?${query}` : ''}`,
+      { plan }
+    )
+    return response.data
+  },
+}
+
 export const grammarAPI = {
   analyze: async (text: string, language: string, nativeLanguage?: string) => {
     const response = await api.post('/grammar/analyze-text', { text, language, nativeLanguage })
     return response.data.data
   },
 
-  analyzeAI: async (text: string, language: string, nativeLanguage?: string) => {
-    const response = await api.post('/grammar/analyze-ai', { text, language, nativeLanguage })
-    return response.data.data
+  // Submits an AI grammar analysis. Returns immediately with a job id; the
+  // result arrives over the WebSocket "grammar_analysis" event (or via getAnalysis).
+  analyzeAI: async (data: {
+    text: string
+    language: string
+    nativeLanguage?: string
+    messageId?: string
+    chatId?: string
+  }) => {
+    const response = await api.post<{
+      jobId: string
+      status: string
+      messageId?: string
+      analysis?: any
+      providerUsed?: string
+    }>('/grammar/analyze-ai', data)
+    return response.data
+  },
+
+  getAnalysis: async (jobId: string) => {
+    const response = await api.get<GrammarJob>(`/grammar/analyze/${jobId}`)
+    return response.data
   },
 
   learn: async (text: string, language: string, nativeLanguage: string, action: string, customQuery?: string) => {

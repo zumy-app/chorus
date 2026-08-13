@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import type { Message } from '../types'
+import type { Message, GrammarJobStatus } from '../types'
 import { vocabularyAPI, grammarAPI } from '../services/api'
 import { useStore } from '../store'
 import GrammarPanel from './GrammarPanel'
+import ReportModal from './ReportModal'
 
 interface MessageBubbleProps {
   message: Message
@@ -20,12 +21,15 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
   const [savedWord, setSavedWord] = useState<string | null>(null)
   const [showGrammar, setShowGrammar] = useState(false)
   const [grammarAnalysis, setGrammarAnalysis] = useState<any>(null)
-  const [loadingGrammar, setLoadingGrammar] = useState(false)
   const [grammarProvider, setGrammarProvider] = useState<string | null>(null)
-  const [showFallbackMsg, setShowFallbackMsg] = useState(false)
+  const [grammarError, setGrammarError] = useState<string | null>(null)
+  const [showReport, setShowReport] = useState(false)
 
   const entitlements = useStore((s) => s.entitlements)
   const blocked = useStore((s) => s.blockedTranslations[message.id])
+  const grammarJob = useStore((s) => s.grammarJobs[message.id])
+  const setGrammarJob = useStore((s) => s.setGrammarJob)
+  const resyncGrammarJob = useStore((s) => s.resyncGrammarJob)
 
   const autoGrammar = entitlements?.features?.autoGrammar ?? false
 
@@ -33,20 +37,20 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
   const showNativeTranslation = nativeTranslation && nativeTranslation !== message.text
 
   // Derive the blocked state as well as relying on the live WebSocket signal:
-  // a free-plan user's own message that is over the translation char limit and
+  // a free-plan user's own message that is over the translation word limit and
   // has no translation is one the server intentionally left untranslated. This
   // keeps the premium nudge visible even after a reload (the in-memory blocked
   // map is lost on navigation), instead of the message silently looking sent.
-  const charLimit = entitlements?.features?.translationCharLimit
+  const wordLimit = entitlements?.features?.translationWordLimit
   const isOwnLongUntranslated = Boolean(
     isOwn &&
     entitlements?.effectivePlan === 'free' &&
-    charLimit != null &&
+    wordLimit != null &&
     !nativeTranslation &&
-    [...(message.text || '')].length > charLimit
+    (message.text || '').trim().split(/\s+/).filter(Boolean).length > wordLimit
   )
 
-  // Translation was blocked by the free-plan char limit (server decided not to
+  // Translation was blocked by the free-plan word limit (server decided not to
   // translate a long message). Show the premium nudge instead of a spinner.
   const isTranslationBlocked = Boolean(blocked && blocked.reason === 'message_too_long') || isOwnLongUntranslated
 
@@ -61,16 +65,38 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
     : null
   const showTargetTranslation = targetTranslation && targetTranslation !== message.text
 
-  // Show "Switching models..." only after the primary provider's realistic
-  // worst-case latency has passed (Gemini can take ~12s), so a normally-working
-  // request doesn't show a false "falling back" message.
+  // Source the completed analysis and failures from the job record (delivered
+  // over the WebSocket and/or polled), keeping the panel honest even across
+  // reconnects. A fresh job pending for a previously-analyzed message clears
+  // the stale analysis while the new request runs.
+  const lastJobId = useRef<string | null>(null)
   useEffect(() => {
-    if (loadingGrammar) {
-      const timer = setTimeout(() => setShowFallbackMsg(true), 20000)
-      return () => clearTimeout(timer)
+    // A job started before a reload is re-fetched so the bubble shows its
+    // actual outcome instead of silently showing nothing.
+    if (!grammarJob) {
+      resyncGrammarJob(message.id)
     }
-    setShowFallbackMsg(false)
-  }, [loadingGrammar])
+  }, [message.id, grammarJob])
+
+  useEffect(() => {
+    if (!grammarJob) return
+    if (lastJobId.current !== grammarJob.jobId) {
+      lastJobId.current = grammarJob.jobId
+      setGrammarAnalysis(null)
+      setGrammarProvider(null)
+      setGrammarError(null)
+    }
+    if (grammarJob.status === 'done') {
+      setGrammarAnalysis(grammarJob.analysis || null)
+      setGrammarProvider(grammarJob.providerUsed || 'cache')
+      setGrammarError(null)
+    } else if (grammarJob.status === 'failed') {
+      setGrammarError(grammarJob.error || null)
+    }
+  }, [grammarJob])
+
+  const jobBusy = grammarJob?.status === 'queued' || grammarJob?.status === 'processing'
+
   // Re-run AI grammar analysis when translations arrive (WebSocket update).
   // For premium users (autoGrammar), analysis also runs automatically the
   // first time a translation arrives — no manual button press needed.
@@ -107,30 +133,45 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
       setShowGrammar(!showGrammar)
       return
     }
-    if (!silent) setLoadingGrammar(true)
-    setGrammarProvider(null)
+    if (jobBusy) return
+    // Always analyze the ORIGINAL message text.
+    // Use the sender's native language as fallback when originalLanguage is not set.
+    const sourceLang = message.originalLanguage || message.sender?.nativeLanguage || 'en'
+    if (!silent) setShowGrammar(true)
     try {
-      // Always analyze the ORIGINAL message text.
-      // Use the sender's native language as fallback when originalLanguage is not set.
-      const sourceLang = message.originalLanguage || message.sender?.nativeLanguage || 'en'
-      const response = await grammarAPI.analyzeAI(message.text, sourceLang, nativeLanguage)
-      setGrammarAnalysis(response.analysis || response)
-      setGrammarProvider(response.provider_used || null)
-      if (!silent) setShowGrammar(true)
+      // Submit an async job; the result arrives over the WebSocket
+      // ("grammar_analysis") and via GET /grammar/analyze/:jobId.
+      const response = await grammarAPI.analyzeAI({
+        text: message.text,
+        language: sourceLang,
+        nativeLanguage,
+        messageId: message.id,
+        chatId: message.chatId,
+      })
+      // Cache fast-path: the response already contains the finished analysis.
+      if (response.status === 'done' && response.analysis) {
+        setGrammarAnalysis(response.analysis)
+        setGrammarProvider(response.providerUsed || 'cache')
+        setGrammarError(null)
+        return
+      }
+      setGrammarJob({
+        jobId: response.jobId,
+        status: (response.status as GrammarJobStatus) || 'queued',
+        messageId: message.id,
+      })
     } catch (err) {
       console.error('AI grammar analysis failed, falling back to regex:', err)
       // Fallback to regex analysis
       try {
-        const sourceLang = message.originalLanguage || message.sender?.nativeLanguage || 'en'
         const response = await grammarAPI.analyze(message.text, sourceLang, nativeLanguage)
         setGrammarAnalysis(response.analysis || response)
         setGrammarProvider(null)
-        if (!silent) setShowGrammar(true)
+        setGrammarError(null)
       } catch (fallbackErr) {
         console.error('Grammar analysis failed:', fallbackErr)
+        setGrammarError('failed')
       }
-    } finally {
-      if (!silent) setLoadingGrammar(false)
     }
   }
 
@@ -232,7 +273,31 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
         </div>
 
         {/* AI-Powered Grammar Analysis */}
-        {showGrammar && grammarAnalysis && (
+        {showGrammar && jobBusy && !grammarError && (
+          <div className="mt-1 bg-amber-50 border border-amber-200 rounded-lg shadow-sm max-w-md px-3 py-2.5">
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-1.5 h-1.5 bg-amber-600 rounded-full animate-pulse" />
+              <span className="text-xs font-medium text-amber-800">
+                {grammarJob?.status === 'queued' ? t('grammar.queued') : t('grammar.analyzing')}
+              </span>
+            </div>
+            <p className="text-[11px] text-amber-600 mt-1">{t('grammar.analysisInProgress')}</p>
+          </div>
+        )}
+
+        {showGrammar && grammarError && !jobBusy && (
+          <div className="mt-1 bg-red-50 border border-red-200 rounded-lg shadow-sm max-w-md px-3 py-2.5">
+            <div className="text-xs font-medium text-red-700">{t('grammar.failed')}</div>
+            <button
+              onClick={() => handleAnalyzeGrammar()}
+              className="text-[11px] mt-1 px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition"
+            >
+              {t('grammar.retry')}
+            </button>
+          </div>
+        )}
+
+        {showGrammar && grammarAnalysis && !jobBusy && (
           <GrammarPanel
             analysis={grammarAnalysis}
             nativeLanguage={nativeLanguage}
@@ -248,14 +313,16 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
           <div className="flex flex-wrap gap-1 mt-1">
             <button
               onClick={() => handleAnalyzeGrammar()}
-              disabled={loadingGrammar}
+              disabled={jobBusy}
               className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded hover:bg-amber-200 transition disabled:opacity-50"
             >
-              {loadingGrammar ? (
+              {jobBusy ? (
                 <span className="flex items-center gap-1">
                   <span className="inline-block w-1 h-1 bg-amber-600 rounded-full animate-pulse" />
-                  {showFallbackMsg ? t('grammar.switchingModels') : t('grammar.analyzing')}
+                  {grammarJob?.status === 'queued' ? t('grammar.queued') : t('grammar.analyzing')}
                 </span>
+              ) : grammarError ? (
+                `↻ ${t('grammar.retry')}`
               ) : (
                 `📝 ${t('grammar.grammar')}`
               )}
@@ -270,9 +337,26 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
                 {savedWord === word ? t('common.saved') : `+ ${word.substring(0, 12)}`}
               </button>
             ))}
+            <button
+              onClick={() => setShowReport(true)}
+              className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition"
+              title={t('report.reportMessage')}
+            >
+              🚩
+            </button>
           </div>
         )}
       </div>
+
+      {showReport && message.sender && (
+        <ReportModal
+          targetType="message"
+          messageId={message.id}
+          chatId={message.chatId}
+          reportedUserName={message.sender.displayName}
+          onClose={() => setShowReport(false)}
+        />
+      )}
     </div>
   )
 }

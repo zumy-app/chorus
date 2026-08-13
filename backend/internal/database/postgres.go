@@ -321,6 +321,113 @@ func Migrate(db *sql.DB) error {
 		`ALTER TABLE translation_jobs ADD COLUMN IF NOT EXISTS priority INT NOT NULL DEFAULT 0`,
 		`CREATE INDEX IF NOT EXISTS idx_translation_jobs_status ON translation_jobs(status, next_attempt_at)`,
 		`CREATE INDEX IF NOT EXISTS idx_translation_jobs_message ON translation_jobs(message_id)`,
+
+		// Monetization (Phase 1.5): subscription state lives on the user row so
+		// entitlement resolution stays a single-row read. subscription_id is the
+		// provider-side subscription id; subscription_plan_id records which plan
+		// it maps to (PayPal Billing plan id) for analytics and checkout reuse.
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS premium_since TIMESTAMP`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_id VARCHAR(255)`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_provider VARCHAR(20) NOT NULL DEFAULT 'paypal'`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_plan_id VARCHAR(255)`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(20)`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS next_billing_date TIMESTAMP`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_payment_at TIMESTAMP`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_subscription_id ON users(subscription_id) WHERE subscription_id IS NOT NULL`,
+		// grace_notified_at marks users whose grace period has already triggered
+		// the "premium ended" email, so the expiry sweeper is idempotent.
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS grace_notified_at TIMESTAMP`,
+
+		// Durable webhook/event log. provider_event_id is the idempotency key so
+		// re-delivered webhooks never double-process. user_id is resolved when
+		// the event is handled (nullable for events that arrive before a user is
+		// matched, e.g. payer-email fallback retries).
+		`CREATE TABLE IF NOT EXISTS subscription_events (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+			event_type VARCHAR(100) NOT NULL,
+			provider VARCHAR(20) NOT NULL DEFAULT 'paypal',
+			provider_event_id VARCHAR(255) NOT NULL,
+			status VARCHAR(20) NOT NULL DEFAULT 'received' CHECK (status IN ('received', 'processed', 'failed', 'ignored')),
+			payload JSONB NOT NULL DEFAULT '{}',
+			error TEXT,
+			received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			handled_at TIMESTAMP
+		)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_subscription_events_provider_event ON subscription_events(provider, provider_event_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_subscription_events_user ON subscription_events(user_id, received_at DESC)`,
+
+		// Audit trail for every plan change (admin grants/revokes AND provider
+		// lifecycle events). actor_id is the admin for manual changes, null for
+		// system/webhook-driven changes.
+		`CREATE TABLE IF NOT EXISTS plan_changes (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			actor_id UUID REFERENCES users(id) ON DELETE SET NULL,
+			from_plan VARCHAR(20) NOT NULL,
+			to_plan VARCHAR(20) NOT NULL,
+			grace_until TIMESTAMP,
+			source VARCHAR(50) NOT NULL DEFAULT 'webhook',
+			reason TEXT NOT NULL DEFAULT '',
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_plan_changes_user ON plan_changes(user_id, created_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_plan_changes_created ON plan_changes(created_at)`,
+
+		// Report & Block (safety rails, REQ §8.2). blocked_users holds directed
+		// blocks; enforcement treats either direction as blocking communication.
+		`CREATE TABLE IF NOT EXISTS blocked_users (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			blocker_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			blocked_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			reason TEXT NOT NULL DEFAULT '',
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_blocked_users_pair ON blocked_users(blocker_id, blocked_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_blocked_users_blocked ON blocked_users(blocked_id)`,
+
+		`CREATE TABLE IF NOT EXISTS reports (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			reporter_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			type VARCHAR(20) NOT NULL DEFAULT 'user' CHECK (type IN ('user', 'message')),
+			reported_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			message_id UUID REFERENCES messages(id) ON DELETE SET NULL,
+			chat_id UUID REFERENCES chats(id) ON DELETE SET NULL,
+			reason TEXT NOT NULL,
+			status VARCHAR(20) NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'resolved', 'dismissed')),
+			resolver_id UUID REFERENCES users(id) ON DELETE SET NULL,
+			resolution_note TEXT NOT NULL DEFAULT '',
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			resolved_at TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status, created_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_reports_reported ON reports(reported_user_id, created_at DESC)`,
+
+		// Durable AI grammar analysis jobs (one row per analysis request). Mirrors
+		// translation_jobs: rows are the source of truth, Redis pub/sub is the
+		// near-real-time trigger, and the worker + sweeper + startup recovery live
+		// in GrammarQueueService. Results are pushed to the requesting user only.
+		`CREATE TABLE IF NOT EXISTS grammar_jobs (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			chat_id UUID REFERENCES chats(id) ON DELETE CASCADE,
+			message_id UUID REFERENCES messages(id) ON DELETE SET NULL,
+			text TEXT NOT NULL,
+			language VARCHAR(10) NOT NULL,
+			native_language VARCHAR(10) NOT NULL,
+			status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'done', 'failed')),
+			result JSONB,
+			provider_used VARCHAR(50),
+			attempts INTEGER NOT NULL DEFAULT 0,
+			last_error TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			next_attempt_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			processing_at TIMESTAMP,
+			completed_at TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_grammar_jobs_user_created ON grammar_jobs(user_id, created_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_grammar_jobs_status ON grammar_jobs(status, next_attempt_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_grammar_jobs_message ON grammar_jobs(message_id)`,
 	}
 
 	for _, migration := range migrations {

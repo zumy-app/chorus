@@ -132,6 +132,26 @@ func main() {
 	log.Printf("[Startup] TRANSLATION_FALLBACK_ORDER=%q from env", os.Getenv("TRANSLATION_FALLBACK_ORDER"))
 	grammarService := services.NewGrammarService(redisClient, buildGrammarEndpoints(cfg))
 
+	// Asynchronous, durable AI grammar analysis. Jobs are stored in
+	// grammar_jobs (DB outbox), triggered via Redis pub/sub, and results are
+	// pushed to the requesting user only over the WebSocket hub (+ pub/sub for
+	// multi-instance). The HTTP handler returns a job id immediately instead of
+	// holding a connection open for the provider chain.
+	grammarQueue := services.NewGrammarQueueService(
+		db,
+		redisClient,
+		grammarService,
+		grammarService.CachedAIAnalysis,
+		func(userID string, payload *services.GrammarJobResult) {
+			wsHub.SendToUser(userID, "grammar_analysis", payload)
+			if pubsubService != nil {
+				pubsubService.PublishToUser(userID, "grammar_analysis", payload)
+			}
+		},
+	)
+	grammarQueue.Start()
+	defer grammarQueue.Stop()
+
 	// Phase 3: Initialize Vocabulary service
 	vocabularyService := services.NewVocabularyService(db, redisClient)
 
@@ -168,16 +188,48 @@ func main() {
 	)
 	adminUsersHandler := handlers.NewAdminUsersHandler(userService, authService)
 	adminTranslationsHandler := handlers.NewAdminTranslationsHandler(translationQueue, translationService)
-	chatHandler := handlers.NewChatHandler(chatService, userService, wsHub)
-	messageHandler := handlers.NewMessageHandler(messageService, chatService, userService, entitlementService, translationQueue, wsHub)
+
+	// Report & Block (REQ §8.2): moderation service enforces blocks on chat
+	// creation and messaging; reports feed the moderator console.
+	moderationService := services.NewModerationService(db)
+	chatHandler := handlers.NewChatHandler(chatService, userService, moderationService, wsHub)
+	messageHandler := handlers.NewMessageHandler(messageService, chatService, userService, entitlementService, translationQueue, moderationService, wsHub)
 	wsHandler := handlers.NewWebSocketHandler(wsHub, authService)
+
+	// Monetization (Phase 1.5): PayPal client + billing service + handler.
+	paypalClient := services.NewPayPalClient(cfg)
+	billingService := services.NewBillingService(db, paypalClient, entitlementService, cfg.PayPalPlanMonthlyID, cfg.PayPalPlanYearlyID)
+	// Phase 4 (P15): premium lifecycle emails, sent durably through the outbox.
+	billingService.SetNotifier(func(ctx context.Context, user *models.User, kind string, graceUntil *time.Time) {
+		var manageLink string
+		if user.SubscriptionID != nil {
+			manageLink = paypalClient.ManageURL(*user.SubscriptionID)
+		}
+		var subject, html string
+		switch kind {
+		case services.NotifyActivated:
+			subject, html = services.PremiumActivatedEmail(user.DisplayName, manageLink)
+		case services.NotifyEnterGrace:
+			subject, html = services.PremiumGraceEmail(user.DisplayName, *graceUntil, manageLink)
+		case services.NotifyDowngrade:
+			subject, html = services.PremiumDowngradedEmail(user.DisplayName)
+		}
+		if subject != "" {
+			notificationService.Send(user.Email, subject, html)
+		}
+	})
+	billingService.StartGraceSweeper()
+	defer billingService.StopGraceSweeper()
+	billingHandler := handlers.NewBillingHandler(billingService, paypalClient, entitlementService)
 
 	// Phase 2 & 3 handlers
 	searchHandler := handlers.NewSearchHandler(searchService)
 	presenceHandler := handlers.NewPresenceHandler(presenceService)
-	grammarHandler := handlers.NewGrammarHandler(grammarService, messageService)
+	grammarHandler := handlers.NewGrammarHandler(grammarService, grammarQueue, messageService)
 	vocabularyHandler := handlers.NewVocabularyHandler(vocabularyService, messageService, translationService)
 	callHandler := handlers.NewCallHandler(callService)
+
+	moderationHandler := handlers.NewModerationHandler(moderationService)
 
 	// Setup Gin router
 	if cfg.Environment == "production" {
@@ -188,7 +240,7 @@ func main() {
 
 	// CORS configuration
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:5173", "http://10.0.2.2:5173", "https://chorus.talk"},
+		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:4173", "http://localhost:5173", "http://10.0.2.2:5173", "https://chorus.talk"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -209,6 +261,9 @@ func main() {
 		public.POST("/auth/refresh", authHandler.RefreshToken)
 		public.POST("/auth/forgot-password", middleware.IPRateLimiter(5, time.Hour), authHandler.ForgotPassword)
 		public.POST("/auth/reset-password", authHandler.ResetPassword)
+		// PayPal webhooks must be reachable without auth; signature verification
+		// happens inside the handler.
+		public.POST("/webhooks/paypal", billingHandler.Webhook)
 	}
 
 	// Protected routes
@@ -220,6 +275,16 @@ func main() {
 		protected.GET("/users/me/entitlements", authHandler.GetMyEntitlements)
 		protected.PUT("/users/me", authHandler.UpdateMe)
 		protected.GET("/users/search", authHandler.SearchUsers)
+
+		// Subscription routes (Phase 1.5).
+		protected.GET("/users/me/subscription", billingHandler.GetMySubscription)
+		protected.POST("/users/me/subscription/checkout", billingHandler.Checkout)
+
+		// Report & Block (REQ §8.2)
+		protected.POST("/blocks", moderationHandler.Block)
+		protected.DELETE("/blocks/:userId", moderationHandler.Unblock)
+		protected.GET("/blocks", moderationHandler.ListBlocked)
+		protected.POST("/reports", moderationHandler.Report)
 
 		// Non-gated status probe used by the client to learn the caller's role.
 		protected.GET("/admin/status", adminWaitlistHandler.Status)
@@ -237,6 +302,12 @@ func main() {
 			admin.POST("/emails/:id/retry", adminWaitlistHandler.RetryEmail)
 			admin.PUT("/users/:id/role", adminUsersHandler.SetRole)
 			admin.DELETE("/users/:id", adminUsersHandler.Delete)
+			// Premium management (Phase 1.5).
+			admin.PUT("/users/:id/plan", billingHandler.GrantPlan)
+			admin.POST("/users/:id/plan/revoke", billingHandler.RevokePlan)
+			admin.GET("/users/:id/plan-history", billingHandler.PlanHistory)
+			admin.GET("/premium/users", billingHandler.ListPremiumUsers)
+			admin.GET("/premium/analytics", billingHandler.PremiumAnalytics)
 		}
 
 		// Moderator routes (moderator or admin).
@@ -249,6 +320,12 @@ func main() {
 			moderator.GET("/translations", adminTranslationsHandler.List)
 			moderator.POST("/translations/:id/retry", adminTranslationsHandler.Retry)
 			moderator.GET("/translations/health", adminTranslationsHandler.Health)
+
+			// Moderation console: reports
+			moderator.GET("/reports", moderationHandler.ListReports)
+			moderator.GET("/reports/stats", moderationHandler.ReportStats)
+			moderator.POST("/reports/:id/resolve", moderationHandler.ResolveReport)
+			moderator.POST("/reports/:id/dismiss", moderationHandler.DismissReport)
 		}
 
 		// Chat routes
@@ -279,6 +356,7 @@ func main() {
 		protected.POST("/grammar/analyze", grammarHandler.AnalyzeMessageGrammar)
 		protected.POST("/grammar/analyze-text", grammarHandler.AnalyzeText)
 		protected.POST("/grammar/analyze-ai", grammarHandler.AnalyzeTextWithAI)
+		protected.GET("/grammar/analyze/:jobId", grammarHandler.GetGrammarJob)
 		protected.POST("/grammar/learn", grammarHandler.LearnGrammar)
 		protected.GET("/grammar/suggestions", grammarHandler.GetGrammarSuggestions)
 		protected.GET("/grammar/report", grammarHandler.GetGrammarReport)

@@ -9,13 +9,15 @@ import (
 type ChatHandler struct {
 	chatService *services.ChatService
 	userService *services.UserService
+	moderation  *services.ModerationService
 	wsHub       *services.WebSocketHub
 }
 
-func NewChatHandler(chatService *services.ChatService, userService *services.UserService, wsHub *services.WebSocketHub) *ChatHandler {
+func NewChatHandler(chatService *services.ChatService, userService *services.UserService, moderation *services.ModerationService, wsHub *services.WebSocketHub) *ChatHandler {
 	return &ChatHandler{
 		chatService: chatService,
 		userService: userService,
+		moderation:  moderation,
 		wsHub:       wsHub,
 	}
 }
@@ -71,6 +73,24 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(400, gin.H{"error": "Invalid request: " + err.Error()})
 		return
+	}
+
+	// Safety rail: a blocked user cannot be added to a new chat.
+	if h.moderation != nil && req.Type == "direct" {
+		for _, p := range req.Participants {
+			if p == userID {
+				continue
+			}
+			blocked, err := h.moderation.IsBlocked(c.Request.Context(), userID, p)
+			if err != nil {
+				c.JSON(500, gin.H{"error": "Failed to check blocked users"})
+				return
+			}
+			if blocked {
+				c.JSON(403, gin.H{"error": "You cannot start a chat with this user"})
+				return
+			}
+		}
 	}
 
 	chat, err := h.chatService.Create(userID, req)
@@ -187,6 +207,31 @@ func (h *ChatHandler) AddParticipant(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(400, gin.H{"error": "Invalid request"})
 		return
+	}
+
+	// Safety rail: never add a user who has a block relationship with an
+	// existing participant or the actor.
+	if h.moderation != nil {
+		participants, err := h.chatService.GetParticipants(chatID)
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Failed to load participants"})
+			return
+		}
+		others := []string{userID}
+		for _, p := range participants {
+			others = append(others, p.UserID)
+		}
+		for _, other := range others {
+			blocked, err := h.moderation.IsBlocked(c.Request.Context(), req.UserID, other)
+			if err != nil {
+				c.JSON(500, gin.H{"error": "Failed to check blocked users"})
+				return
+			}
+			if blocked {
+				c.JSON(403, gin.H{"error": "You cannot add this user"})
+				return
+			}
+		}
 	}
 
 	if err := h.chatService.AddParticipant(chatID, req.UserID, "member"); err != nil {
