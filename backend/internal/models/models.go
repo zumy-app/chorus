@@ -13,6 +13,13 @@ type User struct {
 	Role            string    `json:"role" db:"role"` // member, moderator, admin
 	CreatedAt       time.Time `json:"createdAt" db:"created_at"`
 	LastActiveAt    time.Time `json:"lastActiveAt" db:"last_active_at"`
+	// Plan is the stored billing plan ("free" or "premium"). Entitlements are
+	// resolved through the entitlement service (see internal/services).
+	Plan string `json:"plan" db:"plan"`
+	// PlanGraceUntil, when set, is the explicit grace-upgrade deadline for
+	// accounts created before a paid cutover: entitlements behave as premium
+	// until this time, then fall back to the stored plan.
+	PlanGraceUntil *time.Time `json:"planGraceUntil,omitempty" db:"plan_grace_until"`
 	// SuspendedAt is a reversible soft ban; the account cannot authenticate
 	// while non-nil.
 	SuspendedAt *time.Time `json:"suspendedAt,omitempty" db:"suspended_at"`
@@ -293,6 +300,7 @@ type TranslationJob struct {
 	Text        string     `json:"text"`
 	SourceLang  string     `json:"sourceLang,omitempty"`
 	TargetLang  string     `json:"targetLang"`
+	Priority    int        `json:"priority"`
 	Status      string     `json:"status"`
 	Result      string     `json:"result,omitempty"`
 	Attempts    int        `json:"attempts"`

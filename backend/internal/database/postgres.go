@@ -286,6 +286,16 @@ func Migrate(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)`,
 		`CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users(deleted_at) WHERE deleted_at IS NULL`,
 
+		// Billing plan & cutover grace. plan_grace_until is the explicit
+		// grace-upgrade window for accounts created before a paid cutover: the
+		// entitlement service treats them as premium until the deadline, then
+		// they drop to their stored plan (free). Both are additive and default
+		// to free, so every existing user is migrated to the free plan.
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS plan VARCHAR(20) NOT NULL DEFAULT 'free'`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_grace_until TIMESTAMP`,
+		`ALTER TABLE users DROP CONSTRAINT IF EXISTS users_plan_check`,
+		`ALTER TABLE users ADD CONSTRAINT users_plan_check CHECK (plan IN ('free', 'premium'))`,
+
 		// Durable translation jobs: one row per (message, target language).
 		// Rows are the source of truth; Redis pub/sub is only the near-real-time
 		// trigger. The queue worker + sweeper + startup recovery are implemented
@@ -297,6 +307,7 @@ func Migrate(db *sql.DB) error {
 			text TEXT NOT NULL,
 			source_lang VARCHAR(10),
 			target_lang VARCHAR(10) NOT NULL,
+			priority INT NOT NULL DEFAULT 0,
 			status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'done', 'failed')),
 			result TEXT,
 			attempts INTEGER NOT NULL DEFAULT 0,
@@ -307,6 +318,7 @@ func Migrate(db *sql.DB) error {
 			completed_at TIMESTAMP,
 			UNIQUE(message_id, target_lang)
 		)`,
+		`ALTER TABLE translation_jobs ADD COLUMN IF NOT EXISTS priority INT NOT NULL DEFAULT 0`,
 		`CREATE INDEX IF NOT EXISTS idx_translation_jobs_status ON translation_jobs(status, next_attempt_at)`,
 		`CREATE INDEX IF NOT EXISTS idx_translation_jobs_message ON translation_jobs(message_id)`,
 	}

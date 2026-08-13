@@ -217,3 +217,9 @@ A multilingual messaging platform that enables seamless communication across lan
 3. THE System SHALL replicate critical data across multiple geographic regions
 4. WHEN a user requests data export, THE System SHALL provide complete conversation and learning data
 5. THE System SHALL test backup restoration procedures monthly to ensure data integrity
+
+## Premium Features
+1. Automatic Grammar analysis (no need to press the button for each)
+2. Faster responses
+3. Translation for Longer messages. Free plan can translate messages for just 200 chars
+4. 

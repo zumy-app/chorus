@@ -119,6 +119,36 @@ describe('API Service', () => {
       expect(users).toHaveLength(1)
       expect(users[0].username).toBe('founduser')
     })
+
+    it('should fetch entitlements via GET', async () => {
+      const mockData = {
+        plan: 'free',
+        planGraceUntil: null,
+        effectivePlan: 'free',
+        selfHost: false,
+        limits: {
+          dailyLLMTranslations: 50,
+          dailyLLMGrammarAnalyses: 20,
+          dailyLLMCorrections: 20,
+          dailyVoiceMessages: 10,
+          vocabularyItems: 500,
+        },
+      }
+      const mockAxios = createMockAxios({
+        get: vi.fn().mockResolvedValue({ data: mockData }),
+      })
+
+      vi.doMock('axios', () => ({
+        default: { create: vi.fn(() => mockAxios) },
+        create: vi.fn(() => mockAxios),
+      }))
+
+      const { authAPI } = await import('../../services/api')
+      const result = await authAPI.getEntitlements()
+      expect(result.effectivePlan).toBe('free')
+      expect(result.limits.dailyLLMTranslations).toBe(50)
+      expect(mockAxios.get).toHaveBeenCalledWith('/users/me/entitlements')
+    })
   })
 
   describe('waitlistAPI', () => {

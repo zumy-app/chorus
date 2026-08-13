@@ -108,7 +108,8 @@ func (q *TranslationQueueService) Stop() {
 
 // EnqueueForMessage creates one durable job per target language and triggers
 // processing. Existing jobs for the same (message, language) are left alone.
-func (q *TranslationQueueService) EnqueueForMessage(message *models.Message, sourceLang string, targetLangs []string) {
+// Priority (0 = free, 1 = premium) gives faster responses to premium senders.
+func (q *TranslationQueueService) EnqueueForMessage(message *models.Message, sourceLang string, targetLangs []string, priority int) {
 	var created []string
 	for _, lang := range targetLangs {
 		lang = strings.TrimSpace(lang)
@@ -117,10 +118,10 @@ func (q *TranslationQueueService) EnqueueForMessage(message *models.Message, sou
 		}
 		var id string
 		err := q.db.QueryRow(`
-			INSERT INTO translation_jobs (message_id, chat_id, text, source_lang, target_lang)
-			VALUES ($1, $2, $3, $4, $5)
+			INSERT INTO translation_jobs (message_id, chat_id, text, source_lang, target_lang, priority)
+			VALUES ($1, $2, $3, $4, $5, $6)
 			ON CONFLICT (message_id, target_lang) DO NOTHING
-			RETURNING id`, message.ID, message.ChatID, message.Text, sourceLang, lang).Scan(&id)
+			RETURNING id`, message.ID, message.ChatID, message.Text, sourceLang, lang, priority).Scan(&id)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				continue // already queued
@@ -148,7 +149,7 @@ func (q *TranslationQueueService) processMessage(messageID string) {
 		SELECT id, text, source_lang, target_lang FROM translation_jobs
 		WHERE message_id = $1 AND status IN ('pending', 'failed')
 		  AND next_attempt_at <= CURRENT_TIMESTAMP
-		ORDER BY created_at`, messageID)
+		ORDER BY priority DESC, created_at`, messageID)
 	if err != nil {
 		log.Printf("[Translate] load jobs for %s: %v", messageID, err)
 		return
@@ -336,10 +337,14 @@ func (q *TranslationQueueService) sweep() {
 		int(staleProcessingTTL.Minutes())); err != nil {
 		log.Printf("[Translate] reclaim stale processing: %v", err)
 	}
-	// Re-queue due jobs.
+	// Re-queue due jobs. Premium (higher priority) messages are processed
+	// first so premium users get faster responses under load. The DISTINCT
+	// set is ordered by the highest priority among each message's jobs.
 	rows, err := q.db.Query(`
-		SELECT DISTINCT message_id FROM translation_jobs
+		SELECT message_id, MAX(priority) AS prio FROM translation_jobs
 		WHERE status IN ('pending', 'failed') AND next_attempt_at <= CURRENT_TIMESTAMP
+		GROUP BY message_id
+		ORDER BY prio DESC, message_id
 		LIMIT 100`)
 	if err != nil {
 		log.Printf("[Translate] sweep due: %v", err)
@@ -369,8 +374,10 @@ func (q *TranslationQueueService) recover() {
 		log.Printf("[Translate] recover reset processing: %v", err)
 	}
 	rows, err := q.db.Query(`
-		SELECT DISTINCT message_id FROM translation_jobs
-		WHERE status IN ('pending', 'failed')`)
+		SELECT message_id, MAX(priority) AS prio FROM translation_jobs
+		WHERE status IN ('pending', 'failed')
+		GROUP BY message_id
+		ORDER BY prio DESC, message_id`)
 	if err != nil {
 		log.Printf("[Translate] recover load incomplete: %v", err)
 		return
@@ -398,7 +405,7 @@ func (q *TranslationQueueService) List(status, qq string, limit int) ([]models.T
 	if limit <= 0 || limit > 500 {
 		limit = 100
 	}
-	query := `SELECT id, message_id, chat_id, text, COALESCE(source_lang,''), target_lang, status,
+	query := `SELECT id, message_id, chat_id, text, COALESCE(source_lang,''), target_lang, priority, status,
 		COALESCE(result,''), attempts, COALESCE(last_error,''), created_at, next_attempt_at, completed_at
 		FROM translation_jobs WHERE 1=1`
 	args := []interface{}{}
@@ -423,7 +430,7 @@ func (q *TranslationQueueService) List(status, qq string, limit int) ([]models.T
 		var j models.TranslationJob
 		var source, result, lastErr string
 		if err := rows.Scan(&j.ID, &j.MessageID, &j.ChatID, &j.Text, &source, &j.TargetLang,
-			&j.Status, &result, &j.Attempts, &lastErr, &j.CreatedAt, &j.NextAttempt, &j.CompletedAt); err != nil {
+			&j.Priority, &j.Status, &result, &j.Attempts, &lastErr, &j.CreatedAt, &j.NextAttempt, &j.CompletedAt); err != nil {
 			return nil, err
 		}
 		j.SourceLang = source

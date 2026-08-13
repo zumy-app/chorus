@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { detectBrowserLanguage, getNativeLanguageName, SUPPORTED_LANGUAGES } from '../services/language'
 import LanguageSelector from '../components/LanguageSelector'
 import { useStore } from '../store'
+import { YEARLY_LIST_PRICE } from '../config/subscriptions'
 
 // =============================================================================
 // Full-page internationalization for the landing site.
@@ -13,7 +14,7 @@ import { useStore } from '../store'
 // nav, hero, stats, features, how-it-works, languages, CTA and footer.
 // =============================================================================
 interface LandingStrings {
-  nav: { features: string; how: string; languages: string; launch: string; login: string }
+  nav: { features: string; how: string; languages: string; pricing: string; launch: string; login: string }
   hero: {
     badge: string // "Updated: {count} languages"
     titleA: string
@@ -27,6 +28,14 @@ interface LandingStrings {
   features: { title: string; subtitle: string; items: { icon: string; title: string; desc: string }[] }
   how: { title: string; subtitle: string; steps: { num: string; title: string; desc: string }[] }
   languages: { title: string; subtitle: string }
+  pricing: {
+    title: string
+    subtitle: string
+    free: { name: string; price: string; per: string; cta: string; features: string[] }
+    premium: { name: string; price: string; per: string; promo: string; cta: string; features: string[] }
+    enterprise: { name: string; desc: string; cta: string; features: string[] }
+    note: string
+  }
   cta: { title: string; subtitle: string; button: string }
   footer: { tagline: string; product: string; productLinks: { label: string; href: string }[]; company: string; companyLinks: { label: string; href: string }[]; support: string; supportLinks: { label: string; href: string }[]; rights: string }
 }
@@ -36,7 +45,7 @@ const TOP10 = ['en', 'zh', 'hi', 'es', 'ar', 'fr', 'bn', 'pt', 'ru', 'ur']
 
 const STRINGS: Record<string, LandingStrings> = {
   en: {
-    nav: { features: 'Features', how: 'How It Works', languages: 'Languages', launch: 'Launch App', login: 'Log In' },
+    nav: { features: 'Features', how: 'How It Works', languages: 'Languages', pricing: 'Pricing', launch: 'Launch App', login: 'Log In' },
     hero: {
       badge: 'Available in {count} languages',
       titleA: 'Break Language Barriers',
@@ -73,6 +82,27 @@ const STRINGS: Record<string, LandingStrings> = {
       ],
     },
     languages: { title: 'Supported Languages', subtitle: 'Connect with people across 10 major languages' },
+    pricing: {
+      title: 'Simple Pricing',
+      subtitle: 'Start free. Upgrade when you\'re ready for more.',
+      free: {
+        name: 'Free', price: '$0', per: 'forever',
+        cta: 'Current Plan',
+        features: ['Unlimited chats & groups', 'Live translation up to 200 characters', 'On-demand grammar & vocabulary tools', 'Search across all messages'],
+      },
+      premium: {
+        name: 'Premium', price: '$79.90', per: 'year',
+        promo: '2 months free',
+        cta: 'Get Premium',
+        features: ['Automatic grammar analysis', 'Faster AI responses', 'Messages longer than 200 characters', 'Higher daily quotas'],
+      },
+      enterprise: {
+        name: 'Enterprise', desc: 'Self-hosted or custom deployment for teams.',
+        cta: 'Contact Us',
+        features: ['Self-hosting & custom domains', 'Dedicated support', 'Volume & SLA options'],
+      },
+      note: 'Free forever plan — no credit card required.',
+    },
     cta: { title: 'Ready to Break Language Barriers?', subtitle: 'Join Chorus today and start connecting with people worldwide', button: 'Get Started Now' },
     footer: {
       tagline: 'Break language barriers and connect with people worldwide through real-time translation.',
@@ -87,7 +117,7 @@ const STRINGS: Record<string, LandingStrings> = {
   },
 
   zh: {
-    nav: { features: '功能', how: '工作原理', languages: '语言', launch: '启动应用', login: '登录' },
+    nav: { features: '功能', how: '工作原理', languages: '语言', pricing: '定价', launch: '启动应用', login: '登录' },
     hero: {
       badge: '支持 {count} 种语言',
       titleA: '打破语言障碍',
@@ -124,6 +154,27 @@ const STRINGS: Record<string, LandingStrings> = {
       ],
     },
     languages: { title: '支持的语言', subtitle: '连接10种主要语言的人们' },
+    pricing: {
+      title: '简单定价',
+      subtitle: '免费开始。准备好后随时升级。',
+      free: {
+        name: '免费', price: '$0', per: '永久',
+        cta: '当前套餐',
+        features: ['无限聊天和群组', '实时翻译，最多 200 个字符', '按需使用语法和词汇工具', '跨所有消息搜索'],
+      },
+      premium: {
+        name: '高级版', price: '$79.90', per: '年',
+        promo: '免费送 2 个月',
+        cta: '获取高级版',
+        features: ['自动语法分析', '更快的 AI 响应', '超过 200 个字符的消息', '更高的每日限额'],
+      },
+      enterprise: {
+        name: '企业版', desc: '面向团队的自托管或定制部署。',
+        cta: '联系我们',
+        features: ['自托管和自定义域名', '专属支持', '批量与 SLA 选项'],
+      },
+      note: '永久免费套餐 — 无需信用卡。',
+    },
     cta: { title: '准备好打破语言障碍了吗？', subtitle: '立即加入 Chorus，开始与世界各地的朋友联系', button: '立即开始' },
     footer: {
       tagline: '通过实时翻译打破语言障碍，与世界各地的朋友联系。',
@@ -138,7 +189,7 @@ const STRINGS: Record<string, LandingStrings> = {
   },
 
   hi: {
-    nav: { features: 'विशेषताएं', how: 'यह कैसे काम करता है', languages: 'भाषाएं', launch: 'ऐप शुरू करें', login: 'लॉग इन' },
+    nav: { features: 'विशेषताएं', how: 'यह कैसे काम करता है', languages: 'भाषाएं', pricing: 'मूल्य निर्धारण', launch: 'ऐप शुरू करें', login: 'लॉग इन' },
     hero: {
       badge: '{count} भाषाओं में उपलब्ध',
       titleA: 'भाषा की बाधाएं तोड़ें',
@@ -175,6 +226,27 @@ const STRINGS: Record<string, LandingStrings> = {
       ],
     },
     languages: { title: 'समर्थित भाषाएं', subtitle: '10 प्रमुख भाषाओं के लोगों से जुड़ें' },
+    pricing: {
+      title: 'सरल मूल्य निर्धारण',
+      subtitle: 'मुफ्त में शुरू करें। तैयार होने पर अपग्रेड करें।',
+      free: {
+        name: 'फ्री', price: '$0', per: 'हमेशा के लिए',
+        cta: 'वर्तमान प्लान',
+        features: ['असीमित चैट व समूह', '200 अक्षरों तक लाइव अनुवाद', 'मांग पर व्याकरण व शब्दावली टूल', 'सभी संदेशों में खोज'],
+      },
+      premium: {
+        name: 'प्रीमियम', price: '$79.90', per: 'साल',
+        promo: '2 महीने मुफ़्त',
+        cta: 'प्रीमियम पाएं',
+        features: ['स्वचालित व्याकरण विश्लेषण', 'तेज़ AI प्रतिक्रियाएँ', '200 अक्षरों से लंबे संदेश', 'अधिक दैनिक सीमाएँ'],
+      },
+      enterprise: {
+        name: 'उद्यम', desc: 'टीमों के लिए स्व-होस्टेड या कस्टम तैनाती।',
+        cta: 'संपर्क करें',
+        features: ['स्व-होस्टिंग व कस्टम डोमेन', 'समर्पित सहायता', 'वॉल्यूम व SLA विकल्प'],
+      },
+      note: 'हमेशा के लिए मुफ्त प्लान — कोई क्रेडिट कार्ड नहीं चाहिए।',
+    },
     cta: { title: 'भाषा की बाधाएं तोड़ने के लिए तैयार?', subtitle: 'आज ही Chorus से जुड़ें और दुनिया भर के लोगों से जुड़ना शुरू करें', button: 'अभी शुरू करें' },
     footer: {
       tagline: 'रीयल-टाइम अनुवाद के जरिए भाषा की बाधाएं तोड़ें और दुनिया भर के लोगों से जुड़ें।',
@@ -189,7 +261,7 @@ const STRINGS: Record<string, LandingStrings> = {
   },
 
   es: {
-    nav: { features: 'Características', how: 'Cómo Funciona', languages: 'Idiomas', launch: 'Abrir App', login: 'Iniciar sesión' },
+    nav: { features: 'Características', how: 'Cómo Funciona', languages: 'Idiomas', pricing: 'Precios', launch: 'Abrir App', login: 'Iniciar sesión' },
     hero: {
       badge: 'Disponible en {count} idiomas',
       titleA: 'Rompe Barreras Lingüísticas',
@@ -226,6 +298,27 @@ const STRINGS: Record<string, LandingStrings> = {
       ],
     },
     languages: { title: 'Idiomas Soportados', subtitle: 'Conecta con personas en 10 idiomas principales' },
+    pricing: {
+      title: 'Precios Sencillos',
+      subtitle: 'Empieza gratis. Mejora cuando estés listo.',
+      free: {
+        name: 'Gratis', price: '$0', per: 'para siempre',
+        cta: 'Plan Actual',
+        features: ['Chats y grupos ilimitados', 'Traducción en vivo hasta 200 caracteres', 'Herramientas de gramática y vocabulario bajo demanda', 'Búsqueda en todos los mensajes'],
+      },
+      premium: {
+        name: 'Premium', price: '$79.90', per: 'año',
+        promo: '2 meses gratis',
+        cta: 'Consigue Premium',
+        features: ['Análisis gramatical automático', 'Respuestas IA más rápidas', 'Mensajes de más de 200 caracteres', 'Cuotas diarias más altas'],
+      },
+      enterprise: {
+        name: 'Empresa', desc: 'Autoalojado o implementación personalizada para equipos.',
+        cta: 'Contáctanos',
+        features: ['Autoalojamiento y dominios personalizados', 'Soporte dedicado', 'Opciones de volumen y SLA'],
+      },
+      note: 'Plan gratuito para siempre: no se requiere tarjeta de crédito.',
+    },
     cta: { title: '¿Listo para Romper Barreras Lingüísticas?', subtitle: 'Únete a Chorus hoy y empieza a conectar con personas en todo el mundo', button: 'Comienza Ahora' },
     footer: {
       tagline: 'Rompe las barreras del idioma y conecta con personas de todo el mundo mediante traducción en tiempo real.',
@@ -240,7 +333,7 @@ const STRINGS: Record<string, LandingStrings> = {
   },
 
   ar: {
-    nav: { features: 'الميزات', how: 'كيف يعمل', languages: 'اللغات', launch: 'تشغيل التطبيق', login: 'تسجيل الدخول' },
+    nav: { features: 'الميزات', how: 'كيف يعمل', languages: 'اللغات', pricing: 'الأسعار', launch: 'تشغيل التطبيق', login: 'تسجيل الدخول' },
     hero: {
       badge: 'متوفر بـ {count} لغات',
       titleA: 'اكسر حواجز اللغة',
@@ -277,6 +370,27 @@ const STRINGS: Record<string, LandingStrings> = {
       ],
     },
     languages: { title: 'اللغات المدعومة', subtitle: 'تواصل مع أشخاص بـ10 لغات رئيسية' },
+    pricing: {
+      title: 'أسعار بسيطة',
+      subtitle: 'ابدأ مجانًا. قم بالترقية عندما تكون مستعدًا.',
+      free: {
+        name: 'مجاني', price: '$0', per: 'للأبد',
+        cta: 'الخطة الحالية',
+        features: ['محادثات ومجموعات غير محدودة', 'ترجمة فورية حتى 200 حرف', 'أدوات قواعد ومفردات عند الطلب', 'بحث في جميع الرسائل'],
+      },
+      premium: {
+        name: 'بريميوم', price: '$79.90', per: 'سنة',
+        promo: 'شهران مجانًا',
+        cta: 'اشترك في بريميوم',
+        features: ['تحليل نحوي تلقائي', 'استجابات ذكاء اصطناعي أسرع', 'رسائل أطول من 200 حرف', 'حصص يومية أعلى'],
+      },
+      enterprise: {
+        name: 'المؤسسات', desc: 'استضافة ذاتية أو نشر مخصص للفرق.',
+        cta: 'اتصل بنا',
+        features: ['استضافة ذاتية ومجالات مخصصة', 'دعم مخصص', 'خيارات الحجم واتفاقيات SLA'],
+      },
+      note: 'خطة مجانية للأبد — لا حاجة لبطاقة ائتمان.',
+    },
     cta: { title: 'مستعد لكسر حواجز اللغة؟', subtitle: 'انضم إلى Chorus اليوم وابدأ التواصل مع الناس حول العالم', button: 'ابدأ الآن' },
     footer: {
       tagline: 'اكسر حواجز اللغة وتواصل مع الناس حول العالم عبر الترجمة الفورية.',
@@ -291,7 +405,7 @@ const STRINGS: Record<string, LandingStrings> = {
   },
 
   fr: {
-    nav: { features: 'Fonctionnalités', how: 'Comment ça Marche', languages: 'Langues', launch: 'Lancer l\'App', login: 'Connexion' },
+    nav: { features: 'Fonctionnalités', how: 'Comment ça Marche', languages: 'Langues', pricing: 'Tarifs', launch: 'Lancer l\'App', login: 'Connexion' },
     hero: {
       badge: 'Disponible en {count} langues',
       titleA: 'Brisez les Barrières Linguistiques',
@@ -328,6 +442,27 @@ const STRINGS: Record<string, LandingStrings> = {
       ],
     },
     languages: { title: 'Langues Prises en Charge', subtitle: 'Connectez-vous avec des gens dans 10 langues majeures' },
+    pricing: {
+      title: 'Tarifs Simples',
+      subtitle: 'Commencez gratuitement. Passez à la vitesse supérieure quand vous voulez.',
+      free: {
+        name: 'Gratuit', price: '$0', per: 'pour toujours',
+        cta: 'Forfait Actuel',
+        features: ['Chats et groupes illimités', 'Traduction en direct jusqu\'à 200 caractères', 'Outils de grammaire et de vocabulaire à la demande', 'Recherche dans tous les messages'],
+      },
+      premium: {
+        name: 'Premium', price: '$79.90', per: 'an',
+        promo: '2 mois offerts',
+        cta: 'Obtenir Premium',
+        features: ['Analyse grammaticale automatique', 'Réponses IA plus rapides', 'Messages de plus de 200 caractères', 'Quotas journaliers plus élevés'],
+      },
+      enterprise: {
+        name: 'Entreprise', desc: 'Auto-hébergé ou déploiement personnalisé pour les équipes.',
+        cta: 'Contactez-nous',
+        features: ['Auto-hébergement et domaines personnalisés', 'Assistance dédiée', 'Options de volume et de SLA'],
+      },
+      note: 'Forfait gratuit pour toujours — aucune carte de crédit requise.',
+    },
     cta: { title: 'Prêt à Briser les Barrières Linguistiques ?', subtitle: 'Rejoignez Chorus aujourd\'hui et connectez-vous avec le monde entier', button: 'Commencer Maintenant' },
     footer: {
       tagline: 'Brisez les barrières linguistiques et connectez-vous grâce à la traduction en temps réel.',
@@ -342,7 +477,7 @@ const STRINGS: Record<string, LandingStrings> = {
   },
 
   bn: {
-    nav: { features: 'বৈশিষ্ট্য', how: 'কীভাবে কাজ করে', languages: 'ভাষা', launch: 'অ্যাপ চালু করুন', login: 'লগ ইন' },
+    nav: { features: 'বৈশিষ্ট্য', how: 'কীভাবে কাজ করে', languages: 'ভাষা', pricing: 'দাম', launch: 'অ্যাপ চালু করুন', login: 'লগ ইন' },
     hero: {
       badge: '{count}টি ভাষায় উপলব্ধ',
       titleA: 'ভাষার বাধা ভাঙুন',
@@ -379,6 +514,27 @@ const STRINGS: Record<string, LandingStrings> = {
       ],
     },
     languages: { title: 'সমর্থিত ভাষা', subtitle: '১০টি প্রধান ভাষার মানুষের সাথে সংযোগ করুন' },
+    pricing: {
+      title: 'সহজ দাম',
+      subtitle: 'বিনামূল্যে শুরু করুন। প্রস্তুত হলে আপগ্রেড করুন।',
+      free: {
+        name: 'ফ্রি', price: '$0', per: 'সব সময়ের জন্য',
+        cta: 'বর্তমান প্ল্যান',
+        features: ['আনলিমিটেড চ্যাট ও গ্রুপ', '২০০ অক্ষর পর্যন্ত লাইভ অনুবাদ', 'চাহিদা অনুযায়ী ব্যাকরণ ও শব্দভান্ডার টুল', 'সব বার্তায় খোঁজ'],
+      },
+      premium: {
+        name: 'প্রিমিয়াম', price: '$79.90', per: 'বছর',
+        promo: '২ মাস ফ্রি',
+        cta: 'প্রিমিয়াম নিন',
+        features: ['স্বয়ংক্রিয় ব্যাকরণ বিশ্লেষণ', 'দ্রুততর AI উত্তর', '২০০ অক্ষরের বেশি বার্তা', 'উচ্চতর দৈনিক সীমা'],
+      },
+      enterprise: {
+        name: 'এন্টারপ্রাইজ', desc: 'দলের জন্য সেলফ-হোস্টেড বা কাস্টম ডিপ্লয়মেন্ট।',
+        cta: 'যোগাযোগ করুন',
+        features: ['সেলফ-হোস্টিং ও কাস্টম ডোমেইন', 'ডেডিকেটেড সাপোর্ট', 'ভলিউম ও SLA বিকল্প'],
+      },
+      note: 'চিরকালের ফ্রি প্ল্যান — কোনো ক্রেডিট কার্ড লাগবে না।',
+    },
     cta: { title: 'ভাষার বাধা ভাঙতে প্রস্তুত?', subtitle: 'আজই Chorus-এ যোগ দিন এবং বিশ্বজুড়ে মানুষের সাথে যুক্ত হোন', button: 'এখনই শুরু করুন' },
     footer: {
       tagline: 'রিয়েল-টাইম অনুবাদের মাধ্যমে ভাষার বাধা ভেঙে বিশ্বজুড়ে সংযোগ করুন।',
@@ -393,7 +549,7 @@ const STRINGS: Record<string, LandingStrings> = {
   },
 
   pt: {
-    nav: { features: 'Recursos', how: 'Como Funciona', languages: 'Idiomas', launch: 'Abrir App', login: 'Entrar' },
+    nav: { features: 'Recursos', how: 'Como Funciona', languages: 'Idiomas', pricing: 'Preços', launch: 'Abrir App', login: 'Entrar' },
     hero: {
       badge: 'Disponível em {count} idiomas',
       titleA: 'Quebre Barreiras Linguísticas',
@@ -430,6 +586,27 @@ const STRINGS: Record<string, LandingStrings> = {
       ],
     },
     languages: { title: 'Idiomas Suportados', subtitle: 'Conecte-se com pessoas em 10 idiomas principais' },
+    pricing: {
+      title: 'Preços Simples',
+      subtitle: 'Comece grátis. Faça upgrade quando estiver pronto.',
+      free: {
+        name: 'Grátis', price: '$0', per: 'para sempre',
+        cta: 'Plano Atual',
+        features: ['Chats e grupos ilimitados', 'Tradução ao vivo até 200 caracteres', 'Ferramentas de gramática e vocabulário sob demanda', 'Busca em todas as mensagens'],
+      },
+      premium: {
+        name: 'Premium', price: '$79.90', per: 'ano',
+        promo: '2 meses grátis',
+        cta: 'Obter Premium',
+        features: ['Análise gramatical automática', 'Respostas de IA mais rápidas', 'Mensagens com mais de 200 caracteres', 'Cotas diárias maiores'],
+      },
+      enterprise: {
+        name: 'Empresa', desc: 'Auto-hospedado ou implantação personalizada para equipes.',
+        cta: 'Fale conosco',
+        features: ['Auto-hospedagem e domínios personalizados', 'Suporte dedicado', 'Opções de volume e SLA'],
+      },
+      note: 'Plano grátis para sempre — sem cartão de crédito.',
+    },
     cta: { title: 'Pronto para Quebrar Barreiras Linguísticas?', subtitle: 'Entre no Chorus hoje e comece a se conectar com pessoas no mundo todo', button: 'Comece Agora' },
     footer: {
       tagline: 'Quebre barreiras de idioma e conecte-se com pessoas do mundo todo através da tradução em tempo real.',
@@ -444,7 +621,7 @@ const STRINGS: Record<string, LandingStrings> = {
   },
 
   ru: {
-    nav: { features: 'Возможности', how: 'Как это работает', languages: 'Языки', launch: 'Открыть приложение', login: 'Войти' },
+    nav: { features: 'Возможности', how: 'Как это работает', languages: 'Языки', pricing: 'Цены', launch: 'Открыть приложение', login: 'Войти' },
     hero: {
       badge: 'Доступно на {count} языках',
       titleA: 'Сломайте языковые барьеры',
@@ -481,6 +658,27 @@ const STRINGS: Record<string, LandingStrings> = {
       ],
     },
     languages: { title: 'Поддерживаемые языки', subtitle: 'Общайтесь с людьми на 10 основных языках' },
+    pricing: {
+      title: 'Простые тарифы',
+      subtitle: 'Начните бесплатно. Улучшайте тариф, когда будете готовы.',
+      free: {
+        name: 'Бесплатный', price: '$0', per: 'навсегда',
+        cta: 'Текущий план',
+        features: ['Безлимитные чаты и группы', 'Перевод в реальном времени до 200 символов', 'Инструменты грамматики и словаря по запросу', 'Поиск по всем сообщениям'],
+      },
+      premium: {
+        name: 'Premium', price: '$79.90', per: 'год',
+        promo: '2 месяца бесплатно',
+        cta: 'Получить Premium',
+        features: ['Автоматический грамматический анализ', 'Более быстрые ответы ИИ', 'Сообщения длиннее 200 символов', 'Более высокие дневные лимиты'],
+      },
+      enterprise: {
+        name: 'Для команд', desc: 'Самодеплой или индивидуальное развёртывание для команд.',
+        cta: 'Свяжитесь с нами',
+        features: ['Самодеплой и собственные домены', 'Выделенная поддержка', 'Варианты объёма и SLA'],
+      },
+      note: 'Бесплатный план навсегда — кредитная карта не нужна.',
+    },
     cta: { title: 'Готовы сломать языковые барьеры?', subtitle: 'Присоединяйтесь к Chorus сегодня и общайтесь с людьми по всему миру', button: 'Начать сейчас' },
     footer: {
       tagline: 'Сломайте языковые барьеры и общайтесь с людьми по всему миру благодаря переводу в реальном времени.',
@@ -495,7 +693,7 @@ const STRINGS: Record<string, LandingStrings> = {
   },
 
   ur: {
-    nav: { features: 'خصوصیات', how: 'یہ کیسے کام کرتا ہے', languages: 'زبانیں', launch: 'ایپ شروع کریں', login: 'لاگ ان' },
+    nav: { features: 'خصوصیات', how: 'یہ کیسے کام کرتا ہے', languages: 'زبانیں', pricing: 'قیمتیں', launch: 'ایپ شروع کریں', login: 'لاگ ان' },
     hero: {
       badge: '{count} زبانوں میں دستیاب',
       titleA: 'زبان کی رکاوٹیں توڑیں',
@@ -532,6 +730,27 @@ const STRINGS: Record<string, LandingStrings> = {
       ],
     },
     languages: { title: 'معاون زبانیں', subtitle: '10 اہم زبانوں کے لوگوں سے جڑیں' },
+    pricing: {
+      title: 'سادہ قیمتیں',
+      subtitle: 'مفت شروع کریں۔ جب تیار ہوں تو اپ گریڈ کریں۔',
+      free: {
+        name: 'مفت', price: '$0', per: 'ہمیشہ کے لیے',
+        cta: 'موجودہ پلان',
+        features: ['لا محدود چیٹس اور گروپس', '200 حروف تک لائیو ترجمہ', 'طلب پر گرامر اور الفاظ کے ٹولز', 'تمام پیغامات میں تلاش'],
+      },
+      premium: {
+        name: 'پریمیم', price: '$79.90', per: 'سال',
+        promo: '2 مہینے مفت',
+        cta: 'پریمیم حاصل کریں',
+        features: ['خودکار گرامر تجزیہ', 'تیز AI جوابات', '200 حروف سے لمبے پیغامات', 'اعلیٰ روزانہ حدود'],
+      },
+      enterprise: {
+        name: 'انٹرپرائز', desc: 'ٹیموں کے لیے سیلف ہوسٹڈ یا کسٹم ڈپلائمنٹ۔',
+        cta: 'ہم سے رابطہ کریں',
+        features: ['سیلف ہوسٹنگ اور کسٹم ڈومین', 'مخصوص سپورٹ', 'حجم اور SLA اختیارات'],
+      },
+      note: 'ہمیشہ کے لیے مفت پلان — کوئی کریڈٹ کارڈ درکار نہیں۔',
+    },
     cta: { title: 'زبان کی رکاوٹیں توڑنے کے لیے تیار؟', subtitle: 'آج ہی Chorus میں شامل ہوں اور دنیا بھر کے لوگوں سے جڑنا شروع کریں', button: 'ابھی شروع کریں' },
     footer: {
       tagline: 'حقیقی وقت کے ترجمے کے ذریعے زبان کی رکاوٹیں توڑیں اور دنیا بھر کے لوگوں سے جڑیں۔',
@@ -588,6 +807,7 @@ export default function Landing() {
               <li><a href="#features" className="text-gray-700 hover:text-indigo-600 transition">{t.nav.features}</a></li>
               <li><a href="#how-it-works" className="text-gray-700 hover:text-indigo-600 transition">{t.nav.how}</a></li>
               <li><a href="#languages" className="text-gray-700 hover:text-indigo-600 transition">{t.nav.languages}</a></li>
+              <li><Link to="/pricing" className="text-gray-700 hover:text-indigo-600 transition">{t.nav.pricing}</Link></li>
             </ul>
             <LanguageSelector
               currentLang={lang}
@@ -605,7 +825,9 @@ export default function Landing() {
                 <path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
               </svg>
             </a>
-            <Link to="/waitlist" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition whitespace-nowrap">{ti18n('nav.joinWaitlist')}</Link>
+            {!user && (
+              <Link to="/waitlist" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition whitespace-nowrap">{ti18n('nav.joinWaitlist')}</Link>
+            )}
             {user ? (
               <Link to="/chat" className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:border-indigo-600 hover:text-indigo-600 transition whitespace-nowrap">
                 {ti18n('nav.openApp')}
@@ -638,9 +860,11 @@ export default function Landing() {
                 <Link to={user ? '/chat' : '/login'} className="px-8 py-4 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition text-lg">
                   {user ? ti18n('nav.openApp') : t.nav.login}
                 </Link>
-                <Link to="/waitlist" className="px-8 py-4 border-2 border-indigo-600 text-indigo-600 rounded-lg font-semibold hover:bg-indigo-50 transition text-lg">
-                  {ti18n('nav.joinWaitlist')}
-                </Link>
+                {!user && (
+                  <Link to="/waitlist" className="px-8 py-4 border-2 border-indigo-600 text-indigo-600 rounded-lg font-semibold hover:bg-indigo-50 transition text-lg">
+                    {ti18n('nav.joinWaitlist')}
+                  </Link>
+                )}
                 <a href="#how-it-works" className="px-8 py-4 border-2 border-gray-300 text-gray-600 rounded-lg font-semibold hover:bg-gray-50 transition text-lg">
                   {t.hero.seeHow}
                 </a>
@@ -746,14 +970,82 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <section id="pricing" className="py-20 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">{t.pricing.title}</h2>
+            <p className="text-xl text-gray-600">{t.pricing.subtitle}</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Free */}
+            <div className="bg-white rounded-2xl shadow p-8 flex flex-col">
+              <h3 className="text-2xl font-bold mb-1">{t.pricing.free.name}</h3>
+              <p className="text-4xl font-bold mb-1">{t.pricing.free.price}<span className="text-base font-normal text-gray-500">/{t.pricing.free.per}</span></p>
+              <ul className="mt-6 mb-8 space-y-3 flex-1">
+                {t.pricing.free.features.map((f, i) => (
+                  <li key={i} className="flex items-start gap-2 text-gray-600">
+                    <span className="text-green-500 mt-0.5">✓</span>{f}
+                  </li>
+                ))}
+              </ul>
+              <button className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-500 font-semibold cursor-default">{t.pricing.free.cta}</button>
+            </div>
+
+            {/* Premium */}
+            <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl p-8 text-white shadow-2xl flex flex-col md:-my-4">
+              <h3 className="text-2xl font-bold mb-1">✦ {t.pricing.premium.name}</h3>
+              <p className="text-base font-semibold text-indigo-200/80 mb-0.5"><s>{YEARLY_LIST_PRICE}</s></p>
+              <p className="text-4xl font-bold mb-1">{t.pricing.premium.price}<span className="text-base font-normal text-indigo-200">/{t.pricing.premium.per}</span></p>
+              <p className="text-sm font-semibold text-indigo-100 mb-2">✦ {t.pricing.premium.promo}</p>
+              <ul className="mt-6 mb-8 space-y-3 flex-1">
+                {t.pricing.premium.features.map((f, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <span className="text-green-300 mt-0.5">✓</span>{f}
+                  </li>
+                ))}
+              </ul>
+              <Link to="/pricing" className="w-full px-4 py-3 bg-white text-indigo-600 rounded-lg font-bold text-center hover:bg-gray-100 transition block">
+                {t.pricing.premium.cta}
+              </Link>
+            </div>
+
+            {/* Enterprise */}
+            <div className="bg-white rounded-2xl shadow p-8 flex flex-col">
+              <h3 className="text-2xl font-bold mb-1">{t.pricing.enterprise.name}</h3>
+              <p className="text-gray-500 mb-1">{t.pricing.enterprise.desc}</p>
+              <ul className="mt-6 mb-8 space-y-3 flex-1">
+                {t.pricing.enterprise.features.map((f, i) => (
+                  <li key={i} className="flex items-start gap-2 text-gray-600">
+                    <span className="text-green-500 mt-0.5">✓</span>{f}
+                  </li>
+                ))}
+              </ul>
+              <a href="mailto:hello@chorus.talk?subject=Enterprise%20Enquiry" className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 font-semibold text-center hover:border-indigo-600 hover:text-indigo-600 transition">
+                {t.pricing.enterprise.cta}
+              </a>
+            </div>
+          </div>
+
+          <p className="text-center text-sm text-gray-500 mt-8">{t.pricing.note}</p>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-20 px-6 bg-gradient-to-r from-indigo-600 to-purple-600">
         <div className="max-w-4xl mx-auto text-center text-white">
           <h2 className="text-4xl md:text-5xl font-bold mb-4">{t.cta.title}</h2>
           <p className="text-xl mb-8 opacity-90">{t.cta.subtitle}</p>
-          <Link to="/waitlist" className="px-8 py-4 bg-white text-indigo-600 rounded-lg font-bold text-lg hover:bg-gray-100 transition inline-block">
-            {ti18n('nav.joinWaitlist')}
-          </Link>
+          {user ? (
+            <Link to="/chat" className="px-8 py-4 bg-white text-indigo-600 rounded-lg font-bold text-lg hover:bg-gray-100 transition inline-block">
+              {ti18n('nav.openApp')}
+            </Link>
+          ) : (
+            <Link to="/waitlist" className="px-8 py-4 bg-white text-indigo-600 rounded-lg font-bold text-lg hover:bg-gray-100 transition inline-block">
+              {ti18n('nav.joinWaitlist')}
+            </Link>
+          )}
           <a href="https://discord.gg/7DVwM6jsS" target="_blank" rel="noreferrer" className="ml-3 px-8 py-4 border-2 border-white/60 text-white rounded-lg font-bold text-lg hover:bg-white hover:text-indigo-600 transition inline-block">
             {ti18n('nav.joinDiscord')}
           </a>

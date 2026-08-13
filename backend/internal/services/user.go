@@ -18,7 +18,7 @@ func NewUserService(db *sql.DB) *UserService {
 	return &UserService{db: db}
 }
 
-const userColumns = "id, username, email, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at"
+const userColumns = "id, username, email, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until"
 
 // scanUser scans one row of the userColumns projection into a User.
 func scanUser(sc interface{ Scan(...interface{}) error }) (*models.User, error) {
@@ -35,6 +35,8 @@ func scanUser(sc interface{ Scan(...interface{}) error }) (*models.User, error) 
 		&user.LastActiveAt,
 		&user.SuspendedAt,
 		&user.DeletedAt,
+		&user.Plan,
+		&user.PlanGraceUntil,
 	)
 	if err != nil {
 		return nil, err

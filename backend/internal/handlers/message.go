@@ -1,29 +1,37 @@
 package handlers
 
 import (
+	"log"
+
 	"github.com/chorus/messenger/internal/models"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/gin-gonic/gin"
 )
 
 type MessageHandler struct {
-	messageService   *services.MessageService
-	chatService      *services.ChatService
-	translationQueue *services.TranslationQueueService
-	wsHub            *services.WebSocketHub
+	messageService     *services.MessageService
+	chatService        *services.ChatService
+	userService        *services.UserService
+	entitlementService *services.EntitlementService
+	translationQueue   *services.TranslationQueueService
+	wsHub              *services.WebSocketHub
 }
 
 func NewMessageHandler(
 	messageService *services.MessageService,
 	chatService *services.ChatService,
+	userService *services.UserService,
+	entitlementService *services.EntitlementService,
 	translationQueue *services.TranslationQueueService,
 	wsHub *services.WebSocketHub,
 ) *MessageHandler {
 	return &MessageHandler{
-		messageService:   messageService,
-		chatService:      chatService,
-		translationQueue: translationQueue,
-		wsHub:            wsHub,
+		messageService:     messageService,
+		chatService:        chatService,
+		userService:        userService,
+		entitlementService: entitlementService,
+		translationQueue:   translationQueue,
+		wsHub:              wsHub,
 	}
 }
 
@@ -112,6 +120,26 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 			}
 		}
 
+		// Premium feature tiers: resolve the sender's entitlements to decide
+		// whether this message may be translated and with what priority.
+		priority := 0
+		ent := h.entitlementService.ResolveNow(h.resolveUser(userID))
+		if ent.Features.FasterResponses {
+			priority = 1
+		}
+		// Free plan: messages longer than the char limit are stored but not
+		// translated. Notify participants so the UI can show the premium nudge.
+		if ent.Features.TranslationCharLimit != nil && len([]rune(message.Text)) > *ent.Features.TranslationCharLimit {
+			log.Printf("[Translate] message %s blocked: %d chars > free limit %d", message.ID, len([]rune(message.Text)), *ent.Features.TranslationCharLimit)
+			h.wsHub.SendToChat(chatID, userIDs, "translation_blocked", gin.H{
+				"messageId": message.ID,
+				"chatId":    chatID,
+				"charLimit": *ent.Features.TranslationCharLimit,
+				"reason":    "message_too_long",
+			})
+			return
+		}
+
 		// Build target languages for translation
 		targetLangs := make(map[string]bool)
 		for _, langs := range participantLangs {
@@ -123,8 +151,19 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 		// Durable, near-real-time translation queue (DB outbox + Redis pub/sub
 		// trigger + retry sweeper + startup recovery). Completions are pushed to
 		// chat participants via message_updated as they arrive.
-		h.translationQueue.EnqueueForMessage(message, sourceLang, keys(targetLangs))
+		h.translationQueue.EnqueueForMessage(message, sourceLang, keys(targetLangs), priority)
 	}()
+}
+
+// resolveUser returns the user row for a user id, or nil if it cannot be
+// loaded (entitlement resolution treats unknown users as free).
+func (h *MessageHandler) resolveUser(userID string) *models.User {
+	u, err := h.userService.GetByID(userID)
+	if err != nil {
+		log.Printf("[Message] resolve user %s: %v", userID, err)
+		return nil
+	}
+	return u
 }
 
 // keys returns the keys of a set (helper for target-language de-duplication).

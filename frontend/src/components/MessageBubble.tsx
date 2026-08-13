@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import type { Message } from '../types'
 import { vocabularyAPI, grammarAPI } from '../services/api'
+import { useStore } from '../store'
 import GrammarPanel from './GrammarPanel'
 
 interface MessageBubbleProps {
@@ -22,11 +24,34 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
   const [grammarProvider, setGrammarProvider] = useState<string | null>(null)
   const [showFallbackMsg, setShowFallbackMsg] = useState(false)
 
+  const entitlements = useStore((s) => s.entitlements)
+  const blocked = useStore((s) => s.blockedTranslations[message.id])
+
+  const autoGrammar = entitlements?.features?.autoGrammar ?? false
+
   const nativeTranslation = message.translations?.[nativeLanguage]
   const showNativeTranslation = nativeTranslation && nativeTranslation !== message.text
 
+  // Derive the blocked state as well as relying on the live WebSocket signal:
+  // a free-plan user's own message that is over the translation char limit and
+  // has no translation is one the server intentionally left untranslated. This
+  // keeps the premium nudge visible even after a reload (the in-memory blocked
+  // map is lost on navigation), instead of the message silently looking sent.
+  const charLimit = entitlements?.features?.translationCharLimit
+  const isOwnLongUntranslated = Boolean(
+    isOwn &&
+    entitlements?.effectivePlan === 'free' &&
+    charLimit != null &&
+    !nativeTranslation &&
+    [...(message.text || '')].length > charLimit
+  )
+
+  // Translation was blocked by the free-plan char limit (server decided not to
+  // translate a long message). Show the premium nudge instead of a spinner.
+  const isTranslationBlocked = Boolean(blocked && blocked.reason === 'message_too_long') || isOwnLongUntranslated
+
   // Show translation pending indicator only for recent messages still awaiting translation
-  const isTranslationPending = !isOwn && !nativeTranslation && (
+  const isTranslationPending = !isOwn && !nativeTranslation && !isTranslationBlocked && (
     !message.translations || Object.keys(message.translations).length === 0
   )
 
@@ -46,11 +71,23 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
     }
     setShowFallbackMsg(false)
   }, [loadingGrammar])
-  // Re-run AI grammar analysis when translations arrive (WebSocket update)
+  // Re-run AI grammar analysis when translations arrive (WebSocket update).
+  // For premium users (autoGrammar), analysis also runs automatically the
+  // first time a translation arrives — no manual button press needed.
   const prevNativeTranslation = useRef(nativeTranslation)
+  const autoTriggered = useRef(false)
   useEffect(() => {
     if (showGrammar && grammarAnalysis && prevNativeTranslation.current !== nativeTranslation) {
       handleAnalyzeGrammar(true)
+    } else if (
+      autoGrammar &&
+      !autoTriggered.current &&
+      !isOwn &&
+      nativeTranslation &&
+      prevNativeTranslation.current !== nativeTranslation
+    ) {
+      autoTriggered.current = true
+      handleAnalyzeGrammar(false)
     }
     prevNativeTranslation.current = nativeTranslation
   }, [nativeTranslation])
@@ -141,6 +178,22 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
                 <span className={`inline-block w-1.5 h-1.5 rounded-full ${isOwn ? 'bg-white/60' : 'bg-gray-400'} animate-pulse`}
                       style={{ animationDelay: '600ms' }} />
               </div>
+            </div>
+          )}
+
+          {/* Translation blocked by free-plan char limit */}
+          {isTranslationBlocked && !showNativeTranslation && (
+            <div className="mt-2 pt-2 border-t border-gray-200 text-sm">
+              <div className="text-xs mb-1 text-gray-500 flex items-center gap-1">
+                <span>🔒 {t('grammar.translationBlocked')}</span>
+              </div>
+              <Link
+                to="/pricing"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-block text-xs mt-1 px-3 py-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:opacity-90 transition"
+              >
+                {t('plan.upgrade')}
+              </Link>
             </div>
           )}
 

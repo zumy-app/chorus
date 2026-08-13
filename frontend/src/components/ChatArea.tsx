@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { useStore } from '../store'
 import MessageBubble from './MessageBubble'
 import ChatLanguageModal from './ChatLanguageModal'
@@ -7,7 +8,7 @@ import { wsService } from '../services/websocket'
 
 export default function ChatArea() {
   const { t } = useTranslation()
-  const { activeChat, messages, user, sendMessage } = useStore()
+  const { activeChat, messages, user, entitlements, sendMessage } = useStore()
   const [inputText, setInputText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [showLangSettings, setShowLangSettings] = useState(false)
@@ -16,6 +17,16 @@ export default function ChatArea() {
 
   const chatMessages = activeChat ? messages[activeChat.id] || [] : []
 
+  // The translation char limit mirrored from the server entitlements
+  // (free = 200, premium = 2000, self-hosted = unlimited). Any message that
+  // exceeds it won't be translated, so we surface that instantly instead of
+  // waiting for a round-trip + a server-side "premium needed" notification.
+  const charLimit = entitlements?.features?.translationCharLimit ?? null
+  // Count Unicode code points (matches the backend's len([]rune(text))) so
+  // emoji/surrogate pairs are counted consistently with the server.
+  const charCount = [...inputText].length
+  const isOverLimit = charLimit != null && charCount > charLimit
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [chatMessages])
@@ -23,6 +34,7 @@ export default function ChatArea() {
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!inputText.trim() || !activeChat) return
+    if (isOverLimit) return
 
     const text = inputText
     setInputText('')
@@ -132,7 +144,9 @@ export default function ChatArea() {
             value={inputText}
             onChange={handleInputChange}
             placeholder={t('chat.typeMessage')}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+            className={`flex-1 px-4 py-2 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary ${
+              isOverLimit ? 'border-amber-400 bg-amber-50' : 'border-gray-300'
+            }`}
             rows={1}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
@@ -143,12 +157,35 @@ export default function ChatArea() {
           />
           <button
             type="submit"
-            disabled={!inputText.trim()}
+            disabled={!inputText.trim() || isOverLimit}
+            title={isOverLimit ? t('plan.charLimitNotice', { limit: charLimit }) : undefined}
             className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {t('common.send')}
           </button>
         </form>
+        <div className="flex flex-row items-center justify-between gap-2 mt-2 min-h-[1.5rem]">
+          <div className="flex items-center gap-2 flex-wrap">
+            {isOverLimit ? (
+              <>
+                <span className="text-xs text-amber-700 font-medium">
+                  {t('plan.charLimitNotice', { limit: charLimit })}
+                </span>
+                <Link
+                  to="/pricing"
+                  className="text-xs px-3 py-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:opacity-90 transition"
+                >
+                  {t('plan.upgrade')}
+                </Link>
+              </>
+            ) : null}
+          </div>
+          {charLimit != null && (
+            <span className={`text-xs whitespace-nowrap ${isOverLimit ? 'text-amber-700 font-semibold' : 'text-gray-400'}`}>
+              {charCount.toLocaleString()} / {charLimit.toLocaleString()}
+            </span>
+          )}
+        </div>
       </div>
 
       {showLangSettings && (

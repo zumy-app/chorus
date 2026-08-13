@@ -131,7 +131,7 @@ func (s *AuthService) Register(req models.RegisterRequest) (*models.User, error)
 	query := `
 		INSERT INTO users (username, email, password_hash, display_name, native_language, target_languages)
 		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING id, username, email, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at
+		RETURNING id, username, email, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until
 	`
 
 	err = s.db.QueryRow(
@@ -154,6 +154,8 @@ func (s *AuthService) Register(req models.RegisterRequest) (*models.User, error)
 		&user.LastActiveAt,
 		&user.SuspendedAt,
 		&user.DeletedAt,
+		&user.Plan,
+		&user.PlanGraceUntil,
 	)
 
 	if err != nil {
@@ -200,10 +202,11 @@ func (s *AuthService) RegisterWithInvitation(req models.RegisterRequest) (*model
 	err = tx.QueryRow(`
 		INSERT INTO users (username, email, password_hash, display_name, native_language, target_languages)
 		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING id, username, email, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at`,
+		RETURNING id, username, email, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until`,
 		req.Username, req.Email, passwordHash, req.DisplayName, req.NativeLanguage, pq.Array(req.TargetLanguages),
 	).Scan(&user.ID, &user.Username, &user.Email, &user.DisplayName, &user.NativeLanguage,
-		pq.Array(&user.TargetLanguages), &user.Role, &user.CreatedAt, &user.LastActiveAt, &user.SuspendedAt, &user.DeletedAt)
+		pq.Array(&user.TargetLanguages), &user.Role, &user.CreatedAt, &user.LastActiveAt, &user.SuspendedAt, &user.DeletedAt,
+		&user.Plan, &user.PlanGraceUntil)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
 			return nil, ErrEmailAlreadyRegistered
@@ -219,7 +222,7 @@ func (s *AuthService) RegisterWithInvitation(req models.RegisterRequest) (*model
 func (s *AuthService) Login(username, password string) (*models.User, error) {
 	user := &models.User{}
 	query := `
-		SELECT id, username, email, password_hash, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at
+		SELECT id, username, email, password_hash, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until
 		FROM users
 		WHERE username = $1 OR email = $1
 	`
@@ -237,6 +240,8 @@ func (s *AuthService) Login(username, password string) (*models.User, error) {
 		&user.LastActiveAt,
 		&user.SuspendedAt,
 		&user.DeletedAt,
+		&user.Plan,
+		&user.PlanGraceUntil,
 	)
 
 	if err != nil {

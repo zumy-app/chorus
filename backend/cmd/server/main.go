@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 	"os"
-	"strings"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/chorus/messenger/internal/config"
@@ -66,6 +66,7 @@ func main() {
 	// Initialize core services
 	authService := services.NewAuthService(db, cfg.JWTSecret)
 	userService := services.NewUserService(db)
+	entitlementService := services.NewEntitlementService(cfg.SelfHost)
 	waitlistService := services.NewWaitlistService(db)
 	invitationService := services.NewInvitationService(db, time.Duration(cfg.InviteTTLHours)*time.Hour)
 	chatService := services.NewChatService(db)
@@ -157,7 +158,7 @@ func main() {
 	notificationService.Start()
 	defer notificationService.Stop()
 
-	authHandler := handlers.NewAuthHandler(authService, userService, invitationService, notificationService, cfg.PasswordResetBaseURL)
+	authHandler := handlers.NewAuthHandler(authService, userService, invitationService, notificationService, entitlementService, cfg.PasswordResetBaseURL)
 	waitlistHandler := handlers.NewWaitlistHandler(waitlistService, notificationService)
 	adminWaitlistHandler := handlers.NewAdminWaitlistHandler(
 		db, userService, invitationService,
@@ -168,7 +169,7 @@ func main() {
 	adminUsersHandler := handlers.NewAdminUsersHandler(userService, authService)
 	adminTranslationsHandler := handlers.NewAdminTranslationsHandler(translationQueue, translationService)
 	chatHandler := handlers.NewChatHandler(chatService, userService, wsHub)
-	messageHandler := handlers.NewMessageHandler(messageService, chatService, translationQueue, wsHub)
+	messageHandler := handlers.NewMessageHandler(messageService, chatService, userService, entitlementService, translationQueue, wsHub)
 	wsHandler := handlers.NewWebSocketHandler(wsHub, authService)
 
 	// Phase 2 & 3 handlers
@@ -216,6 +217,7 @@ func main() {
 	{
 		// User routes
 		protected.GET("/users/me", authHandler.GetMe)
+		protected.GET("/users/me/entitlements", authHandler.GetMyEntitlements)
 		protected.PUT("/users/me", authHandler.UpdateMe)
 		protected.GET("/users/search", authHandler.SearchUsers)
 

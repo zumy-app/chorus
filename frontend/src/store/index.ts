@@ -1,6 +1,6 @@
 import { create } from 'zustand'
-import type { User, Chat, Message } from '../types'
-import { chatAPI, messageAPI, adminAPI } from '../services/api'
+import type { User, Chat, Message, Entitlements, TranslationBlocked } from '../types'
+import { chatAPI, messageAPI, adminAPI, authAPI } from '../services/api'
 import { wsService } from '../services/websocket'
 
 // --- Slug helpers ---
@@ -49,15 +49,19 @@ export function findChatBySlug(chats: Chat[], slug: string, currentUserId?: stri
 
 interface AppState {
   user: User | null
+  entitlements: Entitlements | null
   isAdmin: boolean
   isModerator: boolean
   userRole: string
   chats: Chat[]
   activeChat: Chat | null
   messages: Record<string, Message[]>
+  blockedTranslations: Record<string, TranslationBlocked>
   
   // Actions
   setUser: (user: User | null) => void
+  setEntitlements: (entitlements: Entitlements | null) => void
+  refreshEntitlements: () => Promise<void>
   setAdmin: (isAdmin: boolean) => void
   setRole: (role: string) => void
   refreshAdminStatus: () => Promise<void>
@@ -70,20 +74,32 @@ interface AppState {
   sendMessage: (chatId: string, text: string) => Promise<void>
   createChat: (type: 'direct' | 'group', participants: string[], name?: string) => Promise<Chat>
   updateUser: (updates: Partial<User>) => void
+  markTranslationBlocked: (blocked: TranslationBlocked) => void
   // Slug-based navigation
   navigateToSlug: (slug: string) => boolean
 }
 
 export const useStore = create<AppState>((set, get) => ({
   user: null,
+  entitlements: null,
   isAdmin: false,
   isModerator: false,
   userRole: '',
   chats: [],
   activeChat: null,
   messages: {},
+  blockedTranslations: {},
 
   setUser: (user) => set({ user }),
+  setEntitlements: (entitlements) => set({ entitlements }),
+  refreshEntitlements: async () => {
+    try {
+      const entitlements = await authAPI.getEntitlements()
+      set({ entitlements })
+    } catch (error) {
+      console.error('Failed to load entitlements:', error)
+    }
+  },
   setAdmin: (isAdmin) => set({ isAdmin }),
   setRole: (role) => {
     const isAdmin = role === 'admin'
@@ -272,6 +288,15 @@ export const useStore = create<AppState>((set, get) => ({
       user: state.user ? { ...state.user, ...updates } : null,
     }))
   },
+
+  markTranslationBlocked: (blocked) => {
+    set((state) => ({
+      blockedTranslations: {
+        ...state.blockedTranslations,
+        [blocked.messageId]: blocked,
+      },
+    }))
+  },
 }))
 
 // Setup WebSocket listeners
@@ -284,6 +309,9 @@ wsService.onMessage((message) => {
       break
     case 'message_updated':
       store.updateMessage(message.data)
+      break
+    case 'translation_blocked':
+      store.markTranslationBlocked(message.data)
       break
     case 'chat_updated':
       store.loadChats()

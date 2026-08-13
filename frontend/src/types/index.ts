@@ -10,6 +10,40 @@ export interface User {
   lastActiveAt: string
   suspendedAt?: string | null
   deletedAt?: string | null
+  // Billing. plan mirrors the stored value; entitlements (effective plan,
+  // grace deadline, quotas) are resolved server-side via /users/me/entitlements.
+  plan?: 'free' | 'premium'
+  planGraceUntil?: string | null
+}
+
+// Billing plans and resolved entitlements returned by /users/me/entitlements.
+export type Plan = 'free' | 'premium'
+export type EffectivePlan = 'free' | 'premium' | 'unlimited'
+
+export interface Entitlements {
+  plan: Plan
+  planGraceUntil?: string | null
+  effectivePlan: EffectivePlan
+  selfHost: boolean
+  showAds: boolean
+  features: FeatureFlags
+  limits: PlanLimits
+}
+
+// Premium feature tiers resolved server-side.
+export interface FeatureFlags {
+  autoGrammar: boolean
+  fasterResponses: boolean
+  translationCharLimit?: number | null
+}
+
+// Usage quotas for a resolved entitlement set. A null value means unlimited.
+export interface PlanLimits {
+  dailyLLMTranslations?: number | null
+  dailyLLMGrammarAnalyses?: number | null
+  dailyLLMCorrections?: number | null
+  dailyVoiceMessages?: number | null
+  vocabularyItems?: number | null
 }
 
 export interface Chat {
@@ -47,6 +81,14 @@ export interface Message {
   replyToId?: string
   timestamp: string
   sender?: User
+}
+
+// Translation was intentionally not performed (e.g. free plan char limit).
+export interface TranslationBlocked {
+  messageId: string
+  chatId: string
+  charLimit?: number
+  reason?: string
 }
 
 export interface AuthTokens {

@@ -2,27 +2,31 @@ package handlers
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"testing"
 	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/chorus/messenger/internal/models"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/gin-gonic/gin"
+	"github.com/lib/pq"
 )
 
 // mock implementations
 type mockAuthService struct {
-	registerFn          func(req models.RegisterRequest) (*models.User, error)
-	loginFn             func(username, password string) (*models.User, error)
-	generateAccessFn    func(userID string) (string, error)
-	generateRefreshFn   func(userID string) (string, error)
-	validateAccessFn    func(token string) (string, error)
-	validateRefreshFn   func(token string) (string, error)
-	deleteRefreshFn     func(token string) error
+	registerFn        func(req models.RegisterRequest) (*models.User, error)
+	loginFn           func(username, password string) (*models.User, error)
+	generateAccessFn  func(userID string) (string, error)
+	generateRefreshFn func(userID string) (string, error)
+	validateAccessFn  func(token string) (string, error)
+	validateRefreshFn func(token string) (string, error)
+	deleteRefreshFn   func(token string) error
 }
 
 func (m *mockAuthService) Register(req models.RegisterRequest) (*models.User, error) {
@@ -189,7 +193,7 @@ func TestRegisterHandler_DuplicateEmail(t *testing.T) {
 
 func TestRegisterHandler_InvalidInput(t *testing.T) {
 	router := setupTestRouter()
-	h := NewAuthHandler(nil, nil, nil, nil, "")
+	h := NewAuthHandler(nil, nil, nil, nil, nil, "")
 	router.POST("/api/v1/auth/register", h.Register)
 
 	// Missing email and password
@@ -391,5 +395,89 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 
 	if w.Code != 200 {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestGetMyEntitlements_Success(t *testing.T) {
+	router := setupTestRouter()
+
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to create sqlmock: %v", err)
+	}
+	defer db.Close()
+
+	userService := services.NewUserService(db)
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT id, username, email, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until FROM users WHERE id = $1`)).
+		WithArgs("user-1").
+		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "display_name", "native_language", "target_languages", "role", "created_at", "last_active_at", "suspended_at", "deleted_at", "plan", "plan_grace_until"}).
+			AddRow("user-1", "testuser", "test@example.com", "Test User", "en", pq.Array([]string{"es"}), "member", time.Now(), time.Now(), nil, nil, "free", nil))
+
+	entitlementService := services.NewEntitlementService(false)
+	h := NewAuthHandler(nil, userService, nil, nil, entitlementService, "")
+
+	router.GET("/users/me/entitlements", func(c *gin.Context) {
+		c.Set("userID", "user-1")
+		h.GetMyEntitlements(c)
+	})
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/users/me/entitlements", nil)
+	router.ServeHTTP(w, req)
+
+	if w.Code != 200 {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var resp map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &resp)
+
+	if resp["plan"] != "free" {
+		t.Fatalf("expected plan free, got %v", resp["plan"])
+	}
+	if resp["effectivePlan"] != "free" {
+		t.Fatalf("expected effectivePlan free, got %v", resp["effectivePlan"])
+	}
+	if resp["showAds"] != true {
+		t.Fatalf("expected showAds true on free plan, got %v", resp["showAds"])
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+func TestGetMyEntitlements_NotFound(t *testing.T) {
+	router := setupTestRouter()
+
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to create sqlmock: %v", err)
+	}
+	defer db.Close()
+
+	userService := services.NewUserService(db)
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT id, username, email, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until FROM users WHERE id = $1`)).
+		WithArgs("missing").
+		WillReturnError(sql.ErrNoRows)
+
+	entitlementService := services.NewEntitlementService(false)
+	h := NewAuthHandler(nil, userService, nil, nil, entitlementService, "")
+
+	router.GET("/users/me/entitlements", func(c *gin.Context) {
+		c.Set("userID", "missing")
+		h.GetMyEntitlements(c)
+	})
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/users/me/entitlements", nil)
+	router.ServeHTTP(w, req)
+
+	if w.Code != 404 {
+		t.Fatalf("expected 404, got %d", w.Code)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
 	}
 }
