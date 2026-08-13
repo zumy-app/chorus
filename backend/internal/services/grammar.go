@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"regexp"
 	"strings"
@@ -720,6 +722,7 @@ func (s *GrammarService) GenerateAIAnalysis(text, language, nativeLanguage strin
 	if len(s.endpoints) == 0 {
 		log.Printf("[Grammar] no AI endpoints configured, using regex fallback")
 		analysis, err := s.fallbackAIAnalysis(text, language, nativeLanguage)
+		s.cacheAIAnalysis(text, language, nativeLanguage, analysis)
 		return analysis, "regex-fallback", err
 	}
 
@@ -779,6 +782,7 @@ Return ONLY valid JSON (no markdown, no code fences). Use this EXACT structure:
 	if err != nil {
 		logutil.Errorf("[Grammar] all AI endpoints failed: %v", err)
 		analysis, err := s.fallbackAIAnalysis(text, language, nativeLanguage)
+		s.cacheAIAnalysis(text, language, nativeLanguage, analysis)
 		return analysis, "regex-fallback", err
 	}
 	logutil.Infof("[Grammar] provider %q returned %d characters", providerUsed, len(result))
@@ -814,14 +818,22 @@ Return ONLY valid JSON (no markdown, no code fences). Use this EXACT structure:
 	// Note: intentional skip of regex fallback patterns — they're internal identifiers,
 	// not useful for users. If AI patterns are empty, we simply don't show patterns.
 
-	// Cache the result
-	if s.redis != nil {
-		if jsonData, err := json.Marshal(aiResult); err == nil {
-			s.redis.Set(context.Background(), aiAnalysisCacheKey(language, nativeLanguage, text), jsonData, 24*time.Hour)
-		}
-	}
+	// Cache the result (also done for the regex-fallback path, whose output is
+	// deterministic — repetitions are served instantly by the cache hot path).
+	s.cacheAIAnalysis(text, language, nativeLanguage, aiResult)
 
 	return aiResult, providerUsed, nil
+}
+
+// cacheAIAnalysis stores a completed analysis under the ai_grammar cache key so
+// identical requests are served instantly by CachedAIAnalysis.
+func (s *GrammarService) cacheAIAnalysis(text, language, nativeLanguage string, analysis *models.AIGrammarAnalysis) {
+	if s.redis == nil || analysis == nil {
+		return
+	}
+	if jsonData, err := json.Marshal(analysis); err == nil {
+		s.redis.Set(context.Background(), aiAnalysisCacheKey(language, nativeLanguage, text), jsonData, 24*time.Hour)
+	}
 }
 
 // fallbackAIAnalysis returns a regex-based analysis when the AI API is unavailable.
@@ -1354,12 +1366,8 @@ Student Question: "%s"
 	// Use a 30-second timeout so the AI Tutor panel doesn't hang indefinitely.
 	result, providerUsed, err := s.callGrammarAPI(prompt, nativeLangName, false)
 	if err != nil {
-		return &models.LearningContent{
-			Action:           action,
-			Content:          "Sorry, I couldn't generate learning content right now. Please try again.",
-			Details:          []string{},
-			SuggestedActions: []string{"breakdown", "examples", "flashcards"},
-		}, nil
+		logutil.Warnf("[Grammar] all AI endpoints failed for learning content, using offline fallback: %v", err)
+		return s.fallbackLearningContent(text, language, nativeLanguage, action, customQuery), nil
 	}
 	log.Printf("[Grammar] Learning content via %q", providerUsed)
 
@@ -1403,6 +1411,177 @@ func nextActionsFor(action string) []string {
 	}
 }
 
+// fallbackLearningContent builds offline learning content from the plain-text
+// grammar analysis so the AI Tutor always has something useful to show, even
+// when every AI endpoint is unreachable or cooling down.
+func (s *GrammarService) fallbackLearningContent(text, language, nativeLanguage, action, customQuery string) *models.LearningContent {
+	if nativeLanguage == "" {
+		nativeLanguage = "en"
+	}
+	basic, err := s.AnalyzeGrammar(text, language, nativeLanguage)
+	if err != nil {
+		basic = &models.GrammarAnalysis{Difficulty: "A1"}
+	}
+
+	switch action {
+	case "breakdown":
+		content := s.buildFallbackSummary(text, language, basic, nativeLanguage)
+		var details []string
+		for _, n := range s.buildFallbackGrammarNotes(text, language, basic, nativeLanguage) {
+			switch {
+			case n.Title != "" && n.Explanation != "":
+				details = append(details, n.Title+": "+n.Explanation)
+			case n.Title != "":
+				details = append(details, n.Title)
+			case n.Explanation != "":
+				details = append(details, n.Explanation)
+			}
+		}
+		return &models.LearningContent{
+			Action:           action,
+			Content:          content,
+			Details:          details,
+			SuggestedActions: nextActionsFor(action),
+		}
+
+	case "examples":
+		return &models.LearningContent{
+			Action:           action,
+			Content:          s.buildFallbackExamples(text, basic, nativeLanguage),
+			Details:          []string{},
+			SuggestedActions: nextActionsFor(action),
+		}
+
+	case "flashcards":
+		return &models.LearningContent{
+			Action:           action,
+			Content:          s.buildFallbackFlashcards(basic, nativeLanguage),
+			Details:          []string{},
+			SuggestedActions: nextActionsFor(action),
+		}
+
+	default: // custom question
+		intro := localizedString(
+			map[string]string{
+				"en": "Here's a quick offline answer about the grammar in your text:",
+				"es": "Aquí tienes una respuesta rápida sobre la gramática de tu texto:",
+				"fr": "Voici une réponse rapide sur la grammaire de votre texte :",
+				"de": "Hier ist eine schnelle Antwort zur Grammatik deines Textes:",
+			},
+			nativeLanguage,
+			"Here's a quick offline answer about the grammar in your text:",
+		)
+		content := intro + "\n" + s.buildFallbackSummary(text, language, basic, nativeLanguage)
+		return &models.LearningContent{
+			Action:           action,
+			Content:          content,
+			Details:          []string{},
+			SuggestedActions: []string{"breakdown", "examples", "flashcards"},
+		}
+	}
+}
+
+// buildFallbackExamples produces plain example sentences derived from the
+// detected grammar patterns when the AI API is unavailable.
+func (s *GrammarService) buildFallbackExamples(text string, basic *models.GrammarAnalysis, nativeLanguage string) string {
+	intro := localizedString(
+		map[string]string{
+			"en": "Here are example sentences that use the same patterns as your text:",
+			"es": "Estas son oraciones de ejemplo que usan los mismos patrones que tu texto:",
+		},
+		nativeLanguage,
+		"Here are example sentences that use the same patterns as your text:",
+	)
+
+	examples := map[string]map[string]string{
+		"present_continuous": {"en": "I am learning a new language right now.", "es": "Estoy aprendiendo un idioma nuevo ahora mismo."},
+		"past_tense":         {"en": "Yesterday I visited my friend.", "es": "Ayer visité a mi amigo."},
+		"future_tense":       {"en": "We will travel next summer.", "es": "Viajaremos el próximo verano."},
+		"present_perfect":    {"en": "She has lived here for years.", "es": "Ella ha vivido aquí por años."},
+		"conditional":        {"en": "If it rains, we would stay home.", "es": "Si lloviera, nos quedaríamos en casa."},
+		"passive_voice":      {"en": "The book was written by a famous author.", "es": "El libro fue escrito por un autor famoso."},
+		"question":           {"en": "Where are you going this weekend?", "es": "¿A dónde vas este fin de semana?"},
+	}
+
+	var lines []string
+	lines = append(lines, intro)
+	seen := map[string]bool{}
+	added := 0
+	for _, p := range basic.Patterns {
+		if seen[p] || added >= 3 {
+			continue
+		}
+		seen[p] = true
+		if pairs, ok := examples[p]; ok {
+			ex := pairs["en"]
+			if _, ok := pairs[nativeLanguage]; ok {
+				ex = pairs[nativeLanguage]
+			}
+			lines = append(lines, "- "+ex)
+			added++
+		}
+	}
+	if added == 0 {
+		lines = append(lines, "- "+strings.TrimSpace(text))
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+// buildFallbackFlashcards creates pattern-based Q/A flashcards when the AI
+// API is unavailable. Each line follows the "Q: ...? A: ..." format the
+// online generator uses.
+func (s *GrammarService) buildFallbackFlashcards(basic *models.GrammarAnalysis, nativeLanguage string) string {
+	intro := localizedString(
+		map[string]string{
+			"en": "Quick flashcards based on the grammar patterns in your text:",
+			"es": "Tarjetas rápidas basadas en los patrones gramaticales de tu texto:",
+		},
+		nativeLanguage,
+		"Quick flashcards based on the grammar patterns in your text:",
+	)
+
+	cards := map[string]map[string]string{
+		"present_continuous": {"en": "Q: How do I describe something happening right now? A: Use am/is/are + verb-ing.", "es": "Q: ¿Cómo describo algo que está pasando ahora? A: Usa am/is/are + verbo-ing."},
+		"past_tense":         {"en": "Q: How do I talk about the past? A: Add -ed to regular verbs; memorize the irregulars like go → went.", "es": "Q: ¿Cómo hablo del pasado? A: Añade -ed a los verbos regulares; memoriza los irregulares como go → went."},
+		"future_tense":       {"en": "Q: How do I talk about the future? A: Use will or going to before the verb.", "es": "Q: ¿Cómo hablo del futuro? A: Usa will o going to antes del verbo."},
+		"present_perfect":    {"en": "Q: How do I link the past to now? A: Use have/has + past participle (e.g. has lived).", "es": "Q: ¿Cómo conecto el pasado con el presente? A: Usa have/has + participio (ej. has lived)."},
+		"conditional":        {"en": "Q: How do I express a hypothetical? A: Use if + would to talk about imagined situations.", "es": "Q: ¿Cómo expreso una situación hipotética? A: Usa if + would para hablar de situaciones imaginadas."},
+		"passive_voice":      {"en": "Q: How do I focus on the action? A: Use be + past participle (e.g. was written).", "es": "Q: ¿Cómo enfoco la acción? A: Usa be + participio (ej. was written)."},
+		"question":           {"en": "Q: How do I ask a question? A: Start with a question word or flip the auxiliary to the front.", "es": "Q: ¿Cómo hago una pregunta? A: Empieza con una palabra interrogativa o pon el auxiliar al inicio."},
+	}
+
+	var lines []string
+	lines = append(lines, intro)
+	seen := map[string]bool{}
+	added := 0
+	for _, p := range basic.Patterns {
+		if seen[p] || added >= 4 {
+			continue
+		}
+		seen[p] = true
+		if pairs, ok := cards[p]; ok {
+			card := pairs["en"]
+			if _, ok := pairs[nativeLanguage]; ok {
+				card = pairs[nativeLanguage]
+			}
+			lines = append(lines, card)
+			added++
+		}
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+// localizedString returns the entry for the given native language, falling
+// back to the English default.
+func localizedString(entries map[string]string, nativeLanguage, fallback string) string {
+	if v, ok := entries[nativeLanguage]; ok && v != "" {
+		return v
+	}
+	return fallback
+}
+
 // callGrammarAPI tries each configured endpoint in sequence.
 // Returns the response text and the name of the provider that succeeded.
 // jsonMode forces response_format json_object (used only for the structured
@@ -1439,9 +1618,15 @@ func (s *GrammarService) callGrammarAPI(prompt, nativeLangName string, jsonMode 
 }
 
 // markFailure applies a cooldown to an endpoint when its error class (rate
-// limit, quota, auth, 5xx) warrants pausing it.
+// limit, quota, auth, 5xx) warrants pausing it. Transport-level failures
+// (unresolvable host, refused/timed-out connects) are also paused: they do not
+// recover between jobs, so pausing lets the chain fail over to the next
+// endpoint (or the regex fallback) immediately instead of stalling every job.
 func (s *GrammarService) markFailure(name string, err error) {
 	cooldown := translation.CooldownFor(err)
+	if cooldown <= 0 && isTransportFailure(err) {
+		cooldown = grammarCooldownConnect
+	}
 	if cooldown <= 0 {
 		return
 	}
@@ -1449,6 +1634,28 @@ func (s *GrammarService) markFailure(name string, err error) {
 	s.cooldowns[name] = time.Now().Add(cooldown)
 	s.mu.Unlock()
 	logutil.Warnf("[Grammar] endpoint %s cooling down for %v (%v)", name, cooldown, err)
+}
+
+// grammarCooldownConnect pauses a provider after a transport failure. These are
+// long-lived (a container on the wrong network, a dead API host), so 5 minutes
+// of skip-ahead is a safe default.
+const grammarCooldownConnect = 5 * time.Minute
+
+// isTransportFailure reports whether err is a network-level failure (dial,
+// DNS, or timeout) rather than a valid HTTP/API response the provider returned.
+func isTransportFailure(err error) bool {
+	if err == nil {
+		return false
+	}
+	var nerr net.Error
+	if errors.As(err, &nerr) {
+		return true
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "connection refused") ||
+		strings.Contains(msg, "no such host") ||
+		strings.Contains(msg, "i/o timeout") ||
+		strings.Contains(msg, "deadline exceeded")
 }
 
 // coolDownFor returns the endpoint's cooldown expiry if it is currently paused.

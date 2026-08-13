@@ -98,7 +98,7 @@ export default function Waitlist() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-primary to-secondary py-10 px-4">
-      <form onSubmit={submit} className="mx-auto max-w-xl rounded-xl bg-white p-8 shadow-xl space-y-6">
+      <form onSubmit={submit} noValidate className="mx-auto max-w-xl rounded-xl bg-white p-8 shadow-xl space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">{t('waitlist.joinTheWaitlist')}</h1>
           <p className="mt-2 text-gray-600">{t('waitlist.intro')}</p>
