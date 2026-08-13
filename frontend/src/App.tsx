@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import Landing from './pages/Landing'
 import Pricing from './pages/Pricing'
+import Premium from './pages/Premium'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
@@ -82,6 +83,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/pricing" element={<Pricing />} />
+        <Route path="/premium" element={<Premium />} />
         <Route path="/waitlist" element={<Waitlist />} />
         <Route
           path="/admin/waitlist"

@@ -35,6 +35,130 @@ export interface FeatureFlags {
   autoGrammar: boolean
   fasterResponses: boolean
   translationCharLimit?: number | null
+  translationWordLimit?: number | null
+}
+
+// Resolved subscription view from GET /users/me/subscription. EffectivePlan is
+// the plan after any grace window is applied.
+export interface SubscriptionInfo {
+  plan: Plan
+  effectivePlan: EffectivePlan
+  inGrace: boolean
+  premiumSince?: string | null
+  status?: string
+  provider?: string
+  subscriptionId?: string
+  nextBillingDate?: string | null
+  graceUntil?: string | null
+  manageUrl?: string
+  wordLimit?: number | null
+  autoGrammar: boolean
+}
+
+export interface CheckoutRequest {
+  plan: 'monthly' | 'annual'
+}
+
+export interface CheckoutResponse {
+  approvalUrl: string
+  plan: 'monthly' | 'annual'
+}
+
+// A premium user row from the admin console (GET /admin/premium/users).
+export interface PremiumUserRow {
+  id: string
+  username: string
+  displayName: string
+  email: string
+  plan: 'free' | 'premium'
+  effectivePlan: EffectivePlan
+  inGrace: boolean
+  subscriptionId?: string
+  subscriptionStatus?: string
+  premiumSince?: string | null
+  nextBillingDate?: string | null
+  graceUntil?: string | null
+  messagesSent: number
+  createdAt: string
+}
+
+// Aggregated premium metrics (GET /admin/premium/analytics).
+export interface PremiumAnalytics {
+  totalPremiumUsers: number
+  storedPremium: number
+  inGrace: number
+  monthlySubscriptions: number
+  yearlySubscriptions: number
+  newThisMonth: number
+  churnedThisMonth: number
+  projectedMRR: number
+  revenueLastYear: number
+  topUsersByUsage: PremiumUserRow[]
+}
+
+// One row of the plan audit trail (GET /admin/users/:id/plan-history).
+export interface PlanChange {
+  id: string
+  userId: string
+  actorId?: string
+  fromPlan: string
+  toPlan: string
+  graceUntil?: string | null
+  source: string
+  reason: string
+  createdAt: string
+}
+
+// Admin plan grant/revoke payload.
+export interface GrantPlanRequest {
+  plan: 'free' | 'premium'
+  mode?: 'indefinite' | 'days' | 'until'
+  days?: number
+  until?: string
+  reason?: string
+  clearGraceInDays?: number
+}
+
+// Report & Block (REQ §8.2)
+export interface Block {
+  id: string
+  blockerId: string
+  blockedId: string
+  reason?: string
+  createdAt: string
+  blocked?: User
+}
+
+export interface Report {
+  id: string
+  reporterId: string
+  type: 'user' | 'message'
+  reportedUserId: string
+  messageId?: string
+  chatId?: string
+  reason: string
+  status: 'open' | 'resolved' | 'dismissed'
+  resolverId?: string
+  resolutionNote?: string
+  createdAt: string
+  resolvedAt?: string
+  reporter?: User
+  reportedUser?: User
+}
+
+export interface ReportRequest {
+  type: 'user' | 'message'
+  reportedUserId?: string
+  messageId?: string
+  chatId?: string
+  reason: string
+}
+
+export interface ReportStats {
+  openReports: number
+  userReports: number
+  messageReports: number
+  resolvedToday: number
 }
 
 // Usage quotas for a resolved entitlement set. A null value means unlimited.
@@ -88,6 +212,8 @@ export interface TranslationBlocked {
   messageId: string
   chatId: string
   charLimit?: number
+  wordLimit?: number
+  wordCount?: number
   reason?: string
 }
 
@@ -203,4 +329,19 @@ export interface SendMessageRequest {
 export interface WebSocketMessage {
   type: string
   data: any
+}
+
+export type GrammarJobStatus = 'queued' | 'processing' | 'done' | 'failed'
+
+// Payload of the client-initiated AI grammar analysis job. Submitted via
+// POST /grammar/analyze-ai (returns the jobId immediately), delivered over the
+// WebSocket "grammar_analysis" event, and pollable via GET /grammar/analyze/:jobId.
+export interface GrammarJob {
+  jobId: string
+  messageId?: string
+  chatId?: string
+  status: GrammarJobStatus
+  analysis?: any
+  providerUsed?: string
+  error?: string
 }

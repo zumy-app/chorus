@@ -4,14 +4,15 @@ import { useTranslation } from 'react-i18next'
 import { adminAPI } from '../services/api'
 import { getLanguageName } from '../services/language'
 import { useStore } from '../store'
-import type { WaitlistEntry, EmailOutboxEntry, AdminStats, User, TranslationJob, ProviderHealth } from '../types'
+import type { WaitlistEntry, EmailOutboxEntry, AdminStats, User, TranslationJob, ProviderHealth, PremiumUserRow, PremiumAnalytics, PlanChange, GrantPlanRequest, Report, ReportStats } from '../types'
 
 const names = (codes: string[]) => codes.map(code => getLanguageName(code)).join(', ') || '—'
 
 // Tabs list per role: moderators can manage users + translations; admins add
-// waitlist, email outbox and global stats.
-const ADMIN_TABS = ['users', 'translations'] as const
-const ALL_TABS = ['waitlist', 'users', 'translations', 'emails', 'stats'] as const
+// waitlist, email outbox, global stats and premium management. Moderation
+// reports are visible to both moderators and admins.
+const ADMIN_TABS = ['users', 'translations', 'reports'] as const
+const ALL_TABS = ['waitlist', 'users', 'translations', 'emails', 'stats', 'premium', 'reports'] as const
 type Tab = (typeof ALL_TABS)[number]
 type StatusFilter = 'pending' | 'approved' | 'declined' | 'all'
 
@@ -21,6 +22,8 @@ const tabLabels: Record<Tab, string> = {
   translations: 'tabTranslations',
   emails: 'tabEmails',
   stats: 'tabStats',
+  premium: 'tabPremium',
+  reports: 'tabReports',
 }
 
 const statusBadge: Record<string, string> = {
@@ -65,6 +68,24 @@ export default function AdminWaitlist({ defaultTab }: { defaultTab?: Tab }) {
   const [jobs, setJobs] = useState<TranslationJob[]>([])
   const [jobFilter, setJobFilter] = useState('all')
   const [providers, setProviders] = useState<ProviderHealth[]>([])
+
+  const [premium, setPremium] = useState<{ users: PremiumUserRow[]; total: number }>({ users: [], total: 0 })
+  const [analytics, setAnalytics] = useState<PremiumAnalytics | null>(null)
+  const [grantTarget, setGrantTarget] = useState<PremiumUserRow | null>(null)
+  const [revokeTarget, setRevokeTarget] = useState<PremiumUserRow | null>(null)
+  const [history, setHistory] = useState<{ user: PremiumUserRow; entries: PlanChange[] } | null>(null)
+  const [grantMode, setGrantMode] = useState<'indefinite' | 'days' | 'until'>('indefinite')
+  const [grantDays, setGrantDays] = useState(30)
+  const [grantUntil, setGrantUntil] = useState('')
+  const [reason, setReason] = useState('')
+  const [revokeGrace, setRevokeGrace] = useState(0)
+
+  const [reports, setReports] = useState<Report[]>([])
+  const [reportTotal, setReportTotal] = useState(0)
+  const [reportStats, setReportStats] = useState<ReportStats | null>(null)
+  const [reportFilter, setReportFilter] = useState('open')
+  const [dismissing, setDismissing] = useState<string | null>(null)
+  const [dismissNote, setDismissNote] = useState('')
 
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -123,11 +144,37 @@ export default function AdminWaitlist({ defaultTab }: { defaultTab?: Tab }) {
     }
   }
 
+  const loadPremium = async () => {
+    setError('')
+    try {
+      setPremium(await adminAPI.premiumUsers(q || undefined))
+      setAnalytics(await adminAPI.premiumAnalytics())
+    } catch (err: any) {
+      setError(err?.response?.data?.error || t('admin.notAuthorizedPremium'))
+    }
+  }
+
+  const loadReports = async (status = reportFilter, query = q) => {
+    setError('')
+    try {
+      const data = await adminAPI.listReports(status, query)
+      setReports(data.reports)
+      setReportTotal(data.total)
+      if (isAdmin) {
+        setReportStats(await adminAPI.reportStats().catch(() => null))
+      }
+    } catch (err: any) {
+      setError(err?.response?.data?.error || t('admin.notAuthorizedReports'))
+    }
+  }
+
   useEffect(() => {
     if (tab === 'waitlist') loadWaitlist()
     else if (tab === 'emails') loadEmails()
     else if (tab === 'stats') loadStats()
     else if (tab === 'users') loadUsers()
+    else if (tab === 'premium') loadPremium()
+    else if (tab === 'reports') loadReports()
     else loadTranslations()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab])
@@ -147,6 +194,71 @@ export default function AdminWaitlist({ defaultTab }: { defaultTab?: Tab }) {
     if (tab === 'waitlist') loadWaitlist(statusFilter, q)
     else if (tab === 'users') loadUsers()
     else if (tab === 'translations') loadTranslations()
+    else if (tab === 'premium') loadPremium()
+    else if (tab === 'reports') loadReports()
+  }
+
+  const resolveReport = (id: string) => act(() => adminAPI.resolveReport(id), id, () => loadReports())
+
+  const submitDismiss = async (id: string) => {
+    setBusy(id); setError(''); setNotice('')
+    try {
+      const { message } = await adminAPI.dismissReport(id, dismissNote.trim() || undefined)
+      if (message) setNotice(String(message))
+      setDismissing(null); setDismissNote('')
+      await loadReports()
+    } catch (err: any) {
+      setError(err?.response?.data?.error || t('admin.error'))
+    } finally { setBusy(null) }
+  }
+
+  const applyGrant = async () => {
+    if (!grantTarget) return
+    setBusy(grantTarget.id); setError(''); setNotice('')
+    const req: GrantPlanRequest = { plan: 'premium', mode: grantMode, reason: reason || undefined }
+    if (grantMode === 'days') req.days = grantDays
+    if (grantMode === 'until') req.until = new Date(grantUntil).toISOString()
+    try {
+      const { message } = await adminAPI.grantPlan(grantTarget.id, req)
+      if (message) setNotice(String(message))
+      setGrantTarget(null); setReason('')
+      await Promise.all([loadPremium()])
+    } catch (err: any) {
+      setError(err?.response?.data?.error || t('admin.error'))
+    } finally { setBusy(null) }
+  }
+
+  const applyRevoke = async () => {
+    if (!revokeTarget) return
+    if (!window.confirm(t('admin.confirmRevoke', { name: revokeTarget.displayName || revokeTarget.username }))) return
+    setBusy(revokeTarget.id); setError(''); setNotice('')
+    try {
+      const { message } = await adminAPI.revokePlan(revokeTarget.id, revokeGrace, reason || undefined)
+      if (message) setNotice(String(message))
+      setRevokeTarget(null); setReason(''); setRevokeGrace(0)
+      await Promise.all([loadPremium()])
+    } catch (err: any) {
+      setError(err?.response?.data?.error || t('admin.error'))
+    } finally { setBusy(null) }
+  }
+
+  const openHistory = async (user: PremiumUserRow) => {
+    setBusy(user.id); setError('')
+    try {
+      const entries = await adminAPI.planHistory(user.id)
+      setHistory({ user, entries })
+    } catch (err: any) {
+      setError(err?.response?.data?.error || t('admin.error'))
+    } finally { setBusy(null) }
+  }
+
+  const money = (v: number) => '$' + v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+  const planBadge = (u: PremiumUserRow) => {
+    const base = u.effectivePlan === 'premium'
+      ? u.inGrace ? 'bg-amber-100 text-amber-700' : 'bg-gradient-to-r from-amber-400 to-yellow-300 text-amber-900'
+      : 'bg-green-100 text-green-700'
+    return <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${base}`}>{t('plan.' + u.effectivePlan)}</span>
   }
 
   const switchRole = async (user: User, role: string) => {
@@ -622,12 +734,401 @@ export default function AdminWaitlist({ defaultTab }: { defaultTab?: Tab }) {
             )}
           </section>
         )}
+
+        {tab === 'premium' && (
+          <section className="space-y-4">
+            {/* Analytics */}
+            {analytics && (
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+                <StatCard label={t('admin.premiumTotal')} value={analytics.totalPremiumUsers} tone="amber" />
+                <StatCard label={t('admin.premiumStored')} value={analytics.storedPremium} tone="green" />
+                <StatCard label={t('admin.premiumInGrace')} value={analytics.inGrace} tone="amber" />
+                <StatCard label={t('admin.premiumMonthly')} value={analytics.monthlySubscriptions} />
+                <StatCard label={t('admin.premiumYearly')} value={analytics.yearlySubscriptions} />
+                <StatCard label={t('admin.premiumNew')} value={analytics.newThisMonth} tone="green" />
+                <StatCard label={t('admin.premiumChurned')} value={analytics.churnedThisMonth} tone="red" />
+                <StatCard label={t('admin.premiumMRR')} value={money(analytics.projectedMRR)} />
+                <StatCard label={t('admin.premiumRevenue')} value={money(analytics.revenueLastYear)} />
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-3 rounded-lg bg-white p-3 shadow">
+              <input
+                value={q}
+                onChange={e => setQ(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && searchNow()}
+                placeholder={t('admin.searchNamePlaceholder')}
+                className="min-w-0 flex-1 rounded border border-gray-300 px-3 py-2 text-sm"
+              />
+              <button onClick={searchNow} className="rounded bg-gray-800 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-900">
+                {t('admin.search')}
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-500">{t('admin.usersCount', { count: premium.total })}</p>
+
+            {premium.users.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center text-gray-500">
+                {t('admin.noPremiumUsers')}
+              </p>
+            ) : (
+              <div className="overflow-hidden rounded-lg bg-white shadow">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-gray-100 text-gray-600">
+                    <tr>
+                      <th className="px-4 py-3">{t('admin.user')}</th>
+                      <th className="px-4 py-3">{t('admin.premiumPlan')}</th>
+                      <th className="px-4 py-3">{t('admin.premiumSince')}</th>
+                      <th className="px-4 py-3">{t('admin.premiumBilling')}</th>
+                      <th className="px-4 py-3">{t('admin.premiumMessages')}</th>
+                      <th className="px-4 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {premium.users.map(u => (
+                      <tr key={u.id}>
+                        <td className="px-4 py-3">
+                          <p className="font-medium">{u.displayName || u.username}</p>
+                          <p className="text-xs text-gray-500">@{u.username} · {u.email}</p>
+                          {u.inGrace && u.graceUntil && (
+                            <p className="mt-0.5 text-xs font-medium text-amber-600">
+                              {t('admin.premiumGraceNote', { date: new Date(u.graceUntil).toLocaleDateString() })}
+                            </p>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-col items-start gap-1">
+                            {planBadge(u)}
+                            {u.subscriptionStatus && (
+                              <span className="text-xs text-gray-500">{u.subscriptionStatus}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-gray-600">
+                          {u.premiumSince ? new Date(u.premiumSince).toLocaleDateString() : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600">
+                          {u.nextBillingDate ? new Date(u.nextBillingDate).toLocaleDateString() : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600">{u.messagesSent.toLocaleString()}</td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex flex-wrap justify-end gap-2">
+                            <button
+                              onClick={() => { setGrantTarget(u); setReason(''); setGrantMode('indefinite'); setGrantDays(30); setGrantUntil('') }}
+                              disabled={busy === u.id}
+                              className="rounded bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+                            >
+                              {t('admin.grantPremium')}
+                            </button>
+                            {u.effectivePlan === 'premium' && (
+                              <button
+                                onClick={() => { setRevokeTarget(u); setReason(''); setRevokeGrace(0) }}
+                                disabled={busy === u.id}
+                                className="rounded border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                              >
+                                {t('admin.revoke')}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => openHistory(u)}
+                              disabled={busy === u.id}
+                              className="rounded border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                            >
+                              {busy === u.id ? t('common.loading') : t('admin.planHistory')}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        )}
+
+        {tab === 'reports' && (
+          <section className="space-y-4">
+            {reportStats && (
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                <StatCard label={t('admin.openReports')} value={reportStats.openReports} tone="red" />
+                <StatCard label={t('admin.userReports')} value={reportStats.userReports} />
+                <StatCard label={t('admin.messageReports')} value={reportStats.messageReports} />
+                <StatCard label={t('admin.resolvedToday')} value={reportStats.resolvedToday} tone="green" />
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-3 rounded-lg bg-white p-3 shadow">
+              <select
+                value={reportFilter}
+                onChange={e => {
+                  setReportFilter(e.target.value)
+                  loadReports(e.target.value, q)
+                }}
+                className="rounded border border-gray-300 px-3 py-2 text-sm"
+              >
+                <option value="open">{t('admin.reportOpen')}</option>
+                <option value="resolved">{t('admin.reportResolved')}</option>
+                <option value="dismissed">{t('admin.reportDismissed')}</option>
+                <option value="all">{t('admin.all')}</option>
+              </select>
+              <input
+                value={q}
+                onChange={e => setQ(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && searchNow()}
+                placeholder={t('admin.searchNamePlaceholder')}
+                className="min-w-0 flex-1 rounded border border-gray-300 px-3 py-2 text-sm"
+              />
+              <button onClick={searchNow} className="rounded bg-gray-800 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-900">
+                {t('admin.search')}
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-500">{t('admin.usersCount', { count: reportTotal })}</p>
+
+            {reports.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center text-gray-500">
+                {t('admin.noReports')}
+              </p>
+            ) : (
+              <div className="overflow-hidden rounded-lg bg-white shadow">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-gray-100 text-gray-600">
+                    <tr>
+                      <th className="px-4 py-3">{t('admin.reportType')}</th>
+                      <th className="px-4 py-3">{t('admin.reportedUser')}</th>
+                      <th className="px-4 py-3">{t('admin.reporter')}</th>
+                      <th className="px-4 py-3">{t('admin.reason')}</th>
+                      <th className="px-4 py-3">{t('admin.created')}</th>
+                      <th className="px-4 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {reports.map(r => (
+                      <tr key={r.id} className="align-top">
+                        <td className="px-4 py-3">
+                          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                            r.type === 'message' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {t(r.type === 'message' ? 'admin.reportTypeMessage' : 'admin.reportTypeUser')}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="font-medium">{r.reportedUser?.displayName || r.reportedUser?.username}</p>
+                          <p className="text-xs text-gray-500">@{r.reportedUser?.username}</p>
+                          {r.messageId && <p className="mt-0.5 text-[11px] text-purple-500">{r.messageId.slice(0, 8)}…</p>}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600">
+                          <p className="font-medium">{r.reporter?.displayName || r.reporter?.username}</p>
+                          <p className="text-xs text-gray-500">{r.reporter?.email}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="max-w-[220px] break-words text-gray-700">{r.reason}</p>
+                          {r.resolutionNote && (
+                            <p className="mt-1 text-xs italic text-gray-400">{t('admin.resolutionNote')}: {r.resolutionNote}</p>
+                          )}
+                          <p className="mt-1 text-xs text-gray-400">{new Date(r.createdAt).toLocaleString()}</p>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-500">
+                          {r.status === 'resolved' || r.status === 'dismissed'
+                            ? new Date(r.resolvedAt || r.createdAt).toLocaleDateString()
+                            : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {dismissing === r.id ? (
+                            <div className="flex flex-col items-end gap-2">
+                              <input
+                                value={dismissNote}
+                                onChange={e => setDismissNote(e.target.value)}
+                                placeholder={t('admin.dismissNotePlaceholder')}
+                                className="w-48 rounded border border-gray-300 px-2 py-1 text-xs"
+                                autoFocus
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => submitDismiss(r.id)}
+                                  disabled={busy === r.id}
+                                  className="rounded bg-gray-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
+                                >
+                                  {busy === r.id ? t('common.loading') : t('admin.confirmDismiss')}
+                                </button>
+                                <button
+                                  onClick={() => { setDismissing(null); setDismissNote('') }}
+                                  className="rounded border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
+                                >
+                                  {t('common.cancel')}
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => resolveReport(r.id)}
+                                disabled={busy === r.id || r.status !== 'open'}
+                                className="rounded bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-40"
+                              >
+                                {busy === r.id ? t('common.loading') : t('admin.resolveReport')}
+                              </button>
+                              <button
+                                onClick={() => { setDismissing(r.id); setDismissNote('') }}
+                                disabled={r.status !== 'open'}
+                                className="rounded border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                              >
+                                {t('admin.dismissReport')}
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        )}
       </div>
+
+      {/* Grant modal */}
+      {grantTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setGrantTarget(null)}>
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+            <h3 className="mb-1 text-lg font-bold">{t('admin.grantTitle')}</h3>
+            <p className="mb-4 text-sm text-gray-500">{grantTarget.displayName || grantTarget.username}</p>
+            <div className="space-y-3">
+              <select
+                value={grantMode}
+                onChange={e => setGrantMode(e.target.value as typeof grantMode)}
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+              >
+                <option value="indefinite">{t('admin.modeIndefinite')}</option>
+                <option value="days">{t('admin.modeDays')}</option>
+                <option value="until">{t('admin.modeUntil')}</option>
+              </select>
+              {grantMode === 'days' && (
+                <input
+                  type="number"
+                  min={1}
+                  value={grantDays}
+                  onChange={e => setGrantDays(Number(e.target.value))}
+                  className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                />
+              )}
+              {grantMode === 'until' && (
+                <input
+                  type="datetime-local"
+                  value={grantUntil}
+                  onChange={e => setGrantUntil(e.target.value)}
+                  className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                />
+              )}
+              <input
+                value={reason}
+                onChange={e => setReason(e.target.value)}
+                placeholder={t('admin.reasonPlaceholder')}
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button onClick={() => setGrantTarget(null)} className="rounded border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50">
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={applyGrant}
+                disabled={busy === grantTarget.id || (grantMode === 'until' && !grantUntil)}
+                className="rounded bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+              >
+                {busy === grantTarget.id ? t('common.saving') : t('admin.apply')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Revoke modal */}
+      {revokeTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setRevokeTarget(null)}>
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+            <h3 className="mb-1 text-lg font-bold">{t('admin.revokeTitle')}</h3>
+            <p className="mb-4 text-sm text-gray-500">{revokeTarget.displayName || revokeTarget.username}</p>
+            <div className="space-y-3">
+              <label className="flex items-center justify-between gap-3 text-sm text-gray-700">
+                {t('admin.graceDays')}
+                <input
+                  type="number"
+                  min={0}
+                  value={revokeGrace}
+                  onChange={e => setRevokeGrace(Number(e.target.value))}
+                  className="w-24 rounded border border-gray-300 px-3 py-2 text-sm"
+                />
+              </label>
+              <input
+                value={reason}
+                onChange={e => setReason(e.target.value)}
+                placeholder={t('admin.reasonPlaceholder')}
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button onClick={() => setRevokeTarget(null)} className="rounded border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50">
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={applyRevoke}
+                disabled={busy === revokeTarget.id}
+                className="rounded bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {busy === revokeTarget.id ? t('common.saving') : t('admin.apply')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Plan history modal */}
+      {history && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setHistory(null)}>
+          <div className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+            <h3 className="mb-1 text-lg font-bold">{t('admin.historyTitle')}</h3>
+            <p className="mb-4 text-sm text-gray-500">{history.user.displayName || history.user.username}</p>
+            {history.entries.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-gray-300 p-6 text-center text-gray-500">{t('admin.noPlanHistory')}</p>
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {history.entries.map(entry => (
+                  <li key={entry.id} className="py-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-semibold text-gray-900">
+                        {t('plan.' + entry.fromPlan)} → {t('plan.' + entry.toPlan)}
+                      </p>
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                        entry.toPlan === 'premium' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {t('admin.' + entry.source)}
+                      </span>
+                    </div>
+                    {entry.graceUntil && (
+                      <p className="text-xs text-amber-600">{t('admin.premiumGraceNote', { date: new Date(entry.graceUntil).toLocaleDateString() })}</p>
+                    )}
+                    {entry.reason && <p className="text-sm text-gray-500">{entry.reason}</p>}
+                    <p className="mt-0.5 text-xs text-gray-400">{new Date(entry.createdAt).toLocaleString()}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="mt-6 flex justify-end">
+              <button onClick={() => setHistory(null)} className="rounded border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50">
+                {t('common.close')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
 
-function StatCard({ label, value, tone }: { label: string; value: number; tone?: 'amber' | 'green' | 'red' }) {
+function StatCard({ label, value, tone }: { label: string; value: number | string; tone?: 'amber' | 'green' | 'red' }) {
   const tones: Record<string, string> = {
     amber: 'text-amber-600',
     green: 'text-green-600',

@@ -20,6 +20,16 @@ type User struct {
 	// accounts created before a paid cutover: entitlements behave as premium
 	// until this time, then fall back to the stored plan.
 	PlanGraceUntil *time.Time `json:"planGraceUntil,omitempty" db:"plan_grace_until"`
+	// Subscription fields (Phase 1.5). premium_since marks the first activation;
+	// subscription_id is the provider-side subscription id; subscription_status
+	// mirrors the provider lifecycle (ACTIVE, CANCELLED, SUSPENDED, ...).
+	PremiumSince         *time.Time `json:"premiumSince,omitempty" db:"premium_since"`
+	SubscriptionID       *string    `json:"subscriptionId,omitempty" db:"subscription_id"`
+	SubscriptionProvider string     `json:"subscriptionProvider,omitempty" db:"subscription_provider"`
+	SubscriptionPlanID   *string    `json:"subscriptionPlanId,omitempty" db:"subscription_plan_id"`
+	SubscriptionStatus   *string    `json:"subscriptionStatus,omitempty" db:"subscription_status"`
+	NextBillingDate      *time.Time `json:"nextBillingDate,omitempty" db:"next_billing_date"`
+	LastPaymentAt        *time.Time `json:"lastPaymentAt,omitempty" db:"last_payment_at"`
 	// SuspendedAt is a reversible soft ban; the account cannot authenticate
 	// while non-nil.
 	SuspendedAt *time.Time `json:"suspendedAt,omitempty" db:"suspended_at"`
@@ -445,4 +455,172 @@ type DeliveryStatus struct {
 	ClientID  string `json:"clientId"`
 	Status    string `json:"status"` // pending, delivered, failed
 	Attempts  int    `json:"attempts"`
+}
+
+// ---------------------------------------------------------------------------
+// Monetization (Phase 1.5)
+// ---------------------------------------------------------------------------
+
+// PlanChange is one row in the plan audit trail. actor_id is null for
+// system/provider-driven (webhook) changes.
+type PlanChange struct {
+	ID         string     `json:"id"`
+	UserID     string     `json:"userId"`
+	ActorID    *string    `json:"actorId,omitempty"`
+	FromPlan   string     `json:"fromPlan"`
+	ToPlan     string     `json:"toPlan"`
+	GraceUntil *time.Time `json:"graceUntil,omitempty"`
+	Source     string     `json:"source"` // webhook, admin
+	Reason     string     `json:"reason"`
+	CreatedAt  time.Time  `json:"createdAt"`
+}
+
+// SubscriptionEvent is one ingested provider event. provider_event_id is the
+// idempotency key.
+type SubscriptionEvent struct {
+	ID              string     `json:"id"`
+	UserID          *string    `json:"userId,omitempty"`
+	EventType       string     `json:"eventType"`
+	Provider        string     `json:"provider"`
+	ProviderEventID string     `json:"providerEventId"`
+	Status          string     `json:"status"` // received, processed, failed, ignored
+	Payload         any        `json:"payload"`
+	Error           string     `json:"error,omitempty"`
+	ReceivedAt      time.Time  `json:"receivedAt"`
+	HandledAt       *time.Time `json:"handledAt,omitempty"`
+}
+
+// SubscriptionInfo is the user-facing subscription view returned by
+// GET /users/me/subscription. EffectivePlan is the plan after applying any
+// grace window (resolved through the entitlement service).
+type SubscriptionInfo struct {
+	Plan            string     `json:"plan"`
+	EffectivePlan   string     `json:"effectivePlan"`
+	InGrace         bool       `json:"inGrace"`
+	PremiumSince    *time.Time `json:"premiumSince,omitempty"`
+	Status          string     `json:"status,omitempty"` // provider lifecycle: ACTIVE, CANCELLED, ...
+	Provider        string     `json:"provider,omitempty"`
+	SubscriptionID  string     `json:"subscriptionId,omitempty"`
+	NextBillingDate *time.Time `json:"nextBillingDate,omitempty"`
+	GraceUntil      *time.Time `json:"graceUntil,omitempty"`
+	ManageURL       string     `json:"manageUrl,omitempty"`
+	WordLimit       *int       `json:"wordLimit,omitempty"`
+	AutoGrammar     bool       `json:"autoGrammar"`
+}
+
+// PremiumUserRow is a user row for the admin premium list endpoint.
+type PremiumUserRow struct {
+	ID                 string     `json:"id" db:"id"`
+	Username           string     `json:"username" db:"username"`
+	DisplayName        string     `json:"displayName" db:"display_name"`
+	Email              string     `json:"email" db:"email"`
+	Plan               string     `json:"plan" db:"plan"`
+	EffectivePlan      string     `json:"effectivePlan"`
+	InGrace            bool       `json:"inGrace"`
+	SubscriptionID     *string    `json:"subscriptionId,omitempty" db:"subscription_id"`
+	SubscriptionStatus *string    `json:"subscriptionStatus,omitempty" db:"subscription_status"`
+	PremiumSince       *time.Time `json:"premiumSince,omitempty" db:"premium_since"`
+	NextBillingDate    *time.Time `json:"nextBillingDate,omitempty" db:"next_billing_date"`
+	GraceUntil         *time.Time `json:"graceUntil,omitempty" db:"plan_grace_until"`
+	MessagesSent       int        `json:"messagesSent" db:"messages_sent"`
+	CreatedAt          time.Time  `json:"createdAt" db:"created_at"`
+}
+
+// PremiumAnalytics aggregates premium figures for the admin console.
+type PremiumAnalytics struct {
+	TotalPremiumUsers    int              `json:"totalPremiumUsers"` // users current premium (stored plan = premium)
+	StoredPremium        int              `json:"storedPremium"`     // plan = premium
+	InGrace              int              `json:"inGrace"`           // plan = free but within grace window
+	MonthlySubscriptions int              `json:"monthlySubscriptions"`
+	YearlySubscriptions  int              `json:"yearlySubscriptions"`
+	NewThisMonth         int              `json:"newThisMonth"`
+	ChurnedThisMonth     int              `json:"churnedThisMonth"`
+	ProjectedMRR         float64          `json:"projectedMRR"`
+	RevenueLastYear      float64          `json:"revenueLastYear"` // simple 12-month projection
+	TopUsersByUsage      []PremiumUserRow `json:"topUsersByUsage"`
+}
+
+// GrantPlanRequest is the admin grant/extend/revoke payload.
+//   - For grant: Plan = "premium", Mode = "indefinite" | "days" | "until".
+//   - For revoke: Plan = "free".
+type GrantPlanRequest struct {
+	Plan   string `json:"plan" binding:"required,oneof=free premium"`
+	Mode   string `json:"mode" binding:"omitempty,oneof=indefinite days until"`
+	Days   int    `json:"days"`
+	Until  string `json:"until"` // RFC3339 timestamp used with mode=until
+	Reason string `json:"reason"`
+	// ClearGraceInDays, when revoking, keeps the user premium for this many
+	// extra days before switching to free (0 = immediate downgrade).
+	ClearGraceInDays int `json:"clearGraceInDays"`
+}
+
+// CheckoutRequest creates a provider subscription for the user. Plan is
+// "monthly" or "annual".
+type CheckoutRequest struct {
+	Plan string `json:"plan" binding:"required,oneof=monthly annual"`
+}
+
+// CheckoutResponse returns the provider approval URL the client redirects to.
+type CheckoutResponse struct {
+	ApprovalURL string `json:"approvalUrl"`
+	PlanKey     string `json:"plan"`
+}
+
+// PlannedChange describes the change a webhook event would apply, used for
+// tests and for mapping provider events to actions.
+type PlannedChange struct {
+	Action  string // grant, extend, grace, revoke
+	Plan    string
+	Grace   *time.Time
+	Status  string
+	PlanKey string // "" or "monthly"/"annual"
+}
+
+// Block is one directed block record: blocker has hidden/blocked blocked.
+// Enforcement treats the relationship as mutual — either direction stops
+// direct-chat creation and messaging.
+type Block struct {
+	ID        string    `json:"id" db:"id"`
+	BlockerID string    `json:"blockerId" db:"blocker_id"`
+	BlockedID string    `json:"blockedId" db:"blocked_id"`
+	Reason    string    `json:"reason" db:"reason"`
+	CreatedAt time.Time `json:"createdAt" db:"created_at"`
+	Blocked   *User     `json:"blocked,omitempty" db:"-"`
+}
+
+// ReportRequest is the payload for submitting a moderation report. Type is
+// "user" or "message". For message reports the messageId is required; the
+// reportedUserId is resolved server-side from the message when omitted.
+type ReportRequest struct {
+	Type           string `json:"type" binding:"required,oneof=user message"`
+	ReportedUserID string `json:"reportedUserId,omitempty"`
+	MessageID      string `json:"messageId,omitempty"`
+	ChatID         string `json:"chatId,omitempty"`
+	Reason         string `json:"reason" binding:"required,min=2,max=500"`
+}
+
+// Report is a moderation report row. Status is open, resolved, or dismissed.
+type Report struct {
+	ID             string     `json:"id" db:"id"`
+	ReporterID     string     `json:"reporterId" db:"reporter_id"`
+	Type           string     `json:"type" db:"type"` // user | message
+	ReportedUserID string     `json:"reportedUserId" db:"reported_user_id"`
+	MessageID      *string    `json:"messageId,omitempty" db:"message_id"`
+	ChatID         *string    `json:"chatId,omitempty" db:"chat_id"`
+	Reason         string     `json:"reason" db:"reason"`
+	Status         string     `json:"status" db:"status"` // open | resolved | dismissed
+	ResolverID     *string    `json:"resolverId,omitempty" db:"resolver_id"`
+	ResolutionNote string     `json:"resolutionNote,omitempty" db:"resolution_note"`
+	CreatedAt      time.Time  `json:"createdAt" db:"created_at"`
+	ResolvedAt     *time.Time `json:"resolvedAt,omitempty" db:"resolved_at"`
+	Reporter       *User      `json:"reporter,omitempty" db:"-"`
+	ReportedUser   *User      `json:"reportedUser,omitempty" db:"-"`
+}
+
+// ReportStats aggregates open-report figures for the moderation console.
+type ReportStats struct {
+	OpenReports    int `json:"openReports"`
+	UserReports    int `json:"userReports"`
+	MessageReports int `json:"messageReports"`
+	ResolvedToday  int `json:"resolvedToday"`
 }

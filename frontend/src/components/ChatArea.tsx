@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom'
 import { useStore } from '../store'
 import MessageBubble from './MessageBubble'
 import ChatLanguageModal from './ChatLanguageModal'
+import ReportModal from './ReportModal'
+import { moderationAPI } from '../services/api'
 import { wsService } from '../services/websocket'
 
 export default function ChatArea() {
@@ -12,24 +14,65 @@ export default function ChatArea() {
   const [inputText, setInputText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [showLangSettings, setShowLangSettings] = useState(false)
+  const [showChatMenu, setShowChatMenu] = useState(false)
+  const [confirmBlock, setConfirmBlock] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [actionNotice, setActionNotice] = useState('')
+  const [actionError, setActionError] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const typingTimeoutRef = useRef<number>()
+  const chatMenuRef = useRef<HTMLDivElement>(null)
 
   const chatMessages = activeChat ? messages[activeChat.id] || [] : []
 
-  // The translation char limit mirrored from the server entitlements
-  // (free = 200, premium = 2000, self-hosted = unlimited). Any message that
+  // The translation word limit mirrored from the server entitlements
+  // (free = 280, premium = 1,000, self-hosted = unlimited). Any message that
   // exceeds it won't be translated, so we surface that instantly instead of
   // waiting for a round-trip + a server-side "premium needed" notification.
-  const charLimit = entitlements?.features?.translationCharLimit ?? null
-  // Count Unicode code points (matches the backend's len([]rune(text))) so
-  // emoji/surrogate pairs are counted consistently with the server.
-  const charCount = [...inputText].length
-  const isOverLimit = charLimit != null && charCount > charLimit
+  const wordLimit = entitlements?.features?.translationWordLimit ?? null
+  // Whitespace-delimited tokens — matches the backend's WordCount (strings.Fields).
+  const wordCount = inputText.trim().split(/\s+/).filter(Boolean).length
+  const isOverLimit = wordLimit != null && wordCount > wordLimit
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [chatMessages])
+
+  // Close the header actions menu when clicking outside.
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (chatMenuRef.current && !chatMenuRef.current.contains(e.target as Node)) {
+        setShowChatMenu(false)
+        setConfirmBlock(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const getOtherParticipant = () =>
+    activeChat && activeChat.type === 'direct'
+      ? activeChat.participants?.find((p) => p.user?.id !== user?.id)?.user ?? null
+      : null
+
+  const handleBlock = async () => {
+    const other = getOtherParticipant()
+    if (!other) return
+    if (!confirmBlock) {
+      setConfirmBlock(true)
+      return
+    }
+    try {
+      await moderationAPI.block(other.id)
+      setActionNotice(t('report.blocked', { name: other.displayName }))
+      setActionError('')
+      setConfirmBlock(false)
+      setShowChatMenu(false)
+      setTimeout(() => setActionNotice(''), 2500)
+    } catch (err: any) {
+      setActionError(err?.response?.data?.error || t('report.blockError'))
+    }
+  }
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -84,9 +127,7 @@ export default function ChatArea() {
     )
   }
 
-  const otherParticipant = activeChat.type === 'direct'
-    ? activeChat.participants?.find(p => p.user?.id !== user?.id)?.user
-    : null
+  const otherParticipant = getOtherParticipant()
 
   const chatName = activeChat.type === 'group'
     ? activeChat.name || t('chat.unnamedGroup')
@@ -107,15 +148,59 @@ export default function ChatArea() {
             )}
           </div>
         </div>
-        <button
-          onClick={() => setShowLangSettings(true)}
-          className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 transition"
-          title={t('chat.languageSettings')}
-        >
-          <span>🌐</span>
-          <span className="hidden sm:inline">{t('chat.language')}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowLangSettings(true)}
+            className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 transition"
+            title={t('chat.languageSettings')}
+          >
+            <span>🌐</span>
+            <span className="hidden sm:inline">{t('chat.language')}</span>
+          </button>
+
+          {otherParticipant && (
+            <div className="relative" ref={chatMenuRef}>
+              <button
+                onClick={() => { setShowChatMenu(!showChatMenu); setConfirmBlock(false) }}
+                className="w-9 h-9 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                title={t('report.moreActions')}
+                aria-label={t('report.moreActions')}
+              >
+                <span className="text-gray-600 text-lg leading-none">⋯</span>
+              </button>
+
+              {showChatMenu && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                  <div className="py-1">
+                    <button
+                      onClick={handleBlock}
+                      className={`w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 ${
+                        confirmBlock ? 'text-white bg-red-600 hover:bg-red-700' : 'text-red-600 hover:bg-red-50'
+                      }`}
+                    >
+                      <span>🚫</span>
+                      {confirmBlock ? t('report.confirmBlock', { name: otherParticipant.displayName }) : t('report.blockUser', { name: otherParticipant.displayName })}
+                    </button>
+                    <button
+                      onClick={() => { setShowReportModal(true); setShowChatMenu(false); setConfirmBlock(false) }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                    >
+                      <span>🚩</span> {t('report.reportUser')}
+                    </button>
+                  </div>
+                  {actionError && (
+                    <div className="px-4 py-2 text-xs text-red-600 border-t border-gray-100">{actionError}</div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
+
+      {actionNotice && (
+        <div className="bg-green-50 border-b border-green-200 px-4 py-2 text-sm text-green-700">{actionNotice}</div>
+      )}
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -158,7 +243,7 @@ export default function ChatArea() {
           <button
             type="submit"
             disabled={!inputText.trim() || isOverLimit}
-            title={isOverLimit ? t('plan.charLimitNotice', { limit: charLimit }) : undefined}
+            title={isOverLimit ? t('plan.wordLimitNotice', { limit: wordLimit }) : undefined}
             className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {t('common.send')}
@@ -169,7 +254,7 @@ export default function ChatArea() {
             {isOverLimit ? (
               <>
                 <span className="text-xs text-amber-700 font-medium">
-                  {t('plan.charLimitNotice', { limit: charLimit })}
+                  {t('plan.wordLimitNotice', { limit: wordLimit })}
                 </span>
                 <Link
                   to="/pricing"
@@ -180,9 +265,9 @@ export default function ChatArea() {
               </>
             ) : null}
           </div>
-          {charLimit != null && (
+          {wordLimit != null && (
             <span className={`text-xs whitespace-nowrap ${isOverLimit ? 'text-amber-700 font-semibold' : 'text-gray-400'}`}>
-              {charCount.toLocaleString()} / {charLimit.toLocaleString()}
+              {wordCount.toLocaleString()} / {wordLimit.toLocaleString()}
             </span>
           )}
         </div>
@@ -190,6 +275,15 @@ export default function ChatArea() {
 
       {showLangSettings && (
         <ChatLanguageModal onClose={() => setShowLangSettings(false)} />
+      )}
+
+      {showReportModal && otherParticipant && (
+        <ReportModal
+          targetType="user"
+          targetUserId={otherParticipant.id}
+          reportedUserName={otherParticipant.displayName}
+          onClose={() => setShowReportModal(false)}
+        />
       )}
     </>
   )

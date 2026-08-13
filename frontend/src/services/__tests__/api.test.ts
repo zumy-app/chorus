@@ -315,4 +315,195 @@ describe('API Service', () => {
       expect(entry.id).toBe('v-new')
     })
   })
+
+  describe('moderationAPI', () => {
+    it('blocks a user via POST', async () => {
+      const mockPost = vi.fn().mockResolvedValue({ data: { message: 'User blocked' } })
+      const mockAxios = createMockAxios({ post: mockPost })
+
+      vi.doMock('axios', () => ({
+        default: { create: vi.fn(() => mockAxios) },
+        create: vi.fn(() => mockAxios),
+      }))
+
+      const { moderationAPI } = await import('../../services/api')
+      const result = await moderationAPI.block('user-2', 'spam')
+      expect(result.message).toBe('User blocked')
+      expect(mockPost).toHaveBeenCalledWith('/blocks', { blockedUserId: 'user-2', reason: 'spam' })
+    })
+
+    it('unblocks a user via DELETE', async () => {
+      const mockDelete = vi.fn().mockResolvedValue({})
+      const mockAxios = createMockAxios({ delete: mockDelete })
+
+      vi.doMock('axios', () => ({
+        default: { create: vi.fn(() => mockAxios) },
+        create: vi.fn(() => mockAxios),
+      }))
+
+      const { moderationAPI } = await import('../../services/api')
+      await moderationAPI.unblock('user-2')
+      expect(mockDelete).toHaveBeenCalledWith('/blocks/user-2')
+    })
+
+    it('lists blocked users via GET', async () => {
+      const mockAxios = createMockAxios({
+        get: vi.fn().mockResolvedValue({ data: { blocks: [{ id: 'b-1', blockedId: 'user-2' }], total: 1 } }),
+      })
+
+      vi.doMock('axios', () => ({
+        default: { create: vi.fn(() => mockAxios) },
+        create: vi.fn(() => mockAxios),
+      }))
+
+      const { moderationAPI } = await import('../../services/api')
+      const blocks = await moderationAPI.getBlocked()
+      expect(blocks).toHaveLength(1)
+      expect(blocks[0].blockedId).toBe('user-2')
+      expect(mockAxios.get).toHaveBeenCalledWith('/blocks')
+    })
+
+    it('reports a user or message via POST', async () => {
+      const mockPost = vi.fn().mockResolvedValue({ data: { id: 'r-1', type: 'message', status: 'open' } })
+      const mockAxios = createMockAxios({ post: mockPost })
+
+      vi.doMock('axios', () => ({
+        default: { create: vi.fn(() => mockAxios) },
+        create: vi.fn(() => mockAxios),
+      }))
+
+      const { moderationAPI } = await import('../../services/api')
+      const report = await moderationAPI.report({ type: 'message', messageId: 'msg-1', chatId: 'chat-1', reason: 'spam' })
+      expect(report.id).toBe('r-1')
+      expect(mockPost).toHaveBeenCalledWith('/reports', {
+        type: 'message',
+        messageId: 'msg-1',
+        chatId: 'chat-1',
+        reason: 'spam',
+      })
+    })
+  })
+
+  describe('adminAPI reports', () => {
+    it('lists reports with status and query params', async () => {
+      const mockAxios = createMockAxios({
+        get: vi.fn().mockResolvedValue({ data: { reports: [{ id: 'r-1', status: 'open' }], total: 1 } }),
+      })
+
+      vi.doMock('axios', () => ({
+        default: { create: vi.fn(() => mockAxios) },
+        create: vi.fn(() => mockAxios),
+      }))
+
+      const { adminAPI } = await import('../../services/api')
+      const data = await adminAPI.listReports('open', 'alice')
+      expect(data.total).toBe(1)
+      expect(mockAxios.get).toHaveBeenCalledWith(expect.stringContaining('/admin/reports?'))
+      expect(mockAxios.get).toHaveBeenCalledWith(expect.stringContaining('status=open'))
+      expect(mockAxios.get).toHaveBeenCalledWith(expect.stringContaining('q=alice'))
+    })
+
+    it('fetches report stats', async () => {
+      const mockAxios = createMockAxios({
+        get: vi.fn().mockResolvedValue({ data: { open: 3, resolved: 1, dismissed: 2 } }),
+      })
+
+      vi.doMock('axios', () => ({
+        default: { create: vi.fn(() => mockAxios) },
+        create: vi.fn(() => mockAxios),
+      }))
+
+      const { adminAPI } = await import('../../services/api')
+      const stats = await adminAPI.reportStats()
+      expect(stats.open).toBe(3)
+      expect(mockAxios.get).toHaveBeenCalledWith('/admin/reports/stats')
+    })
+
+    it('resolves a report via POST', async () => {
+      const mockPost = vi.fn().mockResolvedValue({ data: { message: 'Report resolved' } })
+      const mockAxios = createMockAxios({ post: mockPost })
+
+      vi.doMock('axios', () => ({
+        default: { create: vi.fn(() => mockAxios) },
+        create: vi.fn(() => mockAxios),
+      }))
+
+      const { adminAPI } = await import('../../services/api')
+      await adminAPI.resolveReport('r-1')
+      expect(mockPost).toHaveBeenCalledWith('/admin/reports/r-1/resolve')
+    })
+
+    it('dismisses a report with an optional note', async () => {
+      const mockPost = vi.fn().mockResolvedValue({ data: { message: 'Report dismissed' } })
+      const mockAxios = createMockAxios({ post: mockPost })
+
+      vi.doMock('axios', () => ({
+        default: { create: vi.fn(() => mockAxios) },
+        create: vi.fn(() => mockAxios),
+      }))
+
+      const { adminAPI } = await import('../../services/api')
+      await adminAPI.dismissReport('r-1', 'not actionable')
+      expect(mockPost).toHaveBeenCalledWith('/admin/reports/r-1/dismiss', { note: 'not actionable' })
+    })
+  })
+
+  describe('grammarAPI', () => {
+    it('submits an async AI analysis job via POST /grammar/analyze-ai', async () => {
+      const mockAxios = createMockAxios({
+        post: vi.fn().mockResolvedValue({
+          data: { jobId: 'job-1', status: 'queued' },
+        }),
+      })
+
+      vi.doMock('axios', () => ({
+        default: { create: vi.fn(() => mockAxios) },
+        create: vi.fn(() => mockAxios),
+      }))
+
+      const { grammarAPI } = await import('../../services/api')
+      const result = await grammarAPI.analyzeAI({
+        text: 'Hola, como estas',
+        language: 'es',
+        nativeLanguage: 'en',
+        messageId: 'm-1',
+        chatId: 'c-1',
+      })
+
+      expect(result.jobId).toBe('job-1')
+      expect(result.status).toBe('queued')
+      expect(mockAxios.post).toHaveBeenCalledWith('/grammar/analyze-ai', {
+        text: 'Hola, como estas',
+        language: 'es',
+        nativeLanguage: 'en',
+        messageId: 'm-1',
+        chatId: 'c-1',
+      })
+    })
+
+    it('fetches a job result via GET /grammar/analyze/:jobId', async () => {
+      const mockJob = {
+        jobId: 'job-1',
+        messageId: 'm-1',
+        status: 'done',
+        analysis: { summary: 'Well formed' },
+        providerUsed: 'ollama',
+      }
+      const mockAxios = createMockAxios({
+        get: vi.fn().mockResolvedValue({ data: mockJob }),
+      })
+
+      vi.doMock('axios', () => ({
+        default: { create: vi.fn(() => mockAxios) },
+        create: vi.fn(() => mockAxios),
+      }))
+
+      const { grammarAPI } = await import('../../services/api')
+      const result = await grammarAPI.getAnalysis('job-1')
+      expect(result.status).toBe('done')
+      expect(result.jobId).toBe('job-1')
+      expect(result.analysis.summary).toBe('Well formed')
+      expect(mockAxios.get).toHaveBeenCalledWith('/grammar/analyze/job-1')
+    })
+  })
 })

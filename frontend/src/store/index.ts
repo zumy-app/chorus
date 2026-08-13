@@ -1,9 +1,14 @@
 import { create } from 'zustand'
-import type { User, Chat, Message, Entitlements, TranslationBlocked } from '../types'
-import { chatAPI, messageAPI, adminAPI, authAPI } from '../services/api'
+import type { User, Chat, Message, Entitlements, TranslationBlocked, GrammarJob } from '../types'
+import { chatAPI, messageAPI, adminAPI, authAPI, grammarAPI } from '../services/api'
 import { wsService } from '../services/websocket'
 
 // --- Slug helpers ---
+
+/** localStorage key used to remember a grammar job across reloads. */
+function grammarJobStorageKey(messageId: string): string {
+  return `grammar_jobs:${messageId}`
+}
 
 /** Generate a human-readable URL slug for a chat. */
 export function getChatSlug(chat: Chat, currentUserId?: string): string {
@@ -57,7 +62,8 @@ interface AppState {
   activeChat: Chat | null
   messages: Record<string, Message[]>
   blockedTranslations: Record<string, TranslationBlocked>
-  
+  grammarJobs: Record<string, GrammarJob>
+
   // Actions
   setUser: (user: User | null) => void
   setEntitlements: (entitlements: Entitlements | null) => void
@@ -75,6 +81,8 @@ interface AppState {
   createChat: (type: 'direct' | 'group', participants: string[], name?: string) => Promise<Chat>
   updateUser: (updates: Partial<User>) => void
   markTranslationBlocked: (blocked: TranslationBlocked) => void
+  setGrammarJob: (job: GrammarJob) => void
+  resyncGrammarJob: (messageId: string) => Promise<void>
   // Slug-based navigation
   navigateToSlug: (slug: string) => boolean
 }
@@ -89,6 +97,7 @@ export const useStore = create<AppState>((set, get) => ({
   activeChat: null,
   messages: {},
   blockedTranslations: {},
+  grammarJobs: {},
 
   setUser: (user) => set({ user }),
   setEntitlements: (entitlements) => set({ entitlements }),
@@ -297,6 +306,68 @@ export const useStore = create<AppState>((set, get) => ({
       },
     }))
   },
+
+  // Track AI grammar analysis jobs, keyed by the analyzed message's id, so a
+  // bubble can accurately render queued / processing / done / failed states.
+  // The job id is persisted so a page reload can re-fetch the outcome.
+  setGrammarJob: (job) => {
+    const messageId = job.messageId
+    if (!messageId) return
+    try {
+      if (job.status === 'done' || job.status === 'failed') {
+        localStorage.removeItem(grammarJobStorageKey(messageId))
+      } else {
+        localStorage.setItem(grammarJobStorageKey(messageId), JSON.stringify({ jobId: job.jobId, status: job.status }))
+      }
+    } catch (e) {
+      // storage unavailable — resync just won't run
+    }
+    set((state) => {
+      const prev = state.grammarJobs[messageId]
+      const next: GrammarJob = {
+        ...(prev || {}),
+        ...job,
+      }
+      // Transient statuses must not carry a stale completed analysis.
+      if (job.status !== 'done') {
+        delete next.analysis
+        delete next.providerUsed
+      }
+      if (job.status !== 'failed') {
+        delete next.error
+      }
+      return {
+        grammarJobs: {
+          ...state.grammarJobs,
+          [messageId]: next,
+        },
+      }
+    })
+  },
+
+  // On mount (or reconnect) a job that was started before a reload is no longer
+  // in memory. Re-fetch it by id so the bubble shows the real outcome.
+  resyncGrammarJob: async (messageId) => {
+    let saved: { jobId: string; status: string } | null = null
+    try {
+      const raw = localStorage.getItem(grammarJobStorageKey(messageId))
+      saved = raw ? JSON.parse(raw) : null
+    } catch (e) {
+      saved = null
+    }
+    if (!saved?.jobId) return
+    const { setGrammarJob } = useStore.getState()
+    if (useStore.getState().grammarJobs[messageId]) return
+    try {
+      const job = await grammarAPI.getAnalysis(saved.jobId)
+      setGrammarJob({ ...job, messageId })
+    } catch (e) {
+      // job may be gone (cleaned up) — drop the saved reference
+      try {
+        localStorage.removeItem(grammarJobStorageKey(messageId))
+      } catch {}
+    }
+  },
 }))
 
 // Setup WebSocket listeners
@@ -312,6 +383,9 @@ wsService.onMessage((message) => {
       break
     case 'translation_blocked':
       store.markTranslationBlocked(message.data)
+      break
+    case 'grammar_analysis':
+      store.setGrammarJob(message.data)
       break
     case 'chat_updated':
       store.loadChats()

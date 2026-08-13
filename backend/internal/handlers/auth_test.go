@@ -408,10 +408,10 @@ func TestGetMyEntitlements_Success(t *testing.T) {
 	defer db.Close()
 
 	userService := services.NewUserService(db)
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT id, username, email, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until FROM users WHERE id = $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT id, username, email, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at FROM users WHERE id = $1`)).
 		WithArgs("user-1").
-		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "display_name", "native_language", "target_languages", "role", "created_at", "last_active_at", "suspended_at", "deleted_at", "plan", "plan_grace_until"}).
-			AddRow("user-1", "testuser", "test@example.com", "Test User", "en", pq.Array([]string{"es"}), "member", time.Now(), time.Now(), nil, nil, "free", nil))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "display_name", "native_language", "target_languages", "role", "created_at", "last_active_at", "suspended_at", "deleted_at", "plan", "plan_grace_until", "premium_since", "subscription_id", "subscription_provider", "subscription_plan_id", "subscription_status", "next_billing_date", "last_payment_at"}).
+			AddRow("user-1", "testuser", "test@example.com", "Test User", "en", pq.Array([]string{"es"}), "member", time.Now(), time.Now(), nil, nil, "free", nil, nil, nil, "paypal", nil, nil, nil, nil))
 
 	entitlementService := services.NewEntitlementService(false)
 	h := NewAuthHandler(nil, userService, nil, nil, entitlementService, "")
@@ -457,7 +457,7 @@ func TestGetMyEntitlements_NotFound(t *testing.T) {
 	defer db.Close()
 
 	userService := services.NewUserService(db)
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT id, username, email, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until FROM users WHERE id = $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT id, username, email, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at FROM users WHERE id = $1`)).
 		WithArgs("missing").
 		WillReturnError(sql.ErrNoRows)
 

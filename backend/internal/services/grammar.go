@@ -72,8 +72,13 @@ type GrammarEndpoint struct {
 }
 
 // NewGrammarEndpoint creates a ready-to-use endpoint.
+// A zero/negative timer falls back to grammarEndpointDefaultTimeout (was once an
+// effectively infinite 99999999s, which let a stalled upstream hold the request
+// goroutine for minutes before the chain could fail over).
+const grammarEndpointDefaultTimeout = 25 * time.Second
+
 func NewGrammarEndpoint(name, providerType, apiURL, apiKey, model string, timeout int) GrammarEndpoint {
-	d := 99999999 * time.Second
+	d := grammarEndpointDefaultTimeout
 	if timeout > 0 {
 		d = time.Duration(timeout) * time.Second
 	}
@@ -680,6 +685,33 @@ func (s *GrammarService) GenerateGrammarReport(userID, language string) (map[str
 // AI-Powered Grammar Analysis & Learning (via AI API)
 // ---------------------------------------------------------------------------
 
+// aiAnalysisCacheKey returns the Redis key for a cached AI grammar analysis.
+// Bump the version to invalidate all cached analyses after prompt/model changes.
+const aiAnalysisCacheVersion = "v2"
+
+func aiAnalysisCacheKey(language, nativeLanguage, text string) string {
+	return fmt.Sprintf("ai_grammar:%s:%s:%s:%s", aiAnalysisCacheVersion, language, nativeLanguage, hashText(text))
+}
+
+// CachedAIAnalysis returns a previously computed analysis for the same
+// text/language/native-language tuple when one exists in Redis. This lets the
+// async queue skip a redundant model call entirely (hot path for repeat clicks).
+func (s *GrammarService) CachedAIAnalysis(text, language, nativeLanguage string) (*models.AIGrammarAnalysis, string, bool) {
+	if s.redis == nil {
+		return nil, "", false
+	}
+	ctx := context.Background()
+	cached, err := s.redis.Get(ctx, aiAnalysisCacheKey(language, nativeLanguage, text)).Result()
+	if err != nil || cached == "" {
+		return nil, "", false
+	}
+	var result models.AIGrammarAnalysis
+	if json.Unmarshal([]byte(cached), &result) != nil {
+		return nil, "", false
+	}
+	return &result, "cache", true
+}
+
 // GenerateAIAnalysis uses the AI API to produce a rich grammar analysis,
 // enriched with pattern names, descriptions, examples, and a plain-language summary.
 // Falls back to the regex-based analysis if all AI endpoints are unavailable.
@@ -691,17 +723,8 @@ func (s *GrammarService) GenerateAIAnalysis(text, language, nativeLanguage strin
 		return analysis, "regex-fallback", err
 	}
 
-	// Cache version — bump this to invalidate all cached grammar analyses after prompt/model changes.
-	const cacheVersion = "v2"
-	cacheKey := fmt.Sprintf("ai_grammar:%s:%s:%s:%s", cacheVersion, language, nativeLanguage, hashText(text))
-	if s.redis != nil {
-		cached, err := s.redis.Get(context.Background(), cacheKey).Result()
-		if err == nil && cached != "" {
-			var result models.AIGrammarAnalysis
-			if json.Unmarshal([]byte(cached), &result) == nil {
-				return &result, "cache", nil
-			}
-		}
+	if analysis, _, ok := s.CachedAIAnalysis(text, language, nativeLanguage); ok {
+		return analysis, "cache", nil
 	}
 
 	langName := languageCodeToName(language)
@@ -794,7 +817,7 @@ Return ONLY valid JSON (no markdown, no code fences). Use this EXACT structure:
 	// Cache the result
 	if s.redis != nil {
 		if jsonData, err := json.Marshal(aiResult); err == nil {
-			s.redis.Set(context.Background(), cacheKey, jsonData, 24*time.Hour)
+			s.redis.Set(context.Background(), aiAnalysisCacheKey(language, nativeLanguage, text), jsonData, 24*time.Hour)
 		}
 	}
 

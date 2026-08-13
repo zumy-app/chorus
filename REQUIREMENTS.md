@@ -109,10 +109,52 @@ Chorus ("chorus.talk") is a multilingual real-time messenger that lets users **l
 - The routing registry (user → server/connection) lives in Redis, so a **Layer 4** LB suffices (no server-affinity/sticky sessions required).
 - Translation uses a provider chain (primary + fallback, e.g., OpenRouter/paid models) with caching to hit the 500 ms target.
 
-## 7. Open Questions / Possible Gaps
+## 7. Monetization & Premium (Phase 1.5)
+
+### Plans & Pricing
+
+- **P1** Two paid plans: **Premium Monthly — $7.99/mo** and **Premium Yearly — $79.90/yr** ("2 months free"; list price $95.88 struck through). No one-time/lifetime tier; subscriptions are recurring only.
+- **P2** Every account starts on the **Free** plan. Users can upgrade to Premium from the app; purchases are processed by **PayPal Billing (Subscriptions)**.
+- **P3** There are **no fixed per-day usage quotas** (e.g., "N messages/day") for Free or Premium. The only plan limitations are the ones listed under P4.
+
+### Plan Limitations (P4 — the ONLY plan differentiators)
+
+- **P4a. Message size** — Free messages are capped at **280 words** (translation/grammar limit); Premium messages at **1,000 words**. Larger messages are blocked client-side and server-side with a clear message. (Phase 1 shipped a character-based cap; the word-based cap supersedes it.)
+- **P4b. Grammar mode** — Free users get **manual/lazy grammar analysis** (analyze on request, e.g., a per-message action); Premium users get **automatic grammar analysis** on every message. Grammar *results* remain visible to everyone; only automation differs.
+- **P4c. Response priority / experience** — Premium receives faster translation pipeline priority and an ad-free experience; Free may see ads. Premium-only cosmetics (badge) may ship.
+
+### Subscription Lifecycle (PayPal)
+
+- **P5** Checkout must be a **server-side subscription creation** via the PayPal Billing API with the user's id in `custom_id`; the client then redirects to PayPal's approval URL.
+- **P6** Webhooks (with signature verification) drive the lifecycle:
+  - `BILLING.SUBSCRIPTION.ACTIVATED` → grant Premium, set `premium_since`, store `subscription_id`.
+  - `PAYMENT.SALE.COMPLETED` (and the equivalent billing-plan payment event) → confirm/extend, refresh `next_billing_date`.
+  - `BILLING.SUBSCRIPTION.CANCELLED` / `EXPIRED` → start the **grace period** (until the end of the paid period) then downgrade to Free.
+  - `BILLING.SUBSCRIPTION.SUSPENDED` / failed payment → grace period; `PAYMENT.SALE.REVERSED` / `REFUNDED` → immediate downgrade.
+- **P7** Grace uses the existing `plan_grace_until` machinery: during grace the user keeps Premium entitlements; afterwards `Resolve` downgrades to Free.
+- **P8** Webhook events must be idempotently recorded (`subscription_events`) and audit trail of plan changes kept (`plan_changes`: from, to, actor, reason, timestamp).
+
+### Self-Service (User)
+
+- **P9** The plan badge shown after login must be **clickable** and lead to a `/premium` page.
+- **P10** `/premium` must reflect current state: Free users see upgrade CTA + monthly/annual pricing (with "2 months free" on annual); Premium users see their active plan, next billing date, and a **manage link** (PayPal subscription dashboard) plus cancel/change via PayPal.
+- **P11** Entitlements/plan state must refresh after purchase (e.g., refetch on returning to the app).
+
+### Admin Console (Premium Management)
+
+- **P12** Admin console must expose Premium analytics: total premium users, stored vs. in-grace counts, monthly/yearly mix, projected MRR, new/churned this month, and top users by usage.
+- **P13** Admins can **grant Premium** to a user temporarily (N days), until a date, or indefinitely (with a reason), **extend**, and **revoke** (immediately or with a grace window). All changes are recorded with the acting admin.
+- **P14** Admins can view a user's plan history (grant/revoke/webhook changes with reasons).
+
+### Emails & Notifications
+
+- **P15** Notify users on Premium activation, entering grace, and after downgrade. (Phase 1.5 may record/queue; delivery wiring is follow-up.)
+
+## 8. Open Questions / Possible Gaps
 
 1. **Onboarding** — Where do Phase 1 users find their first chat partner (waitlist invite, public room, friend-by-invite)? Not yet specified.
 2. **Report/block** — Minimal report and block capability is recommended even for Phase 1; confirm scope.
 3. **Delivery semantics** — Define sent/delivered/read states (if "read receipts" ship) or confirm they're out of scope.
-4. **Rate limit / quota on translations** — Cost capping per user per day to protect the translation budget.
+4. **Translation cost capping** — *Resolved by P4:* no per-day quotas; cost is bounded by the 280-word message cap and manual (lazy) grammar mode on Free. Revisit only if a separate hard monthly cap is desired.
 5. **Message retention default** — how long to keep messages and translated content by default.
+6. **PayPal webhook re-verification** — `PAYPAL_WEBHOOK_ID` must be configured at deploy time; see `backend/internal/config/config.go`.

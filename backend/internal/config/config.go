@@ -86,9 +86,18 @@ type Config struct {
 	// (upsell nudges, plan badges, ads) are suppressed entirely.
 	SelfHost bool
 
-	// TranslationChainTimeout is the total timeout for the translation chain
-	// (across all providers tried sequentially), in seconds.
-	TranslationChainTimeout int
+	// PayPal configuration. Client ID/secret correspond to the env keys
+	// PAYMENT_PROVIDER_PAYPAL_CLIENT_ID / PAYMENT_PROVIDER_PAYPAL_CLIENT_SECRET.
+	PayPalClientID          string
+	PayPalClientSecret      string
+	PayPalEnvironment       string // "sandbox" or "live"
+	PayPalWebhookID         string
+	PayPalPlanMonthlyID     string // PayPal Billing plan id for $7.99/mo
+	PayPalPlanYearlyID      string // PayPal Billing plan id for $79.90/yr
+	PayPalWebhookInsecure   bool   // dev-only: skip signature verification
+	PayPalApprovalBaseURL   string // URL the client redirects to for approval
+	PayPalSubscriptionBase  string // base URL for webhooks/manage links
+	TranslationChainTimeout int    // total timeout for the translation chain, seconds
 
 	// LogLevel controls verbosity: "debug", "info", "warn", "error"
 	LogLevel string
@@ -128,6 +137,15 @@ func Load() *Config {
 
 		LogLevel: getEnv("LOG_LEVEL", "info"),
 
+		PayPalClientID:          getEnv("PAYMENT_PROVIDER_PAYPAL_CLIENT_ID", ""),
+		PayPalClientSecret:      getEnv("PAYMENT_PROVIDER_PAYPAL_CLIENT_SECRET", ""),
+		PayPalEnvironment:       getEnv("PAYPAL_ENVIRONMENT", "sandbox"),
+		PayPalWebhookID:         getEnv("PAYPAL_WEBHOOK_ID", ""),
+		PayPalPlanMonthlyID:     getEnv("PAYPAL_PLAN_MONTHLY_ID", ""),
+		PayPalPlanYearlyID:      getEnv("PAYPAL_PLAN_YEARLY_ID", ""),
+		PayPalWebhookInsecure:   getEnvBool("PAYPAL_WEBHOOK_INSECURE", false),
+		PayPalApprovalBaseURL:   getEnv("PAYPAL_APPROVAL_BASE_URL", "https://www.paypal.com/webapps/billing/subscriptions"),
+		PayPalSubscriptionBase:  getEnv("PAYPAL_SUBSCRIPTION_BASE_URL", "https://www.paypal.com"),
 		TranslationChainTimeout: getEnvInt("TRANSLATION_CHAIN_TIMEOUT", 120),
 
 		Providers: make(map[string]ProviderDef),
@@ -398,6 +416,28 @@ func (c *Config) Validate() []Warning {
 			Provider: "chain",
 			EnvKey:   "GRAMMAR_FALLBACK_ORDER",
 			Message:  "grammar chain has no offline/local provider (ollama) as a guaranteed fallback",
+		})
+	}
+
+	// PayPal is optional at startup (the app degrades to Free-only), but when any
+	// PayPal credential is present, complain about the missing pieces so the
+	// subscription flow is not broken silently.
+	if c.PayPalClientID != "" || c.PayPalClientSecret != "" || c.PayPalWebhookID != "" {
+		if c.PayPalClientID == "" {
+			warnings = append(warnings, Warning{Provider: "paypal", EnvKey: "PAYMENT_PROVIDER_PAYPAL_CLIENT_ID", Message: "PayPal client id is required for checkout/webhooks"})
+		}
+		if c.PayPalClientSecret == "" {
+			warnings = append(warnings, Warning{Provider: "paypal", EnvKey: "PAYMENT_PROVIDER_PAYPAL_CLIENT_SECRET", Message: "PayPal client secret is required for checkout/webhooks"})
+		}
+		if c.PayPalWebhookID == "" && !c.PayPalWebhookInsecure {
+			warnings = append(warnings, Warning{Provider: "paypal", EnvKey: "PAYPAL_WEBHOOK_ID", Message: "no webhook id configured — PayPal webhooks will be rejected unless PAYPAL_WEBHOOK_INSECURE=true"})
+		}
+	}
+	if c.PayPalPlanMonthlyID == "" || c.PayPalPlanYearlyID == "" {
+		warnings = append(warnings, Warning{
+			Provider: "paypal",
+			EnvKey:   "PAYPAL_PLAN_MONTHLY_ID / PAYPAL_PLAN_YEARLY_ID",
+			Message:  "PayPal plan ids are not configured — the checkout endpoint will refuse requests",
 		})
 	}
 

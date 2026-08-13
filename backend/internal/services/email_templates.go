@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"strconv"
+	"time"
 )
 
 // DiscordInviteURL is the public Chorus community server.
@@ -84,5 +85,49 @@ func RegistrationWelcomeEmail(displayName string) (string, string) {
 		fmt.Sprintf(emailButton, "https://chorus.talk", "Open Chorus") +
 		fmt.Sprintf(emailText, "If you have questions, we're on Discord:") +
 		fmt.Sprintf(`<p style="margin:0 0 10px 0"><a href="`+DiscordInviteURL+`">Join the Chorus Discord</a></p>`)
+	return subject, wrapHTML(content)
+}
+
+// PremiumActivatedEmail confirms a new Premium activation. manageLink may be
+// empty for manual grants that have no provider subscription to manage.
+func PremiumActivatedEmail(displayName, manageLink string) (string, string) {
+	subject := "You're on Chorus Premium ✦"
+	content := fmt.Sprintf(emailText, "Hi "+displayName+", you're now on <strong>Chorus Premium</strong>!") +
+		fmt.Sprintf(emailText, "Premium unlocks automatic grammar analysis, translations for messages up to 1,000 words, faster AI responses, and an ad-free experience.")
+	if manageLink != "" {
+		content += fmt.Sprintf(emailText, "Manage your subscription (view billing, cancel, or change plans) any time:") +
+			fmt.Sprintf(emailButton, manageLink, "Manage your subscription") +
+			fmt.Sprintf(emailText, "If the button doesn't work, copy and paste this link into your browser: "+manageLink)
+	} else {
+		content += fmt.Sprintf(emailText, "Enjoy! Questions? Reach us at info@chorus.talk.")
+	}
+	return subject, wrapHTML(content)
+}
+
+// PremiumGraceEmail warns a user that their paid period is ending: access stays
+// premium until the grace deadline, then the account returns to Free.
+func PremiumGraceEmail(displayName string, graceUntil time.Time, manageLink string) (string, string) {
+	date := graceUntil.UTC().Format("January 2, 2006")
+	subject := "Your Chorus Premium is ending"
+	body := fmt.Sprintf(emailText, "Hi "+displayName+", your Chorus Premium is set to expire on <strong>"+date+"</strong>.") +
+		fmt.Sprintf(emailText, "Until then you keep all Premium features. After that your account returns to the Free plan (280-word translations, on-demand grammar).") +
+		fmt.Sprintf(emailText, "If you'd like to keep Premium, renew or manage your subscription here:")
+	if manageLink != "" {
+		body += fmt.Sprintf(emailButton, manageLink, "Manage your subscription")
+	} else {
+		body += fmt.Sprintf(emailButton, "https://chorus.talk/premium", "Go to Premium")
+	}
+	body += fmt.Sprintf(emailText, "Questions? Reach us at info@chorus.talk.")
+	return subject, wrapHTML(body)
+}
+
+// PremiumDowngradedEmail informs a user their grace period has ended and the
+// account is back on the Free plan.
+func PremiumDowngradedEmail(displayName string) (string, string) {
+	subject := "Your Chorus Premium has ended"
+	content := fmt.Sprintf(emailText, "Hi "+displayName+", your Chorus Premium access has ended and your account is back on the <strong>Free plan</strong>.") +
+		fmt.Sprintf(emailText, "You can still chat, translate (up to 280 words), and use grammar and vocabulary tools on demand. Upgrade any time to get Premium features back:") +
+		fmt.Sprintf(emailButton, "https://chorus.talk/premium", "Go Premium") +
+		fmt.Sprintf(emailText, "Questions? Reach us at info@chorus.talk.")
 	return subject, wrapHTML(content)
 }
