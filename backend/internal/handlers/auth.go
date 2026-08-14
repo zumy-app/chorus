@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"log"
+	"net/http"
 	"strings"
 
 	"github.com/chorus/messenger/internal/models"
@@ -98,6 +99,26 @@ func (h *AuthHandler) Register(c *gin.Context) {
 			ExpiresIn:    86400, // 24 hours
 		},
 	})
+}
+
+// InviteInfo resolves the email bound to a valid (unexpired, unredeemed)
+// invitation token so the register page can prefill it for the user.
+func (h *AuthHandler) InviteInfo(c *gin.Context) {
+	token := strings.TrimSpace(c.Query("token"))
+	if token == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invitation token is required."})
+		return
+	}
+	if h.invitationService == nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Invitations are not enabled."})
+		return
+	}
+	email, err := h.invitationService.EmailByToken(token)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": "This invitation is invalid, expired, or already used."})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"email": email})
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {

@@ -26,7 +26,7 @@ func NewWaitlistHandler(service *services.WaitlistService, senders ...services.E
 func (h *WaitlistHandler) Submit(c *gin.Context) {
 	var req models.WaitlistRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Please provide your email, spoken languages, learning languages, and at least one reason."})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Please provide your email, spoken languages, and at least one reason."})
 		return
 	}
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))

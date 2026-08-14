@@ -94,6 +94,11 @@ export const authAPI = {
     return response.data
   },
 
+  inviteEmail: async (token: string) => {
+    const response = await api.get<{ email: string }>('/auth/invite', { params: { token } })
+    return response.data.email
+  },
+
   login: async (data: LoginRequest) => {
     const response = await api.post<{ user: User; tokens: AuthTokens }>('/auth/login', data)
     return response.data
@@ -439,7 +444,6 @@ export const grammarAPI = {
     const response = await api.post('/grammar/analyze-text', { text, language, nativeLanguage })
     return response.data.data
   },
-
   // Submits an AI grammar analysis. Returns immediately with a job id; the
   // result arrives over the WebSocket "grammar_analysis" event (or via getAnalysis).
   analyzeAI: async (data: {
@@ -476,6 +480,18 @@ export const grammarAPI = {
 
   getReport: async (language: string) => {
     const response = await api.get(`/grammar/report?language=${language}`)
+    return response.data
+  },
+}
+
+// Per-message translations requested manually by a participant (the
+// "Translate" button). The result is delivered over the WebSocket
+// "message_updated" event once the async job completes.
+export const translationAPI = {
+  translateMessage: async (chatId: string, messageId: string, targetLang: string) => {
+    const response = await api.post(`/chats/${chatId}/messages/${messageId}/translate`, {
+      targetLang,
+    })
     return response.data
   },
 }

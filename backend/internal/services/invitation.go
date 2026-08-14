@@ -57,6 +57,20 @@ func (s *InvitationService) Validate(token, email string) error {
 	return nil
 }
 
+// EmailByToken returns the invite-bound email for a token that is still valid
+// (unredeemed and unexpired). It lets the register page prefill the email
+// address instead of asking the user to type it again.
+func (s *InvitationService) EmailByToken(token string) (string, error) {
+	var email string
+	err := s.db.QueryRow(`SELECT email FROM invitations
+		WHERE token_hash = $1 AND redeemed_at IS NULL AND expires_at > CURRENT_TIMESTAMP`,
+		invitationHash(token)).Scan(&email)
+	if err != nil {
+		return "", ErrInvalidInvitation
+	}
+	return email, nil
+}
+
 func (s *InvitationService) Redeem(token string) error {
 	result, err := s.db.Exec(`UPDATE invitations SET redeemed_at = CURRENT_TIMESTAMP
 		WHERE token_hash = $1 AND redeemed_at IS NULL AND expires_at > CURRENT_TIMESTAMP`, invitationHash(token))

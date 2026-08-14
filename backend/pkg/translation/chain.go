@@ -84,6 +84,35 @@ func (c *ChainProvider) markFailure(name string, err error) {
 	logutil.Warnf("[Chain] %s cooling down for %v (%v)", name, cooldown, err)
 }
 
+// DetectLanguage tries each provider that implements LanguageDetector in
+// chain order and returns the first successful ISO 639-1 code. Providers that
+// are cooling down are skipped, mirroring the Translate behavior.
+func (c *ChainProvider) DetectLanguage(ctx context.Context, text string) (string, error) {
+	var lastErr error
+	for _, p := range c.providers {
+		detector, ok := p.(LanguageDetector)
+		if !ok {
+			continue
+		}
+		if coolDownUntil, cooling := c.coolDownFor(p.Name()); cooling {
+			logutil.Debugf("[Chain] skipping %s for detect (cooling down until %s)", p.Name(), coolDownUntil.Format(time.RFC3339))
+			continue
+		}
+		code, err := detector.DetectLanguage(ctx, text)
+		if err == nil && code != "" {
+			logutil.Infof("[Chain] language detected by %s: %s", p.Name(), code)
+			return code, nil
+		}
+		lastErr = err
+		c.markFailure(p.Name(), err)
+		logutil.Warnf("[Chain] %s language detection failed: %v — trying next", p.Name(), err)
+	}
+	if lastErr == nil {
+		return "", fmt.Errorf("no provider in the chain supports language detection")
+	}
+	return "", fmt.Errorf("language detection failed across chain: %w", lastErr)
+}
+
 // coolDownFor returns the provider's cooldown expiry, if it is currently paused.
 func (c *ChainProvider) coolDownFor(name string) (time.Time, bool) {
 	c.mu.Lock()

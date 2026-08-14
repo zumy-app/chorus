@@ -9,11 +9,10 @@ import (
 	"github.com/lib/pq"
 )
 
-var ErrInvalidWaitlistRequest = errors.New("email, spoken languages, target languages, and at least one reason are required")
+var ErrInvalidWaitlistRequest = errors.New("email, spoken languages, and at least one reason are required")
 
 func ValidateWaitlistRequest(req models.WaitlistRequest) error {
-	if strings.TrimSpace(req.Email) == "" || len(req.SpokenLanguages) == 0 ||
-		len(req.TargetLanguages) == 0 || len(req.Reasons) == 0 {
+	if strings.TrimSpace(req.Email) == "" || len(req.SpokenLanguages) == 0 || len(req.Reasons) == 0 {
 		return ErrInvalidWaitlistRequest
 	}
 	return nil

@@ -133,3 +133,55 @@ func (p *LibreTranslateProvider) Translate(ctx context.Context, req TranslateReq
 		Provider:       p.Name(),
 	}, nil
 }
+
+// libreDetectResult is a single candidate from POST /detect.
+type libreDetectResult struct {
+	Language   string  `json:"language"`
+	Confidence float64 `json:"confidence"`
+}
+
+// DetectLanguage identifies the language of text via LibreTranslate's native
+// /detect endpoint, returning the highest-confidence ISO 639-1 code.
+func (p *LibreTranslateProvider) DetectLanguage(ctx context.Context, text string) (string, error) {
+	if p.baseURL == "" {
+		return "", fmt.Errorf("%w: LibreTranslate URL is empty", ErrNotConfigured)
+	}
+	form := url.Values{}
+	form.Set("q", text)
+	if p.apiKey != "" {
+		form.Set("api_key", p.apiKey)
+	}
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, p.baseURL+"/detect", strings.NewReader(form.Encode()))
+	if err != nil {
+		return "", fmt.Errorf("libretranslate detect create request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := p.httpClient.Do(httpReq)
+	if err != nil {
+		return "", fmt.Errorf("libretranslate detect request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+		return "", NewHTTPStatusError(p.Name(), resp.StatusCode, string(respBody))
+	}
+
+	var out []libreDetectResult
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return "", fmt.Errorf("libretranslate detect decode response: %w", err)
+	}
+	best := ""
+	bestConf := 0.0
+	for _, r := range out {
+		if r.Confidence > bestConf && languageCodeToName(strings.TrimSpace(r.Language)) != "" {
+			best = strings.TrimSpace(r.Language)
+			bestConf = r.Confidence
+		}
+	}
+	if best == "" {
+		return "", fmt.Errorf("%w: LibreTranslate could not detect a language", ErrEmptyResponse)
+	}
+	return best, nil
+}

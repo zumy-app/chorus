@@ -133,3 +133,12 @@ func (p *EngineProvider) Translate(ctx context.Context, req TranslateRequest) (T
 		Provider:       p.Name(),
 	}, nil
 }
+
+// DetectLanguage identifies the language of text via the translator engine.
+func (p *EngineProvider) DetectLanguage(ctx context.Context, text string) (string, error) {
+	if p.baseURL == "" {
+		return "", fmt.Errorf("%w: translator engine URL is empty", ErrNotConfigured)
+	}
+	return detectLanguageFromLLM(ctx, p.httpClient, p.baseURL+"/v1/chat/completions",
+		"", "default", detectLanguageSystemPrompt, detectLanguageUserPrompt(text))
+}

@@ -193,7 +193,7 @@ func main() {
 	// creation and messaging; reports feed the moderator console.
 	moderationService := services.NewModerationService(db)
 	chatHandler := handlers.NewChatHandler(chatService, userService, moderationService, wsHub)
-	messageHandler := handlers.NewMessageHandler(messageService, chatService, userService, entitlementService, translationQueue, moderationService, wsHub)
+	messageHandler := handlers.NewMessageHandler(messageService, chatService, userService, entitlementService, translationQueue, moderationService, wsHub, translationService)
 	wsHandler := handlers.NewWebSocketHandler(wsHub, authService)
 
 	// Monetization (Phase 1.5): PayPal client + billing service + handler.
@@ -257,6 +257,7 @@ func main() {
 	{
 		public.POST("/waitlist", middleware.IPRateLimiter(10, time.Hour), waitlistHandler.Submit)
 		public.POST("/auth/register", middleware.IPRateLimiter(10, time.Hour), authHandler.Register)
+		public.GET("/auth/invite", authHandler.InviteInfo)
 		public.POST("/auth/login", authHandler.Login)
 		public.POST("/auth/refresh", authHandler.RefreshToken)
 		public.POST("/auth/forgot-password", middleware.IPRateLimiter(5, time.Hour), authHandler.ForgotPassword)
@@ -340,6 +341,7 @@ func main() {
 		// Message routes
 		protected.GET("/chats/:chatId/messages", messageHandler.GetMessages)
 		protected.POST("/chats/:chatId/messages", messageHandler.SendMessage)
+		protected.POST("/chats/:chatId/messages/:messageId/translate", messageHandler.TranslateMessage)
 		protected.PUT("/chats/:chatId/read", messageHandler.MarkAsRead)
 
 		// Phase 2: Search routes

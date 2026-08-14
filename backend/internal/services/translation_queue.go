@@ -143,6 +143,37 @@ func (q *TranslationQueueService) EnqueueForMessage(message *models.Message, sou
 	}
 }
 
+// EnqueueManual queues a single translation job for a specific target language,
+// explicitly requested by a participant (e.g. the "Translate" button on a
+// message). Unlike EnqueueForMessage it always uses sourceLang "auto" so the
+// provider detects the real source, and it forcibly resets any prior job for
+// (message, target) — even one that previously failed permanently — because an
+// explicit request from the viewer overrides the earlier state.
+func (q *TranslationQueueService) EnqueueManual(message *models.Message, targetLang string, priority int) {
+	targetLang = strings.TrimSpace(targetLang)
+	if targetLang == "" {
+		return
+	}
+	_, err := q.db.Exec(`
+		INSERT INTO translation_jobs (message_id, chat_id, text, source_lang, target_lang, priority, status, attempts)
+		VALUES ($1, $2, $3, 'auto', $4, $5, 'pending', 0)
+		ON CONFLICT (message_id, target_lang) DO UPDATE
+		SET text = EXCLUDED.text, source_lang = 'auto', priority = EXCLUDED.priority,
+		    status = 'pending', attempts = 0, last_error = NULL, result = NULL,
+		    processing_at = NULL, completed_at = NULL, next_attempt_at = CURRENT_TIMESTAMP`,
+		message.ID, message.ChatID, message.Text, targetLang, priority)
+	if err != nil {
+		log.Printf("[Translate] manual enqueue %s -> %s: %v", message.ID, targetLang, err)
+		return
+	}
+	log.Printf("[Translate] manual enqueue %s -> %s", message.ID, targetLang)
+	if q.redis != nil {
+		q.publish(message.ID)
+	} else {
+		q.spawn(message.ID)
+	}
+}
+
 // processMessage claims and translates every due job for a message.
 func (q *TranslationQueueService) processMessage(messageID string) {
 	rows, err := q.db.Query(`

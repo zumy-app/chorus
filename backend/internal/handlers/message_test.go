@@ -21,7 +21,7 @@ func newMessageEnforcementTestService(t *testing.T) (*MessageHandler, sqlmock.Sq
 	}
 	chatService := services.NewChatService(db)
 	moderation := services.NewModerationService(db)
-	h := NewMessageHandler(nil, chatService, nil, nil, nil, moderation, nil)
+	h := NewMessageHandler(nil, chatService, nil, nil, nil, moderation, nil, nil)
 	return h, mock, func() { db.Close() }
 }
 
