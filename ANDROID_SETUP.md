@@ -4,6 +4,11 @@
 
 To run the Chorus mobile app on an Android emulator, you need to install the Android SDK and set up an Android Virtual Device (AVD).
 
+> **JDK requirement**: React Native 0.83 / Gradle 8.13 requires a **JDK 17–21** (Java 25 is NOT supported — Gradle fails with `Unsupported class file major version 69`). The bundled Android Studio JBR may be too new; install e.g. [Temurin 21](https://adoptium.net/) and set `JAVA_HOME` to it before running Gradle:
+> ```powershell
+> $env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-21..."; $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
+> ```
+
 ## Installation Steps
 
 ### 1. Install Android Studio

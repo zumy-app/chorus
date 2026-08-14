@@ -1,0 +1,15 @@
+{
+  "name": "ChorusMobile",
+  "displayName": "ChorusMobile",
+  "expo": {
+    "name": "Chorus Mobile",
+    "slug": "chorus-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "platforms": ["ios", "android", "web"],
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
