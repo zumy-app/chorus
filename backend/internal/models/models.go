@@ -251,7 +251,7 @@ type RegisterRequest struct {
 type WaitlistRequest struct {
 	Email           string   `json:"email" binding:"required,email"`
 	SpokenLanguages []string `json:"spokenLanguages" binding:"required,min=1"`
-	TargetLanguages []string `json:"targetLanguages" binding:"required,min=1"`
+	TargetLanguages []string `json:"targetLanguages"`
 	Reasons         []string `json:"reasons" binding:"required,min=1"`
 	Comments        string   `json:"comments"`
 }

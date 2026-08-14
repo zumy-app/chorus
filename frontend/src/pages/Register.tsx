@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { authAPI } from '../services/api'
@@ -14,12 +14,34 @@ export default function Register({ onRegister }: RegisterProps) {
   const [searchParams] = useSearchParams()
   const inviteToken = searchParams.get('invite') || ''
   const [email, setEmail] = useState('')
+  const [invitedEmail, setInvitedEmail] = useState('')
+  const [inviteLoading, setInviteLoading] = useState(Boolean(inviteToken))
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [selectedLang, setSelectedLang] = useState(() => localStorage.getItem('preferredLanguage') || detectBrowserLanguage())
 
   const nativeLangName = getNativeLanguageName(selectedLang)
+
+  // Prefill the email bound to the invitation so users never type it twice.
+  useEffect(() => {
+    if (!inviteToken) return
+    let active = true
+    authAPI.inviteEmail(inviteToken)
+      .then(inviteEmail => {
+        if (active) {
+          setEmail(inviteEmail)
+          setInvitedEmail(inviteEmail)
+        }
+      })
+      .catch(() => {
+        if (active) setError(t('auth.inviteInvalid'))
+      })
+      .finally(() => {
+        if (active) setInviteLoading(false)
+      })
+    return () => { active = false }
+  }, [inviteToken, t])
 
   const handleLanguageChange = (code: string) => {
     setSelectedLang(code)
@@ -117,10 +139,18 @@ export default function Register({ onRegister }: RegisterProps) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={t('common.emailPlaceholder')}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition readOnly:bg-gray-100"
               required
               autoFocus
+              readOnly={Boolean(invitedEmail)}
             />
+            {inviteLoading ? (
+              <p className="mt-1 text-xs text-gray-500">{t('common.loading')}</p>
+            ) : invitedEmail ? (
+              <p className="mt-1 flex items-center gap-1 text-xs text-green-600">
+                <span>✓</span> {t('auth.invitedAs', { email: invitedEmail })}
+              </p>
+            ) : null}
           </div>
 
           <div>

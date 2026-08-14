@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { SUPPORTED_LANGUAGES } from '../services/language'
 
 interface LanguagePickerProps {
-  label: string
+  label: React.ReactNode
   hint?: string
   multiple?: boolean
   selected: string | string[]

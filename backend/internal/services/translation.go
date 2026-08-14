@@ -29,6 +29,10 @@ type TranslationService struct {
 	chainTimeout   time.Duration
 }
 
+// detectionTimeout bounds a single language-detection call so a slow provider
+// cannot stall the message-send path waiting for it.
+const detectionTimeout = 10 * time.Second
+
 // NewTranslationService creates a new TranslationService with the given provider.
 //
 // The provider is the translation backend to use (e.g. OpenAI, Ollama, etc.).
@@ -50,6 +54,45 @@ func NewTranslationService(provider translation.Provider, redis *redis.Client, c
 // Translate translates text to the target language, auto-detecting the source.
 func (s *TranslationService) Translate(text, targetLang string) (string, error) {
 	return s.TranslateQuick(text, targetLang, "auto")
+}
+
+// DetectLanguage identifies the source language of a piece of text (ISO 639-1
+// code) using the configured provider chain. Results are cached in Redis for
+// 24 hours so repeated identical text is detected instantly. A short timeout
+// keeps detection from stalling callers when the chain is slow.
+func (s *TranslationService) DetectLanguage(text string) (string, error) {
+	if s.provider == nil {
+		return "", errors.New("translation provider not configured")
+	}
+	detector, ok := s.provider.(translation.LanguageDetector)
+	if !ok {
+		return "", errors.New("translation provider does not support language detection")
+	}
+
+	const cacheVersion = "v1"
+	cacheKey := fmt.Sprintf("detected:%s:%s", cacheVersion, text)
+	if s.redis != nil {
+		cached, err := s.redis.Get(s.ctx, cacheKey).Result()
+		if err == nil && cached != "" {
+			return cached, nil
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(s.ctx, detectionTimeout)
+	defer cancel()
+
+	code, err := detector.DetectLanguage(ctx, text)
+	if err != nil {
+		return "", err
+	}
+	if code == "" {
+		return "", errors.New("language detection returned an empty code")
+	}
+
+	if s.redis != nil {
+		s.redis.Set(s.ctx, cacheKey, code, 24*time.Hour)
+	}
+	return code, nil
 }
 
 // TranslateQuick translates text using the configured provider.

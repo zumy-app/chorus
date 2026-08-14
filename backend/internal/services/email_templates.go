@@ -29,7 +29,7 @@ func wrapHTML(content string) string {
 func WaitlistConfirmationEmail(queuePosition int) (string, string) {
 	subject := "You're on the Chorus waitlist"
 	content := fmt.Sprintf(emailText, "Thanks for joining the Chorus waitlist! Your place in line is <strong>#"+strconv.Itoa(queuePosition)+"</strong>.") +
-		fmt.Sprintf(emailText, "We're rolling out in batches. When your spot comes up we'll email you a private sign-up link, so keep an eye on your inbox (and spam folder).") +
+		fmt.Sprintf(emailText, "We're rolling out in batches. When your spot comes up we'll email you a private sign-up link from <strong>info@chorus.talk</strong>. Check your spam/junk folder if you don't see it, and add <strong>info@chorus.talk</strong> to your address book so our emails always reach you.") +
 		fmt.Sprintf(emailText, "In the meantime, connect with the Chorus community:") +
 		fmt.Sprintf(emailButton, DiscordInviteURL, "Join the Chorus Discord") +
 		"<p style=\"font-size:12px;color:#6b7280\">Stay tuned!</p>"
@@ -41,7 +41,7 @@ func WaitlistConfirmationEmail(queuePosition int) (string, string) {
 func UpdatedWaitlistConfirmationEmail(queuePosition int) (string, string) {
 	subject := "We've updated your Chorus waitlist preferences"
 	content := fmt.Sprintf(emailText, "You recently signed up for the Chorus waitlist again, so we refreshed your preferences. Your spot in line <strong>#" + strconv.Itoa(queuePosition) + "</strong> is still yours.") +
-		fmt.Sprintf(emailText, "No need to do anything — we'll email you a private sign-up link when your turn comes.") +
+		fmt.Sprintf(emailText, "No need to do anything — we'll email you a private sign-up link from <strong>info@chorus.talk</strong> when your turn comes. Check your spam/junk folder, and add <strong>info@chorus.talk</strong> to your address book so it never gets missed.") +
 		fmt.Sprintf(emailText, "In the meantime, connect with the Chorus community:") +
 		fmt.Sprintf(emailButton, DiscordInviteURL, "Join the Chorus Discord") +
 		"<p style=\"font-size:12px;color:#6b7280\">Stay tuned!</p>"
@@ -55,6 +55,7 @@ func InvitationEmail(signupLink string) (string, string) {
 	content := fmt.Sprintf(emailText, "Good news — you've moved off the Chorus waitlist and you're invited to create an account!") +
 		fmt.Sprintf(emailButton, signupLink, "Create your account") +
 		fmt.Sprintf(emailText, "This link is private and single-use, and it's tied to your email address.") +
+		fmt.Sprintf(emailText, "If you don't see this email in your inbox, check your spam/junk folder and add <strong>info@chorus.talk</strong> to your address book so future emails always reach you.") +
 		fmt.Sprintf(emailText, "Join the community while you're at it:") +
 		fmt.Sprintf(`<p style="margin:0 0 10px 0"><a href="`+DiscordInviteURL+`">Join the Chorus Discord</a></p>`) +
 		fmt.Sprintf(emailText, "If the button doesn't work, copy and paste this link into your browser: "+signupLink) +

@@ -269,3 +269,14 @@ func (p *OllamaProvider) doGenerate(ctx context.Context, req TranslateRequest) (
 		Provider:       p.Name(),
 	}, nil
 }
+
+// DetectLanguage identifies the language of text via Ollama's OpenAI-compatible
+// chat endpoint (/v1/chat/completions), which Ollama exposes alongside its
+// native /api/generate endpoint.
+func (p *OllamaProvider) DetectLanguage(ctx context.Context, text string) (string, error) {
+	if p.baseURL == "" {
+		return "", fmt.Errorf("%w: Ollama URL is empty", ErrNotConfigured)
+	}
+	return detectLanguageFromLLM(ctx, p.httpClient, p.baseURL+"/v1/chat/completions",
+		"", p.model, detectLanguageSystemPrompt, detectLanguageUserPrompt(text))
+}

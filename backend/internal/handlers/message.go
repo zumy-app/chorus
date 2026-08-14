@@ -16,6 +16,7 @@ type MessageHandler struct {
 	translationQueue   *services.TranslationQueueService
 	moderation         *services.ModerationService
 	wsHub              *services.WebSocketHub
+	translation        *services.TranslationService
 }
 
 func NewMessageHandler(
@@ -26,6 +27,7 @@ func NewMessageHandler(
 	translationQueue *services.TranslationQueueService,
 	moderation *services.ModerationService,
 	wsHub *services.WebSocketHub,
+	translation *services.TranslationService,
 ) *MessageHandler {
 	return &MessageHandler{
 		messageService:     messageService,
@@ -35,6 +37,7 @@ func NewMessageHandler(
 		translationQueue:   translationQueue,
 		moderation:         moderation,
 		wsHub:              wsHub,
+		translation:        translation,
 	}
 }
 
@@ -127,13 +130,27 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 			return
 		}
 
-		// Detect and store the original language based on sender's native language
+		// Detect and store the original language based on the actual message
+		// content. Falling back to the sender's native language only when
+		// detection is unavailable (no provider or a detection failure) so a
+		// message written in a language other than the sender's profile native
+		// (e.g. a Spanish message from an English native speaker) is translated
+		// correctly for recipients.
 		sourceLang := "auto"
-		if senderLangs, ok := participantLangs[userID]; ok && len(senderLangs) > 0 {
-			if nativeLang := senderLangs[0]; nativeLang != "" {
-				sourceLang = nativeLang
-				h.messageService.UpdateOriginalLanguage(message.ID, nativeLang)
-				message.OriginalLanguage = nativeLang
+		if h.translation != nil {
+			if detected, err := h.translation.DetectLanguage(message.Text); err == nil && detected != "" {
+				sourceLang = detected
+				h.messageService.UpdateOriginalLanguage(message.ID, detected)
+				message.OriginalLanguage = detected
+			}
+		}
+		if sourceLang == "auto" {
+			if senderLangs, ok := participantLangs[userID]; ok && len(senderLangs) > 0 {
+				if nativeLang := senderLangs[0]; nativeLang != "" {
+					sourceLang = nativeLang
+					h.messageService.UpdateOriginalLanguage(message.ID, nativeLang)
+					message.OriginalLanguage = nativeLang
+				}
 			}
 		}
 
@@ -176,6 +193,65 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 		// chat participants via message_updated as they arrive.
 		h.translationQueue.EnqueueForMessage(message, sourceLang, keys(targetLangs), priority)
 	}()
+}
+
+// TranslateMessage manually queues a translation of a specific message to a
+// target language chosen by the requesting participant (the "Translate" button
+// in the UI). Unlike auto translation — which is gated on the *sender's* plan
+// and word limit — this is an explicit viewer-side request: any participant may
+// ask for a translation of a received message, always with sourceLang "auto" so
+// the provider detects the actual source language of the text.
+func (h *MessageHandler) TranslateMessage(c *gin.Context) {
+	userID := c.GetString("userID")
+	chatID := c.Param("chatId")
+	messageID := c.Param("messageId")
+
+	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
+	if err != nil || !isParticipant {
+		c.JSON(403, gin.H{"error": "Access denied"})
+		return
+	}
+
+	var req struct {
+		TargetLang string `json:"targetLang" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid request: " + err.Error()})
+		return
+	}
+
+	message, err := h.messageService.GetMessageByID(c.Request.Context(), messageID)
+	if err != nil {
+		c.JSON(404, gin.H{"error": "Message not found"})
+		return
+	}
+	if message.ChatID != chatID {
+		c.JSON(404, gin.H{"error": "Message not found"})
+		return
+	}
+
+	// The requested translation already exists — nothing to do.
+	if message.Translations != nil {
+		if _, ok := message.Translations[req.TargetLang]; ok {
+			c.JSON(200, message)
+			return
+		}
+	}
+
+	// Priority is based on the requesting viewer's plan (the viewer "owns"
+	// this request), not the original sender's.
+	priority := 0
+	if ent := h.entitlementService.ResolveNow(h.resolveUser(userID)); ent.Features.FasterResponses {
+		priority = 1
+	}
+
+	h.translationQueue.EnqueueManual(message, req.TargetLang, priority)
+
+	c.JSON(202, gin.H{
+		"messageId":  message.ID,
+		"targetLang": req.TargetLang,
+		"queued":     true,
+	})
 }
 
 // resolveUser returns the user row for a user id, or nil if it cannot be

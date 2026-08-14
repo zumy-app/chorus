@@ -3,7 +3,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import type { Message, GrammarJobStatus } from '../types'
-import { vocabularyAPI, grammarAPI } from '../services/api'
+import { vocabularyAPI, grammarAPI, translationAPI } from '../services/api'
 import { useStore } from '../store'
 import GrammarPanel from './GrammarPanel'
 import ReportModal from './ReportModal'
@@ -24,6 +24,7 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
   const [grammarProvider, setGrammarProvider] = useState<string | null>(null)
   const [grammarError, setGrammarError] = useState<string | null>(null)
   const [showReport, setShowReport] = useState(false)
+  const [manualTranslating, setManualTranslating] = useState(false)
 
   const entitlements = useStore((s) => s.entitlements)
   const blocked = useStore((s) => s.blockedTranslations[message.id])
@@ -125,6 +126,20 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
       setTimeout(() => setSavedWord(null), 2000)
     } catch (err) {
       console.error('Failed to save word:', err)
+    }
+  }
+
+  const handleManualTranslate = async () => {
+    if (manualTranslating) return
+    setManualTranslating(true)
+    try {
+      // The translation is produced asynchronously and arrives via the
+      // WebSocket "message_updated" event, which swaps in the message with the
+      // freshly merged translation. No polling needed.
+      await translationAPI.translateMessage(message.chatId, message.id, nativeLanguage)
+    } catch (err) {
+      console.error('Failed to request translation:', err)
+      setManualTranslating(false) // allow retry on failure
     }
   }
 
@@ -311,6 +326,23 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
         {/* Action Buttons */}
         {showActions && !isOwn && (
           <div className="flex flex-wrap gap-1 mt-1">
+            {!nativeTranslation && !isTranslationBlocked && (
+              <button
+                onClick={handleManualTranslate}
+                disabled={manualTranslating}
+                className="text-xs px-2 py-1 bg-sky-100 text-sky-700 rounded hover:bg-sky-200 transition disabled:opacity-50"
+                title={t('grammar.translateMessage')}
+              >
+                {manualTranslating ? (
+                  <span className="flex items-center gap-1">
+                    <span className="inline-block w-1 h-1 bg-sky-600 rounded-full animate-pulse" />
+                    {t('grammar.translating')}
+                  </span>
+                ) : (
+                  `🌐 ${t('grammar.translateMessage')}`
+                )}
+              </button>
+            )}
             <button
               onClick={() => handleAnalyzeGrammar()}
               disabled={jobBusy}

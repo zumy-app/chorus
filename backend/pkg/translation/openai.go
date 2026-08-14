@@ -173,6 +173,17 @@ func (p *OpenAIProvider) Translate(ctx context.Context, req TranslateRequest) (T
 	}, nil
 }
 
+// DetectLanguage identifies the language of text via the same chat model. It
+// implements the LanguageDetector interface so the translation pipeline can
+// base its source language on the actual message content.
+func (p *OpenAIProvider) DetectLanguage(ctx context.Context, text string) (string, error) {
+	if p.apiKey == "" {
+		return "", fmt.Errorf("%w: OpenAI API key is empty", ErrNotConfigured)
+	}
+	return detectLanguageFromLLM(ctx, p.httpClient, p.baseURL+"/chat/completions",
+		p.apiKey, p.model, detectLanguageSystemPrompt, detectLanguageUserPrompt(text))
+}
+
 // stripQuotes removes matching surrounding quotes from a string.
 func stripQuotes(s string) string {
 	if len(s) >= 2 {
