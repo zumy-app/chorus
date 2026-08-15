@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { adminAPI } from '../services/api'
 import { getLanguageName } from '../services/language'
 import { useStore } from '../store'
-import type { WaitlistEntry, EmailOutboxEntry, AdminStats, User, TranslationJob, ProviderHealth, PremiumUserRow, PremiumAnalytics, PlanChange, GrantPlanRequest, Report, ReportStats } from '../types'
+import type { WaitlistEntry, EmailOutboxEntry, AdminStats, User, TranslationJob, ProviderHealth, PremiumUserRow, PremiumAnalytics, PlanChange, GrantPlanRequest, Report, ReportStats } from '@chorus/shared'
 
 const names = (codes: string[]) => codes.map(code => getLanguageName(code)).join(', ') || '—'
 

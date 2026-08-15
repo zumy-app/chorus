@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useStore } from '../store'
 import { authAPI } from '../services/api'
-import type { User } from '../types'
+import type { User } from '@chorus/shared'
 
 interface NewChatModalProps {
   onClose: () => void

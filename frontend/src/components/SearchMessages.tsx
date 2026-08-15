@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { messageAPI } from '../services/api'
-import type { Message } from '../types'
+import type { Message } from '@chorus/shared'
 import { formatDistanceToNow } from 'date-fns'
 
 interface SearchMessagesProps {

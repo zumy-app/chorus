@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { User, Chat, Message, Entitlements, TranslationBlocked, GrammarJob } from '../types'
+import type { User, Chat, Message, Entitlements, TranslationBlocked, GrammarJob } from '@chorus/shared'
 import { chatAPI, messageAPI, adminAPI, authAPI, grammarAPI } from '../services/api'
 import { wsService } from '../services/websocket'
 

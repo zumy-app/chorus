@@ -36,7 +36,7 @@ echo -e "${GREEN}✅ npm installed: $(npm --version)${NC}"
 echo ""
 
 # Navigate to mobile app directory
-cd "$(dirname "$0")/ChorusMobile"
+cd "$(dirname "$0")/mobile"
 
 # Install dependencies
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"

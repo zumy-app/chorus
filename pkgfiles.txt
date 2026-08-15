@@ -1,0 +1,1 @@
+﻿C:\dev\chorus\mobile\node_modules\react-native-screens\android\src\main\java\com\swmansion\rnscreens\RNScreensPackage.kt

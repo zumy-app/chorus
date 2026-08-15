@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { detectBrowserLanguage, getNativeLanguageName, SUPPORTED_LANGUAGES } from '../services/language'
 import LanguageSelector from '../components/LanguageSelector'
 import { useStore } from '../store'
-import { YEARLY_LIST_PRICE } from '../config/subscriptions'
+import { YEARLY_LIST_PRICE } from '@chorus/shared'
 
 // =============================================================================
 // Full-page internationalization for the landing site.
