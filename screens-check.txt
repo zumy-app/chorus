@@ -1,0 +1,13 @@
+﻿
+
+main_java        : False
+main_manifest    : False
+fabric           : False
+main_jni_cmake   : False
+main_cpp         : False
+main_java_files  : 0
+paper_java_files : 25
+versioned_files  : 7
+
+
+

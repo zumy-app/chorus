@@ -95,14 +95,14 @@ docker-compose up -d
 
 ### Start Metro Bundler
 ```bash
-cd c:\dev\chorus\ChorusMobile
+cd c:\dev\chorus\mobile
 npm start
 ```
 
 ### Run on Android Emulator
 In a new terminal:
 ```bash
-cd c:\dev\chorus\ChorusMobile
+cd c:\dev\chorus\mobile
 npx react-native run-android
 ```
 
@@ -128,7 +128,7 @@ sdk.dir=C:\\Users\\YourUsername\\AppData\\Local\\Android\\Sdk
 Enable Intel HAXM or AMD-V/Hyper-V in BIOS
 
 ### "Error: spawn ./gradlew ENOENT"
-Make sure you're in the ChorusMobile directory before running commands
+Make sure you're in the mobile directory before running commands
 
 ### Port conflicts
 If port 8081 (Metro) is in use:

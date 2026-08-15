@@ -10,8 +10,8 @@ import {
   YEARLY_LIST_PRICE,
   PAYPAL_MONTHLY_URL,
   PAYPAL_YEARLY_URL,
-} from '../config/subscriptions'
-import type { SubscriptionInfo } from '../types'
+} from '@chorus/shared'
+import type { SubscriptionInfo } from '@chorus/shared'
 
 // =============================================================================
 // /premium — the subscription hub. Logged-in premium users manage their

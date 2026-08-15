@@ -175,4 +175,4 @@ Phase 1 core features are **functional and tested**. All critical API endpoints 
 ---
 **Test Environment**: Docker containers running on Windows
 **Test Framework**: TypeScript with ts-node
-**Test Location**: `ChorusMobile/tests/functional-tests.ts`
+**Test Location**: `mobile/tests/functional-tests.ts`

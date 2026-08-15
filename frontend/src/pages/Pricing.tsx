@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useStore } from '../store'
 import { detectBrowserLanguage } from '../services/language'
 import LanguageSelector from '../components/LanguageSelector'
-import { MONTHLY_PRICE, YEARLY_PRICE, YEARLY_LIST_PRICE, PAYPAL_MONTHLY_URL, PAYPAL_YEARLY_URL } from '../config/subscriptions'
+import { MONTHLY_PRICE, YEARLY_PRICE, YEARLY_LIST_PRICE, PAYPAL_MONTHLY_URL, PAYPAL_YEARLY_URL } from '@chorus/shared'
 
 // =============================================================================
 // /pricing — the premium plan landing page. Presents plans and a feature

@@ -278,11 +278,11 @@ chorus-postgres   Up 1+ hour (healthy)
 - Implementation Summary: `IMPLEMENTATION_SUMMARY.md`
 
 ### Test Files
-- Backend Tests: `ChorusMobile/tests/functional-tests.ts`
-- Mobile Smoke Tests: `ChorusMobile/tests/mobile-smoke-test.ts`
+- Backend Tests: `mobile/tests/functional-tests.ts`
+- Mobile Smoke Tests: `mobile/tests/mobile-smoke-test.ts`
 
 ### Key Directories
-- Mobile App: `c:\dev\chorus\ChorusMobile\`
+- Mobile App: `c:\dev\chorus\mobile\`
 - Backend: `c:\dev\chorus\backend\`
 - Frontend Web: `c:\dev\chorus\frontend\`
 
@@ -341,13 +341,13 @@ $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
 
 ### Run Backend Tests
 ```powershell
-cd c:\dev\chorus\ChorusMobile
+cd c:\dev\chorus\mobile
 npx ts-node --project tsconfig.tests.json tests/functional-tests.ts
 ```
 
 ### Reinstall App
 ```powershell
-cd c:\dev\chorus\ChorusMobile
+cd c:\dev\chorus\mobile
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
 npx react-native run-android

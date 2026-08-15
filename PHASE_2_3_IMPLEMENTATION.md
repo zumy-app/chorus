@@ -141,7 +141,7 @@ All Phase 2 & 3 tables have been created in `backend/internal/database/postgres.
 
 #### Project Structure
 ```
-ChorusMobile/
+mobile/
 ├── src/
 │   ├── components/
 │   │   ├── chat/

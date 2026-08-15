@@ -248,7 +248,7 @@ go test ./... -cover
 The React Native mobile app is in development with the following structure:
 
 ```
-ChorusMobile/
+mobile/
 ├── src/
 │   ├── screens/     # Screen components
 │   ├── components/  # Reusable UI components
@@ -260,7 +260,7 @@ ChorusMobile/
 
 To initialize:
 ```bash
-npx react-native init ChorusMobile --template react-native-template-typescript
+npx react-native init mobile --template react-native-template-typescript
 ```
 
 ## 🔧 Configuration
