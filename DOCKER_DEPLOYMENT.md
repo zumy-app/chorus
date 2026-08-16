@@ -93,13 +93,13 @@ All configured in [.env](backend/.env):
 - Database connection strings
 - JWT secret
 - Redis URL  
-- Google Translate API key (optional)
+- Cloud provider API keys (optional)
 
 ## Next Steps
 
 1. **Frontend Integration**: Update frontend to connect to backend API
 2. **Real-time Features**: Test WebSocket connections for live chat
-4. **Translation Service**: Configure Google Translate API for message translation
+4. **Translation Service**: Configure OpenRouter API or use local fallback for message translation
 5. **Production Deployment**: Configure for production environment
 
 ## Notes

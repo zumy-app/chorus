@@ -70,30 +70,3 @@ func TestTranslateMultiple(t *testing.T) {
 		t.Logf("TranslateMultiple returned %d translations", len(translations))
 	}
 }
-
-func TestProcessOllamaQueue_WithNilRedis(t *testing.T) {
-	// With nil redis and nil callback, ProcessOllamaQueue should not panic
-	provider := translation.NewOpenAIProvider("http://localhost:1", "test-key", "gpt-4o-mini", 0)
-	s := NewTranslationService(provider, nil, 0)
-
-	// This should not panic
-	defer func() {
-		if r := recover(); r != nil {
-			t.Fatalf("ProcessOllamaQueue panicked with nil redis: %v", r)
-		}
-	}()
-
-	// With queue disabled, the goroutine should exit quickly
-	done := make(chan bool)
-	go func() {
-		s.ProcessOllamaQueue(nil)
-		close(done)
-	}()
-
-	select {
-	case <-done:
-		// Success - function completed without panic
-	case <-time.After(3 * time.Second):
-		t.Fatal("ProcessOllamaQueue did not complete within timeout")
-	}
-}

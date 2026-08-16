@@ -157,7 +157,7 @@ Then refresh your browser at http://localhost:3000
 - **Redis 7** for caching and session management
 - **WebSocket** for real-time communication
 - **JWT** for authentication
-- **Google Translate API** for translations (optional, works with mock translations)
+- **OpenRouter / LLM provider chain** for translations (with Ollama offline fallback)
 
 ### Frontend
 - **React 18** with TypeScript
@@ -711,23 +711,8 @@ ENVIRONMENT=development
 DATABASE_URL=postgres://messenger:password@localhost:5432/messenger_dev?sslmode=disable
 REDIS_URL=localhost:6379
 JWT_SECRET=your-secret-key-change-in-production
-GOOGLE_TRANSLATE_API_KEY=  # Optional
 PORT=8080
 ```
-
-### Google Translate API (Optional)
-
-To enable real translations (instead of mock translations):
-
-1. Create a Google Cloud Platform account
-2. Enable the Cloud Translation API
-3. Create an API key
-4. Add the API key to your `.env` file:
-   ```
-   GOOGLE_TRANSLATE_API_KEY=your-api-key-here
-   ```
-
-Without an API key, the app will use mock translations for common phrases.
 
 ## Project Structure
 
@@ -813,7 +798,7 @@ npm run build
 
 ### Translations not working
 
-- If using Google Translate API, verify API key is correct
+- Check provider chain health via `/api/v1/admin/translations/health`
 - Check backend logs for translation errors
 - Without API key, mock translations will be used for common phrases
 

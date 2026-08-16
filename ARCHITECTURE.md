@@ -134,7 +134,7 @@ backend/
 │   │   ├── user.go              ← User profile management
 │   │   ├── chat.go              ← Chat CRUD operations
 │   │   ├── message.go           ← Message storage & retrieval
-│   │   ├── translation.go       ← Google Translate integration
+│   │   ├── translation.go       ← LLM provider chain & caching integration
 │   │   ├── websocket.go         ← WebSocket hub & client management
 │   │   ├── pubsub.go            ← Redis Pub/Sub for real-time events
 │   │   ├── presence.go          ← Online/offline status tracking
@@ -429,7 +429,7 @@ class WebSocketService {
 │     └─ For each language:                          │
 │        ├─ translationService.Translate()           │
 │        │  ├─ Check Redis cache                     │
-│        │  ├─ Call Google Translate API             │
+│        │  ├─ Call LLM translation provider chain   │
 │        │  ├─ Store result in cache (24h TTL)      │
 │        │  └─ Return translated text                │
 │        └─ Add to message.translations map          │
@@ -894,7 +894,6 @@ DATABASE_URL=postgres://...
 REDIS_URL=...
 SERVER_ID=<unique-instance-id-used-in-ws-registry>
 JWT_SECRET=<strong-random-key>
-GOOGLE_TRANSLATE_API_KEY=...
 PORT=8080
 ```
 

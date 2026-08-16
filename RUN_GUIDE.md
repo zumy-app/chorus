@@ -121,7 +121,7 @@ go mod download
 # First time only: Create .env from example
 Copy-Item .env.example .env
 
-# Optional: Edit .env if you have Google Translate API key
+# Optional: Edit .env to configure translation provider keys (OpenRouter, etc.)
 # Otherwise, it will use mock translations
 
 # Run the backend
@@ -461,7 +461,7 @@ Browser Console (F12):
 
 ### Translation Shows Original Text
 
-This is normal if Google Translate API key is not configured. The app uses mock translations instead.
+This is normal if no cloud translation provider keys are configured. The app uses the local Ollama/LibreTranslate fallback instead.
 
 **To enable real translations:**
 1. Get API key from Google Cloud Console
@@ -517,7 +517,6 @@ npm install
 | `DATABASE_URL` | postgres://... | PostgreSQL connection string |
 | `REDIS_URL` | localhost:6379 | Redis address |
 | `JWT_SECRET` | your-secret-key... | JWT signing secret |
-| `GOOGLE_TRANSLATE_API_KEY` | (empty) | Optional Google Translate API key |
 | `PORT` | 8080 | Server port |
 
 ### Frontend (src/services/api.ts)

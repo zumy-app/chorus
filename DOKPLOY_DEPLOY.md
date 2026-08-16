@@ -75,7 +75,6 @@ openssl rand -base64 64
 # Note: DB_PASSWORD is no longer needed — the compose hardcodes the DB password
 # and the postgres entrypoint re-syncs it on every start. JWT_SECRET is required.
 JWT_SECRET=xK8mZpL4qR9vN2wB5yE7hJ3fA1cG6iD0sT5uP8oM9nL2kV4rW7xZ1yC3vB6nM0...
-GOOGLE_TRANSLATE_API_KEY=   # Optional — leave blank for mock translations
 
 # ─── Waitlist & admin (REQUIRED for invite-only registration) ───────────────
 # Comma-separated allowlist of emails that can access /admin/waitlist and send
@@ -338,10 +337,10 @@ The nginx config has a 24-hour read timeout for WebSocket connections. If issues
 
 ### Issue: Messages not translating
 
-Without a Google Translate API key:
-- Backend uses mock translations (adds `[lang]` prefix to text)
-- This is normal and doesn't affect functionality
-- To enable real translations, set `GOOGLE_TRANSLATE_API_KEY` in env vars
+Without translation keys (e.g. OpenRouter):
+- Backend will fall back to local offline providers (Ollama, LibreTranslate)
+- Ensure the offline providers are running and healthy
+- To enable high-quality translations, set `PROVIDER_OPENROUTER_KEY` in the environment variables
 
 ---
 
