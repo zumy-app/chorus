@@ -1,21 +1,22 @@
 // HTTP API client. The implementation (interceptors, token refresh, endpoint
 // groups) lives in the shared package (@chorus/shared); this file wires it to
 // the mobile storage adapter (src/utils/storage.ts) and platform-specific URLs.
-import { createApiClient } from '@chorus/shared';
+import { createApiClient, resolveApiConfig, type ApiPlatform } from '@chorus/shared';
 import { Platform } from 'react-native';
 import storage from '../utils/storage';
 
-// Use your backend URL - change this if deployed elsewhere.
-// 10.0.2.2 is the special host-machine alias inside the Android emulator.
-const API_BASE_URL = __DEV__
-  ? Platform.select({
-      android: 'http://10.0.2.2:8080/api/v1',
-      default: 'http://localhost:8080/api/v1',
-    })
-  : 'https://api.chorus.talk/api/v1';
+// Same-host /api/{version} by default; override with EXPO_PUBLIC_API_URL /
+// EXPO_PUBLIC_API_VERSION to reach a remote backend (e.g. the dev PC from a
+// physical device: EXPO_PUBLIC_API_URL=http://<lan-ip>:8080).
+const { baseURL } = resolveApiConfig({
+  platform: Platform.OS as ApiPlatform,
+  dev: __DEV__,
+  origin: process.env.EXPO_PUBLIC_API_URL,
+  version: process.env.EXPO_PUBLIC_API_VERSION,
+});
 
 const client = createApiClient({
-  baseURL: API_BASE_URL,
+  baseURL,
   storage,
 });
 

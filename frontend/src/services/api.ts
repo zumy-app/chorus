@@ -1,23 +1,18 @@
-import { createApiClient, type StorageAdapter } from '@chorus/shared'
+import { createApiClient, resolveApiConfig, type StorageAdapter } from '@chorus/shared'
 import { Capacitor } from '@capacitor/core'
 
-// Get API URL based on environment
-const getAPIUrl = () => {
-  const platform = Capacitor.getPlatform()
-  const isNative = Capacitor.isNativePlatform()
+// Same-host /api/{version} by default; override with VITE_API_URL /
+// VITE_API_VERSION when the backend lives on another host/port.
+const platform: 'web' | 'ios' | 'android' = Capacitor.isNativePlatform()
+  ? (Capacitor.getPlatform() as 'ios' | 'android')
+  : 'web'
 
-  if (isNative && platform === 'android') {
-    return 'http://10.0.2.2:8080/api/v1'
-  }
-
-  if (isNative && platform === 'ios') {
-    return 'http://localhost:8080/api/v1'
-  }
-
-  return '/api/v1'
-}
-
-const API_URL = getAPIUrl()
+const { baseURL } = resolveApiConfig({
+  platform,
+  dev: import.meta.env.DEV,
+  origin: import.meta.env.VITE_API_URL,
+  version: import.meta.env.VITE_API_VERSION,
+})
 
 // The API client logic is shared across web/mobile (packages/shared). This file
 // adapts it to the browser: localStorage-backed storage and a redirect on
@@ -33,7 +28,7 @@ const storage: StorageAdapter = {
 }
 
 const client = createApiClient({
-  baseURL: API_URL,
+  baseURL,
   storage,
   onAuthFailure: () => {
     window.location.href = '/login'

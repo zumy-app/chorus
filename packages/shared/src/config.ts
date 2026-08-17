@@ -122,3 +122,76 @@ export function getNativeLanguageName(code: string): string {
 export function getLanguageName(code: string): string {
   return getLanguageByCode(code)?.name || 'English'
 }
+
+// =============================================================================
+// API endpoint resolution. Both the web frontend and the React Native app
+// compose their backend base URL from a base origin + a versioned path prefix,
+// so versioning (e.g. /api/v1 → /api/v2) never requires touching the clients.
+//
+//   origin   — host+port only (no path). EXPO_PUBLIC_API_URL / VITE_API_URL.
+//              Empty means "same host as the app" (the web default).
+//   version  — API version. EXPO_PUBLIC_API_VERSION / VITE_API_VERSION.
+//              Defaults to 'v1' → path prefix /api/v1.
+// =============================================================================
+
+export type ApiPlatform = 'web' | 'ios' | 'android'
+
+export interface ApiConfigInput {
+  platform: ApiPlatform
+  /** True in development builds (__DEV__ / import.meta.env.DEV). */
+  dev: boolean
+  /** Backend origin, e.g. 'http://10.0.0.30:8080'. Empty → same host. */
+  origin?: string
+  /** API version, e.g. 'v1' (or '1'). Defaults to 'v1'. */
+  version?: string
+}
+
+export interface ApiConfig {
+  /** Full HTTP base URL, e.g. 'http://10.0.0.30:8080/api/v1' or '/api/v1'. */
+  baseURL: string
+  /** WebSocket URL, e.g. 'ws://10.0.0.30:8080/ws' or '/ws'. */
+  wsUrl: string
+  /** Origin without a path, e.g. 'http://10.0.0.30:8080' or '' for same host. */
+  origin: string
+  /** Versioned API path prefix, e.g. '/api/v1'. */
+  apiPath: string
+}
+
+export const DEFAULT_API_VERSION = 'v1'
+
+// Dev-only aliases for the host machine's localhost (Android emulator / iOS
+// simulator). Physical devices must configure an explicit origin.
+export const EMULATOR_ANDROID_ORIGIN = 'http://10.0.2.2:8080'
+export const EMULATOR_IOS_ORIGIN = 'http://localhost:8080'
+
+function stripTrailingSlashes(value: string): string {
+  return value.trim().replace(/\/+$/, '')
+}
+
+function normalizeVersion(version: string | undefined): string {
+  const raw = stripTrailingSlashes(version || '')
+  if (!raw) return DEFAULT_API_VERSION
+  const clean = raw.replace(/^\/+/, '')
+  return clean.startsWith('v') ? clean : `v${clean}`
+}
+
+function toWsOrigin(origin: string): string {
+  return origin.replace(/^http/, 'ws')
+}
+
+export function resolveApiConfig(input: ApiConfigInput): ApiConfig {
+  let origin = stripTrailingSlashes(input.origin || '')
+
+  if (!origin && input.dev) {
+    if (input.platform === 'android') origin = EMULATOR_ANDROID_ORIGIN
+    else if (input.platform === 'ios') origin = EMULATOR_IOS_ORIGIN
+  }
+
+  const apiPath = `/api/${normalizeVersion(input.version)}`
+  return {
+    origin,
+    apiPath,
+    baseURL: `${origin}${apiPath}`,
+    wsUrl: `${toWsOrigin(origin)}/ws`,
+  }
+}
