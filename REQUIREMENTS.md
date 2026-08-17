@@ -1,5 +1,30 @@
 # Chorus — Phase 1 Requirements
 
+## 0. Phase 0 (First Release)
+
+Phase 0 is the first deployable milestone, shipping ahead of the full Phase 1 scope: a **mobile-first** surface with launch-blocking fixes and growth essentials.
+
+### Phase 0 Scope
+
+**Bugs / Quick Fixes**
+- Home button link works from the dashboard.
+- Admin screen has a back affordance to the dashboard.
+- Premium plans page copy matches the enforced message cap (open item: copy shows "280 words", a fix requests "28 words per message" — confirm the server-enforced value, see P4a note).
+- Emoji picker in the message input box.
+
+**Features**
+- Contacts & Invites: scan/import device contacts, detect which are already on Chorus, and run a robust invite flow (SMS / WhatsApp / email) so friends and family can join.
+- Onboarding captures first and last name (display name composed from them, still editable).
+- Profile avatars — Phase 0 uses generated avatars (initials/color); image upload follows when attachment infrastructure exists.
+- Meaningful error handling replaces the generic "Sorry, something went wrong" surface.
+
+**Platform**
+- Mobile (Capacitor Android/iOS) is the primary working surface; web tracks it.
+- Phase 0 deployment timeline and release gates are tracked under the GitHub "Phase 0 Release" milestone.
+
+### Phase 0 Out of Scope
+WhatsApp OTP, AI tutor, premium cosmetics, tutoring marketplace, teacher ecosystems, and competitive research land in later phases (see §1.5 and §7b).
+
 ## 1. Overview
 
 Chorus ("chorus.talk") is a multilingual real-time messenger that lets users **learn a language while they communicate**. Every message is automatically translated into the recipient's target language, and every conversation becomes a learning opportunity. Phase 1 delivers a fully functional chat product with automatic translation, grammar feedback, personalized learning plans, and a horizontally scalable server architecture.
@@ -32,6 +57,8 @@ Chorus ("chorus.talk") is a multilingual real-time messenger that lets users **l
 - **FR-1** Users must be able to register, log in, and log out (password + JWT access/refresh tokens).
 - **FR-2** Each user profile must declare a native (source) language and one or more target languages.
 - **FR-3** Users must be able to update their target languages at any time from settings.
+- **FR-19** Registration/onboarding must capture first and last name; a display name is composed from them and remains editable.
+- **FR-20** Every user has a profile avatar. Phase 0: generated from initials/color. Image upload follows when file/attachment infrastructure exists.
 
 ### Messaging (chorus.talk)
 
@@ -41,6 +68,7 @@ Chorus ("chorus.talk") is a multilingual real-time messenger that lets users **l
 - **FR-7** Each message must present both the original text and its automatic translation into the recipient's native language.
 - **FR-8** Chat history must be persisted and retrievable with pagination.
 - **FR-9** Presence (online/offline) and typing indicators must be shown to chat participants.
+- **FR-21** The message input must support inserting emojis; emojis pass through the translation pipeline unchanged.
 
 ### Translation
 
@@ -55,6 +83,15 @@ Chorus ("chorus.talk") is a multilingual real-time messenger that lets users **l
 - **FR-15** Users must be able to create custom learning plans/tutorials (e.g., a sequence of lessons or grammar drills) adapted to their target language and level.
 - **FR-16** The learning experience must be engaging and fun (gamification such as streaks or XP) — but any gamified feature that ships must be fully functional.
 - **FR-17** Saving/championing learned words and phrases from a conversation must work as part of the learning loop.
+
+### Contacts & Invites (Phase 0)
+
+- **FR-22** Users can scan/import device contacts (with permission; raw contact data is never uploaded — matched on-device or via hashed values) to identify which contacts are already on Chorus.
+- **FR-23** Users can invite off-platform contacts to join Chorus via SMS / WhatsApp / email using single-use invite links or tokens, and can track invite status (sent / accepted / pending).
+
+### WhatsApp OTP (Phase 1)
+
+- **FR-24** Users can verify their phone number via a WhatsApp OTP. (Phase 1; requires WhatsApp Business API.)
 
 ### Functional Completeness
 
@@ -100,7 +137,7 @@ Chorus ("chorus.talk") is a multilingual real-time messenger that lets users **l
 
 ### Compatibility & Compliance
 
-- **NFR-22** chorus.talk must work on Web (desktop/mob) and mobile (Capacitor Android/iOS) with consistent functionality.
+- **NFR-22** Mobile (Capacitor Android/iOS) is the **primary working surface**; the web remains supported with consistent functionality but tracks the mobile-first UX.
 - **NFR-23** A data retention policy must be defined for stored messages and translation content (GDPR-oriented), even if enforced minimally in Phase 1.
 
 ## 6. Architectural Assumptions
@@ -115,11 +152,12 @@ Chorus ("chorus.talk") is a multilingual real-time messenger that lets users **l
 
 - **P1** Two paid plans: **Premium Monthly — $7.99/mo** and **Premium Yearly — $79.90/yr** ("2 months free"; list price $95.88 struck through). No one-time/lifetime tier; subscriptions are recurring only.
 - **P2** Every account starts on the **Free** plan. Users can upgrade to Premium from the app; purchases are processed by **PayPal Billing (Subscriptions)**.
-- **P3** There are **no fixed per-day usage quotas** (e.g., "N messages/day") for Free or Premium. The only plan limitations are the ones listed under P4.
+- **P3** There are **no fixed per-day usage quotas** (e.g., "N messages/day") for Free or Premium. The only plan limitations are the ones listed under P4 — with a single exception for the AI tutor's daily allowance (P16), which is a separate product decision.
 
 ### Plan Limitations (P4 — the ONLY plan differentiators)
 
 - **P4a. Message size** — Free messages are capped at **280 words** (translation/grammar limit); Premium messages at **1,000 words**. Larger messages are blocked client-side and server-side with a clear message. (Phase 1 shipped a character-based cap; the word-based cap supersedes it.)
+  > **Open item (dev sync Aug 16):** the premium plans page shows "Live translation up to 280 words"; a fix requests the copy "28 words per message". Confirm which value is server-enforced before changing either the page or this requirement (tracked in GitHub #42).
 - **P4b. Grammar mode** — Free users get **manual/lazy grammar analysis** (analyze on request, e.g., a per-message action); Premium users get **automatic grammar analysis** on every message. Grammar *results* remain visible to everyone; only automation differs.
 - **P4c. Response priority / experience** — Premium receives faster translation pipeline priority and an ad-free experience; Free may see ads. Premium-only cosmetics (badge) may ship.
 
@@ -150,9 +188,26 @@ Chorus ("chorus.talk") is a multilingual real-time messenger that lets users **l
 
 - **P15** Notify users on Premium activation, entering grace, and after downgrade. (Phase 1.5 may record/queue; delivery wiring is follow-up.)
 
+### Future Premium (Phase 1.5 backlog)
+
+- **P16** AI tutor chatbot — included for Premium users; Free users get a limited daily allowance (this is the single P3 exception). Open decision: premium-only vs. free daily allowance.
+- **P17** Premium stickers/emojis/themes as paid cosmetics (extension of P4c).
+- **P18** Hall of Fame / Patreon-style contributions for users who want to support Chorus financially.
+
+## 7b. Phase 2+ (Future Scope)
+
+Items from product brainstorming (dev sync Aug 16) that are explicitly **out of scope** for Phase 0/1/1.5. Tracked as GitHub epics/issues.
+
+- **Live tutoring marketplace** — a separate tab with real tutors: profiles, certifications, ratings, and class sign-up (per hour, monthly, bundles). Platform keeps 10–20%. Video + text sessions. Focus on UX and teacher livelihoods.
+- **Teacher group chats** — teachers share custom learning materials with students.
+- **Public language-pair group chats** (e.g., EN→ES) — open membership; teachers answer questions; unique teacher avatars/tags; discovery funnel into 1-on-1 tutoring.
+- **Group chat size limit** — research the ideal maximum (proposed 100 users).
+- **Competitive research** — harvest HelloTalk (and similar) reviews; run AI analysis against the Chorus.talk mission/vision to produce prioritized improvement requirements.
+- **Accelerated learning** — research scientific methods for accelerated language acquisition and incorporate them into the learning strategy.
+
 ## 8. Open Questions / Possible Gaps
 
-1. **Onboarding** — Where do Phase 1 users find their first chat partner (waitlist invite, public room, friend-by-invite)? Not yet specified.
+1. **Onboarding** — Where do Phase 1 users find their first chat partner (waitlist invite, public room, friend-by-invite)? *Partially resolved by Phase 0 Contacts & Invites (FR-22/FR-23): friends/family invite flow. Public room and teacher discovery remain Phase 2+.*
 2. **Report/block** — Minimal report and block capability is recommended even for Phase 1; confirm scope.
 3. **Delivery semantics** — Define sent/delivered/read states (if "read receipts" ship) or confirm they're out of scope.
 4. **Translation cost capping** — *Resolved by P4:* no per-day quotas; cost is bounded by the 280-word message cap and manual (lazy) grammar mode on Free. Revisit only if a separate hard monthly cap is desired.
