@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { authAPI } from '../services/api'
 import { detectBrowserLanguage, getNativeLanguageName } from '../services/language'
-import LanguageSelector from '../components/LanguageSelector'
+import AuthShell from '../components/AuthShell'
 
 export default function ForgotPassword() {
   const { t } = useTranslation()
@@ -38,72 +38,74 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-600 to-purple-600">
-      {/* Language selector top-right */}
-      <div className="fixed top-4 right-4 z-50">
-        <LanguageSelector
-          currentLang={selectedLang}
-          onLanguageChange={handleLanguageChange}
-          variant="navbar"
-        />
-      </div>
-
-      <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10 2a6 6 0 00-6 6v1H3a1 1 0 00-1 1v7a1 1 0 001 1h14a1 1 0 001-1v-7a1 1 0 00-1-1h-1V8a6 6 0 00-6-6zM6 8a4 4 0 018 0v1H6V8zm6 4a1 1 0 00-2 0v1a1 1 0 002 0v-1z"></path>
-            </svg>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-800">{t('auth.forgotPasswordTitle')}</h1>
-          <p className="text-gray-500 mt-1">{t('auth.tagline')}</p>
-          <p className="text-xs text-gray-400 mt-1">{t('auth.language', { name: nativeLangName })}</p>
-        </div>
-
+    <AuthShell
+      selectedLang={selectedLang}
+      onLanguageChange={handleLanguageChange}
+      title={t('auth.forgotPasswordTitle')}
+      tagline={
+        <>
+          {t('auth.tagline')}
+          <span className="block font-label-sm text-label-sm text-on-surface-variant mt-1">
+            {t('auth.language', { name: nativeLangName })}
+          </span>
+        </>
+      }
+      bottom={
+        <>
+          <p className="font-body-sm text-body-sm text-on-surface-variant">{t('auth.remembered')}</p>
+          <Link
+            to="/login"
+            className="font-label-md text-label-md text-primary hover:text-primary-container px-4 py-2 rounded-full hover:bg-primary-container/10 transition-colors"
+          >
+            {t('auth.backToLogin')}
+          </Link>
+        </>
+      }
+    >
+      <div className="bg-surface-container-lowest rounded-3xl p-6 shadow-[0px_4px_12px_rgba(0,0,0,0.05)] border border-outline-variant/30">
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          <div className="bg-error-container text-on-error-container px-4 py-3 rounded-xl mb-4 font-body-sm text-body-sm">
             {error}
           </div>
         )}
-
         {message && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+          <div className="bg-tertiary-container text-on-tertiary-container px-4 py-3 rounded-xl mb-4 font-body-sm text-body-sm">
             {message}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          {/* Email field */}
+          <div className="flex flex-col gap-1.5">
+            <label className="font-label-sm text-label-sm text-on-surface-variant ml-1" htmlFor="forgot-email">
               {t('common.email')}
             </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={t('common.emailPlaceholder')}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-              required
-              autoFocus
-            />
+            <div className="relative flex items-center">
+              <span className="material-symbols-outlined absolute left-3.5 text-outline pointer-events-none">mail</span>
+              <input
+                id="forgot-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t('common.emailPlaceholder')}
+                className="w-full bg-surface text-on-surface pl-10 pr-4 py-3.5 rounded-xl border-none focus:ring-2 focus:ring-primary-container focus:bg-surface-container-lowest transition-colors placeholder:text-outline-variant font-body-md text-body-md shadow-sm outline-none"
+                required
+                autoFocus
+              />
+            </div>
           </div>
 
+          {/* Primary action button */}
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition disabled:opacity-50 text-lg"
+            className="mt-2 w-full bg-primary-container text-on-primary-container font-label-md text-label-md py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-primary hover:text-on-primary transition-colors active:scale-[0.98] duration-150 shadow-md disabled:opacity-50"
           >
-            {isLoading ? t('common.sending') : t('auth.sendResetLink')}
+            <span>{isLoading ? t('common.sending') : t('auth.sendResetLink')}</span>
+            <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
           </button>
         </form>
-
-        <p className="text-center text-gray-600 mt-6">
-          {t('auth.remembered')}{' '}
-          <Link to="/login" className="text-indigo-600 font-semibold hover:underline">
-            {t('auth.backToLogin')}
-          </Link>
-        </p>
       </div>
-    </div>
+    </AuthShell>
   )
 }

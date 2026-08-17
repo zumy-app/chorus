@@ -13,9 +13,10 @@ interface MessageBubbleProps {
   isOwn: boolean
   nativeLanguage: string
   targetLanguage?: string
+  onDeepDive?: (message: { id: string; text: string; sender?: any; analysis?: any }) => void
 }
 
-export default function MessageBubble({ message, isOwn, nativeLanguage, targetLanguage }: MessageBubbleProps) {
+export default function MessageBubble({ message, isOwn, nativeLanguage, targetLanguage, onDeepDive }: MessageBubbleProps) {
   const { t } = useTranslation()
   const [showActions, setShowActions] = useState(false)
   const [savedWord, setSavedWord] = useState<string | null>(null)
@@ -198,16 +199,16 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
 
   return (
     <div
-      className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+      className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
-      <div className={`max-w-[70%] ${isOwn ? 'items-end' : 'items-start'}`}>
+      <div className={`max-w-[80%] flex flex-col gap-1 ${isOwn ? 'items-end' : 'items-start'}`}>
         <div
-          className={`rounded-lg px-4 py-2 ${
+          className={`relative px-4 py-3 ${
             isOwn
-              ? 'bg-primary text-white'
-              : 'bg-white text-gray-900 border border-gray-200'
+              ? 'bg-primary text-on-primary bubble-outgoing shadow-[0px_4px_12px_rgba(0,0,0,0.05)] relative'
+              : 'bg-surface-container-lowest text-on-surface bubble-incoming shadow-[0px_4px_12px_rgba(0,0,0,0.05)] border border-outline-variant/20 relative'
           }`}
         >
           {!isOwn && message.sender && (
@@ -216,22 +217,22 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
             </div>
           )}
           
-          <div className="break-words whitespace-pre-wrap">
+          <div className="break-words whitespace-pre-wrap font-body-md text-body-md">
             {message.text}
           </div>
 
           {/* Translation loading indicator */}
           {isTranslationPending && (
-            <div className={`mt-2 pt-2 border-t ${isOwn ? 'border-white/30' : 'border-gray-200'} text-sm`}>
-              <div className={`text-xs mb-1 ${isOwn ? 'text-white/75' : 'text-gray-500'}`}>
+            <div className={`mt-2 pt-2 border-t ${isOwn ? 'border-white/30' : 'border-outline-variant/30'} text-sm`}>
+              <div className={`text-xs mb-1 ${isOwn ? 'text-white/75' : 'text-on-surface-variant/80'}`}>
                 🌐 {t('grammar.translating')}
               </div>
               <div className="flex items-center gap-1.5">
-                <span className={`inline-block w-1.5 h-1.5 rounded-full ${isOwn ? 'bg-white/60' : 'bg-gray-400'} animate-pulse`}
+                <span className={`inline-block w-1.5 h-1.5 rounded-full ${isOwn ? 'bg-white/60' : 'bg-outline'} animate-pulse`}
                       style={{ animationDelay: '0ms' }} />
-                <span className={`inline-block w-1.5 h-1.5 rounded-full ${isOwn ? 'bg-white/60' : 'bg-gray-400'} animate-pulse`}
+                <span className={`inline-block w-1.5 h-1.5 rounded-full ${isOwn ? 'bg-white/60' : 'bg-outline'} animate-pulse`}
                       style={{ animationDelay: '300ms' }} />
-                <span className={`inline-block w-1.5 h-1.5 rounded-full ${isOwn ? 'bg-white/60' : 'bg-gray-400'} animate-pulse`}
+                <span className={`inline-block w-1.5 h-1.5 rounded-full ${isOwn ? 'bg-white/60' : 'bg-outline'} animate-pulse`}
                       style={{ animationDelay: '600ms' }} />
               </div>
             </div>
@@ -239,14 +240,14 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
 
           {/* Translation blocked by free-plan char limit */}
           {isTranslationBlocked && !showNativeTranslation && (
-            <div className="mt-2 pt-2 border-t border-gray-200 text-sm">
-              <div className="text-xs mb-1 text-gray-500 flex items-center gap-1">
+            <div className="mt-2 pt-2 border-t border-outline-variant/30 text-sm">
+              <div className="text-xs mb-1 text-on-surface-variant flex items-center gap-1">
                 <span>🔒 {t('grammar.translationBlocked')}</span>
               </div>
               <Link
                 to="/pricing"
                 onClick={(e) => e.stopPropagation()}
-                className="inline-block text-xs mt-1 px-3 py-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:opacity-90 transition"
+                className="inline-block text-xs mt-1 px-3 py-1 bg-primary-container text-on-primary-container rounded-lg font-semibold hover:bg-primary hover:text-on-primary transition"
               >
                 {t('plan.upgrade')}
               </Link>
@@ -255,8 +256,8 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
 
           {/* Translation in native language (for comprehension) */}
           {showNativeTranslation && (
-            <div className={`mt-2 pt-2 border-t ${isOwn ? 'border-white/30' : 'border-gray-200'} text-sm`}>
-              <div className={`text-xs mb-1 flex items-center gap-1 ${isOwn ? 'text-white/75' : 'text-gray-500'}`}>
+            <div className={`mt-2 pt-2 border-t ${isOwn ? 'border-white/30' : 'border-outline-variant/30'}`}>
+              <div className={`text-xs mb-1 flex items-center gap-1 ${isOwn ? 'text-white/75' : 'text-on-surface-variant/80'}`}>
                 <span>🌐 {t('grammar.inYourLang')}</span>
                 {!isOwn && !message.translationEnhanced && (
                   <span className="inline-flex items-center text-[10px] text-amber-500 animate-pulse" title={t('grammar.translating')}>
@@ -264,7 +265,7 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
                   </span>
                 )}
               </div>
-              <div className={`italic font-medium whitespace-pre-wrap break-words ${isOwn ? 'text-white' : 'text-gray-800'}`}>
+              <div className={`font-translation-text text-translation-text whitespace-pre-wrap break-words ${isOwn ? 'text-white' : 'text-on-surface-variant/80'}`}>
                 {nativeTranslation}
               </div>
             </div>
@@ -272,20 +273,45 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
 
           {/* Translation in target language (for learning) */}
           {showTargetTranslation && (
-            <div className={`mt-2 pt-2 border-t ${isOwn ? 'border-white/30' : 'border-gray-200'} text-sm`}>
-              <div className={`text-xs mb-1 ${isOwn ? 'text-white/75' : 'text-gray-500'}`}>
+            <div className={`mt-2 pt-2 border-t ${isOwn ? 'border-white/30' : 'border-outline-variant/30'}`}>
+              <div className={`text-xs mb-1 ${isOwn ? 'text-white/75' : 'text-on-surface-variant/80'}`}>
                 📖 {t('grammar.learning', { lang: targetLanguage?.toUpperCase() })}
               </div>
-              <div className={`italic opacity-90 whitespace-pre-wrap break-words ${isOwn ? 'text-white/90' : 'text-gray-600'}`}>
+              <div className={`font-translation-text text-translation-text italic opacity-90 whitespace-pre-wrap break-words ${isOwn ? 'text-white/90' : 'text-on-surface-variant'}`}>
                 {targetTranslation}
               </div>
             </div>
           )}
 
-          <div className={`text-xs mt-1 ${isOwn ? 'text-white/75' : 'text-gray-500'}`}>
-            {formatDistanceToNow(new Date(message.timestamp), { addSuffix: true })}
-          </div>
+          {/* Outgoing read checkmarks */}
+          {isOwn && (
+            <div className="flex justify-end mt-1 opacity-70">
+              <span className="material-symbols-outlined text-[14px]">done_all</span>
+            </div>
+          )}
+
+          {/* Deep dive trigger (Sparky) — visible on hover */}
+          {onDeepDive && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onDeepDive({ id: message.id, text: message.text, sender: message.sender, analysis: grammarAnalysis })
+              }}
+              className={`absolute -bottom-2 w-7 h-7 bg-secondary text-white rounded-full flex items-center justify-center shadow-sm hover:bg-secondary-container transition-colors opacity-0 group-hover:opacity-100 ${
+                isOwn ? '-left-3' : '-right-3'
+              }`}
+              title={t('grammar.deepDive')}
+              aria-label={t('grammar.deepDive')}
+            >
+              <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
+            </button>
+          )}
         </div>
+
+        {/* Timestamp (visible on hover, matching the wireframe) */}
+        <span className={`font-label-sm text-label-sm text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity ${isOwn ? 'mr-2' : 'ml-2'}`}>
+          {formatDistanceToNow(new Date(message.timestamp), { addSuffix: true })}
+        </span>
 
         {/* AI-Powered Grammar Analysis */}
         {showGrammar && jobBusy && !grammarError && (

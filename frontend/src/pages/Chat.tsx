@@ -12,6 +12,7 @@ import { authAPI } from '../services/api'
 import Settings from './Settings'
 import About from './About'
 import PlanBadge from '../components/PlanBadge'
+import BottomNav from '../components/BottomNav'
 
 interface ChatProps {
   onLogout: () => void
@@ -29,6 +30,7 @@ export default function Chat({ onLogout }: ChatProps) {
   const [showVocabulary, setShowVocabulary] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [showMobileChat, setShowMobileChat] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const profileMenuRef = useRef<HTMLDivElement>(null)
   const [, setSlugError] = useState(false)
 
@@ -99,7 +101,8 @@ export default function Chat({ onLogout }: ChatProps) {
 
   if (!activeChat && slug) {
     return (
-      <div className="h-screen flex flex-col bg-gray-50">
+      <>
+        <div className="h-screen flex flex-col bg-gray-50">
         <header className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center shrink-0">
           <button onClick={() => { setSlugError(false); navigate('/chat', { replace: true }) }}
                   className="p-2 hover:bg-gray-100 rounded-lg transition mr-2">
@@ -121,6 +124,8 @@ export default function Chat({ onLogout }: ChatProps) {
           </div>
         </div>
       </div>
+        <BottomNav />
+      </>
     )
   }
 
@@ -141,16 +146,15 @@ export default function Chat({ onLogout }: ChatProps) {
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       {/* ===== GLOBAL TOP HEADER BAR ===== */}
-      <header className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between shrink-0 z-40">
+      <header className="bg-surface border-b border-outline-variant px-margin-mobile py-2.5 flex items-center justify-between shrink-0 z-40">
         {/* Left: Logo */}
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-full flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5z"></path>
-              <path d="M7.5 7.5a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z"></path>
-            </svg>
+          <div className="w-8 h-8 bg-primary-container rounded-full flex items-center justify-center">
+            <span className="material-symbols-outlined text-on-primary-container text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+              forum
+            </span>
           </div>
-          <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="font-headline-md text-headline-md font-bold text-primary tracking-tight">
             Chorus
           </h1>
         </div>
@@ -241,26 +245,56 @@ export default function Chat({ onLogout }: ChatProps) {
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar - Chat List */}
         <div className={`
-          w-full md:w-80 md:min-w-[320px] border-r border-gray-200 flex flex-col bg-white shrink-0
+          w-full md:w-80 md:min-w-[320px] border-r border-outline-variant flex flex-col bg-background shrink-0
           ${showMobileChat ? 'hidden md:flex' : 'flex'}
         `}>
-          {/* Action Buttons */}
-          <div className="p-4 space-y-2 border-b border-gray-200">
-            <button
-              onClick={() => setShowNewChatModal(true)}
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-2.5 px-4 rounded-lg hover:opacity-90 transition font-semibold"
-            >
-              {t('chat.newChat')}
+          {/* Search Bar */}
+          <div className="p-4 pb-2">
+            <div className="relative w-full elevation-1 rounded-xl overflow-hidden bg-surface-container-lowest">
+              <div className="flex items-center px-4 py-3 gap-3 focus-within:ring-2 focus-within:ring-primary rounded-xl transition-shadow duration-200">
+                <span className="material-symbols-outlined text-outline">search</span>
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t('chat.searchPlaceholder')}
+                  className="flex-1 bg-transparent border-none p-0 font-body-md text-body-md text-on-surface placeholder:text-outline focus:ring-0 focus:outline-none"
+                />
+                <button
+                  aria-label={t('chat.searchMessages')}
+                  onClick={() => setShowSearch(true)}
+                  className="text-primary hover:bg-surface-container-low rounded-full p-1 transition"
+                >
+                  <span className="material-symbols-outlined text-[20px]">mic</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Learning Insights Bento Grid */}
+          <div className="px-4 pb-4 grid grid-cols-2 gap-3 w-full">
+            <button className="bg-primary-container text-on-primary-container rounded-xl p-4 flex flex-col gap-2 items-start justify-between elevation-1 hover:brightness-105 transition-all duration-200 active:scale-95 text-left h-28">
+              <span className="material-symbols-outlined">psychology</span>
+              <div>
+                <h3 className="font-label-md text-label-md">{t('chat.dailyReview')}</h3>
+                <p className="font-body-sm text-body-sm text-on-primary-container/80 line-clamp-1">{t('chat.dailyReviewDesc')}</p>
+              </div>
             </button>
-            <button
-              onClick={() => setShowSearch(true)}
-              className="w-full border border-gray-300 text-gray-700 py-2.5 px-4 rounded-lg hover:bg-gray-50 transition font-medium flex items-center justify-center gap-2"
-            >
-              <span>🔍</span> {t('chat.searchMessages')}
+            <button className="bg-surface-container-high text-on-surface rounded-xl p-4 flex flex-col gap-2 items-start justify-between elevation-1 hover:bg-surface-container-highest transition-all duration-200 active:scale-95 text-left h-28 insight-glow relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-secondary/10 rounded-bl-full" />
+              <span className="material-symbols-outlined text-secondary">forum</span>
+              <div>
+                <h3 className="font-label-md text-label-md">{t('chat.practicePrompt')}</h3>
+                <p className="font-body-sm text-body-sm text-on-surface-variant line-clamp-1">{t('chat.practicePromptDesc')}</p>
+              </div>
             </button>
           </div>
 
-          <ChatList />
+          {/* Active Conversations */}
+          <h2 className="font-label-md text-label-md text-on-surface-variant px-6 mb-2 uppercase tracking-wider shrink-0">
+            {t('chat.activeConversations')}
+          </h2>
+
+          <ChatList searchQuery={searchQuery} />
         </div>
 
         {/* Main Chat Area */}
@@ -316,6 +350,18 @@ export default function Chat({ onLogout }: ChatProps) {
       {showVocabulary && (
         <Vocabulary onClose={() => setShowVocabulary(false)} />
       )}
+
+      {!showMobileChat && (
+        <button
+          aria-label={t('chat.newChat')}
+          onClick={() => setShowNewChatModal(true)}
+          className="fixed right-margin-mobile bottom-[100px] md:right-auto md:bottom-6 md:left-72 z-40 w-14 h-14 bg-primary text-on-primary rounded-2xl flex items-center justify-center shadow-[0px_8px_24px_rgba(0,74,198,0.25)] hover:bg-primary/90 transition-transform duration-300 active:scale-90"
+        >
+          <span className="material-symbols-outlined text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>edit_square</span>
+        </button>
+      )}
+
+      {!showMobileChat && <BottomNav />}
     </div>
   )
 }

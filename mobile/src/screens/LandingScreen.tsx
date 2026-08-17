@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TOP10_LANGUAGES } from '@chorus/shared';
-import { COLORS } from '../theme';
+import { COLOR, RADIUS } from '../theme';
 
 // Mirrors the web frontend's Landing page (frontend/src/pages/Landing.tsx),
 // so the mobile app provides the same flow: home page with content and
@@ -24,6 +24,15 @@ const FEATURES = [
   { icon: '👥', title: 'Group Chats', desc: 'Create multilingual group conversations with up to 100 participants, each reading in their own language.' },
   { icon: '🔍', title: 'Smart Search', desc: 'Find messages across all your chats with full-text search that works in multiple languages.' },
   { icon: '🔒', title: 'Privacy First', desc: 'Your conversations are encrypted and secure. We don\'t store your messages permanently.' },
+];
+
+const FEATURE_ACCENTS = [
+  { bg: 'rgba(37,99,235,0.12)', icon: '#004AC6' },
+  { bg: 'rgba(132,85,239,0.12)', icon: '#6B38D4' },
+  { bg: 'rgba(0,125,89,0.12)', icon: '#006242' },
+  { bg: 'rgba(37,99,235,0.12)', icon: '#004AC6' },
+  { bg: 'rgba(132,85,239,0.12)', icon: '#6B38D4' },
+  { bg: 'rgba(0,125,89,0.12)', icon: '#006242' },
 ];
 
 const STEPS = [
@@ -47,7 +56,7 @@ export default function LandingScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
+      <StatusBar barStyle="dark-content" backgroundColor={COLOR.surface} />
       {/* Navigation */}
       <View style={styles.nav}>
         <View style={styles.navRow}>
@@ -126,21 +135,21 @@ export default function LandingScreen({ navigation }: any) {
             </View>
           </View>
 
-          {/* Chat preview card */}
-          <View style={styles.chatCardWrap}>
-            <View style={styles.chatCard}>
-              <View style={styles.bubbleIn}>
-                <Text style={styles.bubbleText}>¡Hola! ¿Cómo estás?</Text>
-                <Text style={styles.bubbleTrans}>Hello! How are you?</Text>
+          {/* AI Tutor Sparky hero visual */}
+          <View style={styles.heroVisual}>
+            <View style={styles.heroVisualBg}>
+              <Text style={styles.heroVisualIcon}>🌐</Text>
+              <Text style={styles.heroVisualTag}>Real-time AI Translation</Text>
+            </View>
+            <View style={styles.sparkyCard}>
+              <View style={styles.sparkyHeader}>
+                <View style={styles.sparkyAvatar}>
+                  <Text style={styles.sparkyAvatarText}>🤖</Text>
+                </View>
+                <Text style={styles.sparkyName}>AI Tutor Sparky</Text>
               </View>
-              <View style={styles.bubbleOut}>
-                <Text style={styles.bubbleTextOut}>I'm great! Learning Spanish</Text>
-                <Text style={styles.bubbleTransOut}>¡Estoy genial! Aprendiendo español</Text>
-              </View>
-              <View style={styles.bubbleIn}>
-                <Text style={styles.bubbleText}>Fantástico! 🎉</Text>
-                <Text style={styles.bubbleTrans}>Fantastic! 🎉</Text>
-              </View>
+              <Text style={styles.sparkyMessage}>¡Hola! ¿Cómo estuvo tu día hoy?</Text>
+              <Text style={styles.sparkyTranslation}>Hello! How was your day today?</Text>
             </View>
           </View>
         </View>
@@ -150,13 +159,18 @@ export default function LandingScreen({ navigation }: any) {
           <Text style={styles.sectionTitle}>Powerful Features for Global Communication</Text>
           <Text style={styles.sectionSubtitle}>Everything you need to connect with people worldwide</Text>
           <View style={styles.featuresGrid}>
-            {FEATURES.map((feature, i) => (
-              <View key={i} style={styles.featureCard}>
-                <Text style={styles.featureIcon}>{feature.icon}</Text>
-                <Text style={styles.featureTitle}>{feature.title}</Text>
-                <Text style={styles.featureDesc}>{feature.desc}</Text>
-              </View>
-            ))}
+            {FEATURES.map((feature, i) => {
+              const accent = FEATURE_ACCENTS[i % FEATURE_ACCENTS.length];
+              return (
+                <View key={i} style={styles.featureCard}>
+                  <View style={[styles.featureIconCircle, { backgroundColor: accent.bg }]}>
+                    <Text style={styles.featureIcon}>{feature.icon}</Text>
+                  </View>
+                  <Text style={styles.featureTitle}>{feature.title}</Text>
+                  <Text style={styles.featureDesc}>{feature.desc}</Text>
+                </View>
+              );
+            })}
           </View>
         </View>
 
@@ -279,12 +293,12 @@ export default function LandingScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLOR.surface,
   },
   nav: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLOR.surface,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderGray,
+    borderBottomColor: COLOR.outlineVariant,
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 8,
@@ -303,7 +317,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.primary,
+    backgroundColor: 'rgba(37,99,235,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -313,17 +327,17 @@ const styles = StyleSheet.create({
   brandName: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: COLOR.primary,
   },
   loginButton: {
     borderWidth: 1,
-    borderColor: COLORS.borderGray,
-    borderRadius: 8,
+    borderColor: COLOR.outlineVariant,
+    borderRadius: RADIUS.lg,
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
   loginButtonText: {
-    color: COLORS.textDark,
+    color: COLOR.onSurface,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -334,12 +348,12 @@ const styles = StyleSheet.create({
   },
   navLink: {
     fontSize: 14,
-    color: COLORS.textGray,
+    color: COLOR.onSurfaceVariant,
     fontWeight: '500',
   },
   scroll: {
     flex: 1,
-    backgroundColor: COLORS.bgLight,
+    backgroundColor: COLOR.background,
   },
   scrollContent: {
     paddingBottom: 24,
@@ -349,40 +363,40 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   heroSection: {
-    backgroundColor: COLORS.bgLight,
+    backgroundColor: COLOR.background,
   },
   altSection: {
-    backgroundColor: COLORS.bgLight,
+    backgroundColor: COLOR.surfaceContainerLow,
   },
   sectionPlain: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLOR.surfaceContainerLowest,
   },
   badge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#E0E7FF',
+    backgroundColor: COLOR.primaryFixed,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 6,
     marginBottom: 16,
   },
   badgeText: {
-    color: COLORS.primary,
+    color: COLOR.primary,
     fontSize: 13,
     fontWeight: '600',
   },
   heroTitle: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: COLORS.textDark,
+    color: COLOR.onSurface,
     marginBottom: 16,
   },
   heroTitleAccent: {
-    color: COLORS.purple,
+    color: COLOR.secondary,
   },
   heroSubtitle: {
     fontSize: 17,
     lineHeight: 26,
-    color: COLORS.textGray,
+    color: COLOR.onSurfaceVariant,
     marginBottom: 24,
   },
   heroButtons: {
@@ -392,25 +406,30 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   primaryButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 10,
+    backgroundColor: COLOR.primary,
+    borderRadius: RADIUS.xl,
     paddingHorizontal: 24,
     paddingVertical: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
   },
   primaryButtonText: {
-    color: COLORS.white,
+    color: COLOR.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
   secondaryButton: {
     borderWidth: 2,
-    borderColor: COLORS.borderGray,
-    borderRadius: 10,
+    borderColor: COLOR.outlineVariant,
+    borderRadius: RADIUS.xl,
     paddingHorizontal: 24,
     paddingVertical: 12,
   },
   secondaryButtonText: {
-    color: COLORS.textGray,
+    color: COLOR.onSurfaceVariant,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -425,63 +444,96 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: COLOR.primary,
   },
   statLabel: {
     fontSize: 13,
-    color: COLORS.textGray,
+    color: COLOR.onSurfaceVariant,
     marginTop: 2,
   },
-  chatCardWrap: {
-    borderRadius: 20,
-    padding: 2,
-    backgroundColor: COLORS.purple,
+  heroVisual: {
+    borderRadius: 32,
+    overflow: 'hidden',
+    backgroundColor: COLOR.surfaceContainer,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    elevation: 4,
   },
-  chatCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
+  heroVisualBg: {
+    height: 240,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLOR.surfaceContainerLow,
+  },
+  heroVisualIcon: {
+    fontSize: 72,
+  },
+  heroVisualTag: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLOR.primary,
+  },
+  sparkyCard: {
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderLeftWidth: 2,
+    borderLeftColor: COLOR.secondaryContainer,
+    borderRadius: 16,
     padding: 16,
+    margin: 16,
+    marginTop: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  sparkyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
+    marginBottom: 8,
   },
-  bubbleIn: {
-    backgroundColor: '#F3F4F6',
-    borderRadius: 10,
-    padding: 12,
+  sparkyAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLOR.surfaceContainer,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  bubbleText: {
-    fontSize: 14,
-    color: COLORS.textGray,
+  sparkyAvatarText: {
+    fontSize: 16,
+  },
+  sparkyName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLOR.onSurface,
+  },
+  sparkyMessage: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: COLOR.onSurface,
     marginBottom: 2,
   },
-  bubbleTrans: {
-    fontSize: 12,
-    color: '#9CA3AF',
-  },
-  bubbleOut: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 10,
-    padding: 12,
-    marginLeft: 32,
-  },
-  bubbleTextOut: {
+  sparkyTranslation: {
     fontSize: 14,
-    color: COLORS.white,
-    marginBottom: 2,
-  },
-  bubbleTransOut: {
-    fontSize: 12,
-    color: '#C7D2FE',
+    lineHeight: 20,
+    fontWeight: '500',
+    color: COLOR.secondary,
   },
   sectionTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: COLORS.textDark,
+    color: COLOR.onSurface,
     textAlign: 'center',
     marginBottom: 8,
   },
   sectionSubtitle: {
     fontSize: 16,
-    color: COLORS.textGray,
+    color: COLOR.onSurfaceVariant,
     textAlign: 'center',
     marginBottom: 28,
   },
@@ -493,7 +545,7 @@ const styles = StyleSheet.create({
   featureCard: {
     width: '48%',
     flexGrow: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLOR.surfaceContainerLowest,
     borderRadius: 16,
     padding: 18,
     shadowColor: '#000',
@@ -502,20 +554,27 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
+  featureIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
   featureIcon: {
-    fontSize: 30,
-    marginBottom: 10,
+    fontSize: 22,
   },
   featureTitle: {
     fontSize: 17,
     fontWeight: 'bold',
-    color: COLORS.textDark,
+    color: COLOR.onSurface,
     marginBottom: 6,
   },
   featureDesc: {
     fontSize: 14,
     lineHeight: 21,
-    color: COLORS.textGray,
+    color: COLOR.onSurfaceVariant,
   },
   stepsWrap: {
     gap: 24,
@@ -527,7 +586,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: COLORS.purple,
+    backgroundColor: COLOR.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -535,18 +594,18 @@ const styles = StyleSheet.create({
   stepNum: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: COLORS.white,
+    color: COLOR.onPrimary,
   },
   stepTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.textDark,
+    color: COLOR.onSurface,
     marginBottom: 6,
   },
   stepDesc: {
     fontSize: 14,
     lineHeight: 21,
-    color: COLORS.textGray,
+    color: COLOR.onSurfaceVariant,
     textAlign: 'center',
   },
   languagesGrid: {
@@ -557,7 +616,7 @@ const styles = StyleSheet.create({
   languageCard: {
     width: '30%',
     flexGrow: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLOR.surfaceContainerLowest,
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 8,
@@ -575,17 +634,17 @@ const styles = StyleSheet.create({
   languageName: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.textDark,
+    color: COLOR.onSurface,
   },
   languageNative: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: COLOR.onSurfaceVariant,
     marginTop: 2,
   },
   planCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLOR.surfaceContainerLowest,
     borderWidth: 1,
-    borderColor: COLORS.borderGray,
+    borderColor: COLOR.outlineVariant,
     borderRadius: 16,
     padding: 22,
     marginBottom: 16,
@@ -593,52 +652,52 @@ const styles = StyleSheet.create({
   planName: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.textDark,
+    color: COLOR.onSurface,
     marginBottom: 4,
   },
   planPrice: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: COLORS.textDark,
+    color: COLOR.onSurface,
     marginBottom: 16,
   },
   planPer: {
     fontSize: 14,
     fontWeight: 'normal',
-    color: COLORS.textGray,
+    color: COLOR.onSurfaceVariant,
   },
   planDesc: {
     fontSize: 14,
-    color: COLORS.textGray,
+    color: COLOR.onSurfaceVariant,
     marginBottom: 16,
   },
   planFeature: {
     fontSize: 14,
-    color: COLORS.textGray,
+    color: COLOR.onSurfaceVariant,
     marginBottom: 8,
   },
   planButton: {
     borderWidth: 1,
-    borderColor: COLORS.borderGray,
+    borderColor: COLOR.outlineVariant,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
     marginTop: 8,
   },
   planButtonDisabled: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: COLOR.surfaceContainerLow,
   },
   planButtonDisabledText: {
-    color: COLORS.textGray,
+    color: COLOR.onSurfaceVariant,
     fontSize: 15,
     fontWeight: '600',
   },
   planCardPremium: {
-    backgroundColor: COLORS.purple,
+    backgroundColor: COLOR.secondary,
     borderRadius: 16,
     padding: 22,
     marginBottom: 16,
-    shadowColor: COLORS.purple,
+    shadowColor: COLOR.secondary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -647,64 +706,64 @@ const styles = StyleSheet.create({
   planNamePremium: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.white,
+    color: COLOR.onSecondary,
     marginBottom: 4,
   },
   planPricePremium: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: COLORS.white,
+    color: COLOR.onSecondary,
     marginBottom: 4,
   },
   planPerPremium: {
     fontSize: 14,
     fontWeight: 'normal',
-    color: '#C7D2FE',
+    color: 'rgba(255,255,255,0.8)',
   },
   planPromo: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#E0E7FF',
+    color: 'rgba(255,255,255,0.9)',
     marginBottom: 16,
   },
   planFeaturePremium: {
     fontSize: 14,
-    color: COLORS.white,
+    color: COLOR.onSecondary,
     marginBottom: 8,
   },
   planButtonPremium: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLOR.surfaceContainerLowest,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
     marginTop: 8,
   },
   planButtonPremiumText: {
-    color: COLORS.primary,
+    color: COLOR.primary,
     fontSize: 15,
     fontWeight: 'bold',
   },
   planButtonOutline: {
     borderWidth: 1,
-    borderColor: COLORS.borderGray,
+    borderColor: COLOR.outlineVariant,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
     marginTop: 8,
   },
   planButtonOutlineText: {
-    color: COLORS.textDark,
+    color: COLOR.onSurface,
     fontSize: 15,
     fontWeight: '600',
   },
   pricingNote: {
     fontSize: 13,
-    color: COLORS.textGray,
+    color: COLOR.onSurfaceVariant,
     textAlign: 'center',
     marginTop: 8,
   },
   ctaSection: {
-    backgroundColor: COLORS.purple,
+    backgroundColor: COLOR.primary,
     paddingHorizontal: 20,
     paddingVertical: 48,
     alignItems: 'center',
@@ -712,7 +771,7 @@ const styles = StyleSheet.create({
   ctaTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: COLORS.white,
+    color: COLOR.onPrimary,
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -723,25 +782,25 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   ctaButton: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLOR.surfaceContainerLowest,
     borderRadius: 10,
     paddingHorizontal: 28,
     paddingVertical: 14,
   },
   ctaButtonText: {
-    color: COLORS.primary,
+    color: COLOR.primary,
     fontSize: 16,
     fontWeight: 'bold',
   },
   footer: {
-    backgroundColor: COLORS.footerBg,
+    backgroundColor: COLOR.inverseSurface,
     paddingHorizontal: 20,
     paddingVertical: 32,
   },
   footerTagline: {
     fontSize: 14,
     lineHeight: 21,
-    color: '#9CA3AF',
+    color: COLOR.inverseOnSurface,
     marginBottom: 16,
   },
   footerLinks: {
@@ -751,11 +810,11 @@ const styles = StyleSheet.create({
   },
   footerLink: {
     fontSize: 14,
-    color: '#E0E7FF',
+    color: COLOR.primaryFixed,
     fontWeight: '500',
   },
   footerRights: {
     fontSize: 13,
-    color: '#6B7280',
+    color: COLOR.onSurfaceVariant,
   },
 });

@@ -9,10 +9,10 @@ import PricingScreen from './src/screens/PricingScreen';
 import AboutScreen from './src/screens/AboutScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
-import ChatListScreen from './src/screens/ChatListScreen';
-import ChatScreen from './src/screens/ChatScreen';
-import NewChatScreen from './src/screens/NewChatScreen';
-import ProfileScreen from './src/screens/ProfileScreen';
+import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
+import ResetPasswordScreen from './src/screens/ResetPasswordScreen';
+import MainTabs from './src/components/MainTabs';
+import { COLOR } from './src/theme';
 
 export type RootStackParamList = {
   Landing: undefined;
@@ -20,10 +20,9 @@ export type RootStackParamList = {
   About: undefined;
   Login: undefined;
   Register: undefined;
-  ChatList: undefined;
-  Chat: { chatId: string; chatName: string };
-  NewChat: undefined;
-  Profile: undefined;
+  ForgotPassword: undefined;
+  ResetPassword: { token?: string };
+  MainTabs: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -50,7 +49,7 @@ export default function App() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={COLOR.primary} />
       </View>
     );
   }
@@ -58,14 +57,16 @@ export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName={isAuthenticated ? 'ChatList' : 'Landing'}
+        initialRouteName={isAuthenticated ? 'MainTabs' : 'Landing'}
         screenOptions={{
           headerStyle: {
-            backgroundColor: '#007AFF',
+            backgroundColor: COLOR.surface,
           },
-          headerTintColor: '#fff',
+          headerTintColor: COLOR.onSurface,
+          headerShadowVisible: false,
           headerTitleStyle: {
-            fontWeight: 'bold',
+            fontSize: 20,
+            fontWeight: '700' as const,
           },
         }}>
         <Stack.Screen
@@ -76,18 +77,12 @@ export default function App() {
         <Stack.Screen
           name="Pricing"
           component={PricingScreen}
-          options={{
-            title: 'Pricing',
-            headerStyle: { backgroundColor: '#4F46E5' },
-          }}
+          options={{ title: 'Pricing' }}
         />
         <Stack.Screen
           name="About"
           component={AboutScreen}
-          options={{
-            title: 'About',
-            headerStyle: { backgroundColor: '#4F46E5' },
-          }}
+          options={{ title: 'About' }}
         />
         <Stack.Screen
           name="Login"
@@ -100,24 +95,19 @@ export default function App() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="ChatList"
-          component={ChatListScreen}
-          options={{ title: 'Chorus', headerLeft: () => null }}
+          name="ForgotPassword"
+          component={ForgotPasswordScreen}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="Chat"
-          component={ChatScreen}
-          options={{ title: '' }}
+          name="ResetPassword"
+          component={ResetPasswordScreen}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="NewChat"
-          component={NewChatScreen}
-          options={{ title: 'New Chat' }}
-        />
-        <Stack.Screen
-          name="Profile"
-          component={ProfileScreen}
-          options={{ title: 'Profile' }}
+          name="MainTabs"
+          component={MainTabs}
+          options={{ headerShown: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>

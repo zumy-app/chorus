@@ -774,6 +774,15 @@ export const HERO_TRANSLATIONS: Record<string, { title: string; subtitle: string
   }])
 )
 
+const FEATURE_ACCENTS = [
+  { circle: 'bg-primary-container/10', icon: 'text-primary' },
+  { circle: 'bg-secondary-container/10', icon: 'text-secondary' },
+  { circle: 'bg-tertiary-container/10', icon: 'text-tertiary' },
+  { circle: 'bg-primary-container/10', icon: 'text-primary' },
+  { circle: 'bg-secondary-container/10', icon: 'text-secondary' },
+  { circle: 'bg-tertiary-container/10', icon: 'text-tertiary' },
+]
+
 export default function Landing() {
   const [selectedLang, setSelectedLang] = useState(() => localStorage.getItem('preferredLanguage') || detectBrowserLanguage())
   const { t: ti18n } = useTranslation()
@@ -789,25 +798,22 @@ export default function Landing() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50" lang={lang}>
+    <div className="min-h-screen bg-background text-on-surface" lang={lang}>
       {/* Navigation */}
-      <nav className="fixed top-0 w-full bg-white/95 backdrop-blur border-b border-gray-200 z-50">
+      <nav className="fixed top-0 w-full bg-surface/90 backdrop-blur border-b border-outline-variant/40 z-50">
         <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-full flex items-center justify-center">
-              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5z"></path>
-                <path d="M7.5 7.5a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z"></path>
-              </svg>
+            <div className="w-10 h-10 bg-primary-container/10 rounded-full flex items-center justify-center">
+              <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>graphic_eq</span>
             </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Chorus</span>
+            <span className="font-headline-md text-headline-md font-bold text-primary">Chorus</span>
           </div>
           <div className="flex items-center gap-4">
             <ul className="hidden md:flex gap-8 items-center">
-              <li><a href="#features" className="text-gray-700 hover:text-indigo-600 transition">{t.nav.features}</a></li>
-              <li><a href="#how-it-works" className="text-gray-700 hover:text-indigo-600 transition">{t.nav.how}</a></li>
-              <li><a href="#languages" className="text-gray-700 hover:text-indigo-600 transition">{t.nav.languages}</a></li>
-              <li><Link to="/pricing" className="text-gray-700 hover:text-indigo-600 transition">{t.nav.pricing}</Link></li>
+              <li><a href="#features" className="text-on-surface-variant hover:text-primary transition">{t.nav.features}</a></li>
+              <li><a href="#how-it-works" className="text-on-surface-variant hover:text-primary transition">{t.nav.how}</a></li>
+              <li><a href="#languages" className="text-on-surface-variant hover:text-primary transition">{t.nav.languages}</a></li>
+              <li><Link to="/pricing" className="text-on-surface-variant hover:text-primary transition">{t.nav.pricing}</Link></li>
             </ul>
             <LanguageSelector
               currentLang={lang}
@@ -826,14 +832,14 @@ export default function Landing() {
               </svg>
             </a>
             {!user && (
-              <Link to="/waitlist" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition whitespace-nowrap">{ti18n('nav.joinWaitlist')}</Link>
+              <Link to="/waitlist" className="px-4 py-2 bg-primary text-on-primary rounded-lg hover:bg-on-primary-fixed-variant transition whitespace-nowrap">{ti18n('nav.joinWaitlist')}</Link>
             )}
             {user ? (
-              <Link to="/chat" className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:border-indigo-600 hover:text-indigo-600 transition whitespace-nowrap">
+              <Link to="/chat" className="px-4 py-2 border border-outline-variant text-on-surface rounded-lg hover:border-primary hover:text-primary transition whitespace-nowrap">
                 {ti18n('nav.openApp')}
               </Link>
             ) : (
-              <Link to="/login" className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:border-indigo-600 hover:text-indigo-600 transition whitespace-nowrap">
+              <Link to="/login" className="px-4 py-2 border border-outline-variant text-on-surface rounded-lg hover:border-primary hover:text-primary transition whitespace-nowrap">
                 {t.nav.login}
               </Link>
             )}
@@ -846,61 +852,58 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div>
-              <div className="inline-block bg-indigo-100 text-indigo-700 text-sm font-semibold px-3 py-1 rounded-full mb-4">
+              <div className="inline-block bg-primary-fixed text-primary text-sm font-semibold px-3 py-1 rounded-full mb-4">
                 🌍 {nativeName} · {t.hero.badge.replace('{count}', String(supportedCount))}
               </div>
-              <h1 className="text-5xl md:text-6xl font-bold mb-6">
+              <h1 className="font-headline-lg text-5xl md:text-6xl font-bold mb-6">
                 {t.hero.titleA},<br />
-                <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">{t.hero.titleB}</span>
+                <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">{t.hero.titleB}</span>
               </h1>
-              <p className="text-xl text-gray-600 mb-8">
+              <p className="text-body-lg text-on-surface-variant mb-8">
                 {t.hero.subtitle}
               </p>
               <div className="flex gap-4 mb-12 flex-wrap">
-                <Link to={user ? '/chat' : '/login'} className="px-8 py-4 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition text-lg">
+                <Link to={user ? '/chat' : '/login'} className="px-8 py-4 bg-primary text-on-primary rounded-xl font-label-md text-label-md shadow-lg hover:bg-on-primary-fixed-variant transition">
                   {user ? ti18n('nav.openApp') : t.nav.login}
                 </Link>
                 {!user && (
-                  <Link to="/waitlist" className="px-8 py-4 border-2 border-indigo-600 text-indigo-600 rounded-lg font-semibold hover:bg-indigo-50 transition text-lg">
+                  <Link to="/waitlist" className="px-8 py-4 border-2 border-primary text-primary rounded-xl font-label-md text-label-md hover:bg-primary-fixed transition">
                     {ti18n('nav.joinWaitlist')}
                   </Link>
                 )}
-                <a href="#how-it-works" className="px-8 py-4 border-2 border-gray-300 text-gray-600 rounded-lg font-semibold hover:bg-gray-50 transition text-lg">
+                <a href="#how-it-works" className="px-8 py-4 border-2 border-outline-variant text-on-surface-variant rounded-xl font-label-md text-label-md hover:bg-surface-container-low transition">
                   {t.hero.seeHow}
                 </a>
               </div>
               <div className="flex gap-8">
                 <div>
-                  <div className="text-3xl font-bold text-indigo-600">{supportedCount}</div>
-                  <p className="text-gray-600">{t.hero.stats.languages}</p>
+                  <div className="text-3xl font-bold text-primary">{supportedCount}</div>
+                  <p className="text-on-surface-variant">{t.hero.stats.languages}</p>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-indigo-600">{t.hero.stats.translation}</div>
-                  <p className="text-gray-600">{t.features.items[0].title}</p>
+                  <div className="text-3xl font-bold text-primary">{t.hero.stats.translation}</div>
+                  <p className="text-on-surface-variant">{t.features.items[0].title}</p>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-indigo-600">100%</div>
-                  <p className="text-gray-600">{t.hero.stats.free}</p>
+                  <div className="text-3xl font-bold text-primary">100%</div>
+                  <p className="text-on-surface-variant">{t.hero.stats.free}</p>
                 </div>
               </div>
             </div>
             <div className="relative">
-              <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-3xl p-1 shadow-2xl">
-                <div className="bg-white rounded-3xl p-6">
-                  <div className="space-y-4">
-                    <div className="bg-gray-100 rounded-lg p-4">
-                      <p className="text-sm text-gray-600 mb-1">{t.hero.chat.bubble1}</p>
-                      <p className="text-gray-400 text-xs">{t.hero.chat.bubble1Trans}</p>
+              <div className="rounded-[2rem] overflow-hidden shadow-[0px_8px_24px_rgba(0,0,0,0.1)] bg-surface-container">
+                <div className="h-72 md:h-96 bg-gradient-to-br from-primary-container/15 via-surface-container to-secondary-container/15 flex flex-col items-center justify-center gap-3">
+                  <span className="material-symbols-outlined text-primary text-[72px]" style={{ fontVariationSettings: "'FILL' 1" }}>translate</span>
+                </div>
+                <div className="absolute bottom-6 left-6 right-6 bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-[0px_4px_12px_rgba(0,0,0,0.05)] border-l-2 border-secondary-container">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center">
+                      <span className="material-symbols-outlined text-primary text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>smart_toy</span>
                     </div>
-                    <div className="bg-indigo-600 rounded-lg p-4 ml-8">
-                      <p className="text-sm text-white mb-1">{t.hero.chat.bubble2}</p>
-                      <p className="text-indigo-200 text-xs">{t.hero.chat.bubble2Trans}</p>
-                    </div>
-                    <div className="bg-gray-100 rounded-lg p-4">
-                      <p className="text-sm text-gray-600">{t.hero.chat.bubble3}</p>
-                      <p className="text-gray-400 text-xs">{t.hero.chat.bubble3Trans}</p>
-                    </div>
+                    <span className="font-label-md text-label-md text-on-surface">AI Tutor Sparky</span>
                   </div>
+                  <p className="font-body-md text-body-md text-on-surface mb-1">{t.hero.chat.bubble1}</p>
+                  <p className="font-translation-text text-translation-text text-secondary">{t.hero.chat.bubble1Trans}</p>
                 </div>
               </div>
             </div>
@@ -909,18 +912,20 @@ export default function Landing() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 px-6 bg-gray-50">
+      <section id="features" className="py-20 px-6 bg-surface-container-low">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">{t.features.title}</h2>
-            <p className="text-xl text-gray-600">{t.features.subtitle}</p>
+            <h2 className="font-headline-md text-4xl md:text-5xl font-bold mb-4">{t.features.title}</h2>
+            <p className="text-body-lg text-on-surface-variant">{t.features.subtitle}</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {t.features.items.map((feature, i) => (
-              <div key={i} className="bg-white p-8 rounded-2xl shadow hover:shadow-lg transition">
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.desc}</p>
+              <div key={i} className="bg-surface-container-lowest p-8 rounded-2xl shadow-[0px_4px_12px_rgba(0,0,0,0.05)] hover:shadow-xl transition">
+                <div className={`w-12 h-12 rounded-full ${FEATURE_ACCENTS[i % FEATURE_ACCENTS.length].circle} flex items-center justify-center mb-4`}>
+                  <span className={`text-2xl ${FEATURE_ACCENTS[i % FEATURE_ACCENTS.length].icon}`}>{feature.icon}</span>
+                </div>
+                <h3 className="font-headline-sm text-headline-sm text-on-surface mb-2">{feature.title}</h3>
+                <p className="font-body-md text-body-md text-on-surface-variant">{feature.desc}</p>
               </div>
             ))}
           </div>
@@ -931,17 +936,17 @@ export default function Landing() {
       <section id="how-it-works" className="py-20 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">{t.how.title}</h2>
-            <p className="text-xl text-gray-600">{t.how.subtitle}</p>
+            <h2 className="font-headline-md text-4xl md:text-5xl font-bold mb-4">{t.how.title}</h2>
+            <p className="text-body-lg text-on-surface-variant">{t.how.subtitle}</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {t.how.steps.map((step, i) => (
               <div key={i} className="text-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
+                <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary text-on-primary rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
                   {step.num}
                 </div>
-                <h3 className="text-2xl font-bold mb-3">{step.title}</h3>
-                <p className="text-gray-600">{step.desc}</p>
+                <h3 className="font-headline-sm text-headline-sm text-on-surface mb-3">{step.title}</h3>
+                <p className="font-body-md text-body-md text-on-surface-variant">{step.desc}</p>
               </div>
             ))}
           </div>
@@ -949,20 +954,20 @@ export default function Landing() {
       </section>
 
       {/* Languages Section */}
-      <section id="languages" className="py-20 px-6 bg-gray-50">
+      <section id="languages" className="py-20 px-6 bg-surface-container-low">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">{t.languages.title}</h2>
-            <p className="text-xl text-gray-600">{t.languages.subtitle}</p>
+            <h2 className="font-headline-md text-4xl md:text-5xl font-bold mb-4">{t.languages.title}</h2>
+            <p className="text-body-lg text-on-surface-variant">{t.languages.subtitle}</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-10 gap-4">
             {TOP10.map((code, i) => {
               const langInfo = SUPPORTED_LANGUAGES.find(l => l.code === code) || SUPPORTED_LANGUAGES[0]
               return (
-                <div key={i} className="bg-white p-6 rounded-xl text-center shadow hover:shadow-lg transition">
+                <div key={i} className="bg-surface-container-lowest p-6 rounded-xl text-center shadow-[0px_4px_12px_rgba(0,0,0,0.05)] hover:shadow-xl transition">
                   <div className="text-4xl mb-2">{langInfo.flag}</div>
-                  <p className="font-semibold text-gray-800">{langInfo.name}</p>
-                  <p className="text-xs text-gray-400 mt-1">{langInfo.nativeName}</p>
+                  <p className="font-semibold text-on-surface">{langInfo.name}</p>
+                  <p className="text-xs text-on-surface-variant/60 mt-1">{langInfo.nativeName}</p>
                 </div>
               )
             })}
@@ -974,92 +979,94 @@ export default function Landing() {
       <section id="pricing" className="py-20 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">{t.pricing.title}</h2>
-            <p className="text-xl text-gray-600">{t.pricing.subtitle}</p>
+            <h2 className="font-headline-md text-4xl md:text-5xl font-bold mb-4">{t.pricing.title}</h2>
+            <p className="text-body-lg text-on-surface-variant">{t.pricing.subtitle}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Free */}
-            <div className="bg-white rounded-2xl shadow p-8 flex flex-col">
+            <div className="bg-surface-container-lowest rounded-2xl shadow-[0px_4px_12px_rgba(0,0,0,0.05)] p-8 flex flex-col">
               <h3 className="text-2xl font-bold mb-1">{t.pricing.free.name}</h3>
-              <p className="text-4xl font-bold mb-1">{t.pricing.free.price}<span className="text-base font-normal text-gray-500">/{t.pricing.free.per}</span></p>
+              <p className="text-4xl font-bold mb-1">{t.pricing.free.price}<span className="text-base font-normal text-on-surface-variant">/{t.pricing.free.per}</span></p>
               <ul className="mt-6 mb-8 space-y-3 flex-1">
                 {t.pricing.free.features.map((f, i) => (
-                  <li key={i} className="flex items-start gap-2 text-gray-600">
-                    <span className="text-green-500 mt-0.5">✓</span>{f}
+                  <li key={i} className="flex items-start gap-2 text-on-surface-variant">
+                    <span className="text-tertiary mt-0.5">✓</span>{f}
                   </li>
                 ))}
               </ul>
-              <button className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-500 font-semibold cursor-default">{t.pricing.free.cta}</button>
+              <button className="w-full px-4 py-3 border border-outline-variant rounded-lg text-on-surface-variant font-semibold cursor-default">{t.pricing.free.cta}</button>
             </div>
 
             {/* Premium */}
-            <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl p-8 text-white shadow-2xl flex flex-col md:-my-4">
+            <div className="bg-gradient-to-br from-primary to-secondary rounded-2xl p-8 text-on-primary shadow-2xl flex flex-col md:-my-4">
               <h3 className="text-2xl font-bold mb-1">✦ {t.pricing.premium.name}</h3>
-              <p className="text-base font-semibold text-indigo-200/80 mb-0.5"><s>{YEARLY_LIST_PRICE}</s></p>
-              <p className="text-4xl font-bold mb-1">{t.pricing.premium.price}<span className="text-base font-normal text-indigo-200">/{t.pricing.premium.per}</span></p>
-              <p className="text-sm font-semibold text-indigo-100 mb-2">✦ {t.pricing.premium.promo}</p>
+              <p className="text-base font-semibold text-on-primary/80 mb-0.5"><s>{YEARLY_LIST_PRICE}</s></p>
+              <p className="text-4xl font-bold mb-1">{t.pricing.premium.price}<span className="text-base font-normal text-on-primary/80">/{t.pricing.premium.per}</span></p>
+              <p className="text-sm font-semibold text-on-primary/90 mb-2">✦ {t.pricing.premium.promo}</p>
               <ul className="mt-6 mb-8 space-y-3 flex-1">
                 {t.pricing.premium.features.map((f, i) => (
                   <li key={i} className="flex items-start gap-2">
-                    <span className="text-green-300 mt-0.5">✓</span>{f}
+                    <span className="text-tertiary-fixed mt-0.5">✓</span>{f}
                   </li>
                 ))}
               </ul>
-              <Link to="/pricing" className="w-full px-4 py-3 bg-white text-indigo-600 rounded-lg font-bold text-center hover:bg-gray-100 transition block">
+              <Link to="/pricing" className="w-full px-4 py-3 bg-white text-primary rounded-lg font-bold text-center hover:bg-gray-100 transition block">
                 {t.pricing.premium.cta}
               </Link>
             </div>
 
             {/* Enterprise */}
-            <div className="bg-white rounded-2xl shadow p-8 flex flex-col">
+            <div className="bg-surface-container-lowest rounded-2xl shadow-[0px_4px_12px_rgba(0,0,0,0.05)] p-8 flex flex-col">
               <h3 className="text-2xl font-bold mb-1">{t.pricing.enterprise.name}</h3>
-              <p className="text-gray-500 mb-1">{t.pricing.enterprise.desc}</p>
+              <p className="text-on-surface-variant mb-1">{t.pricing.enterprise.desc}</p>
               <ul className="mt-6 mb-8 space-y-3 flex-1">
                 {t.pricing.enterprise.features.map((f, i) => (
-                  <li key={i} className="flex items-start gap-2 text-gray-600">
-                    <span className="text-green-500 mt-0.5">✓</span>{f}
+                  <li key={i} className="flex items-start gap-2 text-on-surface-variant">
+                    <span className="text-tertiary mt-0.5">✓</span>{f}
                   </li>
                 ))}
               </ul>
-              <a href="mailto:hello@chorus.talk?subject=Enterprise%20Enquiry" className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 font-semibold text-center hover:border-indigo-600 hover:text-indigo-600 transition">
+              <a href="mailto:hello@chorus.talk?subject=Enterprise%20Enquiry" className="w-full px-4 py-3 border border-outline-variant rounded-lg text-on-surface font-semibold text-center hover:border-primary hover:text-primary transition">
                 {t.pricing.enterprise.cta}
               </a>
             </div>
           </div>
 
-          <p className="text-center text-sm text-gray-500 mt-8">{t.pricing.note}</p>
+          <p className="text-center text-sm text-on-surface-variant mt-8">{t.pricing.note}</p>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-6 bg-gradient-to-r from-indigo-600 to-purple-600">
-        <div className="max-w-4xl mx-auto text-center text-white">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">{t.cta.title}</h2>
+      <section className="py-20 px-6 bg-gradient-to-r from-primary to-secondary">
+        <div className="max-w-4xl mx-auto text-center text-on-primary">
+          <h2 className="font-headline-md text-4xl md:text-5xl font-bold mb-4">{t.cta.title}</h2>
           <p className="text-xl mb-8 opacity-90">{t.cta.subtitle}</p>
           {user ? (
-            <Link to="/chat" className="px-8 py-4 bg-white text-indigo-600 rounded-lg font-bold text-lg hover:bg-gray-100 transition inline-block">
+            <Link to="/chat" className="px-8 py-4 bg-white text-primary rounded-lg font-bold text-lg hover:bg-gray-100 transition inline-block">
               {ti18n('nav.openApp')}
             </Link>
           ) : (
-            <Link to="/waitlist" className="px-8 py-4 bg-white text-indigo-600 rounded-lg font-bold text-lg hover:bg-gray-100 transition inline-block">
+            <Link to="/waitlist" className="px-8 py-4 bg-white text-primary rounded-lg font-bold text-lg hover:bg-gray-100 transition inline-block">
               {ti18n('nav.joinWaitlist')}
             </Link>
           )}
-          <a href="https://discord.gg/7DVwM6jsS" target="_blank" rel="noreferrer" className="ml-3 px-8 py-4 border-2 border-white/60 text-white rounded-lg font-bold text-lg hover:bg-white hover:text-indigo-600 transition inline-block">
+          <a href="https://discord.gg/7DVwM6jsS" target="_blank" rel="noreferrer" className="ml-3 px-8 py-4 border-2 border-white/60 text-on-primary rounded-lg font-bold text-lg hover:bg-white hover:text-primary transition inline-block">
             {ti18n('nav.joinDiscord')}
           </a>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12 px-6">
+      <footer className="bg-inverse-surface text-white py-12 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-full"></div>
-                <span className="font-bold text-lg">Chorus</span>
+                <div className="w-8 h-8 bg-primary-container/10 rounded-full flex items-center justify-center">
+                  <span className="material-symbols-outlined text-primary-fixed text-base" style={{ fontVariationSettings: "'FILL' 1" }}>graphic_eq</span>
+                </div>
+                <span className="font-headline-md text-headline-md font-bold">Chorus</span>
               </div>
               <p className="text-gray-400">{t.footer.tagline}</p>
             </div>

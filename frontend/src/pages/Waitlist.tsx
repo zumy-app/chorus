@@ -93,15 +93,15 @@ export default function Waitlist() {
 
   if (queuePosition !== null) return (
     <main className="min-h-screen grid place-items-center bg-gradient-to-br from-primary to-secondary p-6">
-      <section className="max-w-md rounded-xl bg-white p-8 text-center shadow-xl">
-        <h1 className="text-3xl font-bold text-gray-900">{alreadyJoined ? t('waitlist.welcomeBack') : t('waitlist.youAreOnList')}</h1>
-        <p className="mt-3 rounded-lg bg-indigo-50 p-3 text-sm text-indigo-800">
+      <section className="max-w-md rounded-xl bg-surface-container-lowest p-8 text-center shadow-xl">
+        <h1 className="text-3xl font-bold text-on-surface">{alreadyJoined ? t('waitlist.welcomeBack') : t('waitlist.youAreOnList')}</h1>
+        <p className="mt-3 rounded-lg bg-primary-fixed p-3 text-sm text-primary">
           {alreadyJoined
             ? t('waitlist.alreadyOnList', { position: queuePosition })
             : t('waitlist.yourNumber', { position: queuePosition })}
         </p>
-        {serverMessage && <p className="mt-3 text-sm text-gray-600">{serverMessage}</p>}
-        <p className="mt-3 text-sm text-gray-600">
+        {serverMessage && <p className="mt-3 text-sm text-on-surface-variant">{serverMessage}</p>}
+        <p className="mt-3 text-sm text-on-surface-variant">
           {t('waitlist.inboxHint', { what: alreadyJoined ? t('waitlist.anUpdate') : t('waitlist.aConfirmation') })}
         </p>
         <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
@@ -115,20 +115,20 @@ export default function Waitlist() {
         >
           {t('waitlist.joinDiscord')}
         </a>
-        <Link to="/" className="mt-6 block font-semibold text-indigo-600">{t('waitlist.backToChorus')}</Link>
+        <Link to="/" className="mt-6 block font-semibold text-primary">{t('waitlist.backToChorus')}</Link>
       </section>
     </main>
   )
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-primary to-secondary py-10 px-4">
-      <form onSubmit={submit} noValidate className="mx-auto max-w-xl rounded-xl bg-white p-8 shadow-xl space-y-6">
+      <form onSubmit={submit} noValidate className="mx-auto max-w-xl rounded-xl bg-surface-container-lowest p-8 shadow-xl space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{t('waitlist.joinTheWaitlist')}</h1>
-          <p className="mt-2 text-gray-600">{t('waitlist.intro')}</p>
+          <h1 className="text-3xl font-bold text-on-surface">{t('waitlist.joinTheWaitlist')}</h1>
+          <p className="mt-2 text-on-surface-variant">{t('waitlist.intro')}</p>
         </div>
 
-        <label className="block font-semibold text-gray-700">
+        <label className="block font-semibold text-on-surface">
           {t('common.email')}
           <input
             ref={emailRef}
@@ -140,7 +140,7 @@ export default function Waitlist() {
             className={`mt-2 w-full rounded-lg border px-4 py-3 focus:outline-none ${
               fieldErrors.email
                 ? 'border-red-400 focus:border-red-500'
-                : 'border-gray-300 focus:border-primary'
+                : 'border-outline-variant focus:border-primary'
             }`}
           />
         </label>
@@ -165,7 +165,7 @@ export default function Waitlist() {
 
         <div ref={learnRef}>
           <LanguagePicker
-            label={<>{t('waitlist.iWantToLearn')} <span className="font-normal text-gray-400">{t('waitlist.optional')}</span></>}
+            label={<>{t('waitlist.iWantToLearn')} <span className="font-normal text-on-surface-variant/60">{t('waitlist.optional')}</span></>}
             hint={t('waitlist.iWantToLearnHint')}
             multiple
             selected={targetLanguages}
@@ -182,15 +182,15 @@ export default function Waitlist() {
         </div>
 
         <fieldset>
-          <legend className="font-semibold text-gray-700">{t('waitlist.reason')}</legend>
+          <legend className="font-semibold text-on-surface">{t('waitlist.reason')}</legend>
           <div ref={reasonsRef} className="mt-2 grid gap-2 sm:grid-cols-2">
             {REASONS.map(reason => (
               <label
                 key={reason.value}
                 className={`flex cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm transition ${
                   reasons.includes(reason.value)
-                    ? 'border-primary bg-indigo-50 text-gray-900'
-                    : 'border-gray-300 text-gray-700 hover:border-primary'
+                    ? 'border-primary bg-primary-fixed text-on-surface'
+                    : 'border-outline-variant text-on-surface hover:border-primary'
                 }`}
               >
                 <input
@@ -200,7 +200,7 @@ export default function Waitlist() {
                     clearFieldError('reasons')
                     toggle(reason.value, setReasons)
                   }}
-                  className="rounded text-indigo-600 focus:ring-indigo-500"
+                  className="rounded text-primary focus:ring-primary"
                 />
                 {t(reason.labelKey)}
               </label>
@@ -210,24 +210,24 @@ export default function Waitlist() {
         </fieldset>
 
         <label className="block">
-          <span className="font-semibold text-gray-700">{t('waitlist.additionalComments')} <span className="font-normal text-gray-400">{t('waitlist.optional')}</span></span>
+          <span className="font-semibold text-on-surface">{t('waitlist.additionalComments')} <span className="font-normal text-on-surface-variant/60">{t('waitlist.optional')}</span></span>
           <textarea
             value={comments}
             onChange={e => setComments(e.target.value)}
             rows={3}
             maxLength={500}
             placeholder={t('waitlist.commentsPlaceholder')}
-            className="mt-2 w-full resize-none rounded-lg border border-gray-300 px-4 py-3 focus:border-primary focus:outline-none"
+            className="mt-2 w-full resize-none rounded-lg border border-outline-variant px-4 py-3 focus:border-primary focus:outline-none"
           />
         </label>
 
         {error && <p className="rounded bg-red-100 p-3 text-red-700">{error}</p>}
 
-        <button disabled={loading} className="w-full rounded-lg bg-indigo-600 py-3 font-bold text-white disabled:opacity-50">
+        <button disabled={loading} className="w-full rounded-lg bg-primary py-3 font-bold text-on-primary disabled:opacity-50">
           {loading ? t('waitlist.joining') : t('waitlist.joinTheWaitlist')}
         </button>
-        <p className="text-center text-sm text-gray-600">
-          {t('waitlist.alreadyHaveAccount')}{' '}<Link to="/login" className="font-semibold text-indigo-600">{t('waitlist.logIn')}</Link>
+        <p className="text-center text-sm text-on-surface-variant">
+          {t('waitlist.alreadyHaveAccount')}{' '}<Link to="/login" className="font-semibold text-primary">{t('waitlist.logIn')}</Link>
         </p>
       </form>
     </main>

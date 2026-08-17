@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus - Learn</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "secondary-fixed": "#e9ddff",
+                      "on-tertiary-fixed": "#002113",
+                      "primary-fixed": "#dbe1ff",
+                      "surface-container": "#e5eeff",
+                      "on-error-container": "#93000a",
+                      "error": "#ba1a1a",
+                      "on-background": "#0b1c30",
+                      "surface-dim": "#cbdbf5",
+                      "on-secondary": "#ffffff",
+                      "secondary-container": "#8455ef",
+                      "error-container": "#ffdad6",
+                      "primary-container": "#2563eb",
+                      "inverse-primary": "#b4c5ff",
+                      "on-primary-container": "#eeefff",
+                      "surface-container-high": "#dce9ff",
+                      "surface-container-highest": "#d3e4fe",
+                      "tertiary-fixed": "#6ffbbe",
+                      "on-primary": "#ffffff",
+                      "on-tertiary": "#ffffff",
+                      "background": "#f8f9ff",
+                      "outline": "#737686",
+                      "primary": "#004ac6",
+                      "tertiary-container": "#007d55",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-tint": "#0053db",
+                      "primary-fixed-dim": "#b4c5ff",
+                      "on-primary-fixed-variant": "#003ea8",
+                      "on-primary-fixed": "#00174b",
+                      "inverse-surface": "#213145",
+                      "on-secondary-container": "#fffbff",
+                      "surface": "#f8f9ff",
+                      "on-tertiary-fixed-variant": "#005236",
+                      "on-secondary-fixed": "#23005c",
+                      "surface-variant": "#d3e4fe",
+                      "surface-container-low": "#eff4ff",
+                      "on-surface": "#0b1c30",
+                      "on-secondary-fixed-variant": "#5516be",
+                      "secondary-fixed-dim": "#d0bcff",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "secondary": "#6b38d4",
+                      "surface-bright": "#f8f9ff",
+                      "on-error": "#ffffff",
+                      "tertiary": "#006242",
+                      "on-tertiary-container": "#bdffdb",
+                      "inverse-on-surface": "#eaf1ff",
+                      "on-surface-variant": "#434655",
+                      "outline-variant": "#c3c6d7"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "margin-mobile": "16px",
+                      "stack-lg": "24px",
+                      "stack-md": "16px",
+                      "unit": "4px",
+                      "stack-sm": "8px",
+                      "gutter-mobile": "12px"
+              },
+              "fontFamily": {
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "translation-text": [
+                              "Be Vietnam Pro"
+                      ],
+                      "body-md": [
+                              "Be Vietnam Pro"
+                      ],
+                      "headline-sm": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "body-sm": [
+                              "Be Vietnam Pro"
+                      ],
+                      "label-sm": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Be Vietnam Pro"
+                      ],
+                      "headline-md": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "headline-lg": [
+                              "Plus Jakarta Sans"
+                      ]
+              },
+              "fontSize": {
+                      "label-md": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "letterSpacing": "0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "translation-text": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-sm": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-sm": [
+                              "11px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.03em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-lg": [
+                              "30px",
+                              {
+                                      "lineHeight": "38px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* Subtle glow for AI features */
+        .ai-glow {
+            box-shadow: 0 0 12px rgba(132, 85, 239, 0.15);
+        }
+        
+        /* Custom progress bar styles */
+        .progress-track {
+            background-color: #cbd5e1; /* Slate 300 equivalent */
+        }
+        .progress-fill {
+            background-color: #10b981; /* Emerald 500 equivalent */
+        }
+        
+        /* Glassmorphism utility */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen pb-[80px]">
+<!-- TopAppBar (from JSON) -->
+<header class="bg-surface dark:bg-surface-dim docked full-width top-0 shadow-sm z-40 sticky">
+<div class="flex justify-between items-center w-full px-margin-mobile py-stack-sm">
+<div class="flex items-center gap-2">
+<!-- Avatar instead of full text for 'leading_avatar' based on intent, using standard avatar styling -->
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-sm">
+                    S
+                </div>
+</div>
+<h1 class="text-headline-md font-headline-md font-bold text-primary dark:text-primary-fixed-dim">Chorus</h1>
+<button class="text-primary dark:text-primary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-high transition-colors active:scale-95 duration-150 p-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">translate</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="px-margin-mobile py-stack-lg flex flex-col gap-stack-lg max-w-md mx-auto">
+<!-- Header Section -->
+<section class="flex justify-between items-end">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-on-background mb-unit">Your Learning Path</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Stay consistent to reach fluency.</p>
+</div>
+<!-- Streak Counter -->
+<div class="bg-[#FFF7ED] text-[#EA580C] px-3 py-1 rounded-full flex items-center gap-1 shadow-sm">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<span class="font-label-md text-label-md">14 Days</span>
+</div>
+</section>
+<!-- Bento Grid Layout for Activities -->
+<section class="grid grid-cols-2 gap-stack-md">
+<!-- Quick Drills Card (Full Width) -->
+<div class="col-span-2 bg-surface-container-lowest rounded-xl shadow-sm p-4 relative overflow-hidden active:scale-[0.98] transition-transform duration-200">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-primary-fixed rounded-full opacity-50 mix-blend-multiply blur-xl"></div>
+<div class="flex items-start justify-between mb-4 relative z-10">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined">bolt</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Quick Drills</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Focus on recent mistakes</p>
+</div>
+</div>
+<button class="bg-primary text-on-primary px-4 py-2 rounded-full font-label-md text-label-md shadow-md active:bg-surface-tint transition-colors">Start</button>
+</div>
+<div class="relative z-10">
+<div class="flex justify-between text-label-sm font-label-sm text-on-surface-variant mb-1">
+<span>Daily Goal</span>
+<span>8/10 completed</span>
+</div>
+<div class="h-2 w-full rounded-full progress-track overflow-hidden">
+<div class="h-full progress-fill rounded-full" style="width: 80%;"></div>
+</div>
+</div>
+</div>
+<!-- Vocabulary Mastery Card -->
+<div class="col-span-1 bg-surface-container-lowest rounded-xl shadow-sm p-4 flex flex-col justify-between active:scale-[0.98] transition-transform duration-200">
+<div>
+<div class="w-8 h-8 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-sm">menu_book</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface text-base leading-tight mb-1">Vocabulary</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-xs">Spaced repetition</p>
+</div>
+<div class="mt-4">
+<div class="flex justify-between text-[10px] font-label-sm text-on-surface-variant mb-1">
+<span>Review</span>
+<span>45 words</span>
+</div>
+<div class="h-1.5 w-full rounded-full progress-track overflow-hidden">
+<div class="h-full bg-tertiary rounded-full" style="width: 40%;"></div>
+</div>
+</div>
+</div>
+<!-- Scenario Practice Card (AI Enhanced) -->
+<div class="col-span-1 bg-secondary-fixed/30 border border-secondary/20 rounded-xl shadow-sm p-4 flex flex-col justify-between relative overflow-hidden ai-glow active:scale-[0.98] transition-transform duration-200">
+<div class="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent"></div>
+<div class="relative z-10">
+<div class="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center mb-3 shadow-sm">
+<span class="material-symbols-outlined text-sm">forum</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface text-base leading-tight mb-1">Scenarios</h3>
+<p class="font-body-sm text-body-sm text-secondary text-xs flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">auto_awesome</span> AI Roleplay
+                    </p>
+</div>
+<div class="mt-4 relative z-10">
+<div class="flex justify-between text-[10px] font-label-sm text-on-surface-variant mb-1">
+<span>Coffee Shop</span>
+<span>0/1</span>
+</div>
+<div class="h-1.5 w-full rounded-full progress-track overflow-hidden">
+<div class="h-full bg-secondary rounded-full" style="width: 0%;"></div>
+</div>
+</div>
+</div>
+<!-- Grammar Deep Dive (Full Width) -->
+<div class="col-span-2 glass-card rounded-xl p-4 flex items-center justify-between active:scale-[0.98] transition-transform duration-200 relative overflow-hidden">
+<div class="absolute inset-0 bg-white/40 z-0"></div>
+<div class="flex items-center gap-3 relative z-10">
+<div class="w-10 h-10 rounded-lg bg-surface-variant text-on-surface flex items-center justify-center shadow-inner">
+<span class="material-symbols-outlined">rule</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Grammar Deep Dive</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-sm">Mastering Past Tense</p>
+</div>
+</div>
+<div class="relative w-12 h-12 flex items-center justify-center z-10">
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 36 36">
+<!-- Background Circle -->
+<path class="text-surface-variant" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3"></path>
+<!-- Progress Circle (65%) -->
+<path class="text-primary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="65, 100" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+<span class="absolute font-label-sm text-label-sm text-on-surface">65%</span>
+</div>
+</div>
+</section>
+<!-- Weekly Progress Summary -->
+<section class="mt-stack-md bg-surface-container-lowest rounded-xl p-4 shadow-sm border border-outline-variant/30">
+<h3 class="font-label-md text-label-md text-on-surface-variant mb-3 uppercase tracking-wider">Weekly Goal</h3>
+<div class="flex justify-between items-end">
+<div class="flex gap-1 items-end h-16">
+<!-- Simple CSS bar chart -->
+<div class="w-6 bg-primary-fixed rounded-t-sm h-8"></div>
+<div class="w-6 bg-primary-fixed rounded-t-sm h-12"></div>
+<div class="w-6 bg-primary-container rounded-t-sm h-16 shadow-sm"></div>
+<div class="w-6 bg-surface-variant rounded-t-sm h-4"></div>
+<div class="w-6 bg-surface-variant rounded-t-sm h-4"></div>
+<div class="w-6 bg-surface-variant rounded-t-sm h-4"></div>
+<div class="w-6 bg-surface-variant rounded-t-sm h-4"></div>
+</div>
+<div class="text-right">
+<span class="block font-headline-md text-headline-md text-on-surface">120<span class="text-sm font-body-sm text-on-surface-variant ml-1">xp</span></span>
+<span class="block font-label-sm text-label-sm text-primary">On track!</span>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (from JSON) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 flex justify-around items-center px-margin-mobile py-stack-sm bg-surface dark:bg-surface-dim border-t border-outline-variant dark:border-outline shadow-lg rounded-t-xl pb-6">
+<!-- Chats (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-stack-md py-unit hover:text-primary dark:hover:text-primary-fixed-dim active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">chat_bubble</span>
+<span class="font-label-sm text-label-sm">Chats</span>
+</a>
+<!-- Learn (Active - Matches Intent) -->
+<a class="flex flex-col items-center justify-center bg-primary-container dark:bg-secondary-container text-on-primary-container dark:text-on-secondary-container rounded-full px-stack-md py-unit hover:text-primary dark:hover:text-primary-fixed-dim active:scale-90 transition-transform shadow-md" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">school</span>
+<span class="font-label-sm text-label-sm">Learn</span>
+</a>
+<!-- Profile (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-stack-md py-unit hover:text-primary dark:hover:text-primary-fixed-dim active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">person</span>
+<span class="font-label-sm text-label-sm">Profile</span>
+</a>
+</nav>
+</body></html>

@@ -8,7 +8,7 @@ import {
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS } from '../theme';
+import { COLOR, COLORS } from '../theme';
 
 // Mirrors the web frontend's Pricing page (frontend/src/pages/Pricing.tsx).
 // Guest users get routed to Register for the premium plan (same as web, where
@@ -197,7 +197,7 @@ export default function PricingScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.bgLight,
+    backgroundColor: COLOR.background,
   },
   scroll: {
     flex: 1,
@@ -213,16 +213,16 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: COLORS.textDark,
+    color: COLOR.onSurface,
     marginBottom: 8,
   },
   heroSubtitle: {
     fontSize: 16,
-    color: COLORS.textGray,
+    color: COLOR.onSurfaceVariant,
     marginBottom: 16,
   },
   heroBadge: {
-    backgroundColor: '#E0E7FF',
+    backgroundColor: COLOR.primaryFixed,
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 6,
@@ -233,9 +233,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   planCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLOR.surfaceContainerLowest,
     borderWidth: 1,
-    borderColor: COLORS.borderGray,
+    borderColor: COLOR.outlineVariant,
     borderRadius: 16,
     padding: 22,
     marginHorizontal: 20,
@@ -244,50 +244,50 @@ const styles = StyleSheet.create({
   planName: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.textDark,
+    color: COLOR.onSurface,
     marginBottom: 4,
   },
   planPrice: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: COLORS.textDark,
+    color: COLOR.onSurface,
     marginBottom: 16,
   },
   planPer: {
     fontSize: 14,
     fontWeight: 'normal',
-    color: COLORS.textGray,
+    color: COLOR.onSurfaceVariant,
   },
   planDesc: {
     fontSize: 14,
-    color: COLORS.textGray,
+    color: COLOR.onSurfaceVariant,
     marginBottom: 16,
   },
   planFeature: {
     fontSize: 14,
-    color: COLORS.textGray,
+    color: COLOR.onSurfaceVariant,
     marginBottom: 8,
   },
   planButtonOutline: {
     borderWidth: 1,
-    borderColor: COLORS.borderGray,
+    borderColor: COLOR.outlineVariant,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
     marginTop: 8,
   },
   planButtonOutlineText: {
-    color: COLORS.textDark,
+    color: COLOR.onSurface,
     fontSize: 15,
     fontWeight: '600',
   },
   planCardPremium: {
-    backgroundColor: COLORS.purple,
+    backgroundColor: COLOR.secondary,
     borderRadius: 16,
     padding: 22,
     marginHorizontal: 20,
     marginBottom: 16,
-    shadowColor: COLORS.purple,
+    shadowColor: COLOR.secondary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
   planNamePremium: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.white,
+    color: COLOR.surfaceContainerLowest,
     marginBottom: 12,
   },
   billingToggle: {
@@ -313,46 +313,46 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   billingOptionActive: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLOR.surfaceContainerLowest,
   },
   billingOptionText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#E0E7FF',
+color: 'rgba(255,255,255,0.8)',
   },
   billingOptionTextActive: {
-    color: COLORS.primary,
+    color: COLOR.primary,
   },
   planStrike: {
     fontSize: 14,
-    color: '#C7D2FE',
+    color: 'rgba(255,255,255,0.8)',
     textDecorationLine: 'line-through',
     marginBottom: 2,
   },
   planPricePremium: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: COLORS.white,
+    color: COLOR.surfaceContainerLowest,
     marginBottom: 4,
   },
   planPerPremium: {
     fontSize: 14,
     fontWeight: 'normal',
-    color: '#C7D2FE',
+    color: 'rgba(255,255,255,0.8)',
   },
   planPromo: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#E0E7FF',
+    color: 'rgba(255,255,255,0.9)',
     marginBottom: 16,
   },
   planFeaturePremium: {
     fontSize: 14,
-    color: COLORS.white,
+    color: COLOR.surfaceContainerLowest,
     marginBottom: 8,
   },
   planButtonPremium: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLOR.surfaceContainerLowest,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
@@ -376,12 +376,12 @@ const styles = StyleSheet.create({
   compareTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.textDark,
+    color: COLOR.onSurface,
     textAlign: 'center',
     marginBottom: 4,
   },
   compareTable: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLOR.surfaceContainerLowest,
     borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -392,16 +392,16 @@ const styles = StyleSheet.create({
   },
   compareHeader: {
     flexDirection: 'row',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: COLOR.surfaceContainerLow,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderGray,
+    borderBottomColor: COLOR.outlineVariant,
     paddingVertical: 14,
     paddingHorizontal: 16,
   },
   compareHeaderText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.textDark,
+    color: COLOR.onSurface,
   },
   comparePremiumHeader: {
     color: COLORS.primary,
@@ -411,10 +411,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: COLOR.outlineVariant,
   },
   compareRowAlt: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: COLOR.surfaceContainerLow,
   },
   compareCell: {
     flex: 1,
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
   },
   compareRowText: {
     fontSize: 13,
-    color: COLORS.textGray,
+    color: COLOR.onSurfaceVariant,
   },
   comparePremiumValue: {
     color: COLORS.primary,
@@ -435,23 +435,23 @@ const styles = StyleSheet.create({
   },
   compareNote: {
     fontSize: 13,
-    color: COLORS.textGray,
+    color: COLOR.onSurfaceVariant,
     textAlign: 'center',
     marginTop: 16,
   },
   footer: {
-    backgroundColor: COLORS.footerBg,
+    backgroundColor: COLOR.inverseSurface,
     paddingVertical: 28,
     alignItems: 'center',
   },
   footerText: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: COLOR.onSurfaceVariant,
     marginBottom: 8,
   },
   footerLink: {
     fontSize: 14,
-    color: '#818CF8',
+    color: COLOR.primaryFixed,
     fontWeight: '500',
   },
 });
