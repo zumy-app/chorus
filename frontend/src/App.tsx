@@ -10,6 +10,8 @@ import ResetPassword from './pages/ResetPassword'
 import Waitlist from './pages/Waitlist'
 import AdminWaitlist from './pages/AdminWaitlist'
 import Chat from './pages/Chat'
+import Learn from './pages/Learn'
+import Profile from './pages/Profile'
 import { authAPI } from './services/api'
 import { wsService } from './services/websocket'
 import { useStore } from './store'
@@ -139,6 +141,18 @@ function App() {
           path="/chat/:slug"
           element={
             isAuthenticated ? <Chat onLogout={handleLogout} /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/learn"
+          element={
+            isAuthenticated ? <Learn /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            isAuthenticated ? <Profile onLogout={handleLogout} /> : <Navigate to="/login" />
           }
         />
       </Routes>

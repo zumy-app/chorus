@@ -3,9 +3,12 @@
 @tailwind utilities;
 
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Be Vietnam Pro', Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
+  color: #0b1c30;
+  background-color: #f8f9ff;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -15,6 +18,49 @@ body {
 
 #root {
   height: 100vh;
+}
+
+/* Material Symbols base weight */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Insight Purple Glow for AI elements */
+.insight-glow {
+  box-shadow: 0px 4px 12px rgba(107, 56, 212, 0.1);
+}
+
+/* Soft Elevation Level 1 */
+.elevation-1 {
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* Hide scrollbar for clean UI but keep functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Chat bubble corner shapes */
+.bubble-incoming {
+  border-radius: 1.5rem 1.5rem 1.5rem 0.25rem;
+}
+.bubble-outgoing {
+  border-radius: 1.5rem 1.5rem 0.25rem 1.5rem;
 }
 
 /* Custom scrollbar */

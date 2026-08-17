@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS } from '../theme';
+import { COLOR } from '../theme';
 
 // Mirrors the web frontend's About page (frontend/src/pages/About.tsx).
 const ABOUT_FEATURES = [
@@ -112,7 +112,7 @@ export default function AboutScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.bgLight,
+    backgroundColor: COLOR.background,
   },
   scroll: {
     flex: 1,
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: COLORS.primary,
+    backgroundColor: 'rgba(37,99,235,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -141,18 +141,18 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: COLORS.textDark,
+    color: COLOR.onSurface,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: COLORS.textGray,
+    color: COLOR.onSurfaceVariant,
     textAlign: 'center',
   },
   card: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLOR.surfaceContainerLowest,
     borderWidth: 1,
-    borderColor: COLORS.borderGray,
+    borderColor: COLOR.outlineVariant,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
@@ -160,13 +160,13 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.textDark,
+    color: COLOR.onSurface,
     marginBottom: 12,
   },
   cardText: {
     fontSize: 14,
     lineHeight: 22,
-    color: COLORS.textGray,
+    color: COLOR.onSurfaceVariant,
     marginBottom: 12,
   },
   featureRow: {
@@ -185,13 +185,13 @@ const styles = StyleSheet.create({
   featureTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: COLORS.textDark,
+    color: COLOR.onSurface,
     marginBottom: 2,
   },
   featureDesc: {
     fontSize: 13,
     lineHeight: 20,
-    color: COLORS.textGray,
+    color: COLOR.onSurfaceVariant,
   },
   languagesGrid: {
     flexDirection: 'row',
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   languageCell: {
     width: '30%',
     flexGrow: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: COLOR.surfaceContainerLow,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   languageName: {
     fontSize: 13,
     fontWeight: '500',
-    color: COLORS.textDark,
+    color: COLOR.onSurface,
   },
   footer: {
     alignItems: 'center',
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 13,
-    color: COLORS.textGray,
+    color: COLOR.onSurfaceVariant,
     marginBottom: 4,
   },
 });

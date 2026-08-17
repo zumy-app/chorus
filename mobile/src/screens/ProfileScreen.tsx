@@ -13,6 +13,7 @@ import storage from '../utils/storage';
 import apiService from '../services/api';
 import webSocketService from '../services/websocket';
 import { SUPPORTED_LANGUAGES, User } from '@chorus/shared';
+import { COLOR, FONTS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../theme';
 
 export default function ProfileScreen({ navigation }: any) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -98,67 +99,112 @@ export default function ProfileScreen({ navigation }: any) {
   if (!currentUser) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={COLOR.primary} />
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.section}>
-        <Text style={styles.label}>Display Name</Text>
-        <TextInput
-          style={styles.input}
-          value={displayName}
-          onChangeText={setDisplayName}
-          autoCorrect={false}
-        />
-        <Text style={styles.hint}>@{currentUser.username}</Text>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Profile</Text>
+        <Text style={styles.subtitle}>Manage your account and app preferences.</Text>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.label}>Native Language</Text>
-        <View style={styles.languageGrid}>
-          {SUPPORTED_LANGUAGES.map((lang) => (
-            <TouchableOpacity
-              key={lang.code}
-              style={[
-                styles.languageButton,
-                nativeLanguage === lang.code && styles.languageButtonSelected,
-              ]}
-              onPress={() => setNativeLanguage(lang.code)}>
-              <Text
-                style={[
-                  styles.languageButtonText,
-                  nativeLanguage === lang.code && styles.languageButtonTextSelected,
-                ]}>
-                {lang.nativeName}
-              </Text>
-            </TouchableOpacity>
-          ))}
+      {/* Account */}
+      <View style={styles.card}>
+        <Text style={styles.sectionHeader}>Account</Text>
+        <View style={styles.fieldRow}>
+          <Text style={styles.label}>Display Name</Text>
+          <TextInput
+            style={styles.input}
+            value={displayName}
+            onChangeText={setDisplayName}
+            autoCorrect={false}
+          />
+          <Text style={styles.hint}>@{currentUser.username}</Text>
+        </View>
+        <View style={styles.settingsRow}>
+          <Text style={styles.settingsRowIcon}>⭐</Text>
+          <Text style={styles.settingsRowText}>Subscription</Text>
+          <View style={styles.planBadge}>
+            <Text style={styles.planBadgeText}>Free</Text>
+          </View>
         </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.label}>Target Languages (learning)</Text>
-        <View style={styles.languageGrid}>
-          {SUPPORTED_LANGUAGES.filter((l) => l.code !== nativeLanguage).map((lang) => (
-            <TouchableOpacity
-              key={lang.code}
-              style={[
-                styles.languageButton,
-                targetLanguages.includes(lang.code) && styles.languageButtonSelected,
-              ]}
-              onPress={() => toggleTargetLanguage(lang.code)}>
-              <Text
+      {/* Language */}
+      <View style={styles.card}>
+        <Text style={styles.sectionHeader}>Language</Text>
+        <View style={styles.fieldRow}>
+          <Text style={styles.label}>Native Language</Text>
+          <View style={styles.languageGrid}>
+            {SUPPORTED_LANGUAGES.map((lang) => (
+              <TouchableOpacity
+                key={lang.code}
                 style={[
-                  styles.languageButtonText,
-                  targetLanguages.includes(lang.code) && styles.languageButtonTextSelected,
-                ]}>
-                {lang.nativeName}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                  styles.languageButton,
+                  nativeLanguage === lang.code && styles.languageButtonSelected,
+                ]}
+                onPress={() => setNativeLanguage(lang.code)}>
+                <Text
+                  style={[
+                    styles.languageButtonText,
+                    nativeLanguage === lang.code && styles.languageButtonTextSelected,
+                  ]}>
+                  {lang.nativeName}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+        <View style={styles.fieldRow}>
+          <Text style={styles.label}>Target Languages (learning)</Text>
+          <View style={styles.languageGrid}>
+            {SUPPORTED_LANGUAGES.filter((l) => l.code !== nativeLanguage).map((lang) => (
+              <TouchableOpacity
+                key={lang.code}
+                style={[
+                  styles.languageButton,
+                  targetLanguages.includes(lang.code) && styles.languageButtonSelected,
+                ]}
+                onPress={() => toggleTargetLanguage(lang.code)}>
+                <Text
+                  style={[
+                    styles.languageButtonText,
+                    targetLanguages.includes(lang.code) && styles.languageButtonTextSelected,
+                  ]}>
+                  {lang.nativeName}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </View>
+
+      {/* AI Features */}
+      <View style={[styles.card, styles.aiCard]}>
+        <Text style={[styles.sectionHeader, styles.aiSectionHeader]}>AI Features</Text>
+        <View style={styles.settingsRow}>
+          <Text style={styles.settingsRowIcon}>✨</Text>
+          <View style={styles.settingsRowTextWrap}>
+            <Text style={styles.settingsRowText}>Auto-translation</Text>
+            <Text style={styles.settingsRowDesc}>Translate incoming messages</Text>
+          </View>
+          <View style={styles.switchOn}>
+            <View style={styles.switchThumb} />
+          </View>
+        </View>
+        <View style={styles.settingsRow}>
+          <Text style={styles.settingsRowIcon}>📊</Text>
+          <View style={styles.settingsRowTextWrap}>
+            <Text style={styles.settingsRowText}>Grammar Analysis</Text>
+            <Text style={styles.settingsRowDesc}>Moderate</Text>
+          </View>
+          <Text style={styles.chevron}>›</Text>
         </View>
       </View>
 
@@ -167,9 +213,9 @@ export default function ProfileScreen({ navigation }: any) {
         onPress={handleSave}
         disabled={saving}>
         {saving ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={COLOR.onPrimary} />
         ) : (
-          <Text style={styles.saveButtonText}>Save</Text>
+          <Text style={styles.saveButtonText}>Save Changes</Text>
         )}
       </TouchableOpacity>
 
@@ -178,7 +224,7 @@ export default function ProfileScreen({ navigation }: any) {
         onPress={handleLogout}
         disabled={loggingOut}>
         {loggingOut ? (
-          <ActivityIndicator color="#d32f2f" />
+          <ActivityIndicator color={COLOR.error} />
         ) : (
           <Text style={styles.logoutButtonText}>Log Out</Text>
         )}
@@ -190,7 +236,7 @@ export default function ProfileScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLOR.background,
   },
   centered: {
     flex: 1,
@@ -198,31 +244,130 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   content: {
-    padding: 20,
-    paddingBottom: 40,
+    padding: SPACING.marginMobile,
+    paddingBottom: 48,
   },
-  section: {
-    marginBottom: 24,
+  header: {
+    marginBottom: SPACING.stackLg,
+  },
+  title: {
+    ...TYPOGRAPHY.headlineSm,
+    color: COLOR.onSurface,
+    fontFamily: FONTS.headline,
+    marginBottom: SPACING.unit,
+  },
+  subtitle: {
+    ...TYPOGRAPHY.bodySm,
+    color: COLOR.onSurfaceVariant,
+    fontFamily: FONTS.body,
+  },
+  card: {
+    ...SHADOWS.elevation1,
+    backgroundColor: COLOR.surfaceContainerLowest,
+    borderRadius: RADIUS.xl,
+    borderWidth: 1,
+    borderColor: COLOR.outlineVariant,
+    marginBottom: SPACING.stackMd,
+    overflow: 'hidden',
+  },
+  sectionHeader: {
+    ...TYPOGRAPHY.labelSm,
+    color: COLOR.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    backgroundColor: COLOR.surfaceContainerLow,
+    paddingHorizontal: SPACING.stackMd,
+    paddingVertical: SPACING.stackSm,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.outlineVariant,
+    fontFamily: FONTS.label,
+  },
+  fieldRow: {
+    padding: SPACING.stackMd,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.outlineVariant,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
+    ...TYPOGRAPHY.labelMd,
+    color: COLOR.onSurface,
+    marginBottom: SPACING.stackSm,
+    fontFamily: FONTS.label,
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: COLOR.surfaceContainerLowest,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderColor: COLOR.outlineVariant,
+    borderRadius: RADIUS.lg,
     padding: 14,
     fontSize: 16,
-    color: '#333',
+    color: COLOR.onSurface,
+    fontFamily: FONTS.body,
   },
   hint: {
     fontSize: 13,
-    color: '#888',
+    color: COLOR.onSurfaceVariant,
     marginTop: 6,
+    fontFamily: FONTS.body,
+  },
+  settingsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.stackMd,
+    paddingVertical: SPACING.stackMd,
+  },
+  settingsRowIcon: {
+    fontSize: 18,
+    marginRight: SPACING.stackMd,
+  },
+  settingsRowTextWrap: {
+    flex: 1,
+  },
+  settingsRowText: {
+    ...TYPOGRAPHY.bodyMd,
+    color: COLOR.onSurface,
+    fontFamily: FONTS.body,
+  },
+  settingsRowDesc: {
+    ...TYPOGRAPHY.bodySm,
+    color: COLOR.onSurfaceVariant,
+    fontFamily: FONTS.body,
+  },
+  planBadge: {
+    backgroundColor: COLOR.primaryContainer,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  planBadgeText: {
+    ...TYPOGRAPHY.labelSm,
+    color: COLOR.onPrimaryContainer,
+    fontFamily: FONTS.label,
+  },
+  chevron: {
+    fontSize: 24,
+    color: COLOR.outlineVariant,
+  },
+  aiCard: {
+    borderLeftWidth: 4,
+    borderLeftColor: COLOR.secondary,
+  },
+  aiSectionHeader: {
+    color: COLOR.secondary,
+  },
+  switchOn: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: COLOR.secondary,
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  switchThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    alignSelf: 'flex-end',
   },
   languageGrid: {
     flexDirection: 'row',
@@ -232,50 +377,53 @@ const styles = StyleSheet.create({
   languageButton: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#fff',
+    backgroundColor: COLOR.surfaceContainerLowest,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderColor: COLOR.outlineVariant,
+    borderRadius: RADIUS.lg,
     padding: 12,
     alignItems: 'center',
   },
   languageButtonSelected: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    backgroundColor: COLOR.primary,
+    borderColor: COLOR.primary,
   },
   languageButtonText: {
     fontSize: 14,
-    color: '#333',
+    color: COLOR.onSurface,
+    fontFamily: FONTS.body,
   },
   languageButtonTextSelected: {
-    color: '#fff',
+    color: COLOR.onPrimary,
     fontWeight: '600',
   },
   saveButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
+    backgroundColor: COLOR.primary,
+    borderRadius: RADIUS.xl,
     padding: 16,
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: SPACING.stackSm,
   },
   saveButtonText: {
-    color: '#fff',
+    color: COLOR.onPrimary,
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: FONTS.body,
   },
   logoutButton: {
-    backgroundColor: '#fff',
+    backgroundColor: COLOR.surfaceContainerLowest,
     borderWidth: 1,
-    borderColor: '#d32f2f',
-    borderRadius: 8,
+    borderColor: COLOR.error,
+    borderRadius: RADIUS.xl,
     padding: 16,
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: SPACING.stackMd,
   },
   logoutButtonText: {
-    color: '#d32f2f',
+    color: COLOR.error,
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: FONTS.body,
   },
   buttonDisabled: {
     opacity: 0.6,

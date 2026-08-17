@@ -4,12 +4,13 @@
 import { createWebSocketService, resolveApiConfig, type ApiPlatform } from '@chorus/shared';
 import { Platform } from 'react-native';
 import storage from '../utils/storage';
+import { API_ORIGIN } from './api';
 
 // Derived from the same resolver as the HTTP base URL so the two never drift.
 const { wsUrl } = resolveApiConfig({
   platform: Platform.OS as ApiPlatform,
   dev: __DEV__,
-  origin: process.env.EXPO_PUBLIC_API_URL,
+  origin: API_ORIGIN,
   version: process.env.EXPO_PUBLIC_API_VERSION,
 });
 
