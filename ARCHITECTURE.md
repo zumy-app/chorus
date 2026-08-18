@@ -24,7 +24,7 @@ A comprehensive guide to understanding the Chorus messenger application's archit
 - **Backend**: Go (Gin) REST API + WebSocket server
 - **Database**: PostgreSQL (durable state) + Redis (cache, pub/sub, sessions)
 - **Frontend (Web)**: React + TypeScript (Vite)
-- **Frontend (Mobile)**: Capacitor-wrapped React (Android/iOS)
+- **Frontend (Mobile)**: Expo-managed React Native application (Android/iOS)
 
 ### Core Use Cases
 
@@ -212,7 +212,7 @@ The backend follows a **3-layer architecture**:
 
 ## Frontend Architecture
 
-### Project Structure
+### Web Project Structure
 
 ```
 frontend/
@@ -238,13 +238,29 @@ frontend/
 │   ├── App.tsx                ← Root component, auth check, routing
 │   ├── main.tsx               ← React entry point
 │   └── index.css              ← Base styles
-├── android/                    ← Capacitor Android shell
 ├── package.json
 ├── tsconfig.json
 ├── vite.config.ts
 ├── tailwind.config.js
-└── capacitor.config.ts        ← Capacitor settings
 ```
+
+### Mobile Project Structure
+
+```
+mobile/
+├── app/                         ← Expo Router routes and layouts
+├── src/
+│   ├── services/                ← API, WebSocket, session, and configuration
+│   ├── store/                   ← Mobile state
+│   └── types/                   ← Shared mobile types
+├── app.config.ts                ← Expo app identifiers and platform configuration
+├── eas.json                     ← EAS development, preview, and production profiles
+└── package.json
+```
+
+The mobile client reads the public `EXPO_PUBLIC_API_URL` at build/start time. The API service derives a WebSocket URL by converting HTTPS to WSS and uses `/ws`. In the absence of a configured value, Android emulator development falls back to `http://10.0.2.2:8080/api/v1`. This default is not suitable for physical devices or production.
+
+Session tokens are stored with Expo SecureStore rather than browser `localStorage`. Public Expo variables are included in the app binary, so they must never hold server secrets, signing keys, or push credentials.
 
 ### State Management (Zustand)
 
@@ -902,6 +918,13 @@ PORT=8080
 ```
 VITE_API_URL=/api/v1  # Or http://api.example.com/api/v1
 ```
+
+**Mobile:**
+```
+EXPO_PUBLIC_API_URL=https://api.example.com/api/v1
+```
+
+The mobile value is public client configuration. Production API and WebSocket endpoints must use HTTPS and WSS. Build signing credentials, `EXPO_TOKEN`, and push-provider credentials are managed outside this configuration through EAS/CI secrets.
 
 ---
 

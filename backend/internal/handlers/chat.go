@@ -57,6 +57,13 @@ func (h *ChatHandler) GetUserChats(c *gin.Context) {
 		}
 
 		chats[i].Participants = participants
+
+		// A mobile chat list needs a useful preview and badge without issuing a
+		// request per row. Failure to enrich one chat must not hide the list.
+		if summary, err := h.chatService.GetSummary(chats[i].ID, userID); err == nil {
+			chats[i].LastMessage = summary.LastMessage
+			chats[i].UnreadCount = summary.UnreadCount
+		}
 	}
 
 	c.JSON(200, gin.H{

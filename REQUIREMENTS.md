@@ -32,6 +32,7 @@ Chorus ("chorus.talk") is a multilingual real-time messenger that lets users **l
 - **FR-1** Users must be able to register, log in, and log out (password + JWT access/refresh tokens).
 - **FR-2** Each user profile must declare a native (source) language and one or more target languages.
 - **FR-3** Users must be able to update their target languages at any time from settings.
+- **FR-3a** Users must be able to initiate account deletion from the mobile app. The flow must call the authenticated account-deletion API, clear locally stored credentials after success, and explain any retained data or required support follow-up.
 
 ### Messaging (chorus.talk)
 
@@ -100,8 +101,10 @@ Chorus ("chorus.talk") is a multilingual real-time messenger that lets users **l
 
 ### Compatibility & Compliance
 
-- **NFR-22** chorus.talk must work on Web (desktop/mob) and mobile (Capacitor Android/iOS) with consistent functionality.
-- **NFR-23** A data retention policy must be defined for stored messages and translation content (GDPR-oriented), even if enforced minimally in Phase 1.
+- **NFR-22** chorus.talk must work on Web (desktop/mobile) and the Expo-managed Android/iOS app with consistent core functionality.
+- **NFR-23** A data retention policy must be defined for stored messages, translation content, device/push tokens, and account-deletion data (GDPR-oriented), even if enforced minimally in Phase 1.
+- **NFR-24** Mobile release builds must use public, environment-specific API configuration only. Secrets, signing material, and push-provider credentials must not be embedded in the client binary or committed to the repository.
+- **NFR-25** Before store release, Android and iOS builds must pass automated install/type/test/config checks and manual real-device validation of authentication, network recovery, privacy-policy links, account deletion, and any enabled push-notification flow.
 
 ## 6. Architectural Assumptions
 
