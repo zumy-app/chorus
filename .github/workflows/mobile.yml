@@ -1,0 +1,43 @@
+name: Mobile checks
+
+on:
+  pull_request:
+    paths:
+      - 'mobile/**'
+      - 'backend/**'
+      - '.github/workflows/mobile.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+      - 'backend/**'
+      - '.github/workflows/mobile.yml'
+
+jobs:
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npx expo config --type public
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+      - run: go test ./...

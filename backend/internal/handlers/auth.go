@@ -287,6 +287,21 @@ func (h *AuthHandler) UpdateMe(c *gin.Context) {
 	c.JSON(200, user)
 }
 
+// DeleteMe performs a privacy-preserving account deletion. The account is
+// soft-deleted so existing conversations retain their structure, while all
+// sessions are revoked and the user can no longer authenticate or be found.
+func (h *AuthHandler) DeleteMe(c *gin.Context) {
+	userID := c.GetString("userID")
+	if err := h.userService.SetDeleted(userID); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+	if err := h.authService.DeleteUserRefreshTokens(userID); err != nil {
+		log.Printf("Failed to revoke refresh tokens for deleted user %s: %v", userID, err)
+	}
+	c.Status(http.StatusNoContent)
+}
+
 func (h *AuthHandler) SearchUsers(c *gin.Context) {
 	query := c.Query("q")
 	if query == "" {

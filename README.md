@@ -105,7 +105,7 @@ Then refresh your browser at http://localhost:3000
 - **Backend**: Go + Gin monolith with layered structure (`handlers` → `services` → `database/models`) and REST + WebSocket interfaces.
 - **Data layer**: PostgreSQL for durable state and Redis for cache/pub-sub/presence runtime state.
 - **Frontend (Web)**: React + TypeScript SPA (Vite, Zustand, Axios) with route-based auth flow.
-- **Frontend (Mobile)**: Capacitor Android shell around the React app; emulator API access uses `10.0.2.2`.
+- **Frontend (Mobile)**: Expo-managed React Native app for Android and iOS; the Android-emulator development API default uses `10.0.2.2`.
 - **Deployment**: Docker Compose orchestration for `frontend`, `backend`, `postgres`, and `redis`.
 
 ### Design & Implementation Shape
@@ -169,7 +169,7 @@ Then refresh your browser at http://localhost:3000
 ## Prerequisites
 
 - Go 1.23 or higher
-- Node.js 20 or higher (**Node 22+ recommended** for Capacitor 8 tooling)
+- Node.js 20 or higher (**Node 22 recommended** for the Expo mobile tooling and CI)
 - PostgreSQL 15 or higher
 - Redis 7 or higher
 - Docker & Docker Compose (optional, for containerized deployment)
@@ -383,7 +383,7 @@ Services will be available at:
 - ✅ PostgreSQL 15+ installed and running
 - ✅ Redis 7+ installed and running
 - ✅ Go 1.23+ installed
-- ✅ Node.js 20+ installed (22+ recommended for Capacitor 8)
+- ✅ Node.js 20+ installed (22 recommended for Expo mobile tooling)
 
 ### Step-by-Step Service Startup
 
@@ -449,28 +449,27 @@ npm run dev
 
 Frontend will be available at http://localhost:3000
 
-#### 5. Start Android Mobile App (Capacitor)
+#### 5. Start the Expo Mobile App
 
 ```powershell
-# Navigate to frontend app (mobile shell uses this web app)
-cd frontend
+# Navigate to the Expo-managed mobile app
+cd mobile
 
 # Install dependencies (first time only)
-npm install
+npm ci
 
-# Build web assets
-npm run build
+# Start on a running Android emulator or connected Android device
+npm run android
 
-# Sync assets/plugins to Android project
-npx cap sync android
-
-# Run on connected emulator/device
-npx cap run android --target=<deviceId>
+# Start on the iOS Simulator (macOS only)
+npm run ios
 ```
 
 Notes:
-- Use `adb devices` to list target IDs.
-- For Android emulator networking, API host mapping uses `10.0.2.2`.
+- Use `adb devices` to confirm Android targets.
+- `EXPO_PUBLIC_API_URL` configures the API. Its Android-emulator default is `http://10.0.2.2:8080/api/v1`; use a device-reachable HTTPS endpoint on physical devices and in production.
+- `EXPO_PUBLIC_*` values are embedded in the app build. Do not put secrets in them.
+- See [ANDROID_SETUP.md](ANDROID_SETUP.md) and [docs/MOBILE_STRATEGY.md](docs/MOBILE_STRATEGY.md) for setup, EAS credentials, push, privacy, and release checks.
 
 ### Build Commands
 
@@ -491,15 +490,17 @@ npm run build
 
 #### Build Android Mobile App
 
-```powershell
-cd frontend
-npm run build
-npx cap sync android
+```bash
+cd mobile
 
-# Build debug APK
-cd android
-.\gradlew.bat assembleDebug
+# Internal QA APK
+npx eas build --platform android --profile preview
+
+# Store-ready Android App Bundle
+npx eas build --platform android --profile production
 ```
+
+EAS manages build credentials; never commit signing keys or `EXPO_TOKEN`. The production profile is configured for an Android App Bundle. For iOS/TestFlight builds, use `npx eas build --platform ios --profile production`.
 
 ### Stop Services
 

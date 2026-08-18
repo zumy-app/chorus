@@ -1,239 +1,112 @@
-# Android Development Setup Guide
+# Android Setup for Expo-Managed Chorus
+
+Chorus mobile lives in `mobile/` and is an Expo-managed React Native app. Use Expo commands from that directory; do not use legacy `react-native run-android`, Metro-only commands, Gradle wrappers, or Capacitor commands.
 
 ## Prerequisites
 
-To run the Chorus mobile app on an Android emulator, you need to install the Android SDK and set up an Android Virtual Device (AVD).
+- Node.js 22 (the repository CI version)
+- Android Studio with the Android SDK, Platform-Tools, Android Emulator, and an emulator system image
+- A recent Android emulator or a USB-debuggable physical device
+- The Chorus backend running locally or an accessible HTTPS development API
 
-## Installation Steps
+Install the JavaScript dependencies:
 
-### 1. Install Android Studio
-Download and install Android Studio from: https://developer.android.com/studio
+```bash
+cd mobile
+npm ci
+```
 
-During installation, make sure to install:
-- Android SDK
-- Android SDK Platform
-- Android Virtual Device
+## Android SDK setup
 
-### 2. Configure Environment Variables
+Install Android Studio from <https://developer.android.com/studio>. In **Tools > SDK Manager**, install Android SDK Platform-Tools, Android Emulator, and at least one current Android SDK platform and Google APIs system image. In **Tools > Device Manager**, create a device such as a Pixel profile and start it.
 
-Add the following to your system environment variables:
+Configure the SDK for your shell if Android Studio did not do this automatically:
 
-**Windows:**
+```bash
+# macOS
+export ANDROID_HOME="$HOME/Library/Android/sdk"
+export PATH="$PATH:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools"
+```
+
 ```powershell
-setx ANDROID_HOME "%LOCALAPPDATA%\Android\Sdk"
-setx PATH "%PATH%;%LOCALAPPDATA%\Android\Sdk\platform-tools;%LOCALAPPDATA%\Android\Sdk\tools;%LOCALAPPDATA%\Android\Sdk\emulator"
+# Windows PowerShell (current session)
+$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
+$env:Path += ";$env:ANDROID_HOME\emulator;$env:ANDROID_HOME\platform-tools"
 ```
 
-**macOS/Linux:**
-```bash
-export ANDROID_HOME=$HOME/Library/Android/sdk
-export PATH=$PATH:$ANDROID_HOME/emulator
-export PATH=$PATH:$ANDROID_HOME/platform-tools
-```
-
-### 3. Install Required SDK Packages
-
-Open Android Studio and go to: **Tools > SDK Manager**
-
-Install:
-- Android SDK Platform 34 (or latest)
-- Android SDK Build-Tools 34.0.0 (or latest)
-- Android Emulator
-- Android SDK Platform-Tools
-
-Or via command line:
-```bash
-sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0" "system-images;android-34;google_apis;x86_64"
-```
-
-### 4. Create an Android Virtual Device (AVD)
-
-**Option A: Using Android Studio**
-1. Open Android Studio
-2. Go to **Tools > Device Manager**
-3. Click **Create Device**
-4. Select a device definition (e.g., Pixel 6)
-5. Select a system image (e.g., Android 14.0 with Google APIs)
-6. Configure AVD settings
-7. Click **Finish**
-
-**Option B: Using Command Line**
-```bash
-avdmanager create avd -n ChorusEmulator -k "system-images;android-34;google_apis;x86_64" -d "pixel_6"
-```
-
-### 5. List Available AVDs
+Confirm that a device is visible:
 
 ```bash
+adb devices
 emulator -list-avds
 ```
 
-### 6. Start the Emulator
+## Configure the API endpoint
 
-**Option A: From Android Studio**
-- Open Device Manager
-- Click the play button next to your AVD
+For the Android emulator, the app defaults to:
 
-**Option B: From Command Line**
-```bash
-emulator -avd ChorusEmulator
+```env
+EXPO_PUBLIC_API_URL=http://10.0.2.2:8080/api/v1
 ```
 
-## Running the Chorus Mobile App
+`10.0.2.2` reaches the host machine from an Android emulator. To use another API, set `EXPO_PUBLIC_API_URL` in the environment that starts Expo or in the appropriate EAS environment. The value is public build configuration, not a secret. Production builds must use an HTTPS API endpoint; the corresponding WebSocket endpoint is derived as WSS.
 
-### Prerequisites
-Ensure the backend services are running:
-```powershell
-cd c:\dev\chorus
-docker-compose up -d
-```
+Physical devices cannot use `10.0.2.2`. Use an HTTPS endpoint reachable from the device, or a temporary LAN/tunnel endpoint appropriate for local development.
 
-### Start Metro Bundler
+## Run the app
+
+Start the backend first, then launch the Android target:
+
 ```bash
-cd c:\dev\chorus\ChorusMobile
-npm start
-```
-
-### Run on Android Emulator
-In a new terminal:
-```bash
-cd c:\dev\chorus\ChorusMobile
-npx react-native run-android
-```
-
-Or with npm script (if configured):
-```bash
+cd mobile
 npm run android
 ```
 
+Expo starts its development server and opens the running emulator or a connected device. If it does not select a target, start an emulator in Android Studio or connect a device with USB debugging enabled, then rerun the command.
+
+To inspect the resolved public configuration:
+
+```bash
+npx expo config --type public
+```
+
+Do not place server credentials, signing material, `EXPO_TOKEN`, or push-provider credentials in `EXPO_PUBLIC_*` variables; public Expo configuration is bundled into the app.
+
+## Build distributable Android artifacts
+
+EAS Build creates the binary remotely using the project profiles in `mobile/eas.json`:
+
+```bash
+cd mobile
+npx eas build --platform android --profile preview
+npx eas build --platform android --profile production
+```
+
+The `preview` profile creates an internally distributable APK. The `production` profile creates an Android App Bundle for Play Store delivery and increments the Android version code through EAS. Use `npx eas credentials` or the EAS dashboard to manage the Android signing key. Keep signing keys and the EAS access token out of the repository.
+
 ## Troubleshooting
 
-### "SDK location not found"
-Create `android/local.properties` file:
-```
-sdk.dir=C:\\Users\\YourUsername\\AppData\\Local\\Android\\Sdk
-```
+**No Android device found**
 
-### "Unable to load script from assets"
-1. Make sure Metro bundler is running (`npm start`)
-2. Try clearing cache: `npm start -- --reset-cache`
-3. Reload app in emulator: Press `R` twice or `Ctrl+M` > `Reload`
+- Start an AVD from Android Studio Device Manager, or reconnect the physical device.
+- Run `adb devices`; authorize the device if it is listed as unauthorized.
 
-### "Emulator: ERROR: x86_64 emulation currently requires hardware acceleration!"
-Enable Intel HAXM or AMD-V/Hyper-V in BIOS
+**The app cannot reach the local API**
 
-### "Error: spawn ./gradlew ENOENT"
-Make sure you're in the ChorusMobile directory before running commands
+- Confirm the backend listens on port 8080.
+- On an Android emulator, use `10.0.2.2`, not `localhost`.
+- On a physical device, use a device-reachable HTTPS/LAN endpoint rather than `10.0.2.2`.
 
-### Port conflicts
-If port 8081 (Metro) is in use:
-```bash
-npx react-native start --port 8082
-npx react-native run-android --port 8082
-```
+**Configuration did not change**
 
-## Testing the App
+- Restart Expo after changing environment variables.
+- Run `npx expo config --type public` to verify the resolved public value.
 
-### 1. Registration Flow
-1. Launch app (should show Login screen)
-2. Tap "Don't have an account? Register"
-3. Fill in:
-   - Username: testuser
-   - Email: test@example.com
-   - Password: TestPass123!
-   - Display Name: Test User
-4. Tap "Create Account"
-5. Should navigate to Chat List screen
+**A production build fails**
 
-### 2. Login Flow
-1. Enter username or email
-2. Enter password
-3. Tap "Sign In"
-4. Should navigate to Chat List screen
+- Run `npm ci`, `npm run typecheck`, and `npm test` locally.
+- Check that the EAS project has access to its Android signing credentials and that CI has a valid `EXPO_TOKEN` secret.
 
-### 3. Chat Features
-1. Chat List: Shows empty state or existing chats
-2. Tap FAB (+) button to create new chat (when implemented)
-3. Select chat to view messages
-4. Send messages using input box
-5. Receive real-time updates
+## Release checks
 
-### 4. Verify Backend Connection
-The app connects to `http://10.0.2.2:8080` which is the special Android emulator address for host machine's localhost.
-
-Check backend logs:
-```bash
-docker logs chorus-backend --follow
-```
-
-## Development Tips
-
-### Live Reload
-- Enable Fast Refresh in app: Shake device > Enable Fast Refresh
-- Changes to React components will hot-reload automatically
-
-### Debug Menu
-- Android Emulator: Press `Ctrl+M` or `Cmd+M`
-- Options: Reload, Debug, Show Inspector, etc.
-
-### React Native Debugger
-Install standalone debugger for better DX:
-```bash
-npm install -g react-native-debugger
-```
-
-### Viewing Logs
-```bash
-# All logs
-npx react-native log-android
-
-# Filtered
-npx react-native log-android | grep "Chorus"
-```
-
-## Alternative: Physical Device
-
-### Enable Developer Options
-1. Go to Settings > About Phone
-2. Tap "Build Number" 7 times
-3. Go back to Settings > Developer Options
-4. Enable "USB Debugging"
-
-### Connect via USB
-```bash
-# List devices
-adb devices
-
-# Run on device
-npx react-native run-android --device
-```
-
-### Connect via WiFi (same network as PC)
-```bash
-# Get device IP
-adb shell ip addr show wlan0
-
-# Connect
-adb tcpip 5555
-adb connect <DEVICE_IP>:5555
-
-# Run
-npx react-native run-android
-```
-
-## Next Steps
-
-Once the emulator is set up and app is running:
-1. Test all authentication flows
-2. Create and join chats
-3. Send and receive messages
-4. Test real-time features (typing indicators, new messages)
-5. Test translation features
-6. Run comprehensive UI/UX testing
-
-## Resources
-
-- [React Native Environment Setup](https://reactnative.dev/docs/environment-setup)
-- [Android Studio Downloads](https://developer.android.com/studio)
-- [React Native Debugging](https://reactnative.dev/docs/debugging)
-- [Android Emulator Guide](https://developer.android.com/studio/run/emulator)
+Before Play submission, test a preview build on real hardware and verify authentication, token refresh/logout, chat recovery after network loss, account deletion, privacy-policy links, and any enabled push-notification flow. See [docs/MOBILE_STRATEGY.md](docs/MOBILE_STRATEGY.md) for the full Android/iOS release gate and credential guidance.

@@ -171,6 +171,48 @@ func (s *ChatService) GetUserChats(userID string) ([]models.Chat, error) {
 	return chats, nil
 }
 
+// GetSummary returns the message preview and unread count that mobile clients
+// need to render a chat list without making two additional API calls.
+func (s *ChatService) GetSummary(chatID, userID string) (*models.Chat, error) {
+	summary := &models.Chat{ID: chatID}
+	var message models.Message
+	var translations []byte
+	var replyToID *string
+	err := s.db.QueryRow(`
+		SELECT id, chat_id, sender_id, text, original_language, translations, delivery_status, reply_to_id, created_at
+		FROM messages
+		WHERE chat_id = $1
+		ORDER BY created_at DESC
+		LIMIT 1
+	`, chatID).Scan(
+		&message.ID, &message.ChatID, &message.SenderID, &message.Text, &message.OriginalLanguage,
+		&translations, &message.DeliveryStatus, &replyToID, &message.CreatedAt,
+	)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, err
+	}
+	if err == nil {
+		message.ReplyToID = replyToID
+		_ = json.Unmarshal(translations, &message.Translations)
+		summary.LastMessage = &message
+	}
+
+	err = s.db.QueryRow(`
+		SELECT COUNT(*)
+		FROM messages m
+		LEFT JOIN chat_participants cp ON cp.chat_id = m.chat_id AND cp.user_id = $2
+		WHERE m.chat_id = $1
+		  AND m.sender_id <> $2
+		  AND (cp.last_read_message_id IS NULL OR m.created_at > COALESCE(
+			(SELECT created_at FROM messages WHERE id = cp.last_read_message_id), 'epoch'::timestamp
+		  ))
+	`, chatID, userID).Scan(&summary.UnreadCount)
+	if err != nil {
+		return nil, err
+	}
+	return summary, nil
+}
+
 func (s *ChatService) GetParticipants(chatID string) ([]models.ChatParticipant, error) {
 	query := `
 		SELECT id, chat_id, user_id, role, joined_at, last_read_message_id

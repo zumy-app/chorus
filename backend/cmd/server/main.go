@@ -275,6 +275,7 @@ func main() {
 		protected.GET("/users/me", authHandler.GetMe)
 		protected.GET("/users/me/entitlements", authHandler.GetMyEntitlements)
 		protected.PUT("/users/me", authHandler.UpdateMe)
+		protected.DELETE("/users/me", authHandler.DeleteMe)
 		protected.GET("/users/search", authHandler.SearchUsers)
 
 		// Subscription routes (Phase 1.5).

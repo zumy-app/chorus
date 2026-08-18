@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chorus/messenger/internal/models"
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/chorus/messenger/internal/models"
 )
 
 func TestChatCreate_Direct(t *testing.T) {
@@ -238,6 +238,38 @@ func TestFindDirectChat_NotExists(t *testing.T) {
 		t.Fatal("expected error when direct chat not found")
 	}
 
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+func TestChatSummary_UsesLatestMessageAndUnreadCount(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to create sqlmock: %v", err)
+	}
+	defer db.Close()
+
+	s := NewChatService(db)
+	now := time.Now()
+	mock.ExpectQuery(`SELECT id, chat_id, sender_id, text, original_language, translations, delivery_status, reply_to_id, created_at FROM messages WHERE chat_id = \$1 ORDER BY created_at DESC LIMIT 1`).
+		WithArgs("chat-1").
+		WillReturnRows(sqlmock.NewRows([]string{"id", "chat_id", "sender_id", "text", "original_language", "translations", "delivery_status", "reply_to_id", "created_at"}).
+			AddRow("message-1", "chat-1", "other-user", "Hello", "en", []byte("{}"), "sent", nil, now))
+	mock.ExpectQuery(`SELECT COUNT\(\*\) FROM messages`).
+		WithArgs("chat-1", "user-1").
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(2))
+
+	summary, err := s.GetSummary("chat-1", "user-1")
+	if err != nil {
+		t.Fatalf("GetSummary failed: %v", err)
+	}
+	if summary.LastMessage == nil || summary.LastMessage.ID != "message-1" {
+		t.Fatalf("expected latest message in summary")
+	}
+	if summary.UnreadCount != 2 {
+		t.Fatalf("expected 2 unread messages, got %d", summary.UnreadCount)
+	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("unmet expectations: %v", err)
 	}
