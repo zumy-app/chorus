@@ -129,6 +129,10 @@ func Migrate(db *sql.DB) error {
 		`ALTER TABLE waitlist_entries DROP CONSTRAINT IF EXISTS waitlist_entries_status_check`,
 		`ALTER TABLE waitlist_entries ADD CONSTRAINT waitlist_entries_status_check CHECK (status IN ('pending', 'approved', 'declined'))`,
 
+		// Phase 1: Language level tracking
+		`ALTER TABLE waitlist_entries ADD COLUMN IF NOT EXISTS target_language_level VARCHAR(20) NOT NULL DEFAULT ''`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS target_language_level VARCHAR(20) NOT NULL DEFAULT ''`,
+
 		// Durable email outbox: every notification is persisted here before it
 		// is handed to SMTP so none are lost, and failed sends are retried by
 		// the NotificationService background worker.

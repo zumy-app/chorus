@@ -4,6 +4,7 @@ export interface User {
   email: string
   displayName: string
   nativeLanguage: string
+  targetLanguageLevel: string
   targetLanguages: string[]
   role: 'member' | 'moderator' | 'admin'
   createdAt: string
@@ -234,6 +235,7 @@ export interface RegisterRequest {
   password: string
   displayName: string
   nativeLanguage: string
+  targetLanguageLevel?: string
   targetLanguages: string[]
   inviteToken: string
 }
@@ -242,6 +244,7 @@ export interface WaitlistRequest {
   email: string
   spokenLanguages: string[]
   targetLanguages: string[]
+  targetLanguageLevel: string
   reasons: string[]
   comments?: string
 }
@@ -251,6 +254,7 @@ export interface WaitlistEntry {
   email: string
   spokenLanguages: string[]
   targetLanguages: string[]
+  targetLanguageLevel: string
   reasons: string[]
   comments?: string
   status: 'pending' | 'approved' | 'declined'

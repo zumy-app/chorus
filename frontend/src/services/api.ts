@@ -124,7 +124,7 @@ export const authAPI = {
     return response.data
   },
 
-  updateMe: async (data: { displayName?: string; nativeLanguage?: string; targetLanguages?: string[] }) => {
+  updateMe: async (data: { displayName?: string; nativeLanguage?: string; targetLanguageLevel?: string; targetLanguages?: string[] }) => {
     const response = await api.put<User>('/users/me', data)
     return response.data
   },
