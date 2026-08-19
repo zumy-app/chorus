@@ -15,6 +15,7 @@ export default function Settings({ onClose }: SettingsProps) {
   const { user, updateUser } = useStore()
   const [displayName, setDisplayName] = useState(user?.displayName || '')
   const [nativeLanguage, setNativeLanguage] = useState(user?.nativeLanguage || 'en')
+  const [targetLanguageLevel, setTargetLanguageLevel] = useState(user?.targetLanguageLevel || 'A1')
   const [targetLanguages, setTargetLanguages] = useState<string[]>(user?.targetLanguages || [])
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -50,8 +51,8 @@ export default function Settings({ onClose }: SettingsProps) {
     setIsLoading(true)
     setMessage('')
     try {
-      await authAPI.updateMe({ displayName, nativeLanguage, targetLanguages })
-      updateUser({ displayName, nativeLanguage, targetLanguages })
+      await authAPI.updateMe({ displayName, nativeLanguage, targetLanguageLevel, targetLanguages })
+      updateUser({ displayName, nativeLanguage, targetLanguageLevel, targetLanguages })
       setIsSuccess(true)
       setMessage(t('settings.saved'))
       setTimeout(() => onClose(), 1500)
@@ -124,6 +125,23 @@ export default function Settings({ onClose }: SettingsProps) {
                   {lang.flag} {lang.name} ({lang.nativeName})
                 </option>
               ))}
+            </select>
+          </div>
+
+          {/* Target Language Level */}
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2">{t('settings.targetLanguageLevel', 'Target Language Level')}</label>
+            <select
+              value={targetLanguageLevel}
+              onChange={(e) => setTargetLanguageLevel(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="A1">A1 (Beginner)</option>
+              <option value="A2">A2 (Elementary)</option>
+              <option value="B1">B1 (Intermediate)</option>
+              <option value="B2">B2 (Upper Intermediate)</option>
+              <option value="C1">C1 (Advanced)</option>
+              <option value="C2">C2 (Mastery)</option>
             </select>
           </div>
 

@@ -38,7 +38,7 @@ This guide provides comprehensive instructions for running and testing the fully
 - Node.js 18+ (for frontend)
 - Docker & Docker Compose (optional)
 - Google Cloud API key (for Speech-to-Text, optional)
-- Google Translate API key
+- OpenRouter API key (optional — local Ollama/LibreTranslate works without it)
 
 ## 🚀 Quick Start
 
@@ -80,8 +80,6 @@ cat > .env << EOF
 DATABASE_URL=postgresql://postgres:password@localhost:5432/chorus_dev
 REDIS_URL=redis://localhost:6379
 JWT_SECRET=your-secret-key-change-this-in-production
-GOOGLE_TRANSLATE_API_KEY=your-google-translate-api-key
-GOOGLE_APPLICATION_CREDENTIALS=/path/to/google-cloud-credentials.json
 PORT=8080
 ENVIRONMENT=development
 EOF
@@ -272,8 +270,6 @@ npx react-native init ChorusMobile --template react-native-template-typescript
 DATABASE_URL=postgresql://user:pass@host:5432/dbname
 REDIS_URL=redis://host:6379
 JWT_SECRET=your-secret-key
-GOOGLE_TRANSLATE_API_KEY=your-api-key
-GOOGLE_APPLICATION_CREDENTIALS=/path/to/credentials.json
 PORT=8080
 ENVIRONMENT=development
 ```

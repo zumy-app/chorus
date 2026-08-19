@@ -68,7 +68,6 @@ type Config struct {
 	DatabaseURL           string
 	RedisURL              string
 	JWTSecret             string
-	GoogleTranslateAPIKey string
 	Port                  string
 	SMTPHost              string
 	SMTPPort              int
@@ -121,7 +120,6 @@ func Load() *Config {
 		DatabaseURL:           getEnv("DATABASE_URL", "postgres://messenger:password@localhost:5432/messenger_dev?sslmode=disable"),
 		RedisURL:              getEnv("REDIS_URL", "localhost:6379"),
 		JWTSecret:             getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
-		GoogleTranslateAPIKey: getEnv("GOOGLE_TRANSLATE_API_KEY", ""),
 		Port:                  getEnv("PORT", "8080"),
 		SMTPHost:              getEnv("MAILU_SMTP_HOST", ""),
 		SMTPPort:              getEnvInt("MAILU_SMTP_PORT", 465),

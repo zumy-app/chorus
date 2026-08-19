@@ -9,6 +9,7 @@ type User struct {
 	PasswordHash    string    `json:"-" db:"password_hash"`
 	DisplayName     string    `json:"displayName" db:"display_name"`
 	NativeLanguage  string    `json:"nativeLanguage" db:"native_language"`
+	TargetLanguageLevel string `json:"targetLanguageLevel" db:"target_language_level"`
 	TargetLanguages []string  `json:"targetLanguages" db:"target_languages"`
 	Role            string    `json:"role" db:"role"` // member, moderator, admin
 	CreatedAt       time.Time `json:"createdAt" db:"created_at"`
@@ -244,6 +245,7 @@ type RegisterRequest struct {
 	Password        string   `json:"password" binding:"required,min=8"`
 	DisplayName     string   `json:"displayName" binding:"omitempty,min=1,max=100"`
 	NativeLanguage  string   `json:"nativeLanguage" binding:"omitempty"`
+	TargetLanguageLevel string `json:"targetLanguageLevel" binding:"omitempty"`
 	TargetLanguages []string `json:"targetLanguages"`
 	InviteToken     string   `json:"inviteToken"`
 }
@@ -252,6 +254,7 @@ type WaitlistRequest struct {
 	Email           string   `json:"email" binding:"required,email"`
 	SpokenLanguages []string `json:"spokenLanguages" binding:"required,min=1"`
 	TargetLanguages []string `json:"targetLanguages"`
+	TargetLanguageLevel string `json:"targetLanguageLevel"`
 	Reasons         []string `json:"reasons" binding:"required,min=1"`
 	Comments        string   `json:"comments"`
 }
@@ -261,6 +264,7 @@ type WaitlistEntry struct {
 	Email           string     `json:"email"`
 	SpokenLanguages []string   `json:"spokenLanguages"`
 	TargetLanguages []string   `json:"targetLanguages"`
+	TargetLanguageLevel string `json:"targetLanguageLevel"`
 	Reasons         []string   `json:"reasons"`
 	Comments        string     `json:"comments"`
 	Status          string     `json:"status"`
@@ -348,6 +352,7 @@ type SendMessageRequest struct {
 type UpdateUserRequest struct {
 	DisplayName     string   `json:"displayName"`
 	NativeLanguage  string   `json:"nativeLanguage"`
+	TargetLanguageLevel string `json:"targetLanguageLevel"`
 	TargetLanguages []string `json:"targetLanguages"`
 }
 

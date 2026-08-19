@@ -17,7 +17,7 @@
 - ✅ **User Service** - Profile management, user search
 - ✅ **Chat Service** - Direct and group chat creation/management
 - ✅ **Message Service** - Message CRUD, search, read receipts
-- ✅ **Translation Service** - Google Translate API integration with caching
+- ✅ **Translation Service** - LLM provider chain (OpenRouter/Ollama) with Redis caching
 - ✅ **WebSocket Hub** - Real-time message broadcasting, typing indicators
 
 #### API Endpoints Implemented
@@ -198,11 +198,10 @@ npm run dev
 - `DATABASE_URL` - PostgreSQL connection string
 - `REDIS_URL` - Redis connection string
 - `JWT_SECRET` - Secret for JWT signing
-- `GOOGLE_TRANSLATE_API_KEY` - Optional, for real translations
 - `PORT` - Server port (default: 8080)
 
 ### Translation Service
-- Works with or without Google Translate API key
+- Works offline via Ollama/LibreTranslate fallback
 - Falls back to mock translations for common phrases
 - Supports 9 languages: EN, ES, FR, DE, IT, PT, JA, KO, ZH
 
@@ -303,7 +302,7 @@ npm run dev
 
 ### Ready to Use
 - ✅ Can be deployed immediately
-- ✅ Works without Google Translate API (mock translations)
+- ✅ Works offline via Ollama/LibreTranslate local providers
 - ✅ All Phase 1 requirements met
 - ✅ Production-ready structure
 - ✅ Scalability foundation

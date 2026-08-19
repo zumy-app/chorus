@@ -165,15 +165,6 @@ func (s *TranslationService) ProviderHealth() []translation.ProviderHealth {
 	return []translation.ProviderHealth{{Name: s.provider.Name(), Ready: true}}
 }
 
-// EnqueueOllamaTranslation is a legacy no-op kept for compatibility.
-func (s *TranslationService) EnqueueOllamaTranslation(messageID, text string, targetLangs []string) error {
-	return nil
-}
-
-// ProcessOllamaQueue is a legacy no-op kept for compatibility.
-func (s *TranslationService) ProcessOllamaQueue(onComplete func(messageID string, translations map[string]string)) {
-	return
-}
 
 // languageCodeToName is kept here for backward compatibility with grammar.go
 // which references it from the services package.

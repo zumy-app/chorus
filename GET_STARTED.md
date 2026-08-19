@@ -27,7 +27,7 @@ A **complete, functional, production-ready** WhatsApp-style messaging applicatio
 - **Automatic Translation** - Messages translated to recipient's target languages
 - **Multiple Target Languages** - Users can learn multiple languages simultaneously
 - **Smart Caching** - Redis-based caching for fast repeated translations
-- **Fallback Support** - Works with or without Google Translate API
+- **Fallback Support** - Works offline via local providers (Ollama/LibreTranslate)
 
 ### 🎨 User Interface
 - Clean, modern design with Tailwind CSS
@@ -65,7 +65,7 @@ backend/
 - Redis 7 (caching layer)
 - WebSocket (real-time communication)
 - JWT (authentication)
-- Google Translate API (optional)
+- OpenRouter API (optional)
 
 ### Frontend (React)
 ```
@@ -217,10 +217,9 @@ All necessary configuration files included:
    GRANT ALL PRIVILEGES ON DATABASE messenger_dev TO messenger;
    ```
 
-3. **Optional - Google Translate API Key**:
-   - Get from Google Cloud Platform
-   - Add to `backend/.env`
-   - App works without it (uses mock translations)
+3. **Optional - Translation API Keys**:
+   - Configure OpenRouter or other cloud translation keys in `backend/.env`
+   - App works without it (uses local Ollama/LibreTranslate fallback)
 
 ### Then Run:
 

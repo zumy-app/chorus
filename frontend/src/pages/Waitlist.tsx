@@ -25,6 +25,7 @@ export default function Waitlist() {
   const [email, setEmail] = useState('')
   const [spokenLanguages, setSpokenLanguages] = useState<string[]>([])
   const [targetLanguages, setTargetLanguages] = useState<string[]>([])
+  const [targetLanguageLevel, setTargetLanguageLevel] = useState('A1')
   const [reasons, setReasons] = useState<string[]>([])
   const [comments, setComments] = useState('')
   const [queuePosition, setQueuePosition] = useState<number | null>(null)
@@ -79,6 +80,7 @@ export default function Waitlist() {
         email: trimmedEmail,
         spokenLanguages,
         targetLanguages,
+        targetLanguageLevel,
         reasons,
         comments,
       })
@@ -180,6 +182,22 @@ export default function Waitlist() {
           />
           {fieldErrors.learn && <p className="mt-2 text-sm font-medium text-red-600">{fieldErrors.learn}</p>}
         </div>
+
+        <label className="block">
+          <span className="font-semibold text-gray-700">{t('waitlist.targetLanguageLevel', 'Target Language Level')}</span>
+          <select
+            value={targetLanguageLevel}
+            onChange={(e) => setTargetLanguageLevel(e.target.value)}
+            className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-primary focus:outline-none"
+          >
+            <option value="A1">A1 (Beginner)</option>
+            <option value="A2">A2 (Elementary)</option>
+            <option value="B1">B1 (Intermediate)</option>
+            <option value="B2">B2 (Upper Intermediate)</option>
+            <option value="C1">C1 (Advanced)</option>
+            <option value="C2">C2 (Mastery)</option>
+          </select>
+        </label>
 
         <fieldset>
           <legend className="font-semibold text-gray-700">{t('waitlist.reason')}</legend>

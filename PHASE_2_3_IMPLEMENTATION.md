@@ -286,7 +286,7 @@ ChorusMobile/
 ## 🚀 Deployment Checklist
 
 ### Environment Setup
-- [ ] Configure Google Translate API key
+- [ ] Configure translation provider keys (OpenRouter, etc.)
 - [ ] Configure Google Speech-to-Text API
 - [ ] Set up STUN/TURN servers for WebRTC
 - [ ] Configure Firebase Cloud Messaging
