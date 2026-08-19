@@ -49,3 +49,15 @@ Thumbs.db
 # Docker
 docker-compose.override.yml
 node_modules
+
+# Mobile (React Native / Android)
+mobile/node_modules
+mobile/android/.gradle/
+mobile/android/.kotlin/
+mobile/android/build/
+mobile/android/app/build/
+mobile/android/app/.cxx/
+mobile/android/local.properties
+mobile/android/app/src/main/res/values/google_maps_api.xml
+*.keystore
+*.jks
