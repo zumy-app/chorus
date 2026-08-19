@@ -33,17 +33,18 @@ func (s *WaitlistService) Submit(req models.WaitlistRequest) (*models.WaitlistEn
 	entry := &models.WaitlistEntry{}
 	var inserted bool
 	err := s.db.QueryRow(`
-		INSERT INTO waitlist_entries (email, spoken_languages, target_languages, reasons, comments)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO waitlist_entries (email, spoken_languages, target_languages, target_language_level, reasons, comments)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		ON CONFLICT (email) DO UPDATE SET
 			spoken_languages = EXCLUDED.spoken_languages,
 			target_languages = EXCLUDED.target_languages,
+			target_language_level = EXCLUDED.target_language_level,
 			reasons = EXCLUDED.reasons,
 			comments = EXCLUDED.comments
-		RETURNING (xmax = 0) AS inserted, id, email, spoken_languages, target_languages, reasons, comments, status, queue_position, created_at`,
-		req.Email, pq.Array(req.SpokenLanguages), pq.Array(req.TargetLanguages), pq.Array(req.Reasons), req.Comments,
+		RETURNING (xmax = 0) AS inserted, id, email, spoken_languages, target_languages, target_language_level, reasons, comments, status, queue_position, created_at`,
+		req.Email, pq.Array(req.SpokenLanguages), pq.Array(req.TargetLanguages), req.TargetLanguageLevel, pq.Array(req.Reasons), req.Comments,
 	).Scan(&inserted, &entry.ID, &entry.Email, pq.Array(&entry.SpokenLanguages), pq.Array(&entry.TargetLanguages),
-		pq.Array(&entry.Reasons), &entry.Comments, &entry.Status, &entry.QueuePosition, &entry.CreatedAt)
+		&entry.TargetLanguageLevel, pq.Array(&entry.Reasons), &entry.Comments, &entry.Status, &entry.QueuePosition, &entry.CreatedAt)
 	if err != nil {
 		return nil, false, err
 	}
