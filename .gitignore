@@ -61,3 +61,8 @@ mobile/android/local.properties
 mobile/android/app/src/main/res/values/google_maps_api.xml
 *.keystore
 *.jks
+
+# Temporary / generated files
+screenshot*.png
+*.pdf
+generate_jd_pdf*.py

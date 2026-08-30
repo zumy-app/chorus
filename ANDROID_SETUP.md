@@ -1,5 +1,17 @@
 # Android Development Setup Guide
 
+## Quick Start (one script)
+
+If you already have Android Studio + SDK installed, a single command from the repo root sets up everything — Docker, backend, frontend, emulator, and installs the app:
+
+```powershell
+.\start-dev.ps1 -Mobile
+```
+
+This automates all the manual steps below. Skip to [Prerequisites](#prerequisites) if this is your first time.
+
+---
+
 ## Prerequisites
 
 To run the Chorus mobile app on an Android emulator, you need to install the Android SDK and set up an Android Virtual Device (AVD).
@@ -86,20 +98,31 @@ emulator -avd ChorusEmulator
 
 ## Running the Chorus Mobile App
 
-### Prerequisites
+### Automated (recommended)
+
+```powershell
+cd c:\dev\chorus
+.\start-dev.ps1 -Mobile
+```
+
+This starts Docker, backend, frontend, emulator, Metro, and installs the app — all in one command.
+
+### Manual
+
+#### Prerequisites
 Ensure the backend services are running:
 ```powershell
 cd c:\dev\chorus
 docker-compose up -d
 ```
 
-### Start Metro Bundler
+#### Start Metro Bundler
 ```bash
 cd c:\dev\chorus\mobile
 npm start
 ```
 
-### Run on Android Emulator
+#### Run on Android Emulator
 In a new terminal:
 ```bash
 cd c:\dev\chorus\mobile
