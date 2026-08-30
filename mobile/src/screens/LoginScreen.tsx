@@ -37,7 +37,6 @@ export default function LoginScreen({ navigation }: any) {
       // Navigate to main app
       navigation.replace('MainTabs');
     } catch (error: any) {
-      console.error('Login error:', error);
       Alert.alert(
         'Login Failed',
         error.response?.data?.error || 'Invalid credentials. Please try again.'

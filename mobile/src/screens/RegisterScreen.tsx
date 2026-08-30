@@ -54,7 +54,6 @@ export default function RegisterScreen({ navigation }: any) {
         { text: 'OK', onPress: () => navigation.replace('MainTabs') },
       ]);
     } catch (error: any) {
-      console.error('Registration error:', error);
       Alert.alert(
         'Registration Failed',
         error.response?.data?.error || 'Failed to create account. Please try again.'

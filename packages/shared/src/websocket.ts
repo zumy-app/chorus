@@ -27,6 +27,7 @@ export function createWebSocketService(options: WebSocketServiceOptions) {
   let messageHandlers: MessageHandler[] = []
   let reconnectHandlers: ReconnectHandler[] = []
   let isConnecting = false
+  let intentionalClose = false
 
   async function connect(token?: string) {
     if (isConnecting || (ws !== null && ws.readyState === WebSocket.OPEN)) {
@@ -34,6 +35,7 @@ export function createWebSocketService(options: WebSocketServiceOptions) {
     }
 
     isConnecting = true
+    intentionalClose = false
     const resolvedToken = token || (await getToken())
 
     if (!resolvedToken) {
@@ -61,23 +63,25 @@ export function createWebSocketService(options: WebSocketServiceOptions) {
         try {
           const message: WebSocketMessage = JSON.parse(event.data)
           messageHandlers.forEach(handler => handler(message))
-        } catch (error) {
-          console.error('Failed to parse WebSocket message:', error)
+        } catch {
+          // Malformed message — skip silently.
         }
       }
 
-      ws.onerror = error => {
-        console.error('WebSocket error:', error)
+      ws.onerror = () => {
+        // Handled by onclose — avoid console.error which triggers the RN dev overlay.
         isConnecting = false
       }
 
       ws.onclose = () => {
-        console.log('WebSocket disconnected')
         isConnecting = false
-        reconnect()
+        ws = null
+        if (!intentionalClose) {
+          reconnect()
+        }
       }
-    } catch (error) {
-      console.error('WebSocket connection error:', error)
+    } catch {
+      // Connection failed (e.g. backend unreachable) — non-fatal, will reconnect.
       isConnecting = false
       reconnect()
     }
@@ -99,10 +103,12 @@ export function createWebSocketService(options: WebSocketServiceOptions) {
   }
 
   function disconnect() {
+    intentionalClose = true
     if (ws) {
       ws.close()
       ws = null
     }
+    isConnecting = false
     reconnectAttempts = 0
   }
 

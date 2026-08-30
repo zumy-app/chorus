@@ -56,8 +56,8 @@ export default function ChatScreen({ route, navigation }: any) {
     if (userStr) {
       try {
         setCurrentUser(JSON.parse(userStr));
-      } catch (e) {
-        console.error('Failed to parse stored user:', e);
+      } catch {
+        // Corrupted storage — ignore.
       }
     }
   }, []);
@@ -70,8 +70,8 @@ export default function ChatScreen({ route, navigation }: any) {
         latestMessageId.current = data[0].id;
         apiService.markAsRead(chatId, data[0].id);
       }
-    } catch (error) {
-      console.error('Failed to load messages:', error);
+    } catch {
+      // Backend unreachable or unauthorized — silently ignore.
     } finally {
       setLoading(false);
     }
@@ -108,8 +108,7 @@ export default function ChatScreen({ route, navigation }: any) {
       setMessages((prev) => [newMessage, ...prev.filter((m) => m.id !== newMessage.id)]);
       latestMessageId.current = newMessage.id;
       apiService.markAsRead(chatId, newMessage.id);
-    } catch (error) {
-      console.error('Failed to send message:', error);
+    } catch {
       setInputText(messageText);
     }
   };
@@ -131,8 +130,8 @@ export default function ChatScreen({ route, navigation }: any) {
     setTranslatingId(messageId);
     try {
       await apiService.translateMessage(chatId, messageId, nativeLanguage);
-    } catch (error) {
-      console.error('Failed to request translation:', error);
+    } catch {
+      // Translation request failed — non-fatal.
     } finally {
       setTranslatingId(null);
     }

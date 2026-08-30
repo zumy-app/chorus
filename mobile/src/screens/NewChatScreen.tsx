@@ -30,8 +30,8 @@ export default function NewChatScreen({ navigation }: any) {
       // searchUsers already returns the users array (unwrapped).
       const found = result;
       setUsers(found);
-    } catch (error) {
-      console.error('User search failed:', error);
+    } catch {
+      // Backend unreachable or unauthorized.
     } finally {
       setSearching(false);
     }
@@ -46,8 +46,7 @@ export default function NewChatScreen({ navigation }: any) {
         participants: [user.id],
       });
       navigation.replace('Chat', { chatId: chat.id, chatName: user.displayName });
-    } catch (error) {
-      console.error('Failed to create chat:', error);
+    } catch {
       Alert.alert('Error', 'Could not start a chat with this user.');
     } finally {
       setCreating(false);
