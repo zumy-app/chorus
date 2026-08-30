@@ -33,15 +33,15 @@ export default function ProfileScreen({ navigation }: any) {
     if (userStr) {
       try {
         user = JSON.parse(userStr);
-      } catch (e) {
-        console.error('Failed to parse stored user:', e);
+      } catch {
+        // Corrupted storage — ignore.
       }
     }
     if (!user) {
       try {
         user = await apiService.getMe();
-      } catch (e) {
-        console.error('Failed to fetch profile:', e);
+      } catch {
+        // Backend unreachable or unauthorized.
       }
     }
     setCurrentUser(user);
@@ -74,8 +74,7 @@ export default function ProfileScreen({ navigation }: any) {
       await storage.setItem('user', JSON.stringify(updated));
       setCurrentUser(updated);
       Alert.alert('Saved', 'Profile updated successfully');
-    } catch (error) {
-      console.error('Failed to save profile:', error);
+    } catch {
       Alert.alert('Error', 'Could not save your profile. Please try again.');
     } finally {
       setSaving(false);
@@ -89,8 +88,7 @@ export default function ProfileScreen({ navigation }: any) {
       webSocketService.disconnect();
       await apiService.logout();
       navigation.replace('Landing');
-    } catch (error) {
-      console.error('Logout error:', error);
+    } catch {
       Alert.alert('Error', 'Could not log out. Please try again.');
       setLoggingOut(false);
     }

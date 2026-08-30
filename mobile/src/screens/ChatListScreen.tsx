@@ -58,8 +58,8 @@ export default function ChatListScreen({ navigation }: any) {
     if (userStr) {
       try {
         setCurrentUserId(JSON.parse(userStr).id);
-      } catch (e) {
-        console.error('Failed to parse stored user:', e);
+      } catch {
+        // Corrupted storage — ignore.
       }
     }
   };
@@ -68,8 +68,8 @@ export default function ChatListScreen({ navigation }: any) {
     try {
       const data = await apiService.getChats();
       setChats(data);
-    } catch (error) {
-      console.error('Failed to load chats:', error);
+    } catch {
+      // Backend unreachable or unauthorized — silently ignore on mount.
     } finally {
       setLoading(false);
       setRefreshing(false);
