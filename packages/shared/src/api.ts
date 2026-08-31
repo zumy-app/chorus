@@ -702,10 +702,10 @@ export function createApiClient(options: ApiClientOptions) {
 
     // Mined vocabulary
     getMinedItems: async (targetLanguage: string, status?: string) => {
-      const response = await client.get<{ data: MinedItem[] }>(
+      const response = await client.get<{ data: MinedItem[] | null }>(
         `/learning/vocabulary/mined${qs({ targetLanguage, status })}`
       )
-      return response.data.data
+      return response.data.data ?? []
     },
     acceptMinedItem: async (id: string) => {
       const response = await client.post<{ data: VocabularyCard }>(`/learning/vocabulary/mined/${id}/accept`)

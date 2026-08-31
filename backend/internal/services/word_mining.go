@@ -220,22 +220,22 @@ func (s *WordMiningService) classifyAndRoute(ctx context.Context, userID, source
 		lemma = item.SurfaceText
 	}
 	normalized := &MinedCandidate{
-		SurfaceText:  item.SurfaceText,
-		Lemma:        lemma,
-		NormalizedText: norm,
-		PartOfSpeech: item.PartOfSpeech,
-		IsChunk:      item.IsChunk || strings.Contains(item.SurfaceText, " "),
-		Translation:  item.Translation,
-		Definition:   item.Definition,
-		CEFRLevel:    item.CEFRLevel,
-		GrammarTags:  item.GrammarTags,
-		IsProperNoun: item.IsProperNoun,
-		Confidence:   item.Confidence,
-		Language:     sourceLang,
-		UserID:       userID,
-		SourceType:   sourceType,
-		MessageID:    messageID,
-		ChatID:       chatID,
+		SurfaceText:     item.SurfaceText,
+		Lemma:           lemma,
+		NormalizedText:  norm,
+		PartOfSpeech:    item.PartOfSpeech,
+		IsChunk:         item.IsChunk || strings.Contains(item.SurfaceText, " "),
+		Translation:     item.Translation,
+		Definition:      item.Definition,
+		CEFRLevel:       item.CEFRLevel,
+		GrammarTags:     item.GrammarTags,
+		IsProperNoun:    item.IsProperNoun,
+		Confidence:      item.Confidence,
+		Language:        sourceLang,
+		UserID:          userID,
+		SourceType:      sourceType,
+		MessageID:       messageID,
+		ChatID:          chatID,
 		SourceMessageID: messageID,
 		ContextSentence: contextSentence(sourceText, item.SurfaceText),
 	}
@@ -501,7 +501,7 @@ func (s *WordMiningService) GetCandidateItems(ctx context.Context, userID, targe
 		return nil, err
 	}
 	defer rows.Close()
-	var items []models.MinedItem
+	var items = []models.MinedItem{}
 	for rows.Next() {
 		var it models.MinedItem
 		var span []byte
@@ -531,14 +531,14 @@ func (s *WordMiningService) SaveManualVocabulary(ctx context.Context, userID, te
 	_ = s.db.QueryRowContext(ctx, `SELECT text, chat_id::text FROM messages WHERE id = $1 AND sender_id = $2`, messageID, userID).Scan(&messageText, &chatID)
 
 	c := &MinedCandidate{
-		SurfaceText: term,
-		Lemma:       term,
-		Language:    lang,
+		SurfaceText:  term,
+		Lemma:        term,
+		Language:     lang,
 		PartOfSpeech: "unknown",
-		CEFRLevel:   "A1",
-		Confidence:  0.9,
-		SourceType:  "chat",
-		UserID:      userID,
+		CEFRLevel:    "A1",
+		Confidence:   0.9,
+		SourceType:   "chat",
+		UserID:       userID,
 	}
 	c.NormalizedText = NormalizeLearningTerm(term, lang)
 	if msg, err := s.getMessageContext(ctx, messageID); err == nil {

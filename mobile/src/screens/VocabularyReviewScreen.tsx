@@ -28,7 +28,7 @@ export default function VocabularyReviewScreen({ navigation }: any) {
     setLoading(true);
     apiService
       .getMinedItems(targetLanguage, 'auto_added')
-      .then(setItems)
+      .then((items) => setItems(items ?? []))
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
   }, [user, targetLanguage]);
