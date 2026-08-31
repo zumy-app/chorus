@@ -11,6 +11,12 @@ import Waitlist from './pages/Waitlist'
 import AdminWaitlist from './pages/AdminWaitlist'
 import Chat from './pages/Chat'
 import Learn from './pages/Learn'
+import Placement from './pages/Placement'
+import LessonSession from './pages/LessonSession'
+import VocabularyReview from './pages/VocabularyReview'
+import Scenarios from './pages/Scenarios'
+import ScenarioRoleplay from './pages/ScenarioRoleplay'
+import LearningRoadmap from './pages/LearningRoadmap'
 import Profile from './pages/Profile'
 import { authAPI } from './services/api'
 import { wsService } from './services/websocket'
@@ -147,6 +153,42 @@ function App() {
           path="/learn"
           element={
             isAuthenticated ? <Learn /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/learn/placement"
+          element={
+            isAuthenticated ? <Placement /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/learn/session"
+          element={
+            isAuthenticated ? <LessonSession /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/learn/vocabulary"
+          element={
+            isAuthenticated ? <VocabularyReview /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/learn/scenarios"
+          element={
+            isAuthenticated ? <Scenarios /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/learn/scenarios/:scenarioId"
+          element={
+            isAuthenticated ? <ScenarioRoleplay /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/learn/roadmap"
+          element={
+            isAuthenticated ? <LearningRoadmap /> : <Navigate to="/login" />
           }
         />
         <Route

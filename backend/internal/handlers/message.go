@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"context"
 	"log"
+	"strings"
 
 	"github.com/chorus/messenger/internal/models"
 	"github.com/chorus/messenger/internal/services"
@@ -17,6 +19,8 @@ type MessageHandler struct {
 	moderation         *services.ModerationService
 	wsHub              *services.WebSocketHub
 	translation        *services.TranslationService
+	wordMining         *services.WordMiningQueueService
+	learningProfile    *services.LearningProfileService
 }
 
 func NewMessageHandler(
@@ -39,6 +43,13 @@ func NewMessageHandler(
 		wsHub:              wsHub,
 		translation:        translation,
 	}
+}
+
+// SetWordMining attaches the (optional) vocabulary miner so target-language
+// messages feed the learner's SRS pipeline.
+func (h *MessageHandler) SetWordMining(q *services.WordMiningQueueService, lp *services.LearningProfileService) {
+	h.wordMining = q
+	h.learningProfile = lp
 }
 
 func (h *MessageHandler) GetMessages(c *gin.Context) {
@@ -154,6 +165,25 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 			}
 		}
 
+		// Word mining: enqueue a durable vocabulary-extraction job for every
+		// participant whose learning profile targets the (best-guess) message
+		// language. Detection is broad but imperfect, so a Spanish function-word
+		// / diacritic signal is used to correct a fallback to the sender's native.
+		if h.wordMining != nil && sourceLang != "" && sourceLang != "auto" {
+			miningLang := miningLanguageFor(message.Text, sourceLang)
+			for _, uid := range userIDs {
+				if uid == "" {
+					continue
+				}
+				if !h.targetLanguageMatches(context.Background(), uid, miningLang) {
+					continue
+				}
+				if _, err := h.wordMining.EnqueueForMessage(uid, chatID, message.ID, "chat", message.Text, miningLang, nativeSourceFor(uid, miningLang, h)); err != nil {
+					log.Printf("[Mining] enqueue for user %s: %v", uid, err)
+				}
+			}
+		}
+
 		// Premium feature tiers: resolve the sender's entitlements to decide
 		// whether this message may be translated and with what priority.
 		priority := 0
@@ -263,6 +293,80 @@ func (h *MessageHandler) resolveUser(userID string) *models.User {
 		return nil
 	}
 	return u
+}
+
+// targetLanguageMatches reports whether the user has a learning profile targeting
+// the given language AND has mining enabled. When no profile exists, it falls
+// back to the user's stored target_languages on the users table.
+func (h *MessageHandler) targetLanguageMatches(ctx context.Context, userID, lang string) bool {
+	if h.learningProfile == nil {
+		return false
+	}
+	profile, err := h.learningProfile.GetProfile(ctx, userID, lang, "")
+	if err != nil || profile == nil {
+		return false
+	}
+	return profile.MiningEnabled
+}
+
+// nativeSourceFor returns the user's native language (for mining prompts) or
+// "en" when it cannot be resolved.
+func nativeSourceFor(userID, targetLang string, h *MessageHandler) string {
+	if h.learningProfile == nil {
+		return "en"
+	}
+	if profile, err := h.learningProfile.GetProfile(context.Background(), userID, targetLang, ""); err == nil && profile != nil {
+		return profile.NativeLanguage
+	}
+	return "en"
+}
+
+// looksLikeSpanish reports whether the text carries Spanish diacritics or
+// inverted punctuation, a cheap signal used to correct weak language detection.
+func looksLikeSpanish(text string) bool {
+	for _, r := range text {
+		switch r {
+		case '¿', '¡', 'ñ', 'Ñ', 'á', 'Á', 'é', 'É', 'í', 'Í', 'ó', 'Ó', 'ú', 'Ú', 'ü', 'Ü':
+			return true
+		}
+	}
+	return false
+}
+
+// spanishFunctionWords are high-frequency Spanish grammatical words whose
+// presence strongly indicates Spanish even when a weak detector returns the
+// sender's native language.
+var spanishFunctionWords = []string{
+	"el", "la", "los", "las", "un", "una", "unos", "unas", "de", "del", "al",
+	"que", "y", "o", "es", "son", "está", "estoy", "para", "por", "con", "sin",
+	"no", "sí", "me", "te", "se", "hay", "mi", "tu", "su", "como", "muy",
+	"también", "gracias", "por favor", "quiero", "quisiera", "buenos", "buenas",
+}
+
+// miningLanguageFor picks the best language to mine for a message. It prefers the
+// detected language, but corrects to Spanish when the message clearly carries
+// Spanish diacritics or a flood of Spanish function words.
+func miningLanguageFor(text, detected string) string {
+	if looksLikeSpanish(text) {
+		return "es"
+	}
+	norm := strings.ToLower(text)
+	fielded := strings.Fields(norm)
+	hits := 0
+	for _, w := range fielded {
+		for _, fw := range spanishFunctionWords {
+			if w == fw {
+				hits++
+				break
+			}
+		}
+	}
+	// A dense cluster of Spanish function words is enough to override a native
+	// "en" detection for a target-language learner.
+	if hits >= 2 {
+		return "es"
+	}
+	return detected
 }
 
 // keys returns the keys of a set (helper for target-language de-duplication).

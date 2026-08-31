@@ -7,11 +7,13 @@ import axios, { AxiosInstance } from 'axios'
 import type {
   AdminStatus,
   AdminStats,
+  AnswerSessionItemResponse,
   AuthTokens,
   Block,
   Chat,
   CheckoutResponse,
   CreateChatRequest,
+  CurriculumStep,
   EmailOutboxEntry,
   Entitlements,
   GrammarJob,
@@ -20,21 +22,40 @@ import type {
   LearningPairCapability,
   LearningPath,
   LearningProfileUpdateRequest,
+  LearningSession,
+  LessonAttempt,
+  LessonStartResponse,
+  LessonStepResult,
   LoginRequest,
   Message,
+  MinedItem,
   PlanChange,
+  PlacementResult,
   PremiumAnalytics,
   PremiumUserRow,
   ProviderHealth,
+  RealTalkPrompt,
   RegisterRequest,
   Report,
   ReportRequest,
   ReportStats,
+  ScenarioAIReply,
+  ScenarioChunk,
+  ScenarioRun,
+  ScenarioScript,
+  ScenarioStartResponse,
   SendMessageRequest,
+  SessionAnswerRequest,
+  StartPlacementResponse,
+  StartSessionRequest,
+  StartSessionResponse,
+  StreakRecoverResult,
   SubscriptionInfo,
   TranslationJob,
+  UnitProgressSummary,
   User,
   UserLanguageProfile,
+  VocabularyCard,
   WaitlistEntry,
   WaitlistRequest,
 } from './types'
@@ -596,6 +617,156 @@ export function createApiClient(options: ApiClientOptions) {
     getPath: async (targetLanguage: string, nativeLanguage?: string) => {
       const response = await client.get<{ data: LearningPath }>(
         `/learning/path${qs({ targetLanguage, nativeLanguage })}`
+      )
+      return response.data.data
+    },
+
+    // Placement
+    startPlacement: async (targetLanguage: string, nativeLanguage?: string) => {
+      const response = await client.post<{ data: StartPlacementResponse }>(
+        `/learning/placement/start${qs({ targetLanguage, nativeLanguage })}`
+      )
+      return response.data.data
+    },
+    answerPlacement: async (attemptId: string, answer: string) => {
+      const response = await client.post<{ data: PlacementResult | StartPlacementResponse }>(
+        `/learning/placement/${attemptId}/answer`,
+        { answer }
+      )
+      return response.data.data
+    },
+    skipPlacement: async (targetLanguage: string, nativeLanguage?: string) => {
+      const response = await client.post<{ data: PlacementResult }>(
+        `/learning/placement/skip${qs({ targetLanguage, nativeLanguage })}`
+      )
+      return response.data.data
+    },
+    getPlacement: async (attemptId: string) => {
+      const response = await client.get<{ data: StartPlacementResponse }>(
+        `/learning/placement/${attemptId}`
+      )
+      return response.data.data
+    },
+
+    // Lessons
+    getUnit: async (unitId: string) => {
+      const response = await client.get<{ data: UnitProgressSummary }>(`/learning/units/${unitId}`)
+      return response.data.data
+    },
+    startLesson: async (lessonId: string, targetLanguage: string, nativeLanguage?: string) => {
+      const response = await client.post<{ data: LessonStartResponse }>(
+        `/learning/lessons/${lessonId}/start${qs({ targetLanguage, nativeLanguage })}`
+      )
+      return response.data.data
+    },
+    answerLessonStep: async (attemptId: string, stepId: string, answer: string) => {
+      const response = await client.post<{ data: LessonStepResult }>(
+        `/learning/lesson-attempts/${attemptId}/steps/${stepId}/answer`,
+        { answer }
+      )
+      return response.data.data
+    },
+    completeLesson: async (attemptId: string) => {
+      const response = await client.post<{ data: LessonAttempt }>(
+        `/learning/lesson-attempts/${attemptId}/complete`
+      )
+      return response.data.data
+    },
+    getLessonAttempt: async (attemptId: string) => {
+      const response = await client.get<{ data: { attempt: LessonAttempt; steps: CurriculumStep[] } }>(
+        `/learning/lesson-attempts/${attemptId}`
+      )
+      return response.data.data
+    },
+
+    // Sessions
+    startSession: async (data: StartSessionRequest) => {
+      const response = await client.post<{ data: StartSessionResponse }>('/learning/sessions/start', data)
+      return response.data.data
+    },
+    getSession: async (sessionId: string) => {
+      const response = await client.get<{ data: LearningSession }>(`/learning/sessions/${sessionId}`)
+      return response.data.data
+    },
+    answerSessionItem: async (sessionId: string, itemId: string, answer: SessionAnswerRequest, latencyMs?: number) => {
+      const response = await client.post<{ data: AnswerSessionItemResponse }>(
+        `/learning/sessions/${sessionId}/items/${itemId}/answer`,
+        { answer, latencyMs }
+      )
+      return response.data.data
+    },
+    completeSession: async (sessionId: string) => {
+      const response = await client.post<{ data: LearningSession }>(`/learning/sessions/${sessionId}/complete`)
+      return response.data.data
+    },
+
+    // Mined vocabulary
+    getMinedItems: async (targetLanguage: string, status?: string) => {
+      const response = await client.get<{ data: MinedItem[] }>(
+        `/learning/vocabulary/mined${qs({ targetLanguage, status })}`
+      )
+      return response.data.data
+    },
+    acceptMinedItem: async (id: string) => {
+      const response = await client.post<{ data: VocabularyCard }>(`/learning/vocabulary/mined/${id}/accept`)
+      return response.data.data
+    },
+    ignoreMinedItem: async (id: string) => {
+      const response = await client.post<{ data: { ok: boolean } }>(`/learning/vocabulary/mined/${id}/ignore`)
+      return response.data.data
+    },
+
+    // Scenarios
+    getScenarios: async (targetLanguage: string, nativeLanguage?: string) => {
+      const response = await client.get<{ data: ScenarioScript[] }>(
+        `/learning/scenarios${qs({ targetLanguage, nativeLanguage })}`
+      )
+      return response.data.data
+    },
+    getScenario: async (scenarioId: string) => {
+      const response = await client.get<{ data: ScenarioScript }>(`/learning/scenarios/${scenarioId}`)
+      return response.data.data
+    },
+    startScenario: async (scenarioId: string, targetLanguage: string, nativeLanguage?: string) => {
+      const response = await client.post<{ data: ScenarioStartResponse }>(
+        `/learning/scenarios/${scenarioId}/start${qs({ targetLanguage, nativeLanguage })}`
+      )
+      return response.data.data
+    },
+    getScenarioRun: async (runId: string) => {
+      const response = await client.get<{ data: ScenarioRun }>(`/learning/scenario-runs/${runId}`)
+      return response.data.data
+    },
+    sendScenarioMessage: async (runId: string, message: string) => {
+      const response = await client.post<{ data: ScenarioAIReply }>(
+        `/learning/scenario-runs/${runId}/message`,
+        { message }
+      )
+      return response.data.data
+    },
+    requestScenarioHint: async (runId: string) => {
+      const response = await client.post<{ data: ScenarioChunk[] }>(`/learning/scenario-runs/${runId}/hint`)
+      return response.data.data
+    },
+    completeScenario: async (runId: string) => {
+      const response = await client.post<{ data: ScenarioAIReply }>(`/learning/scenario-runs/${runId}/complete`)
+      return response.data.data
+    },
+
+    // Real talk + streak
+    getRealTalkPrompts: async (targetLanguage: string, nativeLanguage?: string, chatId?: string) => {
+      const response = await client.get<{ data: RealTalkPrompt[] }>(
+        `/learning/real-talk/prompts${qs({ targetLanguage, nativeLanguage, chatId })}`
+      )
+      return response.data.data
+    },
+    markRealTalkUsed: async (promptId: string) => {
+      const response = await client.post<{ data: { ok: boolean } }>(`/learning/real-talk/prompts/${promptId}/used`)
+      return response.data.data
+    },
+    recoverStreak: async (targetLanguage: string, nativeLanguage?: string) => {
+      const response = await client.post<{ data: StreakRecoverResult }>(
+        `/learning/streak/recover${qs({ targetLanguage, nativeLanguage })}`
       )
       return response.data.data
     },

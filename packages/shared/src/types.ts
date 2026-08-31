@@ -522,3 +522,325 @@ export interface LearningProfileUpdateRequest {
   nudgesEnabled?: boolean
   scenarioHintsEnabled?: boolean
 }
+
+// ---------------------------------------------------------------------------
+// Practice sessions / SRS
+// ---------------------------------------------------------------------------
+
+export interface LearningSession {
+  id: string
+  userId: string
+  targetLanguage: string
+  mode: string
+  status: string
+  sourceUnitId?: string
+  sourceLessonId?: string
+  plannedItemCount: number
+  completedItemCount: number
+  score: number
+  xpAwarded: number
+  startedAt: string
+  completedAt?: string
+  progressPct: number
+}
+
+export interface StartSessionRequest {
+  targetLanguage: string
+  nativeLanguage?: string
+  mode?: string
+  source?: string
+}
+
+export interface SessionPrompt {
+  text?: string
+  source?: string
+  translation?: string
+  choices?: string[]
+  term?: string
+  tone?: string
+  grammarHint?: string
+}
+
+export interface SessionQuestion {
+  id: string
+  itemType: string
+  activityType: string
+  promptType: string
+  prompt: SessionPrompt
+}
+
+export interface SessionAnswerRequest {
+  text?: string
+  choice?: string
+}
+
+export interface SessionFeedback {
+  message: string
+  correctAnswer?: string
+  grammarPointId?: string
+  masteryState?: string
+}
+
+export interface AnswerSessionItemResponse {
+  correct: boolean
+  quality: number
+  feedback: SessionFeedback
+  nextItem?: SessionQuestion
+}
+
+export interface StartSessionResponse {
+  session: LearningSession
+  items: SessionQuestion[]
+}
+
+// ---------------------------------------------------------------------------
+// Mined vocabulary
+// ---------------------------------------------------------------------------
+
+export interface MinedItem {
+  id: string
+  userId: string
+  jobId?: string
+  chatId?: string
+  messageId?: string
+  sourceType: string
+  surfaceText: string
+  lemma: string
+  normalizedText: string
+  language: string
+  partOfSpeech: string
+  translation: string
+  definition: string
+  contextSentence: string
+  cefrLevel?: string
+  confidence: number
+  teachabilityScore: number
+  isChunk: boolean
+  isProperNoun: boolean
+  grammarTags?: string[]
+  curriculumUnitId?: string
+  routeStatus: string
+  status: string
+  routeReason?: string
+  createdAt: string
+}
+
+// ---------------------------------------------------------------------------
+// Lessons
+// ---------------------------------------------------------------------------
+
+export interface CurriculumStep {
+  id: string
+  lessonId: string
+  ordinal: number
+  type: string
+  prompt: any
+  answerKey?: any
+  contentRefs?: any
+}
+
+export interface LessonAttempt {
+  id: string
+  userId: string
+  lessonId: string
+  targetLanguage: string
+  status: string
+  score: number
+  correctCount: number
+  totalCount: number
+  startedAt: string
+}
+
+export interface LessonStartResponse {
+  attempt: LessonAttempt
+  steps: CurriculumStep[]
+}
+
+export interface LessonStepResult {
+  id: string
+  stepId: string
+  userAnswer: any
+  correct: boolean
+  score: number
+  feedback: any
+}
+
+// ---------------------------------------------------------------------------
+// Placement
+// ---------------------------------------------------------------------------
+
+export interface PlacementQuestion {
+  id: string
+  ref: string
+  itemType: string
+  cefrLevel: CefrLevel
+  prompt: any
+  choices?: string[]
+}
+
+export interface PlacementMainStartResponse {
+  attemptId: string
+  status: string
+  question: PlacementQuestion
+  totalQuestions: number
+}
+
+export interface PlacementResult {
+  attemptId: string
+  estimatedCefr: CefrLevel
+  readinessScore: number
+  activeUnitId: string
+  skippedUnits?: string[]
+}
+
+// ---------------------------------------------------------------------------
+// Scenarios
+// ---------------------------------------------------------------------------
+
+export interface ScenarioChunk {
+  text: string
+  translation: string
+}
+
+export interface ScenarioPhase {
+  id: string
+  scenarioId: string
+  ordinal: number
+  title: string
+  learnerGoal: string
+  requiredIntents: string[]
+  chunkBank: ScenarioChunk[]
+}
+
+export interface ScenarioScript {
+  id: string
+  courseId: string
+  unitId?: string
+  slug: string
+  title: string
+  domain: string
+  cefrLevel: CefrLevel
+  canDoStatement: string
+  aiRoleName: string
+  aiRoleDescription: string
+  openingLine: string
+  maxTurns: number
+  estimatedMinutes: number
+  completionCriteria?: any
+  phases?: ScenarioPhase[]
+  metadata?: any
+}
+
+export interface ScenarioTurn {
+  id: string
+  runId: string
+  ordinal: number
+  speaker: 'user' | 'ai' | 'system'
+  text: string
+  translation: string
+  phaseOrdinal: number
+  evaluation?: any
+  createdAt: string
+}
+
+export interface ScenarioRun {
+  id: string
+  userId: string
+  scenarioId: string
+  targetLanguage: string
+  nativeLanguage: string
+  status: string
+  scaffoldLevel: string
+  currentPhaseOrdinal: number
+  coveredIntents?: string[]
+  score: number
+  xpAwarded: number
+  startedAt: string
+  currentPhase?: ScenarioPhase
+  suggestedChunks?: ScenarioChunk[]
+  turns?: ScenarioTurn[]
+}
+
+export interface ScenarioError {
+  span?: string
+  correction?: string
+  grammarTag?: string
+  explanation?: string
+}
+
+export interface ScenarioSummaryResult {
+  score: number
+  xpAwarded: number
+  minutes: number
+  vocabularyAdded: number
+}
+
+export interface ScenarioAIReply {
+  aiMessage: string
+  translation: string
+  phaseComplete: boolean
+  nextPhaseOrdinal?: number
+  coveredIntents?: string[]
+  errors?: ScenarioError[]
+  score: number
+  runCompleted: boolean
+  summary?: ScenarioSummaryResult
+  suggestedChunks?: ScenarioChunk[]
+}
+
+export interface ScenarioStartResponse {
+  run: ScenarioRun
+  aiResponse: ScenarioAIReply
+}
+
+export interface RealTalkPrompt {
+  id: string
+  category: string
+  text: string
+  sourcePrompt?: boolean
+}
+
+export interface StreakRecoverResult {
+  newStreak?: number
+  recovered: boolean
+}
+
+// A fully-elevated vocabulary card (the SRS card model) returned by accept/ignore
+// and practice endpoints.
+export interface VocabularyCard {
+  id: string
+  userId: string
+  term: string
+  language: string
+  translation: string
+  definition: string
+  lemma: string
+  normalizedTerm: string
+  partOfSpeech: string
+  isChunk: boolean
+  sourceType: string
+  sourceMessageId?: string
+  cefrLevel?: string
+  curriculumUnitId?: string
+  routeStatus: string
+  masteryStage: number
+  masteryState: string
+  easeFactor: number
+  lapses: number
+  stageSuccessCount: number
+  productionSuccessCount: number
+  spontaneousUseCount: number
+  teachabilityScore: number
+  confidence: number
+  reviewCount: number
+  correctCount: number
+  intervalDays: number
+  nextReview: string
+  contextSentence?: string
+  contextMessageId?: string
+  contextChatId?: string
+  createdAt: string
+}
+
+// Export alias used by API methods returning placement.
+export type { PlacementMainStartResponse as StartPlacementResponse }

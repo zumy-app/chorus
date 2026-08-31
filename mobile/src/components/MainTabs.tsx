@@ -7,6 +7,12 @@ import ChatListScreen from '../screens/ChatListScreen';
 import ChatScreen from '../screens/ChatScreen';
 import NewChatScreen from '../screens/NewChatScreen';
 import LearnScreen from '../screens/LearnScreen';
+import PlacementScreen from '../screens/PlacementScreen';
+import LessonSessionScreen from '../screens/LessonSessionScreen';
+import VocabularyReviewScreen from '../screens/VocabularyReviewScreen';
+import ScenariosScreen from '../screens/ScenariosScreen';
+import ScenarioRoleplayScreen from '../screens/ScenarioRoleplayScreen';
+import LearningRoadmapScreen from '../screens/LearningRoadmapScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import { COLOR, TYPOGRAPHY } from '../theme';
 
@@ -24,6 +30,12 @@ export type ChatsStackParamList = {
 
 export type LearnStackParamList = {
   Learn: undefined;
+  Placement: undefined;
+  LessonSession: { mode: string; sessionId?: string };
+  VocabularyReview: undefined;
+  Scenarios: undefined;
+  ScenarioRoleplay: { scenarioId: string };
+  LearningRoadmap: undefined;
 };
 
 export type ProfileStackParamList = {
@@ -68,6 +80,36 @@ const LearnTab = () => (
       name="Learn"
       component={LearnScreen}
       options={{ title: 'Learn' }}
+    />
+    <LearnStack.Screen
+      name="Placement"
+      component={PlacementScreen}
+      options={{ title: 'Placement Test' }}
+    />
+    <LearnStack.Screen
+      name="LessonSession"
+      component={LessonSessionScreen}
+      options={{ title: 'Practice' }}
+    />
+    <LearnStack.Screen
+      name="VocabularyReview"
+      component={VocabularyReviewScreen}
+      options={{ title: 'Vocabulary' }}
+    />
+    <LearnStack.Screen
+      name="Scenarios"
+      component={ScenariosScreen}
+      options={{ title: 'Scenarios' }}
+    />
+    <LearnStack.Screen
+      name="ScenarioRoleplay"
+      component={ScenarioRoleplayScreen}
+      options={{ title: 'Roleplay' }}
+    />
+    <LearnStack.Screen
+      name="LearningRoadmap"
+      component={LearningRoadmapScreen}
+      options={{ title: 'Roadmap' }}
     />
   </LearnStack.Navigator>
 );

@@ -828,6 +828,61 @@ npm run build
 
 MIT
 
+## Android Automation Script
+
+A Windows PowerShell script (`start-android.ps1`) that automates the whole Android development workflow:
+
+- Ensures **ADB** (platform‑tools) is on the path (skips if already present)
+- Creates an **AVD** if one does not exist
+- Starts the emulator and waits for the device to be ready
+- Runs **`expo start --android`** (or the command you set via `$EXPO_START_CMD`)
+- Starts any **backend / DB** services you define (e.g. `npm start`, `docker-compose up -d`)
+- Determines the Windows machine's IPv4 address and sets the **Expo URL** (`EXPO_PUBLIC_API_URL`) so the running mobile app can reach your backend on the host
+
+The script skips any step that is already satisfied, so re‑running it is safe.
+
+### Where is the script?
+
+The script lives in the project root as **`start-android.ps1`**.  
+You can run it from PowerShell:
+
+```powershell
+# From the project root (or any location with the full path)
+.\start-android.ps1
+```
+
+### Configuration
+
+Edit the small configuration block at the top of the file:
+
+| Variable | Default | What it controls |
+|----------|---------|------------------|
+| `$AVD_NAME` | `Pixel_6a_API_33` | AVD name to create/start |
+| `$SYSTEM_IMAGE` | `system-image;android-33;google_apis_x86` | System image string for `avdmanager` |
+| `$EXPO_START_CMD` | `expo start --android` | Command to start your Expo app |
+| `$BACKEND_START_CMD` | `null` | Command to start your backend/DB (e.g. `npm start`) |
+| `$BACKEND_PORT` | `3000` | Port your backend listens on (used for the Expo URL) |
+
+### Prerequisites
+
+- **Android Platform‑Tools** installed (provides `adb` and `emulator`; default `C:\platform-tools`)
+- **Node.js** and **Expo CLI** (`npm i -g expo`)
+- Your Expo project must have a `package.json` in the script's directory
+
+### Running the script
+
+```powershell
+# Allow execution for this session (bypass policy)
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
+# Run
+.\start-android.ps1
+```
+
+The script will output coloured logs for each step and, once finished, the Android emulator will be running, Expo will be starting, and the mobile app will attempt to connect to your backend via the generated URL.
+
+---
+
 ## Support
 
 For issues and questions, please create an issue in the repository.

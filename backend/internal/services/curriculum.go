@@ -323,8 +323,43 @@ func (s *CurriculumService) seedOrderingCoffeeScenario(ctx context.Context, cour
 	return nil
 }
 
-func (s *CurriculumService) GetFirstUnitID(ctx context.Context, courseID string) (string, error) {
-	var id string
+// getUnitProgress loads a single unit with the learner's progress.
+func (s *CurriculumService) getUnitProgress(ctx context.Context, userID, unitID string) (*models.UnitProgressSummary, error) {
+	var unit models.UnitProgressSummary
+	var checkpointScore sql.NullInt64
+	var startedAt, completedAt sql.NullTime
+	err := s.db.QueryRowContext(ctx, `
+		SELECT u.id::text, u.course_id::text, u.cefr_level, u.ordinal, u.slug, u.title,
+		       u.can_do_statement, u.description, u.estimated_minutes, u.checkpoint_required,
+		       COALESCE(p.status, 'available') AS status,
+		       COALESCE(p.progress_pct, 0) AS progress_pct,
+		       COALESCE(p.competency_score, 0) AS competency_score,
+		       COALESCE(p.lessons_completed, 0) AS lessons_completed,
+		       p.checkpoint_score, p.started_at, p.completed_at
+		FROM curriculum_units u
+		LEFT JOIN user_unit_progress p ON p.unit_id = u.id AND p.user_id = $2
+		WHERE u.id = $1`, unitID, userID).Scan(
+		&unit.ID, &unit.CourseID, &unit.CEFRLevel, &unit.Ordinal, &unit.Slug, &unit.Title,
+		&unit.CanDoStatement, &unit.Description, &unit.EstimatedMinutes, &unit.CheckpointRequired,
+		&unit.Status, &unit.ProgressPct, &unit.CompetencyScore, &unit.LessonsCompleted,
+		&checkpointScore, &startedAt, &completedAt)
+	if err != nil {
+		return nil, err
+	}
+	if checkpointScore.Valid {
+		v := int(checkpointScore.Int64)
+		unit.CheckpointScore = &v
+	}
+	if startedAt.Valid {
+		unit.StartedAt = &startedAt.Time
+	}
+	if completedAt.Valid {
+		unit.CompletedAt = &completedAt.Time
+	}
+	return &unit, nil
+}
+
+func (s *CurriculumService) GetFirstUnitID(ctx context.Context, courseID string) (string, error) {	var id string
 	err := s.db.QueryRowContext(ctx, `
 		SELECT id::text
 		FROM curriculum_units
@@ -333,6 +368,107 @@ func (s *CurriculumService) GetFirstUnitID(ctx context.Context, courseID string)
 		LIMIT 1
 	`, courseID).Scan(&id)
 	return id, err
+}
+
+// NextLessonStep returns the first unanswered step of the first incomplete
+// lesson of the learner's active unit, or nil when no progress is due. It is
+// used by the session composer to sprinkle one real lesson step into a drill.
+func (s *CurriculumService) NextLessonStep(ctx context.Context, userID string, profile *models.UserLanguageProfile) (*models.CurriculumStep, string, string) {
+	if profile.ActiveUnitID == "" {
+		return nil, "", ""
+	}
+	var lessonID, lessonType, stepID string
+	var stepOrdinal int
+	err := s.db.QueryRowContext(ctx, `
+		SELECT l.id::text, l.type
+		FROM curriculum_lessons l
+		WHERE l.unit_id = $1
+		  AND NOT EXISTS (
+			SELECT 1 FROM user_lesson_attempts a
+			WHERE a.user_id = $2 AND a.lesson_id = l.id AND a.status = 'completed'
+		  )
+		ORDER BY l.ordinal
+		LIMIT 1`, profile.ActiveUnitID, userID).Scan(&lessonID, &lessonType)
+	if err != nil {
+		return nil, "", ""
+	}
+	stepOrdinal = 0
+	stepID = ""
+
+	// Build a meaningful MCQ from the unit's first lexical item so a "lesson
+	// step" in a drill is answerable, rather than an empty intro stub.
+	var term, translation string
+	_ = s.db.QueryRowContext(ctx, `
+		SELECT display_text, COALESCE(translations->>'en','') FROM lexical_items
+		WHERE unit_id = $1 ORDER BY frequency_rank NULLS LAST LIMIT 1`, profile.ActiveUnitID).Scan(&term, &translation)
+	if translation == "" {
+		translation = term
+	}
+	choices := []string{term}
+	used := map[string]bool{term: true}
+	rows, _ := s.db.QueryContext(ctx, `
+		SELECT display_text FROM lexical_items WHERE unit_id = $1 ORDER BY frequency_rank NULLS LAST OFFSET 1 LIMIT 4`, profile.ActiveUnitID)
+	for rows.Next() {
+		var t string
+		if rows.Scan(&t) == nil && !used[t] && len(choices) < 4 {
+			choices = append(choices, t)
+			used[t] = true
+		}
+	}
+	rows.Close()
+	for len(choices) < 4 {
+		choices = append(choices, fmt.Sprintf("Opción %d", len(choices)+1))
+	}
+	prompt, _ := json.Marshal(map[string]any{"text": fmt.Sprintf("Which Spanish word means \"%s\"?", translation), "source": term, "choices": choices})
+	answerKey, _ := json.Marshal(map[string]any{"correct": term, "accepted": []string{term}})
+	contentRefs, _ := json.Marshal(map[string]any{})
+
+	var promptMap, answerMap, refsMap map[string]any
+	_ = json.Unmarshal(prompt, &promptMap)
+	_ = json.Unmarshal(answerKey, &answerMap)
+	_ = json.Unmarshal(contentRefs, &refsMap)
+
+	step := &models.CurriculumStep{
+		ID: stepID, LessonID: lessonID, Ordinal: stepOrdinal, Type: "mcq",
+		Prompt: promptMap, AnswerKey: answerMap, ContentRefs: refsMap,
+	}
+	return step, lessonID, profile.ActiveUnitID
+}
+
+func (s *CurriculumService) GetUnitTitle(ctx context.Context, unitID string) string {
+	var title string
+	_ = s.db.QueryRowContext(ctx, `SELECT title FROM curriculum_units WHERE id = $1`, unitID).Scan(&title)
+	return title
+}
+
+// GetUnitDetail returns a unit with its lessons and each lesson's steps.
+func (s *CurriculumService) GetUnitDetail(ctx context.Context, userID, unitID string) (*models.UnitProgressSummary, error) {
+	unit, err := s.getUnitProgress(ctx, userID, unitID)
+	if err != nil {
+		return nil, err
+	}
+	lessonRows, err := s.db.QueryContext(ctx, `
+		SELECT l.id::text, l.unit_id::text, l.ordinal, l.slug, l.type, l.title, l.objective, l.estimated_minutes,
+		       CASE WHEN EXISTS (
+		         SELECT 1 FROM user_lesson_attempts a
+		         WHERE a.user_id = $2 AND a.lesson_id = l.id AND a.status = 'completed'
+		       ) THEN 'completed' ELSE 'available' END AS status
+		FROM curriculum_lessons l
+		WHERE l.unit_id = $1 ORDER BY l.ordinal`, unitID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer lessonRows.Close()
+	lessons := []models.LessonSummary{}
+	for lessonRows.Next() {
+		var l models.LessonSummary
+		if err := lessonRows.Scan(&l.ID, &l.UnitID, &l.Ordinal, &l.Slug, &l.Type, &l.Title, &l.Objective, &l.EstimatedMinutes, &l.Status); err != nil {
+			return nil, err
+		}
+		lessons = append(lessons, l)
+	}
+	unit.Lessons = lessons
+	return unit, nil
 }
 
 func (s *CurriculumService) GetLearningPath(ctx context.Context, userID string, profile *models.UserLanguageProfile, capability *models.LearningPairCapability) (*models.LearningPath, error) {
