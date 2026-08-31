@@ -168,6 +168,26 @@ func main() {
 	learningProfileService := services.NewLearningProfileService(db, learningCapabilityService, curriculumService)
 	learningDashboardService := services.NewLearningDashboardService(db, learningCapabilityService, learningProfileService, curriculumService)
 
+	// Learning engine services: practice (stage-aware SRS), word mining,
+	// lessons, sessions, placement, scenarios, and fluency scoring.
+	grammarEndpoints := buildGrammarEndpoints(cfg)
+	learningAIService := services.NewLearningAIService(grammarEndpoints)
+	practiceService := services.NewPracticeService(db)
+	fluencyService := services.NewFluencyScoreService(db)
+	wordMiningService := services.NewWordMiningService(db, learningAIService, translationService, curriculumService, learningCapabilityService)
+	wordMiningQueue := services.NewWordMiningQueueService(db, redisClient, wordMiningService, func(userID string, payload *services.WordMiningJobResult) {
+		wsHub.SendToUser(userID, "word_mining_completed", payload)
+		if pubsubService != nil {
+			pubsubService.PublishToUser(userID, "word_mining_completed", payload)
+		}
+	})
+	wordMiningQueue.Start()
+	defer wordMiningQueue.Stop()
+	lessonService := services.NewLessonService(db, practiceService, learningProfileService, curriculumService, fluencyService)
+	sessionComposerService := services.NewSessionComposerService(db, practiceService, curriculumService, learningProfileService, lessonService)
+	placementService := services.NewPlacementService(db, curriculumService, learningProfileService)
+	scenarioService := services.NewScenarioService(db, learningAIService, practiceService, fluencyService, curriculumService)
+
 	// Phase 3: Initialize Speech-to-Text service
 	ctx := context.Background()
 	sttService, err := services.NewSpeechToTextService(ctx)
@@ -207,6 +227,7 @@ func main() {
 	moderationService := services.NewModerationService(db)
 	chatHandler := handlers.NewChatHandler(chatService, userService, moderationService, wsHub)
 	messageHandler := handlers.NewMessageHandler(messageService, chatService, userService, entitlementService, translationQueue, moderationService, wsHub, translationService)
+	messageHandler.SetWordMining(wordMiningQueue, learningProfileService)
 	wsHandler := handlers.NewWebSocketHandler(wsHub, authService)
 
 	// Monetization (Phase 1.5): PayPal client + billing service + handler.
@@ -241,7 +262,7 @@ func main() {
 	grammarHandler := handlers.NewGrammarHandler(grammarService, grammarQueue, messageService)
 	vocabularyHandler := handlers.NewVocabularyHandler(vocabularyService, messageService, translationService)
 	callHandler := handlers.NewCallHandler(callService)
-	learningHandler := handlers.NewLearningHandler(learningCapabilityService, learningProfileService, learningDashboardService, curriculumService)
+	learningHandler := handlers.NewLearningHandler(learningCapabilityService, learningProfileService, learningDashboardService, curriculumService, placementService, lessonService, sessionComposerService, wordMiningService, scenarioService, fluencyService, vocabularyService)
 
 	moderationHandler := handlers.NewModerationHandler(moderationService)
 
@@ -393,6 +414,45 @@ func main() {
 		protected.PUT("/learning/profile", learningHandler.UpdateProfile)
 		protected.GET("/learning/dashboard", learningHandler.GetDashboard)
 		protected.GET("/learning/path", learningHandler.GetPath)
+
+		// Placement
+		protected.POST("/learning/placement/start", learningHandler.StartPlacement)
+		protected.POST("/learning/placement/:attemptId/answer", learningHandler.AnswerPlacement)
+		protected.POST("/learning/placement/:attemptId/skip", learningHandler.SkipPlacement)
+		protected.GET("/learning/placement/:attemptId", learningHandler.GetPlacement)
+
+		// Units + lessons
+		protected.GET("/learning/units/:unitId", learningHandler.GetUnit)
+		protected.POST("/learning/lessons/:lessonId/start", learningHandler.StartLesson)
+		protected.POST("/learning/lesson-attempts/:attemptId/steps/:stepId/answer", learningHandler.AnswerLessonStep)
+		protected.POST("/learning/lesson-attempts/:attemptId/complete", learningHandler.CompleteLesson)
+		protected.GET("/learning/lesson-attempts/:attemptId", learningHandler.GetLessonAttempt)
+
+		// Practice sessions
+		protected.POST("/learning/sessions/start", learningHandler.StartSession)
+		protected.GET("/learning/sessions/:sessionId", learningHandler.GetSession)
+		protected.POST("/learning/sessions/:sessionId/items/:itemId/answer", learningHandler.AnswerSessionItem)
+		protected.POST("/learning/sessions/:sessionId/complete", learningHandler.CompleteSession)
+
+		// Mined vocabulary
+		protected.GET("/learning/vocabulary/mined", learningHandler.GetMinedItems)
+		protected.POST("/learning/vocabulary/mined/:id/accept", learningHandler.AcceptMinedItem)
+		protected.POST("/learning/vocabulary/mined/:id/ignore", learningHandler.IgnoreMinedItem)
+
+		// Scenarios + roleplay
+		protected.GET("/learning/scenarios", learningHandler.ListScenarios)
+		protected.GET("/learning/scenarios/:scenarioId", learningHandler.GetScenario)
+		protected.POST("/learning/scenarios/:scenarioId/start", learningHandler.StartScenario)
+		protected.GET("/learning/scenario-runs/:runId", learningHandler.GetScenarioRun)
+		protected.POST("/learning/scenario-runs/:runId/message", learningHandler.SendScenarioMessage)
+		protected.POST("/learning/scenario-runs/:runId/hint", learningHandler.ScenarioHint)
+		protected.POST("/learning/scenario-runs/:runId/complete", learningHandler.CompleteScenario)
+
+		// Real-talk + streak
+		protected.GET("/learning/real-talk/prompts", learningHandler.RealTalkPrompts)
+		protected.POST("/learning/real-talk/prompts/:promptId/used", learningHandler.MarkRealTalkUsed)
+		protected.POST("/learning/nudges/:nudgeId/dismiss", learningHandler.NudgeDismiss)
+		protected.POST("/learning/streak/recover", learningHandler.RecoverStreak)
 
 		// Phase 3: Call routes
 		protected.POST("/calls/initiate", callHandler.InitiateCall)

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import BottomNav from '../components/BottomNav'
 import AppHeader from '../components/AppHeader'
@@ -11,6 +12,7 @@ const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS
 
 export default function Learn() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const user = useStore(s => s.user)
   const [dashboard, setDashboard] = useState<LearningDashboard | null>(null)
   const [loading, setLoading] = useState(true)
@@ -40,6 +42,8 @@ export default function Learn() {
   }, [targetLanguage, nativeLanguage])
 
   const supportTier = dashboard?.capability.supportTier
+
+  const startSession = (mode: string) => navigate(`/learn/session?mode=${mode}`)
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -76,6 +80,40 @@ export default function Learn() {
           <div className="mt-6 bg-surface-container-lowest rounded-xl p-6 flex flex-col gap-stack-sm">
             <h2 className="font-headline-sm text-headline-sm text-on-surface">{t('learn.learningUnavailableTitle')}</h2>
             <p className="font-body-sm text-body-sm text-on-surface-variant">{t('learn.learningUnavailableBody')}</p>
+          </div>
+        )}
+
+        {!loading && !error && dashboard?.profile.placementStatus === 'not_started' && supportTier === 'full_course' && (
+          <div className="mt-6 bg-surface-container-lowest rounded-2xl p-6 shadow-[0px_4px_12px_rgba(0,0,0,0.05)] flex flex-col gap-3">
+            <h2 className="font-headline-md text-headline-md text-on-surface">{'Find your starting level'}</h2>
+            <p className="font-body-sm text-body-sm text-on-surface-variant">{'Take a short placement test or start from the beginning.'}</p>
+            <div className="flex gap-2">
+              <button onClick={() => navigate('/learn/placement')} className="bg-primary text-on-primary font-label-md text-label-md px-4 py-2 rounded-full">
+                {'Start test'}
+              </button>
+              <button
+                onClick={() => learningAPI.skipPlacement(targetLanguage, nativeLanguage).then(() => window.location.reload())}
+                className="bg-surface-container-high text-on-surface-variant font-label-md text-label-md px-4 py-2 rounded-full"
+              >
+                {'Start from scratch'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!loading && !error && supportTier === 'full_course' && (
+          <div className="grid grid-cols-4 gap-2 mt-6">
+            {[
+              { label: 'Drills', icon: 'bolt', onClick: () => startSession('quick_drill') },
+              { label: 'Vocabulary', icon: 'menu_book', onClick: () => navigate('/learn/vocabulary') },
+              { label: 'Scenarios', icon: 'record_voice_over', onClick: () => navigate('/learn/scenarios') },
+              { label: 'Roadmap', icon: 'map', onClick: () => navigate('/learn/roadmap') },
+            ].map(a => (
+              <button key={a.label} onClick={a.onClick} className="bg-surface-container-lowest rounded-2xl p-3 flex flex-col items-center gap-1 shadow-[0px_4px_12px_rgba(0,0,0,0.05)]">
+                <span className="material-symbols-outlined text-primary">{a.icon}</span>
+                <span className="font-label-sm text-label-sm text-on-surface-variant">{a.label}</span>
+              </button>
+            ))}
           </div>
         )}
 
@@ -217,7 +255,14 @@ export default function Learn() {
                       <p className="font-body-sm text-body-sm text-on-surface-variant">{activity.description}</p>
                       <div className="mt-1 flex items-center justify-between">
                         <span className="font-label-sm text-label-sm text-outline">{t('learn.minExercise', { count: activity.estimatedMinutes })}</span>
-                        <button className="bg-primary/10 text-primary font-label-md text-label-md px-4 py-1.5 rounded-full hover:bg-primary/20 transition-colors">
+                        <button
+                          onClick={() => {
+                            if (activity.action === 'open_scenarios') navigate('/learn/scenarios')
+                            else if (activity.type === 'lesson') startSession('daily')
+                            else startSession(activity.id === 'vocabulary' ? 'vocabulary' : activity.type)
+                          }}
+                          className="bg-primary/10 text-primary font-label-md text-label-md px-4 py-1.5 rounded-full hover:bg-primary/20 transition-colors"
+                        >
                           {t('learn.start')}
                         </button>
                       </div>
