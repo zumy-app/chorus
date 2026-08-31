@@ -8,10 +8,10 @@ import storage from '../utils/storage';
 // Same-host /api/{version} by default; override with EXPO_PUBLIC_API_URL /
 // EXPO_PUBLIC_API_VERSION to reach a remote backend (e.g. the dev PC from a
 // physical device: EXPO_PUBLIC_API_URL=http://<lan-ip>:8080).
-// EXPO_PUBLIC_* is only inlined by Expo tooling; under the plain react-native
-// CLI, process.env.* stays undefined at runtime, so API_ORIGIN also falls back
-// to the dev machine's LAN address to keep physical devices working.
-export const API_ORIGIN = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.0.30:8080';
+// In development live reload (react-native start), no EXPO_PUBLIC_* is baked in,
+// so we pass an empty origin and let @chorus/shared resolveApiConfig pick the
+// emulator/simulator host alias (10.0.2.2 for Android, localhost for iOS).
+export const API_ORIGIN = process.env.EXPO_PUBLIC_API_URL || '';
 
 const { baseURL } = resolveApiConfig({
   platform: Platform.OS as ApiPlatform,
