@@ -16,6 +16,10 @@ import type {
   Entitlements,
   GrammarJob,
   GrantPlanRequest,
+  LearningDashboard,
+  LearningPairCapability,
+  LearningPath,
+  LearningProfileUpdateRequest,
   LoginRequest,
   Message,
   PlanChange,
@@ -30,6 +34,7 @@ import type {
   SubscriptionInfo,
   TranslationJob,
   User,
+  UserLanguageProfile,
   WaitlistEntry,
   WaitlistRequest,
 } from './types'
@@ -559,6 +564,43 @@ export function createApiClient(options: ApiClientOptions) {
     },
   }
 
+  // Pair-aware learning engine. Structured courses exist only for curated
+  // native->target pairs (launch: en -> es); unseeded pairs return vocab_only.
+  const learning = {
+    getCapabilities: async (nativeLanguage: string, targetLanguage: string) => {
+      const response = await client.get<{ data: LearningPairCapability }>(
+        `/learning/capabilities${qs({ nativeLanguage, targetLanguage })}`
+      )
+      return response.data.data
+    },
+
+    getProfile: async (targetLanguage: string, nativeLanguage?: string) => {
+      const response = await client.get<{ data: UserLanguageProfile }>(
+        `/learning/profile${qs({ targetLanguage, nativeLanguage })}`
+      )
+      return response.data.data
+    },
+
+    updateProfile: async (data: LearningProfileUpdateRequest) => {
+      const response = await client.put<{ data: UserLanguageProfile }>('/learning/profile', data)
+      return response.data.data
+    },
+
+    getDashboard: async (targetLanguage: string, nativeLanguage?: string) => {
+      const response = await client.get<{ data: LearningDashboard }>(
+        `/learning/dashboard${qs({ targetLanguage, nativeLanguage })}`
+      )
+      return response.data.data
+    },
+
+    getPath: async (targetLanguage: string, nativeLanguage?: string) => {
+      const response = await client.get<{ data: LearningPath }>(
+        `/learning/path${qs({ targetLanguage, nativeLanguage })}`
+      )
+      return response.data.data
+    },
+  }
+
   const health = async () => {
     // The health endpoint sits at <origin>/health, outside the /api/v1 prefix.
     const healthUrl = baseURL.replace('/api/v1', '/health')
@@ -578,6 +620,7 @@ export function createApiClient(options: ApiClientOptions) {
     billing,
     grammar,
     translation,
+    learning,
     health,
   }
 }

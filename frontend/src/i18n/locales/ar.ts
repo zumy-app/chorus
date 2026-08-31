@@ -186,6 +186,7 @@ export const ar = {
     pastTenseDesc: 'ارتكبت أخطاء مع الأفعال غير المنتظمة في الماضي في محادثات حديثة.',
     vocabReview: 'مراجعة المفردات',
     vocabReviewDesc: 'راجع الكلمات المترجمة حديثًا من المحادثات.',
+    loading: 'Loading your learning data…',     error: "We couldn't load your learning data.",     retry: 'Retry',     totalWords: 'Total words',     dueWords: 'Due today',     masteredWords: 'Mastered',     currentUnit: 'Current unit',     nextLesson: 'Up next',     scenario: 'Scenario',     vocabulary: 'Vocabulary',     grammar: 'Grammar',     dueCount: '{{count}} due',     startLearning: 'Start learning',     startPlacement: 'Start placement test',     courseComingSoonTitle: 'Structured lessons coming soon',     courseComingSoonBody:       'Translation, grammar help, and vocabulary review are available for this pair. A guided A1–B2 course is on the way.',     learningUnavailableTitle: 'Learning unavailable for this pair',     learningUnavailableBody: 'Use chat and translation while we build structured learning for this language.',     newFromChats: 'New from chats',     fluency: 'Fluency readiness',
   },
 
   profile: {

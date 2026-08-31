@@ -57,6 +57,13 @@ func main() {
 		log.Fatalf("Failed to seed admin roles: %v", err)
 	}
 
+	// Seed the launch learning course (English -> Spanish full A1-B2 path) and
+	// mark the pair as full_course. Idempotent; safe to run on every boot.
+	curriculumService := services.NewCurriculumService(db)
+	if err := curriculumService.SeedDefaultCourses(context.Background()); err != nil {
+		log.Fatalf("Failed to seed learning curriculum: %v", err)
+	}
+
 	// Initialize Redis (optional in lean local mode)
 	redisClient := database.ConnectRedis(cfg.RedisURL)
 	if redisClient != nil {
@@ -155,6 +162,12 @@ func main() {
 	// Phase 3: Initialize Vocabulary service
 	vocabularyService := services.NewVocabularyService(db, redisClient)
 
+	// Learning engine: pair capability resolution, per-user learning profile,
+	// and the aggregated Learn dashboard.
+	learningCapabilityService := services.NewLearningCapabilityService(db)
+	learningProfileService := services.NewLearningProfileService(db, learningCapabilityService, curriculumService)
+	learningDashboardService := services.NewLearningDashboardService(db, learningCapabilityService, learningProfileService, curriculumService)
+
 	// Phase 3: Initialize Speech-to-Text service
 	ctx := context.Background()
 	sttService, err := services.NewSpeechToTextService(ctx)
@@ -228,6 +241,7 @@ func main() {
 	grammarHandler := handlers.NewGrammarHandler(grammarService, grammarQueue, messageService)
 	vocabularyHandler := handlers.NewVocabularyHandler(vocabularyService, messageService, translationService)
 	callHandler := handlers.NewCallHandler(callService)
+	learningHandler := handlers.NewLearningHandler(learningCapabilityService, learningProfileService, learningDashboardService, curriculumService)
 
 	moderationHandler := handlers.NewModerationHandler(moderationService)
 
@@ -372,6 +386,13 @@ func main() {
 		protected.GET("/vocabulary/progress", vocabularyHandler.GetProgress)
 		protected.DELETE("/vocabulary/:id", vocabularyHandler.DeleteVocabulary)
 		protected.GET("/vocabulary/search", vocabularyHandler.SearchVocabulary)
+
+		// Learning engine routes (pair-aware curriculum, profile, dashboard, path)
+		protected.GET("/learning/capabilities", learningHandler.GetCapabilities)
+		protected.GET("/learning/profile", learningHandler.GetProfile)
+		protected.PUT("/learning/profile", learningHandler.UpdateProfile)
+		protected.GET("/learning/dashboard", learningHandler.GetDashboard)
+		protected.GET("/learning/path", learningHandler.GetPath)
 
 		// Phase 3: Call routes
 		protected.POST("/calls/initiate", callHandler.InitiateCall)

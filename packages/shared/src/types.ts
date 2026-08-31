@@ -355,3 +355,170 @@ export interface Language {
   nativeName: string
   flag?: string
 }
+
+// ---------------------------------------------------------------------------
+// Learning engine types. Shared by web and mobile Learn surfaces. The backend
+// is pair-aware: structured courses exist only for curated native->target pairs
+// (launch: en -> es). Unseeded pairs get vocab_only behavior.
+// ---------------------------------------------------------------------------
+
+export type LearningSupportTier =
+  | 'full_course'
+  | 'beta_ai_assisted'
+  | 'vocab_only'
+  | 'disabled'
+
+export interface LearningPairCapability {
+  nativeLanguage: string
+  targetLanguage: string
+  supportTier: LearningSupportTier
+  activeCourseId?: string
+  placementEnabled: boolean
+  roadmapEnabled: boolean
+  scenariosEnabled: boolean
+  srsEnabled: boolean
+  miningEnabled: boolean
+  grammarFeedbackEnabled: boolean
+  qualityNotes: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2'
+
+export interface UserLanguageProfile {
+  userId: string
+  nativeLanguage: string
+  targetLanguage: string
+  currentCefrLevel: CefrLevel
+  readinessScore: number
+  activeCourseId?: string
+  activeUnitId?: string
+  placementStatus: 'not_started' | 'in_progress' | 'completed' | 'skipped'
+  primaryGoal: string
+  dailyGoalItems: number
+  miningEnabled: boolean
+  nudgesEnabled: boolean
+  scenarioHintsEnabled: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface DailyGoalSummary {
+  targetItems: number
+  completedItems: number
+  percent: number
+}
+
+export interface StreakSummary {
+  days: number
+  atRisk: boolean
+  canRecover: boolean
+}
+
+export interface FluencySummary {
+  readinessScore: number
+  readinessPercent: number
+  label: string
+  componentScores: Record<string, number>
+}
+
+export interface VocabularySummary {
+  total: number
+  dueToday: number
+  mastered: number
+  newFromChats: number
+}
+
+export interface GrammarSummary {
+  weakestPointTitle: string
+  confidencePct: number
+  dueToday: number
+}
+
+export interface ScenarioSummary {
+  nextScenarioId?: string
+  title?: string
+  progressPct: number
+  hasNewWords: boolean
+}
+
+export interface RecommendedActivity {
+  id: string
+  type: string
+  title: string
+  description: string
+  priority: string
+  estimatedMinutes: number
+  action: string
+}
+
+export interface DailyActivityPoint {
+  date: string
+  xp: number
+  itemsCompleted: number
+}
+
+export interface LessonSummary {
+  id: string
+  unitId: string
+  ordinal: number
+  slug: string
+  type: string
+  title: string
+  objective: string
+  estimatedMinutes: number
+  status: string
+}
+
+export interface UnitProgressSummary {
+  id: string
+  courseId: string
+  cefrLevel: CefrLevel
+  ordinal: number
+  slug: string
+  title: string
+  canDoStatement: string
+  description: string
+  estimatedMinutes: number
+  checkpointRequired: boolean
+  status: string
+  progressPct: number
+  competencyScore: number
+  lessonsCompleted: number
+  checkpointScore?: number
+  startedAt?: string
+  completedAt?: string
+  lessons?: LessonSummary[]
+}
+
+export interface LearningDashboard {
+  capability: LearningPairCapability
+  profile: UserLanguageProfile
+  dailyGoal: DailyGoalSummary
+  streak: StreakSummary
+  fluency: FluencySummary
+  currentUnit?: UnitProgressSummary
+  nextLesson?: LessonSummary
+  vocabulary: VocabularySummary
+  grammar: GrammarSummary
+  scenario: ScenarioSummary
+  recommendedActivities: RecommendedActivity[]
+  weeklyActivity: DailyActivityPoint[]
+}
+
+export interface LearningPath {
+  capability: LearningPairCapability
+  profile: UserLanguageProfile
+  units: UnitProgressSummary[]
+}
+
+export interface LearningProfileUpdateRequest {
+  nativeLanguage?: string
+  targetLanguage: string
+  primaryGoal?: string
+  dailyGoalItems?: number
+  miningEnabled?: boolean
+  nudgesEnabled?: boolean
+  scenarioHintsEnabled?: boolean
+}
