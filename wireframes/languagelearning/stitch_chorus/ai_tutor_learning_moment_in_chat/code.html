@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus - Chat &amp; Learning Moment</title>
+<script type="text/javascript" nonce="9ed34308ac864ea2bd7e94284be" src="//local.adguard.org?ts=1788136944898&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1OTQ5YzlkZjY3YTYwMjBjYzFiMjdmMTYwYTE4EgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script type="text/javascript" nonce="9ed34308ac864ea2bd7e94284be" src="//local.adguard.org?ts=1788136944898&amp;name=AdGuard%20Extra&amp;type=user-script"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-container": "#007d55",
+                        "tertiary-fixed": "#6ffbbe",
+                        "error-container": "#ffdad6",
+                        "outline": "#737686",
+                        "surface-container-lowest": "#ffffff",
+                        "on-background": "#0b1c30",
+                        "primary-container": "#2563eb",
+                        "surface-dim": "#cbdbf5",
+                        "on-surface": "#0b1c30",
+                        "background": "#f8f9ff",
+                        "secondary-container": "#8455ef",
+                        "outline-variant": "#c3c6d7",
+                        "on-secondary": "#ffffff",
+                        "surface-variant": "#d3e4fe",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "inverse-on-surface": "#eaf1ff",
+                        "secondary": "#6b38d4",
+                        "surface": "#f8f9ff",
+                        "secondary-fixed": "#e9ddff",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "primary-fixed": "#dbe1ff",
+                        "on-primary-fixed": "#00174b",
+                        "surface-container-low": "#eff4ff",
+                        "on-tertiary-container": "#bdffdb",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "on-tertiary-fixed": "#002113",
+                        "surface-container-high": "#dce9ff",
+                        "on-secondary-fixed": "#23005c",
+                        "on-secondary-fixed-variant": "#5516be",
+                        "secondary-fixed-dim": "#d0bcff",
+                        "error": "#ba1a1a",
+                        "on-primary": "#ffffff",
+                        "surface-container-highest": "#d3e4fe",
+                        "surface-tint": "#0053db",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "tertiary": "#006242",
+                        "on-error": "#ffffff",
+                        "surface-container": "#e5eeff",
+                        "on-error-container": "#93000a",
+                        "on-surface-variant": "#434655",
+                        "surface-bright": "#f8f9ff",
+                        "on-tertiary": "#ffffff",
+                        "inverse-primary": "#b4c5ff",
+                        "inverse-surface": "#213145",
+                        "on-secondary-container": "#fffbff",
+                        "primary": "#004ac6",
+                        "on-primary-container": "#eeefff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-sm": "8px",
+                        "unit": "4px",
+                        "gutter-mobile": "12px",
+                        "margin-mobile": "16px",
+                        "stack-md": "16px",
+                        "stack-lg": "24px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "body-md": ["Be Vietnam Pro"],
+                        "body-sm": ["Be Vietnam Pro"],
+                        "label-sm": ["Inter"],
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "body-lg": ["Be Vietnam Pro"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "translation-text": ["Be Vietnam Pro"],
+                        "headline-lg": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Ambient shadows and glows based on style guidance */
+        .shadow-level-1 { box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.05); }
+        .shadow-level-2 { box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.10); }
+        .glow-ai { box-shadow: 0px 0px 12px 2px rgba(132, 85, 239, 0.1); }
+        .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom, 20px); }
+        
+        /* Hide scrollbar for chat area */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col relative overflow-hidden">
+<!-- TopAppBar -->
+<header class="bg-surface text-primary font-headline-md text-headline-md docked full-width top-0 shadow-sm flex justify-between items-center w-full px-margin-mobile py-stack-sm z-50">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-2xl">arrow_back</span>
+<div class="flex items-center gap-3 ml-2">
+<div class="relative">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="A small circular avatar of a friendly language tutor named Sofia, with a warm smile, set against a soft blue background in a modern illustration style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAvYKa6mnJccIBFxjDfHRIvnE0nKSqcUA9aQDr0BusNMlakmVSmpoPCtUUCfuJKhau1WrX2EWIOdEvPoAqsM8edBXZ48H9hyco3wPrwdner_9-K91OYcwVwyT8TXd6_jEYs2D-YuDRliras6pAFE33yuUQWbUcco6DIOZjPs_1i1w9_GGIXW_SWwRODuizlwvKzkeydI2EV8D_KtZ2stY-TL3RTKO-xLxqln72JNf6uhpEcOB2u3zMQ"/>
+<div class="absolute bottom-0 right-0 w-3 h-3 bg-tertiary-fixed-dim border-2 border-surface rounded-full"></div>
+</div>
+<div class="flex flex-col">
+<span class="text-headline-sm font-headline-sm text-on-surface">Sofia</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">public</span> EN
+                    </span>
+</div>
+</div>
+</div>
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-on-surface-variant hover:bg-surface-container transition-colors p-2 rounded-full cursor-pointer active:scale-95 duration-150">translate</span>
+<span class="material-symbols-outlined text-on-surface-variant hover:bg-surface-container transition-colors p-2 rounded-full cursor-pointer active:scale-95 duration-150">more_vert</span>
+</div>
+</header>
+<!-- Chat Canvas -->
+<main class="flex-1 overflow-y-auto no-scrollbar px-margin-mobile pt-stack-md pb-[100px] flex flex-col gap-stack-md">
+<!-- Outgoing Message -->
+<div class="flex justify-end w-full">
+<div class="bg-primary text-on-primary rounded-2xl rounded-tr-sm p-4 max-w-[85%] shadow-level-1 relative">
+<p class="font-body-md">How are you buddy?</p>
+<div class="mt-2 pt-2 border-t border-primary-fixed-dim/30">
+<div class="flex items-center gap-1 mb-1">
+<span class="material-symbols-outlined text-[14px] text-primary-fixed-dim">school</span>
+<span class="text-label-sm font-label-sm text-primary-fixed-dim">Learning (ES):</span>
+</div>
+<p class="font-translation-text text-primary-fixed italic">¿Cómo estás, amigo?</p>
+</div>
+<span class="text-label-sm font-label-sm text-primary-fixed-dim absolute -bottom-5 right-1">2 days ago</span>
+</div>
+</div>
+<!-- Incoming Message -->
+<div class="flex justify-start w-full mt-4">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-2xl rounded-tl-sm p-4 max-w-[85%] shadow-level-1 relative">
+<p class="font-body-md text-on-surface">Buenas tardes</p>
+<div class="mt-2 pt-2 border-t border-outline-variant/50">
+<div class="flex items-center gap-1 mb-1">
+<span class="material-symbols-outlined text-[14px] text-on-surface-variant">school</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Learning (ES):</span>
+</div>
+<p class="font-translation-text text-on-surface-variant italic">Buenas tardes</p>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant absolute -bottom-5 left-1">2 days ago</span>
+</div>
+</div>
+<!-- User Mistake (Triggering Tutor) -->
+<div class="flex justify-end w-full mt-6">
+<div class="bg-primary text-on-primary rounded-2xl rounded-tr-sm p-4 max-w-[85%] shadow-level-1 relative">
+<p class="font-body-md">I am very tired today.</p>
+<div class="mt-2 pt-2 border-t border-primary-fixed-dim/30">
+<div class="flex items-center gap-1 mb-1">
+<span class="material-symbols-outlined text-[14px] text-primary-fixed-dim">school</span>
+<span class="text-label-sm font-label-sm text-primary-fixed-dim">Learning (ES):</span>
+</div>
+<p class="font-translation-text text-primary-fixed italic">Yo <span class="bg-error-container text-on-error-container px-1 rounded">soy</span> muy cansado hoy.</p>
+</div>
+<span class="text-label-sm font-label-sm text-primary-fixed-dim absolute -bottom-5 right-1">Just now</span>
+</div>
+</div>
+<!-- AI Tutor Intervention Card (Bento Style) -->
+<div class="w-full mt-6 bg-surface-container-lowest border border-secondary-fixed rounded-2xl shadow-level-2 glow-ai overflow-hidden flex flex-col">
+<!-- Header -->
+<div class="bg-secondary-fixed-dim/20 px-4 py-3 flex justify-between items-center border-b border-secondary-fixed">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary-container">smart_toy</span>
+<span class="font-label-md text-label-md text-secondary-container">AI Tutor Sparky</span>
+<span class="bg-secondary-fixed text-on-secondary-fixed-variant px-2 py-0.5 rounded-full text-[10px] font-bold">A1</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant cursor-pointer hover:text-on-surface">close</span>
+</div>
+<!-- Tabs -->
+<div class="flex border-b border-outline-variant/30 px-2 pt-2">
+<button class="flex-1 py-2 border-b-2 border-secondary-container text-secondary-container font-label-md text-label-md flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-[16px]">lightbulb</span> Overview
+                </button>
+<button class="flex-1 py-2 border-b-2 border-transparent text-on-surface-variant font-label-md text-label-md flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-[16px]">translate</span> Word-by-Word
+                </button>
+<button class="flex-1 py-2 border-b-2 border-transparent text-on-surface-variant font-label-md text-label-md flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-[16px]">menu_book</span> Grammar
+                </button>
+</div>
+<!-- Content Area -->
+<div class="p-4 flex flex-col gap-4 bg-secondary-fixed/5">
+<p class="font-body-sm text-on-surface">
+                    In Spanish, we use <strong>Estar</strong> (to be) for temporary states like emotions or physical conditions (tiredness). We use <strong>Ser</strong> for permanent characteristics.
+                </p>
+<!-- Mistake Highlight Box -->
+<div class="bg-error-container/30 border border-error-container rounded-lg p-3">
+<p class="font-label-sm text-on-error-container mb-1 uppercase tracking-wider">Instead of:</p>
+<p class="font-translation-text text-on-surface strike-through text-error">Yo <strong>soy</strong> muy cansado.</p>
+</div>
+<div class="bg-tertiary-fixed/30 border border-tertiary-fixed-dim rounded-lg p-3">
+<p class="font-label-sm text-on-tertiary-fixed-variant mb-1 uppercase tracking-wider">Try saying:</p>
+<p class="font-translation-text text-on-surface">Yo <strong>estoy</strong> muy cansado.</p>
+</div>
+<button class="w-full mt-2 bg-secondary-container text-on-secondary-container font-label-md text-label-md py-3 rounded-full shadow-sm hover:bg-secondary transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">psychology</span> Practice Now
+                </button>
+</div>
+</div>
+</main>
+<!-- Chat Input Area (Fixed Bottom) -->
+<div class="fixed bottom-0 w-full bg-surface-container-lowest border-t border-outline-variant shadow-lg px-margin-mobile py-stack-sm safe-area-bottom z-40">
+<div class="flex items-center gap-3 bg-surface-container rounded-full px-4 py-2 border-2 border-transparent focus-within:border-primary transition-colors">
+<span class="material-symbols-outlined text-primary cursor-pointer hover:bg-surface-container-high p-1 rounded-full">add_circle</span>
+<input class="flex-1 bg-transparent border-none focus:ring-0 text-body-md text-on-surface placeholder:text-outline p-0" placeholder="Type a message..." type="text"/>
+<span class="material-symbols-outlined text-secondary-container cursor-pointer hover:bg-secondary-fixed p-1 rounded-full glow-ai">lightbulb</span>
+<span class="material-symbols-outlined text-primary cursor-pointer hover:bg-surface-container-high p-1 rounded-full">mic</span>
+</div>
+</div>
+</body></html>
