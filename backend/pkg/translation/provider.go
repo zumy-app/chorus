@@ -22,10 +22,24 @@ type TranslateRequest struct {
 	TargetLang string
 }
 
+// TokenUsage captures the token counts a provider reports for a request, when
+// available. Zero values mean the provider does not report usage (e.g. a local
+// model). Used for FR-30 cost-per-1k-tokens aggregation.
+type TokenUsage struct {
+	PromptTokens     int
+	CompletionTokens int
+}
+
+// Total returns the total tokens for the request.
+func (u TokenUsage) Total() int {
+	return u.PromptTokens + u.CompletionTokens
+}
+
 // TranslateResponse holds the result of a translation.
 type TranslateResponse struct {
 	TranslatedText string
-	Provider       string // name of the provider that handled the request
+	Provider       string     // name of the provider that handled the request
+	Usage          TokenUsage // optional token usage reported by the provider
 }
 
 // Provider defines the interface for translation backends.

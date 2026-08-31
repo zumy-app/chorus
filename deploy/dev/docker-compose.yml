@@ -1,0 +1,186 @@
+# =============================================================================
+# Chorus — `dev` environment (NFR-26, id 5.4)
+#
+# This is the SEPARATE "chorus-dev" Dokploy project. It runs the SAME images
+# the CI pipeline built and tagged `:dev` (image promotion, no rebuild). It has
+# its own Postgres + Redis (never shared with prod) and its own Layer-4/front LB
+# (Caddy) that also reverse-proxies /api + /ws to the backend so the SAME
+# frontend image works in dev and prod (the web client defaults to a relative
+# `/api/{version}` origin).
+#
+# Apply on the dev host (or via Dokploy project "chorus-dev"):
+#   docker compose -f deploy/dev/docker-compose.yml up -d
+#
+# Quality gates (deploy/ci/*) run against this stack before image promotion.
+# See docs/CI_CD_NFR26.md for the promotion flow + required secrets.
+# =============================================================================
+
+name: chorus-dev
+
+services:
+  postgres-dev:
+    image: postgres:15-alpine
+    container_name: chorus-dev-postgres
+    environment:
+      POSTGRES_DB: chorus_dev
+      POSTGRES_USER: chorus_dev
+      POSTGRES_PASSWORD: ${DEV_POSTGRES_PASSWORD:-dev_password_123}
+    volumes:
+      - chorus_dev_postgres_data:/var/lib/postgresql/data
+      # Idempotent first-boot init: extensions only (plus demo data applied
+      # later by the `seed` gate, not at initdb, so it never races migrations).
+      - ./seed/00-init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chorus_dev -d chorus_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - chorus-dev
+
+  redis-dev:
+    image: redis:7-alpine
+    container_name: chorus-dev-redis
+    volumes:
+      - chorus_dev_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - chorus-dev
+
+  backend-dev:
+    # Image built by ci.yml (job `images`) — do NOT add `build:` here.
+    image: ghcr.io/zumy-app/chorus/backend:${IMAGE_TAG:-dev}
+    container_name: chorus-dev-backend
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgres://chorus_dev:${DEV_POSTGRES_PASSWORD:-dev_password_123}@postgres-dev:5432/chorus_dev?sslmode=disable
+      REDIS_URL: redis-dev:6379
+      JWT_SECRET: ${DEV_JWT_SECRET:-dev-jwt-secret-change-me}
+      PORT: "8080"
+      # Dev LB (Caddy) is the client-facing host; server-time internal address
+      # is just the compose service name. Keep provider/trace config scoped so
+      # the gate + Phoenix evaluator have what they need.
+      INVITE_BASE_URL: ${DEV_INVITE_BASE_URL:-https://dev.chorus.talk/register}
+      INVITE_TTL_HOURS: "168"
+      PHOENIX_ENABLED: "true"
+      PHOENIX_OTLP_ENDPOINT: phoenix-dev:4317
+      # Translation / grammar provider chain (secrets injected by the env file).
+      TRANSLATION_FALLBACK_ORDER: openrouter,libretranslate,nvidia,opencode
+      GRAMMAR_FALLBACK_ORDER: openrouter,nvidia,opencode
+      PROVIDER_OPENROUTER_URL: https://openrouter.ai/api/v1
+      PROVIDER_OPENROUTER_KEY: ${PROVIDER_OPENROUTER_KEY:-}
+      PROVIDER_OPENROUTER_TIMEOUT: "60"
+      MODEL_TRANSLATION_OPENROUTER: ${MODEL_TRANSLATION_OPENROUTER:-meta-llama/llama-3.1-8b-instruct}
+      MODEL_GRAMMAR_OPENROUTER: ${MODEL_GRAMMAR_OPENROUTER:-google/gemini-2.5-flash}
+      PROVIDER_NVIDIA_URL: ${PROVIDER_NVIDIA_URL:-https://integrate.api.nvidia.com/v1}
+      PROVIDER_NVIDIA_KEY: ${PROVIDER_NVIDIA_KEY:-}
+      PROVIDER_LIBRETRANSLATE_URL: http://libretranslate-dev:5000
+      PROVIDER_LIBRETRANSLATE_TIMEOUT: "60"
+      WAITLIST_ADMIN_EMAILS: ${DEV_WAITLIST_ADMIN_EMAILS:-}
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
+      redis-dev:
+        condition: service_healthy
+      libretranslate-dev:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - chorus-dev
+
+  frontend-dev:
+    # Same image the CI built — no VITE_API_URL baked in, the LB proxies /api.
+    image: ghcr.io/zumy-app/chorus/frontend:${IMAGE_TAG:-dev}
+    container_name: chorus-dev-frontend
+    expose:
+      - "3000"
+    depends_on:
+      backend-dev:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - chorus-dev
+
+  libretranslate-dev:
+    image: libretranslate/libretranslate:latest
+    container_name: chorus-dev-libretranslate
+    volumes:
+      - chorus_dev_libretranslate_data:/app/.local/share/argos-translate
+    environment:
+      - LT_LOAD_ONLY=en,zh,hi,es,ar,fr,bn,pt,ru,ur
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5000/languages', timeout=5).status==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 12
+      start_period: 240s
+    restart: unless-stopped
+    networks:
+      - chorus-dev
+
+  phoenix-dev:
+    image: arizephoenix/phoenix:latest
+    container_name: chorus-dev-phoenix
+    environment:
+      PHOENIX_SQL_DATABASE_URL: sqlite:////phoenix/phoenix.db
+    volumes:
+      - chorus_dev_phoenix_data:/phoenix
+    expose:
+      - "6006"
+      - "4317"
+      - "4318"
+    restart: unless-stopped
+    networks:
+      - chorus-dev
+
+  # Dev front-end / Layer-7 LB. Exposes ONLY this service to the host; Docker
+  # Compose does not publish backend/frontend directly so the only path to the
+  # app is through the LB (mirrors the prod Traefik topology, simplified).
+  lb:
+    image: caddy:2-alpine
+    container_name: chorus-dev-lb
+    ports:
+      - "${DEV_LB_HTTP_PORT:-80}:80"
+      - "${DEV_LB_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - chorus_dev_caddy_data:/data
+    depends_on:
+      backend-dev:
+        condition: service_healthy
+      frontend-dev:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - chorus-dev
+
+volumes:
+  chorus_dev_postgres_data:
+    name: chorus_dev_postgres_data
+  chorus_dev_redis_data:
+    name: chorus_dev_redis_data
+  chorus_dev_libretranslate_data:
+    name: chorus_dev_libretranslate_data
+  chorus_dev_phoenix_data:
+    name: chorus_dev_phoenix_data
+  chorus_dev_caddy_data:
+    name: chorus_dev_caddy_data
+
+networks:
+  chorus-dev:
+    driver: bridge
+    name: chorus-dev-network

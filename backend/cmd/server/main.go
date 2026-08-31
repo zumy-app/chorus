@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"os"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	"github.com/chorus/messenger/internal/handlers"
 	"github.com/chorus/messenger/internal/middleware"
 	"github.com/chorus/messenger/internal/models"
+	"github.com/chorus/messenger/internal/observability"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/chorus/messenger/pkg/logutil"
 	"github.com/chorus/messenger/pkg/translation"
@@ -33,6 +35,17 @@ func main() {
 	// Initialize log level
 	logutil.SetLevelFromString(cfg.LogLevel)
 	log.Printf("[Startup] Log level set to %q", cfg.LogLevel)
+
+	// FR-30/NFR-25: export translation + grammar spans to a local Arize Phoenix
+	// over OTLP gRPC. Opt-in via PHOENIX_ENABLED; when disabled this is a no-op
+	// and tracing adds zero overhead (spans go to the global no-op provider).
+	phoenixShutdown := observability.SetupPhoenix()
+	defer phoenixShutdown(context.Background())
+
+	// NFR-18/25: build the Prometheus registry and metric collectors. Idempotent;
+	// the collectors stay registered (and near-zero) whether or not anything is
+	// scraped, so /metrics is always available to Prometheus and Grafana.
+	observability.SetupMetrics()
 
 	// Startup configuration checks: warn about missing/invalid provider keys
 	// so misconfigured cloud providers are obvious before traffic arrives.
@@ -73,6 +86,9 @@ func main() {
 	// Initialize core services
 	authService := services.NewAuthService(db, cfg.JWTSecret)
 	userService := services.NewUserService(db)
+	// FR-25 Feature toggles: per-account settings row including
+	// translation_enabled / grammar_auto / highlights_enabled.
+	settingsService := services.NewSettingsService(db)
 	entitlementService := services.NewEntitlementService(cfg.SelfHost)
 	waitlistService := services.NewWaitlistService(db)
 	invitationService := services.NewInvitationService(db, time.Duration(cfg.InviteTTLHours)*time.Hour)
@@ -135,6 +151,10 @@ func main() {
 	// Phase 2: Initialize Search service
 	searchService := services.NewSearchService(db, redisClient)
 
+	// Contacts & Invites epic (REQ 2.4 / FR-22-23): hashed on-platform detection
+	// and single-use invites for off-platform contacts.
+	contactService := services.NewContactService(db)
+
 	// Phase 3: Initialize Grammar service with endpoint chain
 	log.Printf("[Startup] TRANSLATION_FALLBACK_ORDER=%q from env", os.Getenv("TRANSLATION_FALLBACK_ORDER"))
 	grammarService := services.NewGrammarService(redisClient, buildGrammarEndpoints(cfg))
@@ -159,8 +179,22 @@ func main() {
 	grammarQueue.Start()
 	defer grammarQueue.Stop()
 
+	// FR-30 Quality pipeline: cross-model evaluator. Every completed translation /
+	// grammar job is re-scored by a *different* model through the evaluator chain
+	// (same endpoints, but chosen to differ from the producer). Rows are durable
+	// in translation_evals / grammar_evals and processed asynchronously off the
+	// hot path; KPIs are aggregated on read.
+	qualityEvaluator := services.NewQualityEvaluatorService(db, redisClient, buildGrammarEndpoints(cfg))
+	translationQueue.SetOnDone(func(jobID string) { _ = qualityEvaluator.EnqueueTranslation(jobID) })
+	grammarQueue.SetOnDone(func(jobID string) { _ = qualityEvaluator.EnqueueGrammar(jobID) })
+	qualityEvaluator.Start()
+	defer qualityEvaluator.Stop()
+
 	// Phase 3: Initialize Vocabulary service
 	vocabularyService := services.NewVocabularyService(db, redisClient)
+	// FR-26 Learned-word optimization: expose the per-user learned-word set to
+	// the translation pipeline so known words skip redundant LLM calls.
+	translationService.SetKnownWordsResolver(vocabularyService.LearnedWords)
 
 	// Learning engine: pair capability resolution, per-user learning profile,
 	// and the aggregated Learn dashboard.
@@ -188,6 +222,11 @@ func main() {
 	placementService := services.NewPlacementService(db, curriculumService, learningProfileService)
 	scenarioService := services.NewScenarioService(db, learningAIService, practiceService, fluencyService, curriculumService)
 
+	// FR-32: seed path (curriculum lexical items -> learner vocabulary queue)
+	// and the unified SRS queue that interleaves seed + personal + grammar.
+	seedQueueService := services.NewSeedQueueService(db, learningProfileService, learningCapabilityService)
+	srsQueueService := services.NewSRSQueueService(db, practiceService, seedQueueService)
+
 	// Phase 3: Initialize Speech-to-Text service
 	ctx := context.Background()
 	sttService, err := services.NewSpeechToTextService(ctx)
@@ -212,6 +251,7 @@ func main() {
 	defer notificationService.Stop()
 
 	authHandler := handlers.NewAuthHandler(authService, userService, invitationService, notificationService, entitlementService, cfg.PasswordResetBaseURL)
+	settingsHandler := handlers.NewSettingsHandler(settingsService)
 	waitlistHandler := handlers.NewWaitlistHandler(waitlistService, notificationService)
 	adminWaitlistHandler := handlers.NewAdminWaitlistHandler(
 		db, userService, invitationService,
@@ -221,12 +261,13 @@ func main() {
 	)
 	adminUsersHandler := handlers.NewAdminUsersHandler(userService, authService)
 	adminTranslationsHandler := handlers.NewAdminTranslationsHandler(translationQueue, translationService)
+	adminQualityHandler := handlers.NewAdminQualityHandler(qualityEvaluator)
 
 	// Report & Block (REQ §8.2): moderation service enforces blocks on chat
 	// creation and messaging; reports feed the moderator console.
 	moderationService := services.NewModerationService(db)
 	chatHandler := handlers.NewChatHandler(chatService, userService, moderationService, wsHub)
-	messageHandler := handlers.NewMessageHandler(messageService, chatService, userService, entitlementService, translationQueue, moderationService, wsHub, translationService)
+	messageHandler := handlers.NewMessageHandler(messageService, chatService, userService, entitlementService, translationQueue, settingsService, moderationService, wsHub, translationService)
 	messageHandler.SetWordMining(wordMiningQueue, learningProfileService)
 	wsHandler := handlers.NewWebSocketHandler(wsHub, authService)
 
@@ -258,11 +299,12 @@ func main() {
 
 	// Phase 2 & 3 handlers
 	searchHandler := handlers.NewSearchHandler(searchService)
+	contactsHandler := handlers.NewContactsHandler(contactService, invitationService, notificationService, cfg.InviteBaseURL)
 	presenceHandler := handlers.NewPresenceHandler(presenceService)
 	grammarHandler := handlers.NewGrammarHandler(grammarService, grammarQueue, messageService)
 	vocabularyHandler := handlers.NewVocabularyHandler(vocabularyService, messageService, translationService)
 	callHandler := handlers.NewCallHandler(callService)
-	learningHandler := handlers.NewLearningHandler(learningCapabilityService, learningProfileService, learningDashboardService, curriculumService, placementService, lessonService, sessionComposerService, wordMiningService, scenarioService, fluencyService, vocabularyService)
+	learningHandler := handlers.NewLearningHandler(learningCapabilityService, learningProfileService, learningDashboardService, curriculumService, placementService, lessonService, sessionComposerService, wordMiningService, scenarioService, fluencyService, vocabularyService, seedQueueService, srsQueueService)
 
 	moderationHandler := handlers.NewModerationHandler(moderationService)
 
@@ -271,7 +313,11 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	r := gin.Default()
+	r := gin.New()
+	r.Use(gin.Logger())
+	r.Use(middleware.Recovery())
+	// NFR-18: per-route HTTP request count + latency, by method/route/status.
+	r.Use(observability.MetricsMiddleware())
 
 	// CORS configuration
 	r.Use(cors.New(cors.Config{
@@ -282,10 +328,34 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	// Health check
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "healthy", "version": "2.0.0"})
+	// NFR-18/19: per-server health/readiness. /health is the load balancer's
+	// liveness check (always 200 while the process is up, with a per-dependency
+	// detail map for operators); /health/ready flips to 503 until the DB, Redis
+	// (when configured), and the translation chain are all reachable. This is
+	// the same surface the Docker healthchecks and LB probes hit.
+	appHealth := observability.NewHealth(observability.Version)
+	appHealth.AddCheck("postgres", func(ctx context.Context) error {
+		return db.PingContext(ctx)
 	})
+	if redisClient != nil {
+		appHealth.AddCheck("redis", func(ctx context.Context) error {
+			return redisClient.Ping(ctx).Err()
+		})
+	}
+	appHealth.AddCheck("translation", translationReadinessCheck(translationService))
+
+	// Liveness (LB health check): always 200 while the process is up.
+	r.GET("/health", appHealth.Liveness())
+	// Readiness (traffic gate): 503 until dependencies are reachable.
+	r.GET("/health/ready", appHealth.Readiness())
+	// Prometheus scrape endpoint (NFR-18): consumes the custom registry.
+	r.GET("/metrics", gin.WrapH(observability.MetricsHandler()))
+
+	// NFR-24 rate-limit settings. Env-driven so a deployment can tune them
+	// without a rebuild; sensible defaults guard against abuse/cost exhaustion.
+	loginRateLimit := middleware.IPRateLimiter(envIntOr("RATE_LIMIT_LOGIN_MAX", 10), envMinutesOr("RATE_LIMIT_LOGIN_WINDOW", 15))
+	translationRateLimit := middleware.UserRateLimiter(envIntOr("RATE_LIMIT_TRANSLATION_MAX", 60), envMinutesOr("RATE_LIMIT_TRANSLATION_WINDOW", 1))
+	wsRateLimit := middleware.IPRateLimiter(envIntOr("RATE_LIMIT_WS_CONNECT_MAX", 100), envMinutesOr("RATE_LIMIT_WS_CONNECT_WINDOW", 15))
 
 	// Public routes
 	public := r.Group("/api/v1")
@@ -293,7 +363,7 @@ func main() {
 		public.POST("/waitlist", middleware.IPRateLimiter(10, time.Hour), waitlistHandler.Submit)
 		public.POST("/auth/register", middleware.IPRateLimiter(10, time.Hour), authHandler.Register)
 		public.GET("/auth/invite", authHandler.InviteInfo)
-		public.POST("/auth/login", authHandler.Login)
+		public.POST("/auth/login", loginRateLimit, authHandler.Login)
 		public.POST("/auth/refresh", authHandler.RefreshToken)
 		public.POST("/auth/forgot-password", middleware.IPRateLimiter(5, time.Hour), authHandler.ForgotPassword)
 		public.POST("/auth/reset-password", authHandler.ResetPassword)
@@ -310,7 +380,13 @@ func main() {
 		protected.GET("/users/me", authHandler.GetMe)
 		protected.GET("/users/me/entitlements", authHandler.GetMyEntitlements)
 		protected.PUT("/users/me", authHandler.UpdateMe)
+		protected.PUT("/users/me/onboard", authHandler.OnboardMe)
 		protected.GET("/users/search", authHandler.SearchUsers)
+
+		// FR-25 Feature toggles: read/update the per-account settings row
+		// (auto-translation, auto-grammar, learning highlights).
+		protected.GET("/users/me/settings", settingsHandler.GetSettings)
+		protected.PUT("/users/me/settings", settingsHandler.UpdateSettings)
 
 		// Subscription routes (Phase 1.5).
 		protected.GET("/users/me/subscription", billingHandler.GetMySubscription)
@@ -329,6 +405,8 @@ func main() {
 		admin := protected.Group("/admin")
 		admin.Use(middleware.RequireRole(services.RoleAdmin))
 		{
+			admin.GET("/quality/kpis", adminQualityHandler.KPIs)
+			admin.POST("/quality/requeue", adminQualityHandler.Requeue)
 			admin.GET("/waitlist", adminWaitlistHandler.List)
 			admin.POST("/waitlist/:id/approve", adminWaitlistHandler.Approve)
 			admin.POST("/waitlist/:id/decline", adminWaitlistHandler.Decline)
@@ -376,13 +454,19 @@ func main() {
 		// Message routes
 		protected.GET("/chats/:chatId/messages", messageHandler.GetMessages)
 		protected.POST("/chats/:chatId/messages", messageHandler.SendMessage)
-		protected.POST("/chats/:chatId/messages/:messageId/translate", messageHandler.TranslateMessage)
+		protected.POST("/chats/:chatId/messages/:messageId/translate", translationRateLimit, messageHandler.TranslateMessage)
 		protected.PUT("/chats/:chatId/read", messageHandler.MarkAsRead)
 
 		// Phase 2: Search routes
 		protected.GET("/messages/search", searchHandler.SearchMessages)
 		protected.GET("/chats/search", searchHandler.SearchChats)
 		protected.GET("/contacts/search", searchHandler.SearchContacts)
+
+		// Contacts & Invites epic (REQ 2.4): hashed contact scan + off-platform
+		// invites with status tracking.
+		protected.POST("/contacts/scan", contactsHandler.ScanContacts)
+		protected.POST("/contacts/invites", contactsHandler.CreateInvite)
+		protected.GET("/contacts/invites", contactsHandler.ListInvites)
 
 		// Phase 2: Presence routes
 		protected.GET("/presence/:userId", presenceHandler.GetPresence)
@@ -419,7 +503,12 @@ func main() {
 		protected.POST("/learning/placement/start", learningHandler.StartPlacement)
 		protected.POST("/learning/placement/:attemptId/answer", learningHandler.AnswerPlacement)
 		protected.POST("/learning/placement/:attemptId/skip", learningHandler.SkipPlacement)
+		protected.POST("/learning/placement/skip", learningHandler.SkipPlacement)
 		protected.GET("/learning/placement/:attemptId", learningHandler.GetPlacement)
+
+		// Onboarding level self-selection (task 2.3): seed CEFR from
+		// beginner/intermediate/advanced without running the placement test.
+		protected.POST("/learning/level/select", learningHandler.SelectLevel)
 
 		// Units + lessons
 		protected.GET("/learning/units/:unitId", learningHandler.GetUnit)
@@ -433,6 +522,9 @@ func main() {
 		protected.GET("/learning/sessions/:sessionId", learningHandler.GetSession)
 		protected.POST("/learning/sessions/:sessionId/items/:itemId/answer", learningHandler.AnswerSessionItem)
 		protected.POST("/learning/sessions/:sessionId/complete", learningHandler.CompleteSession)
+
+		// FR-32 unified SRS queue (seed + personal + grammar).
+		protected.GET("/learning/srs/queue", learningHandler.GetSRSQueue)
 
 		// Mined vocabulary
 		protected.GET("/learning/vocabulary/mined", learningHandler.GetMinedItems)
@@ -466,7 +558,7 @@ func main() {
 	}
 
 	// WebSocket endpoint (auth handled inside handler via query param or header)
-	r.GET("/ws", wsHandler.HandleWebSocket)
+	r.GET("/ws", wsRateLimit, wsHandler.HandleWebSocket)
 
 	// Start server
 	port := os.Getenv("PORT")
@@ -526,6 +618,25 @@ func buildTranslationProviderChain(cfg *config.Config) translation.Provider {
 		return providers[0]
 	}
 	return translation.NewChainProvider(providers)
+}
+
+// translationReadinessCheck returns a health CheckFunc that passes when at least
+// one provider in the translation chain is ready and fails otherwise. It reports
+// an unavailable state without blocking: readiness is a light probe, not a
+// full chain exercise, so a single slow provider cannot stall /health/ready.
+func translationReadinessCheck(svc *services.TranslationService) observability.CheckFunc {
+	return func(ctx context.Context) error {
+		health := svc.ProviderHealth()
+		for _, p := range health {
+			if p.Ready {
+				return nil
+			}
+		}
+		if len(health) == 0 {
+			return errors.New("no translation providers configured")
+		}
+		return errors.New("no translation provider is ready")
+	}
 }
 
 // missingProviderEnvKeys returns the canonical env var names that must be set
@@ -669,4 +780,20 @@ func startupPullTimeout() time.Duration {
 		}
 	}
 	return time.Duration(secs) * time.Second
+}
+
+// envIntOr reads a positive integer env var, returning def when it is unset,
+// unparseable, or non-positive. Used for the NFR-24 rate-limit tuning knobs.
+func envIntOr(key string, def int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			return n
+		}
+	}
+	return def
+}
+
+// envMinutesOr reads a minutes integer env var and converts it to a Duration.
+func envMinutesOr(key string, def int) time.Duration {
+	return time.Duration(envIntOr(key, def)) * time.Minute
 }

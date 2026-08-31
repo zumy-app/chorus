@@ -64,6 +64,8 @@ services:
       - REDIS_URL=redis-dev:6379
       - JWT_SECRET=dev-jwt-secret-key-for-testing-only
       - PORT=8080
+      - PHOENIX_ENABLED=true
+      - PHOENIX_OTLP_ENDPOINT=phoenix-dev:4317
     depends_on:
       postgres-dev:
         condition: service_healthy
@@ -72,6 +74,8 @@ services:
       translator-engine-dev:
         condition: service_started
       ollama-dev:
+        condition: service_started
+      phoenix-dev:
         condition: service_started
     volumes:
       - ./backend:/app
@@ -199,6 +203,63 @@ services:
       start_period: 600s
     restart: unless-stopped
 
+  # Arize Phoenix — local FR-30/NFR-25 tracing backend (OTLP gRPC 4317, UI 6006).
+  phoenix-dev:
+    image: arizephoenix/phoenix:latest
+    container_name: chorus-dev-phoenix
+    networks:
+      - chorus-dev
+    ports:
+      - "6007:6006"   # Phoenix web UI (host 6007 to avoid clash with main compose)
+      - "4319:4317"   # OTLP gRPC
+      - "4320:4318"   # OTLP HTTP
+    environment:
+      - PHOENIX_SQL_DATABASE_URL=sqlite:////phoenix/phoenix.db
+    volumes:
+      - chorus_dev_phoenix_data:/phoenix
+    restart: unless-stopped
+
+  # NFR-18 observability: Prometheus scrapes the dev backend /metrics.
+  prometheus-dev:
+    image: prom/prometheus:v3.1.0
+    container_name: chorus-dev-prometheus
+    networks:
+      - chorus-dev
+    ports:
+      - "9092:9090"   # different host port to avoid clashing with main stack
+    volumes:
+      - ./deploy/monitoring/prometheus.dev.yml:/etc/prometheus/prometheus.yml:ro
+      - chorus_dev_prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+    depends_on:
+      backend-dev:
+        condition: service_started
+    restart: unless-stopped
+
+  # NFR-18 observability: Grafana dashboard/dev.stack. Login: admin/admin.
+  grafana-dev:
+    image: grafana/grafana:11.2.0
+    container_name: chorus-dev-grafana
+    networks:
+      - chorus-dev
+    ports:
+      - "3006:3000"   # different host port to avoid clashing with main stack
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./deploy/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - chorus_dev_grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus-dev
+    restart: unless-stopped
+
 volumes:
   chorus_dev_postgres_data:
     name: chorus_dev_postgres_data
@@ -210,3 +271,9 @@ volumes:
     name: chorus_dev_ollama_data
   chorus_dev_translator_model_cache:
     name: chorus_dev_translator_model_cache
+  chorus_dev_phoenix_data:
+    name: chorus_dev_phoenix_data
+  chorus_dev_prometheus_data:
+    name: chorus_dev_prometheus_data
+  chorus_dev_grafana_data:
+    name: chorus_dev_grafana_data

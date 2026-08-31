@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus - Community Learning Feed</title>
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788158188199&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YTUyNWUxM2M5NjEwMWE2MDllYzE3MDQ1NTFlEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary-container": "#eeefff",
+                    "on-secondary": "#ffffff",
+                    "on-secondary-container": "#fffbff",
+                    "surface-container-low": "#eff4ff",
+                    "on-tertiary": "#ffffff",
+                    "outline-variant": "#c3c6d7",
+                    "on-tertiary-fixed-variant": "#005236",
+                    "on-surface": "#0b1c30",
+                    "surface-container-lowest": "#ffffff",
+                    "on-primary-fixed": "#00174b",
+                    "tertiary-fixed-dim": "#4edea3",
+                    "tertiary-fixed": "#6ffbbe",
+                    "primary-fixed": "#dbe1ff",
+                    "primary-container": "#2563eb",
+                    "surface-container": "#e5eeff",
+                    "secondary-container": "#8455ef",
+                    "surface-container-high": "#dce9ff",
+                    "primary": "#004ac6",
+                    "inverse-surface": "#213145",
+                    "error": "#ba1a1a",
+                    "on-background": "#0b1c30",
+                    "on-tertiary-fixed": "#002113",
+                    "surface-tint": "#0053db",
+                    "surface": "#f8f9ff",
+                    "on-secondary-fixed-variant": "#5516be",
+                    "on-primary": "#ffffff",
+                    "inverse-on-surface": "#eaf1ff",
+                    "on-error": "#ffffff",
+                    "secondary-fixed": "#e9ddff",
+                    "tertiary": "#006242",
+                    "error-container": "#ffdad6",
+                    "surface-container-highest": "#d3e4fe",
+                    "surface-variant": "#d3e4fe",
+                    "on-tertiary-container": "#bdffdb",
+                    "on-surface-variant": "#434655",
+                    "secondary": "#6b38d4",
+                    "surface-bright": "#f8f9ff",
+                    "secondary-fixed-dim": "#d0bcff",
+                    "outline": "#737686",
+                    "on-primary-fixed-variant": "#003ea8",
+                    "on-error-container": "#93000a",
+                    "primary-fixed-dim": "#b4c5ff",
+                    "background": "#f8f9ff",
+                    "surface-dim": "#cbdbf5",
+                    "inverse-primary": "#b4c5ff",
+                    "on-secondary-fixed": "#23005c",
+                    "tertiary-container": "#007d55"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "stack-md": "16px",
+                    "gutter-mobile": "12px",
+                    "stack-sm": "8px",
+                    "stack-lg": "24px",
+                    "unit": "4px",
+                    "margin-mobile": "16px"
+            },
+            "fontFamily": {
+                    "body-sm": [
+                            "Be Vietnam Pro"
+                    ],
+                    "label-md": [
+                            "Inter"
+                    ],
+                    "headline-md": [
+                            "Plus Jakarta Sans"
+                    ],
+                    "translation-text": [
+                            "Be Vietnam Pro"
+                    ],
+                    "body-md": [
+                            "Be Vietnam Pro"
+                    ],
+                    "headline-lg": [
+                            "Plus Jakarta Sans"
+                    ],
+                    "headline-sm": [
+                            "Plus Jakarta Sans"
+                    ],
+                    "label-sm": [
+                            "Inter"
+                    ],
+                    "body-lg": [
+                            "Be Vietnam Pro"
+                    ]
+            },
+            "fontSize": {
+                    "body-sm": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "label-md": [
+                            "13px",
+                            {
+                                    "lineHeight": "18px",
+                                    "letterSpacing": "0.01em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "headline-md": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "letterSpacing": "-0.01em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "translation-text": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "body-md": [
+                            "16px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-lg": [
+                            "30px",
+                            {
+                                    "lineHeight": "38px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "headline-sm": [
+                            "20px",
+                            {
+                                    "lineHeight": "28px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "label-sm": [
+                            "11px",
+                            {
+                                    "lineHeight": "16px",
+                                    "letterSpacing": "0.03em",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "body-lg": [
+                            "18px",
+                            {
+                                    "lineHeight": "28px",
+                                    "fontWeight": "400"
+                            }
+                    ]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+        .ai-glow {
+            box-shadow: 0 0 10px 2px rgba(132, 85, 239, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky z-40 bg-surface dark:bg-background shadow-sm shadow-[0px_4px_12px_rgba(0,0,0,0.05)]">
+<div class="flex justify-between items-center px-margin-mobile py-stack-sm w-full max-w-3xl mx-auto">
+<div class="flex items-center gap-stack-sm">
+<img class="w-10 h-10 rounded-full object-cover shadow-sm" data-alt="A small, circular avatar portrait of a smiling young woman with short dark hair, wearing a bright yellow sweater against a neutral grey background. The image should be friendly, clear, and perfectly fit for a user profile picture in a modern app interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAtORybv4QGURl71TnDbV9pYskS0HlFnv515iIju8m4XmD386EB2-rLcaP_z0NE9z7N-SKkjk6WWmdo5j7Xmibud82rcKLeO206mG8V_IKsTIXE15HXWIlyeiyv52r3Wd_x4Jfc31XmeXs2SKWsy5zno6xeuRqMSi4CZlb0k3uvIu98Sdj-C8Fu1OfRh7lrI7WZ8RkCQhUZUID1lp0H_hSwUAZbrmZSFNgM3kfDKm_tm7janxYy36GT"/>
+<span class="font-headline-md text-headline-sm text-primary dark:text-primary-fixed-dim font-bold">Chorus</span>
+</div>
+<div class="flex items-center gap-stack-sm">
+<div class="bg-surface-variant text-primary font-label-md px-3 py-1.5 rounded-full flex items-center gap-1 shadow-sm">
+<span class="material-symbols-outlined text-[16px] text-tertiary">local_fire_department</span>
+                    92 XP
+                </div>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-grow w-full max-w-3xl mx-auto pb-[90px] md:pb-stack-lg pt-stack-sm px-margin-mobile flex flex-col gap-stack-lg">
+<!-- Tab Navigation (Sub-nav for Hub) -->
+<div class="flex gap-stack-sm overflow-x-auto pb-2 scrollbar-hide">
+<button class="bg-primary text-on-primary font-label-md px-4 py-2 rounded-full whitespace-nowrap shadow-sm">Learning Feed</button>
+<button class="bg-surface-container text-on-surface-variant font-label-md px-4 py-2 rounded-full whitespace-nowrap hover:bg-surface-container-high transition-colors">Questions</button>
+<button class="bg-surface-container text-on-surface-variant font-label-md px-4 py-2 rounded-full whitespace-nowrap hover:bg-surface-container-high transition-colors">Cultural Insights</button>
+</div>
+<!-- Create Post Prompt -->
+<div class="bg-surface-container-lowest rounded-xl p-stack-md shadow-[0px_4px_12px_rgba(0,0,0,0.05)] flex items-center gap-stack-sm">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="A small, circular avatar portrait of a smiling young woman with short dark hair, wearing a bright yellow sweater against a neutral grey background. The image should be friendly, clear, and perfectly fit for a user profile picture in a modern app interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBm3haICS-jasnH0YEqqYiKPWogu3izHegPPLCtD5vDQmbFvgPHDCCmFKs0RdoR8uYljWLqplf2w10Y9WJh-JyM4d6SXeNRMGc6vP2nlO_-XIZzIfxBX44xiwpIDw6F3zvWTijJMwW2PGCIbqktQlhYKSyCXPswvrpARZKqSyq10Ud9zEaqwIh1UGc0ZrWKi2JtOjv_7G_cKXQrxGYr5gp2zI5DhX4j15tqfgFP3kbX_9iA7VfB7HJ_"/>
+<div class="flex-grow bg-surface-container rounded-full px-4 py-2.5 text-on-surface-variant font-body-sm cursor-text hover:bg-surface-container-high transition-colors">
+                Ask a language question...
+            </div>
+<button class="text-primary p-2 hover:bg-surface-variant/50 rounded-full transition-colors flex-shrink-0">
+<span class="material-symbols-outlined">image</span>
+</button>
+</div>
+<!-- Feed Posts -->
+<div class="flex flex-col gap-stack-md">
+<!-- Post 1 (AI Highlighted Question) -->
+<article class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(0,0,0,0.05)] overflow-hidden relative">
+<!-- AI Insight Border -->
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-secondary-container rounded-l-xl"></div>
+<div class="p-stack-md flex flex-col gap-stack-sm">
+<!-- Post Header -->
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-stack-sm">
+<div class="relative">
+<img class="w-12 h-12 rounded-full object-cover" data-alt="A close-up headshot of a friendly young man with curly brown hair and glasses, smiling gently in soft, natural daylight. The background is slightly blurred, suggesting an outdoor park setting, ideal for a trustworthy language learner profile." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDUFKMd__MMWdUMje4eKwjKY4bGF50PHEcRQOisiRRCfJ0SYOotynxneJ5aB36R7x8Rq-4TcAqVZIIwD9LfHtFYFNRE1UcYL7q5NcvvVCLyHnfHt_1zFjNlCww0DeBo3AeG56wnyV_Z1cj9Z8lTfRoeAKMqJD5tRPbuHGnuPm9pCUR8gYlQHVUHvJpFXEfC1Aw0F-0KByxBRv9cb3IMbAO8sMS_G1xcwxIzVMxEVo7tz5fSFCSju74z"/>
+<div class="absolute -bottom-1 -right-1 bg-surface-container-lowest rounded-full p-[2px]">
+<div class="bg-secondary text-on-primary font-label-sm w-5 h-5 flex items-center justify-center rounded-full text-[9px]">B1</div>
+</div>
+</div>
+<div>
+<h3 class="font-label-md text-on-surface">Carlos M.</h3>
+<div class="flex items-center gap-1 text-on-surface-variant font-label-sm">
+<span>Learning English</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="text-tertiary flex items-center gap-0.5"><span class="material-symbols-outlined text-[12px]">local_fire_department</span> 14d</span>
+</div>
+</div>
+</div>
+<button class="text-outline hover:text-on-surface p-1 rounded-full transition-colors">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+<!-- Post Content -->
+<div class="pl-[60px]">
+<p class="font-body-md text-on-surface mb-2">What is the most natural way to say "I'm looking forward to it" in casual conversation? Is it too formal for texting a friend?</p>
+<!-- AI Suggestion Box -->
+<div class="bg-surface-container rounded-lg p-stack-sm mt-stack-sm border border-secondary-container/20 ai-glow">
+<div class="flex items-center gap-1 text-secondary font-label-sm mb-1">
+<span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+                                AI Language Insight
+                            </div>
+<p class="font-translation-text text-on-surface-variant">In casual texting, native speakers often use <span class="text-primary font-medium">"Can't wait!"</span> or <span class="text-primary font-medium">"Excited for it!"</span>. "Looking forward to it" is great for polite or slightly more formal contexts.</p>
+</div>
+</div>
+<!-- Post Actions -->
+<div class="pl-[60px] flex items-center gap-stack-lg mt-2 pt-2 border-t border-outline-variant/20">
+<button class="flex items-center gap-1.5 text-on-surface-variant hover:text-primary transition-colors font-label-sm">
+<span class="material-symbols-outlined text-[20px]">lightbulb</span>
+                            Helpful (24)
+                        </button>
+<button class="flex items-center gap-1.5 text-on-surface-variant hover:text-primary transition-colors font-label-sm">
+<span class="material-symbols-outlined text-[20px]">chat_bubble</span>
+                            Reply (5)
+                        </button>
+<div class="flex-grow"></div>
+<button class="flex items-center gap-1 text-error/70 hover:text-error transition-colors font-label-sm" title="Report inappropriate behavior">
+<span class="material-symbols-outlined text-[16px]">flag</span>
+                            Report
+                        </button>
+</div>
+</div>
+</article>
+<!-- Post 2 (Cultural Insight with Image) -->
+<article class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(0,0,0,0.05)] overflow-hidden">
+<div class="p-stack-md flex flex-col gap-stack-sm">
+<!-- Post Header -->
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-stack-sm">
+<div class="relative">
+<img class="w-12 h-12 rounded-full object-cover" data-alt="A bright, cheerful profile picture of a young Asian woman with long black hair, wearing a light blue denim jacket. She is smiling brightly against a plain white background, conveying a friendly and approachable demeanor." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBz9veEPTLquBgDXm8DpsIQgFesWWeeOEvluIpkBO53zBWLpptFHkQbB1UNKF_Msaew0mlvGcvzjh_EgQjmi4W1UmwLmW7H0wXaLZEb6zXjQZH3FjiRISVlyOsOhGgf2-bH9nV7D19jbFo6mqTww6VTg6MpyuReXdU1BcxQO8XTxFUGezUhq2TuJ8HuxwNLoEJb6OU_naiwff0nGfDfEsjhIxYfXnvPTBo1EVADHx7Yrkk5v5uWSu9a"/>
+<div class="absolute -bottom-1 -right-1 bg-surface-container-lowest rounded-full p-[2px]">
+<div class="bg-primary text-on-primary font-label-sm w-5 h-5 flex items-center justify-center rounded-full text-[9px]">N2</div>
+</div>
+</div>
+<div>
+<h3 class="font-label-md text-on-surface">Yuki T.</h3>
+<div class="flex items-center gap-1 text-on-surface-variant font-label-sm">
+<span>Native Japanese</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="text-tertiary flex items-center gap-0.5"><span class="material-symbols-outlined text-[12px]">local_fire_department</span> 45d</span>
+</div>
+</div>
+</div>
+<span class="bg-surface-container text-on-surface-variant px-2 py-0.5 rounded text-[10px] font-label-md uppercase tracking-wider">Culture</span>
+</div>
+<!-- Post Content -->
+<div class="pl-[60px]">
+<p class="font-body-md text-on-surface mb-3">If you visit Japan, remembering to take off your shoes before entering someone's home (and many traditional restaurants) is crucial! Look for the "genkan" (entryway step). Here's a quick reference photo.</p>
+<div class="rounded-lg overflow-hidden mb-2">
+<img class="w-full h-48 object-cover" data-alt="A clear, well-lit photograph showing a traditional Japanese genkan (entryway). The image features a distinct step up from a tiled floor to a wooden floor. Several pairs of shoes are neatly lined up facing the door on the lower tiled level, demonstrating the cultural practice." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBbF45rYd6xr9BA-buBeUsB6ufgO1_-ogfGaVdBgQfHvQz_tCSxpvWIj2JYxauIFwXPEze7g4FrOf4rkxeVZYZTX-kp4TMd_VRbvV_YM3-oZsMJ7Il17HKxBuVkmu5KNuUxEjHTM7PY0r8N-mF791xN3V5Lsw1FJK8bSj9HQ6tWIiu5Spl1KJppqIq-P6ArWK1oVk8TastUyS1fK530ODtUiNLQ-urkWYKDUuRj_73l2_QiR-dpoWKa"/>
+</div>
+</div>
+<!-- Post Actions -->
+<div class="pl-[60px] flex items-center gap-stack-lg mt-2 pt-2 border-t border-outline-variant/20">
+<button class="flex items-center gap-1.5 text-on-surface-variant hover:text-primary transition-colors font-label-sm">
+<span class="material-symbols-outlined text-[20px]">lightbulb</span>
+                            Helpful (112)
+                        </button>
+<button class="flex items-center gap-1.5 text-on-surface-variant hover:text-primary transition-colors font-label-sm">
+<span class="material-symbols-outlined text-[20px]">chat_bubble</span>
+                            Reply (18)
+                        </button>
+<div class="flex-grow"></div>
+<button class="flex items-center gap-1 text-error/70 hover:text-error transition-colors font-label-sm">
+<span class="material-symbols-outlined text-[16px]">flag</span>
+</button>
+</div>
+</div>
+</article>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-xl bg-surface-container-lowest dark:bg-inverse-surface shadow-lg shadow-[0px_-4px_12px_rgba(0,0,0,0.05)] pb-safe md:hidden">
+<div class="flex justify-around items-center px-4 py-2 w-full">
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant p-2 hover:bg-surface-variant/50 dark:hover:bg-surface-variant/20 rounded-full active:scale-90 transition-all duration-200">
+<span class="material-symbols-outlined">school</span>
+<span class="font-label-sm text-label-sm mt-1">Learn</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant p-2 hover:bg-surface-variant/50 dark:hover:bg-surface-variant/20 rounded-full active:scale-90 transition-all duration-200">
+<span class="material-symbols-outlined">chat_bubble</span>
+<span class="font-label-sm text-label-sm mt-1">Chats</span>
+</button>
+<button class="flex flex-col items-center justify-center bg-primary-container dark:bg-primary-container text-on-primary-container rounded-full px-4 py-1 hover:bg-surface-variant/50 dark:hover:bg-surface-variant/20 active:scale-90 transition-all duration-200">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<span class="font-label-sm text-label-sm mt-1">Hub</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant p-2 hover:bg-surface-variant/50 dark:hover:bg-surface-variant/20 rounded-full active:scale-90 transition-all duration-200">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-sm text-label-sm mt-1">Profile</span>
+</button>
+</div>
+</nav>
+</body></html>

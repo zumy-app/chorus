@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/chorus/messenger/internal/middleware"
 	"github.com/chorus/messenger/internal/models"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/gin-gonic/gin"
@@ -24,13 +25,13 @@ func NewSearchHandler(ss *services.SearchService) *SearchHandler {
 func (h *SearchHandler) SearchMessages(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
 	query := c.Query("q")
 	if query == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Search query required"})
+		WriteError(c, middleware.ErrValidation("Search query required"))
 		return
 	}
 
@@ -54,7 +55,7 @@ func (h *SearchHandler) SearchMessages(c *gin.Context) {
 
 	result, err := h.searchService.SearchMessages(userID, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Search failed"})
+		WriteError(c, middleware.ErrInternal("Search failed"))
 		return
 	}
 
@@ -69,19 +70,19 @@ func (h *SearchHandler) SearchMessages(c *gin.Context) {
 func (h *SearchHandler) SearchChats(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
 	query := c.Query("q")
 	if query == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Search query required"})
+		WriteError(c, middleware.ErrValidation("Search query required"))
 		return
 	}
 
 	chats, err := h.searchService.SearchChats(userID, query)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to search chats"})
+		WriteError(c, middleware.ErrInternal("Failed to search chats"))
 		return
 	}
 
@@ -93,19 +94,19 @@ func (h *SearchHandler) SearchChats(c *gin.Context) {
 func (h *SearchHandler) SearchContacts(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
 	query := c.Query("q")
 	if query == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Search query required"})
+		WriteError(c, middleware.ErrValidation("Search query required"))
 		return
 	}
 
 	contacts, err := h.searchService.SearchContacts(userID, query)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to search contacts"})
+		WriteError(c, middleware.ErrInternal("Failed to search contacts"))
 		return
 	}
 
@@ -117,19 +118,19 @@ func (h *SearchHandler) SearchContacts(c *gin.Context) {
 func (h *SearchHandler) SearchInChat(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
 	chatID := c.Param("chatId")
 	if chatID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Chat ID required"})
+		WriteError(c, middleware.ErrValidation("Chat ID required"))
 		return
 	}
 
 	query := c.Query("q")
 	if query == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Search query required"})
+		WriteError(c, middleware.ErrValidation("Search query required"))
 		return
 	}
 
@@ -138,10 +139,10 @@ func (h *SearchHandler) SearchInChat(c *gin.Context) {
 	messages, err := h.searchService.SearchInChat(userID, chatID, query, limit)
 	if err != nil {
 		if err.Error() == "not a chat participant" {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Not a participant in this chat"})
+			WriteError(c, middleware.ErrForbidden("Not a participant in this chat"))
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Search failed"})
+		WriteError(c, middleware.ErrInternal("Search failed"))
 		return
 	}
 
@@ -155,7 +156,7 @@ func (h *SearchHandler) SearchInChat(c *gin.Context) {
 func (h *SearchHandler) GetSearchSuggestions(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
@@ -164,7 +165,7 @@ func (h *SearchHandler) GetSearchSuggestions(c *gin.Context) {
 
 	suggestions, err := h.searchService.GetSearchSuggestions(userID, prefix, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get suggestions"})
+		WriteError(c, middleware.ErrInternal("Failed to get suggestions"))
 		return
 	}
 
@@ -178,7 +179,7 @@ func (h *SearchHandler) GetSearchSuggestions(c *gin.Context) {
 func (h *SearchHandler) GetRecentSearches(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
@@ -186,7 +187,7 @@ func (h *SearchHandler) GetRecentSearches(c *gin.Context) {
 
 	searches, err := h.searchService.GetRecentSearches(userID, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get recent searches"})
+		WriteError(c, middleware.ErrInternal("Failed to get recent searches"))
 		return
 	}
 
@@ -200,13 +201,13 @@ func (h *SearchHandler) GetRecentSearches(c *gin.Context) {
 func (h *SearchHandler) ClearSearchHistory(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
 	err := h.searchService.ClearSearchHistory(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to clear history"})
+		WriteError(c, middleware.ErrInternal("Failed to clear history"))
 		return
 	}
 
@@ -220,14 +221,14 @@ func (h *SearchHandler) ClearSearchHistory(c *gin.Context) {
 func (h *SearchHandler) SearchVocabulary(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
 	query := c.Query("q")
 	language := c.Query("language")
 	if query == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Search query required"})
+		WriteError(c, middleware.ErrValidation("Search query required"))
 		return
 	}
 
@@ -235,7 +236,7 @@ func (h *SearchHandler) SearchVocabulary(c *gin.Context) {
 
 	entries, err := h.searchService.SearchVocabularyWithLanguage(userID, query, language, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Search failed"})
+		WriteError(c, middleware.ErrInternal("Search failed"))
 		return
 	}
 

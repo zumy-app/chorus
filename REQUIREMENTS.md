@@ -173,3 +173,156 @@ registration/auth, profiles & language preferences, direct chats, real-time mess
 
 ---
 *History: This file merges the former §0 "Phase 0 (First Release)" into Phase 1. The standalone Phase 0 milestone and `phase-0` labels are deprecated; see `BACKLOG_REFINEMENT_2026-08-23.md` for the per-issue migration.*
+
+
+Added through Google Stitch:
+# Chorus: Technical Requirements & Functional Specifications
+
+## 1. Project Overview
+Chorus is an AI-native language learning messenger designed to break language barriers by integrating structured pedagogy (CEFR-aligned) directly into real human-to-human and human-to-AI communication. Unlike traditional apps that use manufactured content, Chorus treats the user's personal conversation history as the primary learning corpus.
+
+## 2. Core Functional Requirements
+
+### A. AI-Powered Messaging & Translation
+- **Real-time Translation:** Bi-directional translation within chat bubbles. Users can toggle visibility of original vs. translated text.
+- **Grammar Analysis (The "Deep Dive"):** Automatic identification of grammar constructions within messages. 
+- **Learning Guard:** An AI filter that can hide "off-topic" (e.g., dating/harassment) messages based on user-defined strictness levels.
+- **Smart Captions:** Real-time transcription and translation for audio and video calls.
+
+### B. Structured Learning Engine
+- **CEFR Curriculum:** Support for levels A1 through B2. Each level is divided into Units based on "Can-Do" statements (e.g., "I can order coffee").
+- **Spaced Repetition System (SRS):** A vocabulary management system using a modern algorithm (FSRS recommended) to schedule reviews of "mined" words.
+- **Daily Practice Loop:** A singular entry point for daily study that interleaves SRS reviews, new micro-lessons, and "mined-from-chat" exercises.
+- **Placement Testing:** An adaptive entry test to determine a user's starting CEFR level and known vocabulary.
+
+### C. The Marketplace (Teachers & Tutors)
+- **Tutor Profiles:** Detailed profiles featuring credentials, student reviews, and reputation scores.
+- **Booking & Payments:** Support for private trial sessions and monthly subscription tiers.
+- **Teacher Dashboard:** Tools for managing student progress, reviewing pronunciation recordings, and pushing custom activities to students' chat sidebars.
+
+### D. Social & Community
+- **Group Study Rooms:** Live collaborative spaces with a shared "Activity Sandbox" for group drills.
+- **Trending Hub:** A community feed for sharing linguistic insights, cultural questions, and "Real Talk" prompts.
+- **Matching Engine:** Suggests learning partners based on complementary native/target languages and shared interests.
+
+---
+
+## 3. Detailed Feature Specifications
+
+### F01: The Unified "AI Deep Dive" Panel
+- **Trigger:** Tapping a message or a dedicated "AI" icon.
+- **Features:** 
+    - Word-by-word breakdown (Morphology).
+    - Grammar point explanation with "Base Language" contrast (e.g., explaining Spanish Subjunctive to an English speaker).
+    - Contextual Drills: One-tap access to drills (cloze, reordering) using the specific grammar point from that message.
+
+### F02: Chat-to-SRS Mining Pipeline
+- **Mechanism:** Background process scans messages for high-frequency/leveled lemmas the user hasn't mastered.
+- **Interaction:** "Tap-to-save" on any word in a chat creates a `VocabCard`.
+- **Metadata:** Each card stores the *original source sentence* as the example, preserving the memory hook of the conversation.
+
+### F03: Real Talk Starters
+- **Mechanism:** AI suggests conversation openers based on the current Unit's theme (e.g., if studying "Travel," suggest "Where is the last place you visited?").
+- **Goal:** Drive output production (Swain's Output Hypothesis).
+
+### F04: Trust & Safety "Mutual Consent Mode"
+- **Mechanism:** Hides non-educational/personal messages by default.
+- **Unmasking:** Requires both parties to explicitly opt-in to "Social Mode" to reveal personal content, preventing unwanted solicitation while allowing genuine connections.
+
+---
+
+## 4. Technical Architecture Recommendations (for Implementation)
+
+### Data Model Entities
+- `User`: Profile, CEFR level, target/base language, subscription status.
+- `Message`: Content, sender, timestamp, translation, identified grammar tags.
+- `VocabCard`: Lemma, definition, example sentence, SRS metadata (due date, difficulty, logs).
+- `GrammarPoint`: CEFR tag, language, explanation template.
+- `StudySession`: Participants, activity_log, shared_sandbox_state.
+
+### Key API Services
+- **Translation Service:** LLM-based translation with context awareness.
+- **Pedagogy Service:** Matches text to CEFR inventories and manages SRS scheduling.
+- **Moderation Service:** Real-time L7 filtering of chat content against "Learning Guard" profiles.
+- **RTC Service:** Handles signaling and media for Voice/Video with transcription hooks.
+
+---
+
+## 5. Visual Baseline (Reference Wireframes)
+- **Onboarding:** {{DATA:SCREEN:SCREEN_23}}, {{DATA:SCREEN:SCREEN_90}}
+- **Messaging:** {{DATA:SCREEN:SCREEN_4}}, {{DATA:SCREEN:SCREEN_104}}, {{DATA:SCREEN:SCREEN_18}}
+- **Learning Hub:** {{DATA:SCREEN:SCREEN_91}}, {{DATA:SCREEN:SCREEN_64}}, {{DATA:SCREEN:SCREEN_92}}
+- **Teacher Tools:** {{DATA:SCREEN:SCREEN_79}}, {{DATA:SCREEN:SCREEN_72}}, {{DATA:SCREEN:SCREEN_56}}
+- **Marketplace:** {{DATA:SCREEN:SCREEN_83}}, {{DATA:SCREEN:SCREEN_82}}
+- **Safety:** {{DATA:SCREEN:SCREEN_19}}, {{DATA:SCREEN:SCREEN_7}}
+
+
+
+Roadmap
+
+# Chorus Product Feature Roadmap (Phased Implementation)
+
+This document categorizes all designed wireframes into a logical implementation roadmap, moving from MVP to Production-Ready Marketplace.
+
+## Phase 1: Core Messenger & Translation (The Foundation)
+**Goal:** Establish the primary value proposition: "Communicate in any language."
+
+- **M01: Basic Chat Architecture:** One-to-one messaging with delivery status.
+  - *Reference:* {{DATA:SCREEN:SCREEN_113}}
+- **M02: Live Translation:** Bubble-level translation toggle.
+  - *Reference:* {{DATA:SCREEN:SCREEN_111}}
+- **M03: Waitlist & Product Discovery:** Public landing pages for launch.
+  - *Reference:* {{DATA:SCREEN:SCREEN_33}}, {{DATA:SCREEN:SCREEN_32}}
+
+## Phase 2: AI-Native Learning (The Differentiator)
+**Goal:** Bridge the gap between translation and acquisition.
+
+- **L01: AI Deep Dive:** Contextual grammar analysis and word-by-word breakdowns.
+  - *Reference:* {{DATA:SCREEN:SCREEN_100}}, {{DATA:SCREEN:SCREEN_112}}
+- **L02: Vocabulary Hub & SRS:** Tap-to-save words and spaced-repetition reviews.
+  - *Reference:* {{DATA:SCREEN:SCREEN_92}}, {{DATA:SCREEN:SCREEN_93}}
+- **L03: Chat Mining:** Auto-suggesting new words based on recent conversation.
+  - *Reference:* {{DATA:SCREEN:SCREEN_84}}
+- **L04: Placement Test:** Adaptive onboarding to drop users into the right CEFR level.
+  - *Reference:* {{DATA:SCREEN:SCREEN_90}}, {{DATA:SCREEN:SCREEN_87}}
+
+## Phase 3: Social Practice & Trust (The Ecosystem)
+**Goal:** Build a safe, high-engagement community.
+
+- **S01: Finding Partners:** Matchmaking based on interests and language goals.
+  - *Reference:* {{DATA:SCREEN:SCREEN_21}}, {{DATA:SCREEN:SCREEN_14}}
+- **S02: Group Study Rooms:** Live collaborative rooms with shared activities.
+  - *Reference:* {{DATA:SCREEN:SCREEN_13}}, {{DATA:SCREEN:SCREEN_12}}
+- **S03: Trust & Safety Center:** "Learning Guard" moderation and Mutual Consent settings.
+  - *Reference:* {{DATA:SCREEN:SCREEN_19}}, {{DATA:SCREEN:SCREEN_27}}
+- **S04: Community Hub:** Shared feed for questions and cultural insights.
+  - *Reference:* {{DATA:SCREEN:SCREEN_29}}, {{DATA:SCREEN:SCREEN_16}}
+
+## Phase 4: Video/Audio & Calling (Multi-Modal)
+**Goal:** Real-time fluency practice with pedagogical support.
+
+- **C01: Audio Calls with Smart Captions:** Live transcription and scrollable call history.
+  - *Reference:* {{DATA:SCREEN:SCREEN_2}}
+- **C02: Video Calls with Shared Activity:** Dual-view UI with pushed drills.
+  - *Reference:* {{DATA:SCREEN:SCREEN_3}}, {{DATA:SCREEN:SCREEN_60}}
+
+## Phase 5: Teacher Marketplace (Monetization & Mastery)
+**Goal:** Scale the platform with professional human guidance.
+
+- **T01: Tutor Search & Booking:** Discovery and payment for private sessions.
+  - *Reference:* {{DATA:SCREEN:SCREEN_83}}, {{DATA:SCREEN:SCREEN_68}}
+- **T02: Teacher Dashboard:** Student management, earnings, and progress tracking.
+  - *Reference:* {{DATA:SCREEN:SCREEN_79}}, {{DATA:SCREEN:SCREEN_53}}
+- **T03: Pedagogical Push Tools:** Teachers pushing activities into student chats.
+  - *Reference:* {{DATA:SCREEN:SCREEN_55}}, {{DATA:SCREEN:SCREEN_57}}
+- **T04: Pronunciation Review:** Specialized dashboard for correcting student voice notes.
+  - *Reference:* {{DATA:SCREEN:SCREEN_72}}
+
+## Phase 6: Production Refinement (Scaling)
+**Goal:** WhatsApp-level utility and retention.
+
+- **R01: Advanced Messaging Utilities:** Search, media gallery, settings, and profile mgmt.
+  - *Reference:* {{DATA:SCREEN:SCREEN_46}}, {{DATA:SCREEN:SCREEN_48}}, {{DATA:SCREEN:SCREEN_58}}
+- **R02: Premium Upsell:** Subscription flow for enhanced limits and credits.
+  - *Reference:* {{DATA:SCREEN:SCREEN_50}}
+

@@ -7,6 +7,8 @@ import { vocabularyAPI, grammarAPI, translationAPI } from '../services/api'
 import { useStore } from '../store'
 import GrammarPanel from './GrammarPanel'
 import ReportModal from './ReportModal'
+import HighlightableText from './HighlightableText'
+import { useKnownWords } from '../hooks/useKnownWords'
 
 interface MessageBubbleProps {
   message: Message
@@ -35,8 +37,20 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
 
   const autoGrammar = entitlements?.features?.autoGrammar ?? false
 
+  // FR-27 / FR-28: highlight new words in the language being learned. The known
+  // set comes from the user's word bank so already-saved words render dimmed.
+  const learningLanguage = targetLanguage || message.originalLanguage || 'en'
+  const { knownWords, addKnownWord } = useKnownWords(learningLanguage)
+
   const nativeTranslation = message.translations?.[nativeLanguage]
   const showNativeTranslation = nativeTranslation && nativeTranslation !== message.text
+
+  // The original message is itself written in the language being learned, so
+  // it is the text that should highlight unknown words (the native translation
+  // below remains for comprehension).
+  const originalIsLearningLang = Boolean(
+    targetLanguage && message.originalLanguage && message.originalLanguage === targetLanguage
+  )
 
   // Derive the blocked state as well as relying on the live WebSocket signal:
   // a free-plan user's own message that is over the translation word limit and
@@ -218,7 +232,17 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
           )}
           
           <div className="break-words whitespace-pre-wrap font-body-md text-body-md">
-            {message.text}
+            {originalIsLearningLang ? (
+              <HighlightableText
+                text={message.text}
+                language={learningLanguage}
+                messageId={message.id}
+                knownWords={knownWords}
+                onWordSaved={addKnownWord}
+              />
+            ) : (
+              message.text
+            )}
           </div>
 
           {/* Translation loading indicator */}
@@ -278,7 +302,13 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
                 📖 {t('grammar.learning', { lang: targetLanguage?.toUpperCase() })}
               </div>
               <div className={`font-translation-text text-translation-text italic opacity-90 whitespace-pre-wrap break-words ${isOwn ? 'text-white/90' : 'text-on-surface-variant'}`}>
-                {targetTranslation}
+                <HighlightableText
+                  text={targetTranslation}
+                  language={learningLanguage}
+                  messageId={message.id}
+                  knownWords={knownWords}
+                  onWordSaved={addKnownWord}
+                />
               </div>
             </div>
           )}

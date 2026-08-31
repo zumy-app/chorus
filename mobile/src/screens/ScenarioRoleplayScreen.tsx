@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TextInput, Pressable, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { COLOR, FONTS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../theme';
 import apiService from '../services/api';
@@ -17,6 +17,7 @@ export default function ScenarioRoleplayScreen({ navigation }: any) {
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
   const [summary, setSummary] = useState<any>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   const targetLanguage = user?.targetLanguages?.[0] ?? 'es';
   const nativeLanguage = user?.nativeLanguage ?? 'en';
@@ -46,22 +47,53 @@ export default function ScenarioRoleplayScreen({ navigation }: any) {
   }, [user, scenarioId, targetLanguage, nativeLanguage]);
 
   const send = useCallback(async () => {
-    if (!message.trim() || !run) return;
-    setSending(true);
-    const reply = await apiService.sendScenarioMessage(run.id, message.trim());
-    setTurns((ts) => [
-      ...ts,
-      { id: `u-${Date.now()}`, runId: run.id, ordinal: ts.length, speaker: 'user', text: message.trim(), translation: '', phaseOrdinal: run.currentPhaseOrdinal, createdAt: new Date().toISOString() },
-      { id: `ai-${Date.now()}`, runId: run.id, ordinal: ts.length + 1, speaker: 'ai', text: reply.aiMessage, translation: reply.translation, phaseOrdinal: reply.nextPhaseOrdinal || run.currentPhaseOrdinal, createdAt: new Date().toISOString() },
-    ]);
+    const text = message.trim();
+    if (!text || !run || sending) return;
     setMessage('');
-    setChunks(reply.suggestedChunks || []);
-    if (reply.runCompleted) {
-      setDone(true);
-      setSummary(reply.summary);
+
+    // Optimistic update: show the user's bubble immediately so there is instant
+    // feedback that the message was sent, before the AI reply round-trips.
+    const userTurn: ScenarioTurn = {
+      id: `u-${Date.now()}`,
+      runId: run.id,
+      ordinal: turns.length,
+      speaker: 'user',
+      text,
+      translation: '',
+      phaseOrdinal: run.currentPhaseOrdinal,
+      createdAt: new Date().toISOString(),
+    };
+    setTurns((ts) => [...ts, userTurn]);
+    setSending(true);
+
+    try {
+      const reply = await apiService.sendScenarioMessage(run.id, text);
+      setTurns((ts) => [
+        ...ts,
+        {
+          id: `ai-${Date.now()}`,
+          runId: run.id,
+          ordinal: ts.length,
+          speaker: 'ai',
+          text: reply.aiMessage,
+          translation: reply.translation,
+          phaseOrdinal: reply.nextPhaseOrdinal || run.currentPhaseOrdinal,
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+      setChunks(reply.suggestedChunks || []);
+      if (reply.runCompleted) {
+        setDone(true);
+        setSummary(reply.summary);
+      }
+    } catch {
+      Alert.alert('Error', 'Could not send your message. Check the server and try again.');
+      // Restore the message so nothing is lost on a failed send.
+      setMessage(text);
+    } finally {
+      setSending(false);
     }
-    setSending(false);
-  }, [message, run]);
+  }, [message, run, sending, turns.length]);
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -83,13 +115,24 @@ export default function ScenarioRoleplayScreen({ navigation }: any) {
             {run ? <Text style={styles.phase}>Phase {run.currentPhaseOrdinal}</Text> : null}
           </View>
 
-          <ScrollView style={styles.turns} contentContainerStyle={styles.turnsContent}>
+          <ScrollView
+            ref={scrollRef}
+            style={styles.turns}
+            contentContainerStyle={styles.turnsContent}
+            onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}>
             {turns.map((t) => (
-              <View key={t.id} style={[styles.bubble, t.speaker === 'ai' ? styles.bubbleAi : styles.bubbleUser]}>
+              <View
+                key={t.id}
+                style={[styles.bubble, t.speaker === 'ai' ? styles.bubbleAi : styles.bubbleUser]}>
                 <Text style={t.speaker === 'ai' ? styles.bubbleAiText : styles.bubbleUserText}>{t.text}</Text>
                 {t.speaker === 'ai' && t.translation ? <Text style={styles.translation}>{t.translation}</Text> : null}
               </View>
             ))}
+            {sending ? (
+              <View style={[styles.bubble, styles.bubbleAi, styles.typingBubble]}>
+                <Text style={styles.typingText}>Sparky is typing…</Text>
+              </View>
+            ) : null}
           </ScrollView>
 
           {chunks.length > 0 ? (
@@ -138,11 +181,13 @@ const styles = StyleSheet.create({
   turns: { flex: 1 },
   turnsContent: { gap: SPACING.stackSm, paddingBottom: SPACING.stackSm },
   bubble: { maxWidth: '85%', paddingHorizontal: SPACING.stackMd, paddingVertical: 10, borderRadius: 16 },
-  bubbleAi: { backgroundColor: COLOR.surfaceContainerLowest, alignSelf: 'flex-start' },
+  bubbleAi: { backgroundColor: COLOR.surfaceContainerLowest, alignSelf: 'flex-start', borderLeftWidth: 2, borderLeftColor: COLOR.secondaryContainer },
   bubbleUser: { backgroundColor: COLOR.primary, alignSelf: 'flex-end' },
   bubbleAiText: { ...TYPOGRAPHY.bodyMd, color: COLOR.onSurface, fontFamily: FONTS.body },
   bubbleUserText: { ...TYPOGRAPHY.bodyMd, color: COLOR.onPrimary, fontFamily: FONTS.body },
-  translation: { ...TYPOGRAPHY.labelSm, color: COLOR.outline, marginTop: 4, fontFamily: FONTS.body },
+  translation: { ...TYPOGRAPHY.labelSm, color: COLOR.outline, marginTop: 4, fontFamily: FONTS.body, fontStyle: 'italic' },
+  typingBubble: { alignSelf: 'flex-start' },
+  typingText: { ...TYPOGRAPHY.labelSm, color: COLOR.secondary, fontFamily: FONTS.body, fontStyle: 'italic' },
   hintRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.stackSm, marginTop: SPACING.stackSm },
   chunk: { backgroundColor: COLOR.surfaceContainer, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
   chunkText: { ...TYPOGRAPHY.labelSm, color: COLOR.onSurface, fontFamily: FONTS.body },

@@ -279,7 +279,10 @@ export default function Chat({ onLogout }: ChatProps) {
                 <p className="font-body-sm text-body-sm text-on-primary-container/80 line-clamp-1">{t('chat.dailyReviewDesc')}</p>
               </div>
             </button>
-            <button className="bg-surface-container-high text-on-surface rounded-xl p-4 flex flex-col gap-2 items-start justify-between elevation-1 hover:bg-surface-container-highest transition-all duration-200 active:scale-95 text-left h-28 insight-glow relative overflow-hidden">
+            <button
+              onClick={() => navigate('/learn/scenarios')}
+              className="bg-surface-container-high text-on-surface rounded-xl p-4 flex flex-col gap-2 items-start justify-between elevation-1 hover:bg-surface-container-highest transition-all duration-200 active:scale-95 text-left h-28 insight-glow relative overflow-hidden"
+            >
               <div className="absolute top-0 right-0 w-16 h-16 bg-secondary/10 rounded-bl-full" />
               <span className="material-symbols-outlined text-secondary">forum</span>
               <div>

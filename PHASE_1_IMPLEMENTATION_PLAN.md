@@ -82,7 +82,7 @@ Monthly (or on KPI regression): review Phoenix evals → refine prompts/model ti
 - #23 DeepSeek fallback + circuit breaker, #24 rate limiting (Redis token-bucket) + LLM spend tracking — complete.
 
 ### 5.3 Observability
-- #25 structured logs/metrics/health — wire Prometheus/Grafana; add Phoenix as trace backend. Must expose `GET /health` + `/metrics` per server; LB health checks (# NFR-19).
+- #25 structured logs/metrics/health — wire Prometheus/Grafana; add Phoenix as trace backend. Must expose `GET /health` + `/metrics` per server; LB health checks (# NFR-19). **DONE** — `GET /metrics` (Prometheus, `backend/internal/observability`), `GET /health` (liveness) + `GET /health/ready` (readiness), WS connection + message + translation latency gauges/histograms, Prometheus+Grafana+Phoenix in `docker-compose.yml`/`docker-compose.dev.yml`, Grafana dashboard `deploy/monitoring/grafana/dashboards/chorus-backend.json`.
 
 ### 5.4 Security — mail server isolation (NFR-22)
 Current `docker-compose.prod.yml` / env runs Mailu on the same host as the app ("same space"). Harden:

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/chorus/messenger/internal/middleware"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/gin-gonic/gin"
 )
@@ -26,7 +27,7 @@ func (h *AdminTranslationsHandler) List(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "100"))
 	jobs, err := h.queue.List(c.Query("status"), c.Query("q"), limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to load translation jobs"})
+		WriteError(c, middleware.ErrInternal("Unable to load translation jobs"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"jobs": jobs, "total": len(jobs)})
@@ -36,7 +37,7 @@ func (h *AdminTranslationsHandler) List(c *gin.Context) {
 // fixing a translation provider config issue.
 func (h *AdminTranslationsHandler) Retry(c *gin.Context) {
 	if err := h.queue.RetryByID(c.Param("id")); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		WriteError(c, middleware.ErrValidation("Unable to retry translation"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Translation re-queued"})

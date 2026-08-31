@@ -11,17 +11,8 @@ export default function ChatLanguageModal({ onClose }: ChatLanguageModalProps) {
   const { t } = useTranslation()
   const { activeChat, user } = useStore()
   const [myLanguage, setMyLanguage] = useState(user?.nativeLanguage || 'en')
-  const [theirLanguage, setTheirLanguage] = useState(
-    activeChat?.type === 'direct'
-      ? activeChat.participants?.find(p => p.user?.id !== user?.id)?.user?.nativeLanguage || 'es'
-      : 'en'
-  )
 
   if (!activeChat) return null
-
-  const otherParticipant = activeChat.type === 'direct'
-    ? activeChat.participants?.find(p => p.user?.id !== user?.id)?.user
-    : null
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -53,29 +44,6 @@ export default function ChatLanguageModal({ onClose }: ChatLanguageModalProps) {
             </select>
           </div>
 
-          {/* Their Language */}
-          {activeChat.type === 'direct' && otherParticipant && (
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
-                🗣️ {t('chatLanguageModal.contactLanguage', { name: otherParticipant.displayName })}
-              </label>
-              <p className="text-xs text-gray-500 mb-2">
-                {t('chatLanguageModal.contactLanguageDesc')}
-              </p>
-              <select
-                value={theirLanguage}
-                onChange={(e) => setTheirLanguage(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                {SUPPORTED_LANGUAGES.map((lang) => (
-                  <option key={lang.code} value={lang.code}>
-                    {lang.flag} {lang.nativeName} ({lang.name})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
           {/* Group chat info */}
           {activeChat.type === 'group' && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
@@ -92,12 +60,6 @@ export default function ChatLanguageModal({ onClose }: ChatLanguageModalProps) {
                 <p className="text-xs text-gray-500 mb-1">{t('chatLanguageModal.youWillSee')}</p>
                 <p className="font-medium">{SUPPORTED_LANGUAGES.find(l => l.code === myLanguage)?.nativeName || t('common.unknown')}</p>
               </div>
-              {activeChat.type === 'direct' && otherParticipant && (
-                <div className="bg-white rounded-lg p-3 border border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">{t('chatLanguageModal.contactWillSee', { name: otherParticipant.displayName })}</p>
-                  <p className="font-medium">{SUPPORTED_LANGUAGES.find(l => l.code === theirLanguage)?.nativeName || t('common.unknown')}</p>
-                </div>
-              )}
             </div>
           </div>
         </div>

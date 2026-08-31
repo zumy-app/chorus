@@ -8,6 +8,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"github.com/chorus/messenger/internal/models"
 )
 
 var ErrInvalidInvitation = errors.New("invitation is invalid, expired, or already used")
@@ -82,4 +84,103 @@ func (s *InvitationService) Redeem(token string) error {
 		return ErrInvalidInvitation
 	}
 	return nil
+}
+
+// CreateForContact issues a single-use, expiring invite from a registered user
+// to an off-platform contact (REQ 2.4 / FR-22-23). Unlike the admin/waitlist
+// flow, the invite is not tied to a waitlist entry. channel controls the
+// delivery surface: 'email' is dispatched durably; 'sms'/'whatsapp' return a
+// shareable link for the client to hand off through the device.
+//
+// recipient is the delivery target (email address for 'email', phone for
+// sms/whatsapp). email is the address the invite may be redeemed against; when
+// empty the invite is "open" and may be redeemed with any email (typical for an
+// SMS/WhatsApp contact that has no email on file).
+func (s *InvitationService) CreateForContact(inviterID, channel, recipient, email, name string) (string, *models.ContactInvite, error) {
+	raw := make([]byte, 32)
+	if _, err := rand.Read(raw); err != nil {
+		return "", nil, err
+	}
+	token := hex.EncodeToString(raw)
+
+	// Bind the invite to an email when we have one; otherwise leave it open.
+	bindEmail := strings.ToLower(strings.TrimSpace(email))
+	if channel == "email" {
+		bindEmail = strings.ToLower(strings.TrimSpace(recipient))
+	}
+
+	status := "pending"
+	if channel == "email" {
+		status = "sent"
+	}
+
+	var id string
+	var expiry time.Time
+	err := s.db.QueryRow(`INSERT INTO invitations
+		(waitlist_entry_id, inviter_user_id, email, token_hash, expires_at, channel, recipient, name, status, sent_at)
+		VALUES (NULL, $1, $2, $3, CURRENT_TIMESTAMP + $4 * INTERVAL '1 hour', $5, $6, $7, $8,
+			CASE WHEN $5 = 'email' THEN CURRENT_TIMESTAMP ELSE NULL END)
+		RETURNING id, expires_at`,
+		inviterID, bindEmail, invitationHash(token), int(s.ttl.Hours()), channel,
+		strings.TrimSpace(recipient), strings.TrimSpace(name), status,
+	).Scan(&id, &expiry)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return token, &models.ContactInvite{
+		ID:        id,
+		InviterID: inviterID,
+		Channel:   channel,
+		Recipient: strings.TrimSpace(recipient),
+		Name:      strings.TrimSpace(name),
+		Token:     token,
+		Status:    status,
+		ExpiresAt: expiry,
+		CreatedAt: time.Now(),
+	}, nil
+}
+
+// ListForInviter returns the invites a user has sent, newest first, with a
+// computed status (redeemed / expired / pending / sent). Tokens are stored
+// hashed and are NOT re-exposed via this endpoint — inviters who need to resend
+// simply create a fresh invite.
+func (s *InvitationService) ListForInviter(inviterID string, limit, offset int) ([]models.ContactInvite, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 200 {
+		limit = 200
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	rows, err := s.db.Query(`
+		SELECT id, inviter_user_id, channel, recipient, COALESCE(name, ''),
+			CASE
+				WHEN redeemed_at IS NOT NULL THEN 'redeemed'
+				WHEN expires_at < CURRENT_TIMESTAMP THEN 'expired'
+				ELSE status
+			END,
+			expires_at, created_at, redeemed_at
+		FROM invitations
+		WHERE inviter_user_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3`, inviterID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	invites := []models.ContactInvite{}
+	for rows.Next() {
+		var inv models.ContactInvite
+		if err := rows.Scan(&inv.ID, &inv.InviterID, &inv.Channel, &inv.Recipient, &inv.Name,
+			&inv.Status, &inv.ExpiresAt, &inv.CreatedAt, &inv.RedeemedAt); err != nil {
+			return nil, err
+		}
+		invites = append(invites, inv)
+	}
+	return invites, rows.Err()
 }

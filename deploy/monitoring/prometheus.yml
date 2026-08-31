@@ -1,0 +1,43 @@
+# Prometheus scrape config for Chorus (NFR-18/25).
+#
+# The backend exposes /metrics on 8080 (see backend/cmd/server/main.go). It is
+# scraped on the Docker network by service name; in a single-server dev stack the
+# targets below are resolved by the compose service names. Replace/annotate the
+# exporter targets if you prefer to run cluster-level DB/Redis exporters.
+#
+# This file is mounted into the prometheus container via deploy/monitoring/.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  # Use the service-name suffix to avoid collisions if the host is also exported.
+  external_labels:
+    monitor: chorus
+    stack: dev
+
+scrape_configs:
+  # The Go backend: HTTP metrics, WS connections, messages, translation latency.
+  - job_name: chorus-backend
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["backend:8080"]
+        labels:
+          service: chorus-backend
+
+  # Self-monitoring.
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # PostgreSQL exporter (optional infra metrics). Container: chorus-postgres-exporter.
+  - job_name: postgres
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+        labels:
+          service: postgres
+
+  # Redis exporter (optional infra metrics). Container: chorus-redis-exporter.
+  - job_name: redis
+    static_configs:
+      - targets: ["redis-exporter:9121"]
+        labels:
+          service: redis

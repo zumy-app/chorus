@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Streak Recovery - Chorus</title>
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788152794930&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YTRiYjMyMzcxODMwNTRjYzM1M2IxMTQ0MzY2EgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#d3e4fe",
+                        "secondary-fixed": "#e9ddff",
+                        "inverse-primary": "#b4c5ff",
+                        "tertiary-container": "#007d55",
+                        "surface-container": "#e5eeff",
+                        "on-tertiary-fixed": "#002113",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "inverse-surface": "#213145",
+                        "surface-container-low": "#eff4ff",
+                        "on-secondary-fixed-variant": "#5516be",
+                        "secondary-container": "#8455ef",
+                        "on-tertiary-container": "#bdffdb",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "surface": "#f8f9ff",
+                        "primary-fixed": "#dbe1ff",
+                        "on-error-container": "#93000a",
+                        "surface-container-high": "#dce9ff",
+                        "on-surface-variant": "#434655",
+                        "outline": "#737686",
+                        "on-primary": "#ffffff",
+                        "primary-container": "#2563eb",
+                        "surface-dim": "#cbdbf5",
+                        "on-surface": "#0b1c30",
+                        "on-secondary": "#ffffff",
+                        "primary": "#004ac6",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed": "#6ffbbe",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-primary-fixed": "#00174b",
+                        "on-secondary-container": "#fffbff",
+                        "on-secondary-fixed": "#23005c",
+                        "surface-container-highest": "#d3e4fe",
+                        "secondary": "#6b38d4",
+                        "surface-bright": "#f8f9ff",
+                        "tertiary": "#006242",
+                        "error": "#ba1a1a",
+                        "background": "#f8f9ff",
+                        "outline-variant": "#c3c6d7",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "surface-tint": "#0053db",
+                        "on-primary-container": "#eeefff",
+                        "on-background": "#0b1c30",
+                        "secondary-fixed-dim": "#d0bcff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "stack-lg": "24px",
+                        "gutter-mobile": "12px",
+                        "unit": "4px",
+                        "stack-md": "16px",
+                        "stack-sm": "8px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Be Vietnam Pro"],
+                        "translation-text": ["Be Vietnam Pro"],
+                        "label-md": ["Inter"],
+                        "body-sm": ["Be Vietnam Pro"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "body-md": ["Be Vietnam Pro"],
+                        "label-sm": ["Inter"],
+                        "headline-lg": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+                        "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.05);
+        }
+        
+        .pulse-animation {
+            animation: softPulse 2s infinite;
+        }
+
+        @keyframes softPulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface antialiased min-h-screen flex flex-col font-body-md overflow-x-hidden">
+<!-- Top Navigation (Transactional intent -> no bottom nav, customized top bar) -->
+<header class="w-full top-0 sticky z-50 bg-surface shadow-[0px_4px_12px_rgba(0,0,0,0.05)]">
+<div class="flex justify-between items-center px-margin-mobile py-stack-sm w-full">
+<div class="flex items-center gap-2 text-on-surface-variant hover:opacity-80 transition-opacity cursor-pointer active:scale-95 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">close</span>
+</div>
+<div class="font-headline-md text-headline-md text-primary font-bold">
+                Chorus
+            </div>
+<div class="w-8 h-8 rounded-full bg-surface-container overflow-hidden flex items-center justify-center border border-outline-variant/30">
+<img class="w-full h-full object-cover" data-alt="A small, stylized avatar illustration of a friendly user character in a modern, flat vector style with soft blue and white tones, matching the app's minimalist aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0ibEY87oP4p9IiscX-APGFgeKNwbj2P37ZyW8caFqdEyimdJd4Rx1Ebzn3bukFFM-MVfwXqfukX1ScEyanLoOilldrYXA3rIIgEulM-6Z00YmoM1X276Mq3L-MTh0E5fNrb5fBs2ur0YQ0xOgZFJAUychvnoFrQqIr2S7StfDu7821HnTAyNmZThjTX6tPPv82Frn8a3oku8KkqfxdCHKz8rT3oIKqVQG0l-Hya5HbgIxjzptWTJV"/>
+</div>
+</div>
+</header>
+<main class="flex-grow flex flex-col items-center px-margin-mobile py-stack-lg max-w-lg mx-auto w-full relative z-10">
+<!-- Hero Section: The Burned Out Streak -->
+<div class="text-center mb-10 w-full mt-4">
+<div class="relative inline-block mb-6">
+<!-- Background glow -->
+<div class="absolute inset-0 bg-error-container rounded-full blur-xl opacity-40 pulse-animation scale-150"></div>
+<!-- The Flame Icon Container -->
+<div class="relative w-28 h-28 mx-auto bg-surface-container-lowest rounded-full flex items-center justify-center shadow-lg border-2 border-outline-variant/50">
+<!-- Icon itself, grayed out but slightly tinted -->
+<span class="material-symbols-outlined text-6xl text-outline-variant" style="font-variation-settings: 'FILL' 0;">local_fire_department</span>
+<!-- Overlay text for the streak number -->
+<div class="absolute -bottom-2 -right-2 bg-error text-on-error font-headline-sm text-headline-sm rounded-full w-10 h-10 flex items-center justify-center shadow-md border-2 border-surface-container-lowest">
+                        14
+                    </div>
+</div>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">
+                Oh no, you missed a day!
+            </h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-md mx-auto">
+                Don't let your 14-day streak burn out completely. Complete one of these quick tasks right now to recover it.
+            </p>
+</div>
+<!-- Recovery Options Container -->
+<div class="w-full flex flex-col gap-stack-md relative z-20">
+<!-- Option 1: The Challenge -->
+<button class="glass-card rounded-xl p-stack-md w-full text-left group hover:border-primary-fixed-dim hover:bg-surface-container-lowest/90 transition-all active:scale-95 relative overflow-hidden">
+<!-- Subtle accent edge -->
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-secondary opacity-70"></div>
+<div class="flex items-start gap-4">
+<div class="w-12 h-12 rounded-full bg-secondary-fixed/50 text-on-secondary-fixed-variant flex items-center justify-center flex-shrink-0 group-hover:bg-secondary-fixed transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">theater_comedy</span>
+</div>
+<div class="flex-grow">
+<div class="flex items-center gap-2 mb-1">
+<span class="font-label-sm text-label-sm text-secondary uppercase tracking-wider bg-secondary-fixed/50 px-2 py-0.5 rounded-full">The Challenge</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">timer</span> 5 min
+                            </span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-1 group-hover:text-primary transition-colors">
+                            Scenario Roleplay
+                        </h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                            Navigate a real-world conversation: <strong class="text-on-surface font-medium">"Grocery Checkout"</strong>.
+                        </p>
+</div>
+<div class="flex items-center justify-center h-full pt-4">
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">arrow_forward_ios</span>
+</div>
+</div>
+</button>
+<!-- Option 2: The Review -->
+<button class="glass-card rounded-xl p-stack-md w-full text-left group hover:border-primary-fixed-dim hover:bg-surface-container-lowest/90 transition-all active:scale-95 relative overflow-hidden">
+<!-- Subtle accent edge -->
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-tertiary opacity-70"></div>
+<div class="flex items-start gap-4">
+<div class="w-12 h-12 rounded-full bg-tertiary-fixed/30 text-on-tertiary-fixed-variant flex items-center justify-center flex-shrink-0 group-hover:bg-tertiary-fixed/60 transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">style</span>
+</div>
+<div class="flex-grow">
+<div class="flex items-center gap-2 mb-1">
+<span class="font-label-sm text-label-sm text-tertiary uppercase tracking-wider bg-tertiary-fixed/30 px-2 py-0.5 rounded-full">The Review</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-1 group-hover:text-primary transition-colors">
+                            Clear 15 SRS Cards
+                        </h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                            Quickly review vocabulary items that are due for spaced repetition.
+                        </p>
+</div>
+<div class="flex items-center justify-center h-full pt-4">
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">arrow_forward_ios</span>
+</div>
+</div>
+</button>
+</div>
+<!-- Skip option -->
+<div class="mt-8 text-center">
+<button class="font-label-md text-label-md text-outline-variant hover:text-on-surface-variant transition-colors p-2 active:scale-95">
+                No thanks, let it reset to 0
+            </button>
+</div>
+</main>
+</body></html>

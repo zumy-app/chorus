@@ -1,0 +1,299 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>Chat with Sofia - Real Talk Suggestion</title>
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788152794930&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1OTRhM2U0MjY0ZTUwMjhmMDk1Njg0MDI1ZGI5EgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#d3e4fe",
+                        "primary-fixed": "#dbe1ff",
+                        "outline": "#737686",
+                        "surface-container": "#e5eeff",
+                        "on-tertiary-fixed": "#002113",
+                        "on-secondary-fixed-variant": "#5516be",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "on-surface-variant": "#434655",
+                        "tertiary-fixed": "#6ffbbe",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-secondary-container": "#fffbff",
+                        "on-surface": "#0b1c30",
+                        "on-primary": "#ffffff",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "surface-tint": "#0053db",
+                        "inverse-on-surface": "#eaf1ff",
+                        "inverse-surface": "#213145",
+                        "surface-container-low": "#eff4ff",
+                        "on-primary-container": "#eeefff",
+                        "primary": "#004ac6",
+                        "surface-container-high": "#dce9ff",
+                        "secondary-fixed": "#e9ddff",
+                        "on-error": "#ffffff",
+                        "surface-dim": "#cbdbf5",
+                        "inverse-primary": "#b4c5ff",
+                        "on-tertiary": "#ffffff",
+                        "outline-variant": "#c3c6d7",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary": "#6b38d4",
+                        "on-error-container": "#93000a",
+                        "error-container": "#ffdad6",
+                        "secondary-fixed-dim": "#d0bcff",
+                        "on-secondary-fixed": "#23005c",
+                        "primary-container": "#2563eb",
+                        "tertiary": "#006242",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "tertiary-container": "#007d55",
+                        "on-tertiary-container": "#bdffdb",
+                        "secondary-container": "#8455ef",
+                        "background": "#f8f9ff",
+                        "surface-bright": "#f8f9ff",
+                        "surface": "#f8f9ff",
+                        "on-background": "#0b1c30",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed": "#00174b"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "stack-lg": "24px",
+                        "gutter-mobile": "12px",
+                        "stack-sm": "8px",
+                        "unit": "4px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Inter"],
+                        "body-sm": ["Be Vietnam Pro"],
+                        "translation-text": ["Be Vietnam Pro"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "body-md": ["Be Vietnam Pro"],
+                        "label-md": ["Inter"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "body-lg": ["Be Vietnam Pro"]
+                    },
+                    "fontSize": {
+                        "label-sm-mobile": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+                        "body-sm-mobile": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "translation-text-mobile": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "headline-md-mobile": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "headline-sm-mobile": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "body-md-mobile": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-md-mobile": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg-mobile": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        
+                        "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.filled {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        /* Ambient depth for Real Talk card */
+        .real-talk-glow {
+            box-shadow: 0 8px 32px -4px rgba(37, 99, 235, 0.15), 0 4px 12px -2px rgba(37, 99, 235, 0.1);
+        }
+        
+        /* Subtle insight border */
+        .insight-border {
+            border-left: 2px solid #2563eb;
+        }
+        
+        /* Safe area padding for mobile bottom */
+        .pb-safe {
+            padding-bottom: env(safe-area-inset-bottom, 16px);
+        }
+        
+        /* Hide scrollbar for clean chat view */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md min-h-screen flex flex-col relative overflow-hidden">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface shadow-sm">
+<div class="flex items-center justify-between px-margin-mobile h-16 w-full">
+<div class="flex items-center gap-3">
+<button aria-label="Go back" class="p-2 -ml-2 text-on-surface-variant hover:bg-surface-variant/20 rounded-full transition-transform duration-200 active:scale-95">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<div class="relative">
+<img alt="Sofia's Avatar" class="w-10 h-10 rounded-full object-cover border-2 border-surface-container" data-alt="A friendly, modern 3D avatar of a young woman named Sofia. She has warm, approachable features, styled in a minimalist, expressive illustration style typical of high-end language learning apps. The background is a soft, solid pastel blue." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBDRpbj6S8xd9qGX4qcjImpXpC-NX2ig_P9XaVlSulZdpbDLyLT8SwabfoJGjjYH7ZEPHEyVvKylkPGDLlAIWdRmE9orJUIM0wy_TThoJa0Nejdz1XezVKf1AjssgbXdPrhcWsPtkoOoI1wtndCiQqlRpApPu46TOCFZGjXwAbNDECODZL7lGtMxGA37lKU8YoXkZt4Yx6Np5an2wKjLIv4BJkafHXAYtmJM1eQl87MUvA8gW5s3AEr">
+<div class="absolute bottom-0 right-0 w-3 h-3 bg-tertiary rounded-full border-2 border-surface"></div>
+</div>
+<div class="flex flex-col">
+<h1 class="font-headline-sm-mobile text-headline-sm-mobile text-primary">Sofia</h1>
+<span class="font-label-sm-mobile text-label-sm-mobile text-on-surface-variant flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary inline-block"></span> Online
+                    </span>
+</div>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<button aria-label="Audio Call" class="p-2 hover:bg-surface-variant/20 rounded-full transition-transform duration-200 active:scale-95">
+<span class="material-symbols-outlined">call</span>
+</button>
+<button aria-label="More options" class="p-2 hover:bg-surface-variant/20 rounded-full transition-transform duration-200 active:scale-95">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Chat Canvas -->
+<main class="flex-1 overflow-y-auto pt-16 pb-64 px-gutter-mobile no-scrollbar flex flex-col gap-stack-lg mt-stack-md">
+<!-- Date Divider -->
+<div class="flex justify-center my-stack-sm">
+<span class="bg-surface-container-low text-on-surface-variant font-label-sm-mobile text-label-sm-mobile px-3 py-1 rounded-full">Today</span>
+</div>
+<!-- Incoming Message -->
+<div class="flex gap-2 items-end max-w-[85%] self-start">
+<img alt="Sofia's Avatar" class="w-6 h-6 rounded-full object-cover mb-1" data-alt="A friendly, modern 3D avatar of a young woman named Sofia. She has warm, approachable features, styled in a minimalist, expressive illustration style typical of high-end language learning apps. The background is a soft, solid pastel blue." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB7gPMpg9tBR3GoeGqT5TdU4GWJdHDf-iRnHNNCtP75PviTKcdEKJFN4EXqXxd0s9d4Bwdm7iuOguls2c2kYmDSKbZZisDKrz_Okaud_M9wFIyoOwx7IbIdiVT0XDf79P8EG7WQbpv63zgws97rly5V2CiVH9JoXpmvycUrwOvYZTvrWaphxa0BdoVgxdqLQSWkZbpHvqGYQ6TrQc6DY63xEkeCn0TgZRyVaPH-JIN29GfwxNLjBDJc">
+<div class="bg-on-primary text-on-surface p-3 rounded-2xl rounded-bl-sm shadow-[0px_2px_8px_rgba(0,0,0,0.04)] border border-outline-variant/30 relative">
+<p class="font-body-md-mobile text-body-md-mobile leading-snug">¡Hola! Qué gusto saludarte hoy. ¿Cómo te sientes con la lección de rutinas diarias?</p>
+<div class="absolute -bottom-5 right-1 flex gap-2">
+<button aria-label="Translate" class="text-primary hover:text-primary-container p-1 rounded-full bg-surface/80 backdrop-blur-sm shadow-sm">
+<span class="material-symbols-outlined text-[16px]">translate</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Outgoing Message -->
+<div class="flex flex-col gap-1 items-end max-w-[85%] self-end mt-stack-sm">
+<div class="bg-primary text-on-primary p-3 rounded-2xl rounded-br-sm shadow-[0px_2px_8px_rgba(37,99,235,0.15)]">
+<p class="font-body-md-mobile text-body-md-mobile leading-snug">Hola Sofia, me siento bien pero es un poco difícil recordar los verbos reflexivos.</p>
+</div>
+<span class="font-label-sm-mobile text-label-sm-mobile text-on-surface-variant mr-1 flex items-center gap-1">
+                Read 10:42 AM <span class="material-symbols-outlined text-[14px] text-tertiary">done_all</span>
+</span>
+</div>
+<!-- Incoming Message (AI Enhanced) -->
+<div class="flex gap-2 items-end max-w-[85%] self-start mt-stack-md">
+<img alt="Sofia's Avatar" class="w-6 h-6 rounded-full object-cover mb-1" data-alt="A friendly, modern 3D avatar of a young woman named Sofia. She has warm, approachable features, styled in a minimalist, expressive illustration style typical of high-end language learning apps. The background is a soft, solid pastel blue." src="https://lh3.googleusercontent.com/aida-public/AB6AXuANB0nvrQQ4rFZjLjqDZXp02rl3xCssJ-qWYYfCVUh0Clk01WqeGaeZppTKaRBFEY3hJvM7qvvFdtbsDddAeSXT_JHGHJUKXrwkZIkWdYOF278ussg3Np7WBfYzsWPHq5S4lDVlp-Zfk4ujCY41uRZMO8mHXGWiCl1goOD9vqtyC15XwaWD99cUDz1kGjOmkXtzEasFSLiEZY2GfJqI1uWqp7zvrSM2SMxPs7CyKuVWjQmIRV6_tRmR">
+<div class="flex flex-col gap-2 w-full">
+<div class="bg-on-primary text-on-surface p-3 rounded-2xl rounded-bl-sm shadow-[0px_2px_8px_rgba(0,0,0,0.04)] border border-outline-variant/30">
+<p class="font-body-md-mobile text-body-md-mobile leading-snug">Es normal. Los verbos reflexivos requieren práctica. Vamos a intentar usar uno. ¿Te animas?</p>
+</div>
+<!-- AI Insight translation -->
+<div class="ml-2 bg-surface-container-low p-2 pr-3 rounded-xl rounded-bl-sm insight-border flex items-start gap-2 shadow-sm">
+<span class="material-symbols-outlined text-primary text-[18px] mt-0.5">auto_awesome</span>
+<div>
+<p class="font-translation-text-mobile text-translation-text-mobile text-on-surface-variant">It's normal. Reflexive verbs require practice. Let's try using one. Are you up for it?</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Input Area with Real Talk Overlay -->
+<div class="fixed bottom-0 w-full z-40 bg-gradient-to-t from-surface via-surface to-transparent pt-12 pb-safe px-gutter-mobile flex flex-col gap-unit">
+<!-- Real Talk Suggestion Card (Floating) -->
+<div class="bg-primary-container text-on-primary-container rounded-2xl p-4 real-talk-glow relative mb-2 animate-[slideUp_0.3s_ease-out] border border-on-primary-container/20">
+    <button aria-label="Dismiss suggestion" class="absolute top-2 right-2 p-1 text-on-primary-container/60 hover:text-on-primary-container hover:bg-on-primary-container/10 rounded-full transition-colors">
+        <span class="material-symbols-outlined text-[20px]">close</span>
+    </button>
+    <div class="flex items-start gap-3">
+        <div class="bg-on-primary-container/10 p-2 rounded-full">
+            <span class="material-symbols-outlined text-on-primary-container">auto_awesome</span>
+        </div>
+        <div class="flex-1">
+            <div class="flex items-center gap-2 mb-1">
+                <span class="font-label-md-mobile text-label-md-mobile text-on-primary-container">Sparky's Nudge</span>
+                <span class="w-1 h-1 rounded-full bg-on-primary-container/40"></span>
+                <span class="font-label-sm-mobile text-label-sm-mobile text-on-primary-container/70">Unit 4 Goal</span>
+            </div>
+            <p class="font-body-sm-mobile text-body-sm-mobile text-on-primary-container/90 mb-3">
+                Try using a reflexive verb to answer Sofia:
+            </p>
+            <div class="bg-on-primary-container/10 p-3 rounded-xl border border-on-primary-container/10 mb-4">
+                <p class="font-headline-sm-mobile text-headline-sm-mobile font-bold tracking-tight">"¿A qué hora te levantas normalmente?"</p>
+                <p class="font-body-sm-mobile text-body-sm-mobile text-on-primary-container/80 mt-1 italic">(What time do you usually wake up?)</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button class="flex-1 bg-on-primary text-primary font-label-md-mobile text-label-md-mobile px-4 py-2.5 rounded-full shadow-sm hover:bg-surface-container-low transition-all active:scale-95 flex items-center justify-center gap-2">
+                    Send to Input
+                    <span class="material-symbols-outlined text-[18px]">keyboard_return</span>
+                </button>
+                <button aria-label="Next Suggestion" class="p-2.5 text-on-primary-container/80 hover:text-on-primary-container hover:bg-on-primary-container/10 rounded-full transition-colors">
+                    <span class="material-symbols-outlined">shuffle</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Chat Input Field -->
+<div class="bg-surface-container-lowest rounded-[1rem] p-1 flex items-end gap-2 shadow-[0px_-2px_10px_rgba(0,0,0,0.03)] border border-outline-variant/30 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
+<button class="p-2 text-outline hover:text-primary rounded-full transition-colors self-end mb-0.5">
+<span class="material-symbols-outlined">add_circle</span>
+</button>
+<div class="flex-1 max-h-[120px] overflow-y-auto py-3 no-scrollbar relative flex items-center">
+<input class="w-full bg-transparent border-none p-0 focus:ring-0 font-body-md-mobile text-body-md-mobile text-on-surface placeholder:text-outline-variant outline-none" placeholder="Type a message..." type="text">
+</div>
+<button aria-label="Record voice message" class="p-2 text-outline hover:text-primary rounded-full transition-colors self-end mb-0.5 mr-1">
+<span class="material-symbols-outlined">mic</span>
+</button>
+</div>
+</div>
+<style>
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+<script>
+        // Simple interaction for the "Send to Input" button just to show state
+        document.addEventListener('DOMContentLoaded', () => {
+            const sendToInputBtn = document.querySelector('.bg-on-primary.text-primary');
+            const chatInput = document.querySelector('input[type="text"]');
+            const realTalkCard = document.querySelector('.real-talk-glow');
+            
+            if(sendToInputBtn && chatInput) {
+                sendToInputBtn.addEventListener('click', () => {
+                    chatInput.value = "¿A qué hora te levantas normalmente?";
+                    chatInput.focus();
+                    
+                    // Optional: gracefully hide the suggestion card after use
+                    realTalkCard.style.opacity = '0';
+                    realTalkCard.style.transform = 'translateY(10px)';
+                    realTalkCard.style.transition = 'all 0.3s ease';
+                    setTimeout(() => {
+                        realTalkCard.style.display = 'none';
+                    }, 300);
+                });
+            }
+        });
+    </script>
+
+
+</body></html>

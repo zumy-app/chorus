@@ -1778,6 +1778,23 @@ POST /api/v1/learning/placement/:attemptId/skip
 GET  /api/v1/learning/placement/:attemptId
 ```
 
+Onboarding level self-selection (task 2.3) — the coarse "I know my level" path
+that seeds the CEFR band without running the test:
+
+```http
+POST /api/v1/learning/level/select
+{
+  "level": "beginner" | "intermediate" | "advanced",
+  "targetLanguage": "es",
+  "nativeLanguage": "en"
+}
+```
+
+Level → CEFR seed mapping: beginner A1, intermediate B1, advanced B2. It sets
+`placement_status = self_selected`, `current_cefr_level`, a readiness seed at the
+band's lower bound, and `active_unit_id` to the band's first unit. The placement
+test remains the fine-grained path.
+
 Skip behavior:
 
 - `placement_status = skipped`.

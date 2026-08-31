@@ -132,10 +132,10 @@ Rules: prefer useful words and chunks over every token; include multi-word chunk
 
 // ScenarioReply is the LLM return shape for a roleplay turn.
 type ScenarioReply struct {
-	AIMessage        string   `json:"ai_message"`
-	Translation      string   `json:"translation"`
-	PhaseComplete    bool     `json:"phase_complete"`
-	NextPhaseOrdinal int      `json:"next_phase_ordinal,omitempty"`
+	AIMessage        string        `json:"ai_message"`
+	Translation      string        `json:"translation"`
+	PhaseComplete    bool          `json:"phase_complete"`
+	NextPhaseOrdinal int           `json:"next_phase_ordinal,omitempty"`
 	Nudge            ScenarioNudge `json:"nudge"`
 }
 
@@ -176,7 +176,7 @@ func (s *LearningAIService) complete(ctx context.Context, system, user, nativeLa
 	for i, ep := range s.endpoints {
 		prompt := system + "\n\n" + user
 		start := time.Now()
-		result, err := ep.call(prompt, nativeLangName, true)
+		result, err := ep.call(ctx, prompt, nativeLangName, true)
 		_ = i
 		_ = start
 		if err == nil {

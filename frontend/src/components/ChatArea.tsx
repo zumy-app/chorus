@@ -6,18 +6,21 @@ import MessageBubble from './MessageBubble'
 import DeepDiveSheet from './DeepDiveSheet'
 import ChatLanguageModal from './ChatLanguageModal'
 import ReportModal from './ReportModal'
+import EmojiPicker from './EmojiPicker'
 import { moderationAPI } from '../services/api'
 import { wsService } from '../services/websocket'
+import { formatDistanceToNow } from 'date-fns'
 
 export default function ChatArea() {
   const { t } = useTranslation()
-  const { activeChat, messages, user, entitlements, sendMessage } = useStore()
+  const { activeChat, messages, user, entitlements, sendMessage, typingUsers, presence, fetchPresence } = useStore()
   const [inputText, setInputText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [showLangSettings, setShowLangSettings] = useState(false)
   const [showChatMenu, setShowChatMenu] = useState(false)
   const [confirmBlock, setConfirmBlock] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [actionNotice, setActionNotice] = useState('')
   const [actionError, setActionError] = useState('')
   const [translateAsType, setTranslateAsType] = useState(
@@ -28,9 +31,22 @@ export default function ChatArea() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const typingTimeoutRef = useRef<number>()
   const chatMenuRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
   const chatMessages = activeChat ? messages[activeChat.id] || [] : []
   const targetLang = user?.targetLanguages?.[0]?.toUpperCase()
+
+  // Keep the other participants' presence fresh whenever the active chat (or
+  // the current user) changes. Group chats include every participant; direct
+  // chats resolve to the one other person.
+  useEffect(() => {
+    if (!activeChat) return
+    const ids = (activeChat.participants || [])
+      .filter((p) => p.user?.id !== user?.id)
+      .map((p) => p.user?.id)
+      .filter((id): id is string => Boolean(id))
+    if (ids.length) fetchPresence(ids)
+  }, [activeChat?.id, activeChat?.participants, user?.id])
 
   const handleToggleTranslate = () => {
     setTranslateAsType((prev) => {
@@ -94,6 +110,29 @@ export default function ChatArea() {
     }
   }
 
+  // Insert an emoji at the current cursor position in the composer, keeping the
+  // caret right after it so the user can keep typing. Emoji are plain characters
+  // in the message text — they are never modified, so they pass through
+  // translation unchanged (FR-21).
+  const insertEmoji = (emoji: string) => {
+    const el = inputRef.current
+    const start = el?.selectionStart ?? inputText.length
+    const end = el?.selectionEnd ?? start
+    const next = inputText.slice(0, start) + emoji + inputText.slice(end)
+    setInputText(next)
+    if (el && typeof requestAnimationFrame !== 'undefined') {
+      const pos = start + emoji.length
+      requestAnimationFrame(() => {
+        el.focus()
+        try {
+          el.setSelectionRange(pos, pos)
+        } catch {
+          // jsdom / some browsers may not expose selectionRange; the value is set regardless.
+        }
+      })
+    }
+  }
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!inputText.trim() || !activeChat) return
@@ -153,6 +192,29 @@ export default function ChatArea() {
     ? activeChat.name || t('chat.unnamedGroup')
     : otherParticipant?.displayName || t('chat.unknownUser')
 
+  const participantPresence = otherParticipant ? presence[otherParticipant.id] : null
+  const isOtherOnline = participantPresence?.status === 'online'
+  const isOtherAway = participantPresence?.status === 'away'
+
+  // Display names of everyone (except us) currently typing in the active chat.
+  const typingNames = (activeChat
+    ? (activeChat.participants || [])
+        .filter((p) => p.user?.id && p.user?.id !== user?.id && typingUsers[activeChat.id]?.[p.user.id])
+        .map((p) => p.user?.displayName)
+        .filter((name): name is string => Boolean(name))
+    : []) as string[]
+  const otherTyping = typingNames.length > 0
+
+  const presenceLabel = activeChat.type === 'direct' && otherParticipant
+    ? isOtherOnline
+      ? t('chat.online')
+      : isOtherAway
+        ? t('chat.away')
+        : participantPresence?.lastSeen
+          ? t('chat.lastSeen', { time: formatDistanceToNow(new Date(participantPresence.lastSeen), { addSuffix: true }) })
+          : t('chat.offline')
+    : ''
+
   return (
     <>
       {/* Chat Header */}
@@ -165,14 +227,24 @@ export default function ChatArea() {
             <h2 className="font-headline-sm text-headline-sm text-primary truncate">{chatName}</h2>
             <div className="flex items-center gap-2">
               {activeChat.type === 'direct' && otherParticipant && (
-                <span className="font-label-sm text-label-sm text-tertiary-container flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-tertiary-container" />
-                  {t('chat.online')}
+                <span
+                  className={`font-label-sm text-label-sm flex items-center gap-1 ${
+                    isOtherOnline ? 'text-tertiary-container' : isOtherAway ? 'text-secondary' : 'text-on-surface-variant'
+                  }`}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      isOtherOnline ? 'bg-tertiary-container' : isOtherAway ? 'bg-secondary' : 'bg-on-surface-variant/40'
+                    }`}
+                  />
+                  {presenceLabel}
                 </span>
               )}
               {activeChat.type === 'group' && (
                 <span className="font-label-sm text-label-sm text-on-surface-variant">
-                  {t('common.members', { count: activeChat.participants?.length || 0 })}
+                  {otherTyping
+                    ? t('chat.someoneTyping')
+                    : t('common.members', { count: activeChat.participants?.length || 0 })}
                 </span>
               )}
             </div>
@@ -301,6 +373,27 @@ export default function ChatArea() {
           </button>
         </div>
 
+        {/* Other participants typing */}
+        {activeChat.type === 'group' ? (
+          otherTyping && (
+            <div className="mb-3 px-1 flex items-center gap-2 text-on-surface-variant">
+              <TypingDots />
+              <span className="font-label-sm text-label-sm">
+                {typingNames.length === 1
+                  ? t('chat.isTyping', { name: typingNames[0] })
+                  : t('chat.someoneTyping')}
+              </span>
+            </div>
+          )
+        ) : (
+          otherTyping && typingNames[0] && (
+            <div className="mb-3 px-1 flex items-center gap-2 text-on-surface-variant">
+              <TypingDots />
+              <span className="font-label-sm text-label-sm">{t('chat.isTyping', { name: typingNames[0] })}</span>
+            </div>
+          )
+        )}
+
         {/* Live translation preview while typing */}
         {translateAsType && inputText.trim() && (
           <div className="mb-3 rounded-xl border border-secondary/30 bg-secondary-fixed/10 px-3 py-2">
@@ -320,7 +413,26 @@ export default function ChatArea() {
           >
             <span className="material-symbols-outlined text-[22px]">add_circle</span>
           </button>
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowEmojiPicker((v) => !v)}
+              aria-label={t('chat.emoji')}
+              aria-expanded={showEmojiPicker}
+              title={t('chat.emoji')}
+              className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-surface-variant/20 rounded-full transition active:scale-95 shrink-0"
+            >
+              <span className="material-symbols-outlined text-[22px]">emoji_emotions</span>
+            </button>
+            {showEmojiPicker && (
+              <EmojiPicker
+                onSelect={(emoji) => insertEmoji(emoji)}
+                onClose={() => setShowEmojiPicker(false)}
+              />
+            )}
+          </div>
           <textarea
+            ref={inputRef}
             value={inputText}
             onChange={handleInputChange}
             placeholder={t('chat.typeMessage')}
@@ -393,5 +505,20 @@ export default function ChatArea() {
         <DeepDiveSheet message={deepDiveMessage} onClose={() => setDeepDiveOpen(false)} />
       )}
     </>
+  )
+}
+
+// Animated three-dot typing indicator (ChatArea: FR-9 presence + typing).
+function TypingDots() {
+  return (
+    <span className="flex items-center gap-[3px]" aria-hidden="true">
+      {[0, 150, 300].map((delay) => (
+        <span
+          key={delay}
+          className="w-1 h-1 rounded-full bg-current animate-bounce"
+          style={{ animationDelay: `${delay}ms` }}
+        />
+      ))}
+    </span>
   )
 }

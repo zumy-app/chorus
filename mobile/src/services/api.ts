@@ -54,6 +54,7 @@ const apiService = {
   startPlacement: client.learning.startPlacement,
   answerPlacement: client.learning.answerPlacement,
   skipPlacement: client.learning.skipPlacement,
+  selectLevel: client.learning.selectLevel,
   getPlacement: client.learning.getPlacement,
   getUnit: client.learning.getUnit,
   startLesson: client.learning.startLesson,

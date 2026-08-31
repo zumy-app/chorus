@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chorus/messenger/internal/models"
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/chorus/messenger/internal/models"
 )
 
 func TestChatCreate_Direct(t *testing.T) {

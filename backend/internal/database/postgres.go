@@ -157,6 +157,19 @@ func Migrate(db *sql.DB) error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_invitations_token_hash ON invitations(token_hash)`,
 
+		// Contacts & Invites epic (REQ 2.4 / FR-22-23): the table is the single
+		// source for the waitlist invitation flow AND self-service invites a
+		// registered user sends to an off-platform contact. waitlist_entry_id is
+		// nullable to support the latter (invites not born from the waitlist).
+		`ALTER TABLE invitations ALTER COLUMN waitlist_entry_id DROP NOT NULL`,
+		`ALTER TABLE invitations ADD COLUMN IF NOT EXISTS inviter_user_id UUID REFERENCES users(id) ON DELETE CASCADE`,
+		`ALTER TABLE invitations ADD COLUMN IF NOT EXISTS channel VARCHAR(20) NOT NULL DEFAULT 'email' CHECK (channel IN ('email', 'sms', 'whatsapp'))`,
+		`ALTER TABLE invitations ADD COLUMN IF NOT EXISTS recipient VARCHAR(255) NOT NULL DEFAULT ''`,
+		`ALTER TABLE invitations ADD COLUMN IF NOT EXISTS name VARCHAR(100) NOT NULL DEFAULT ''`,
+		`ALTER TABLE invitations ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'sent' CHECK (status IN ('pending', 'sent', 'redeemed', 'expired'))`,
+		`ALTER TABLE invitations ADD COLUMN IF NOT EXISTS sent_at TIMESTAMP`,
+		`CREATE INDEX IF NOT EXISTS idx_invitations_inviter ON invitations(inviter_user_id)`,
+
 		// Phase 2: Multi-device support - Clients table
 		`CREATE TABLE IF NOT EXISTS clients (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -192,6 +205,14 @@ func Migrate(db *sql.DB) error {
 			message_retention_days INTEGER DEFAULT 365,
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
+		// FR-25 Feature toggles: per-account switches for auto-translation,
+		// auto-grammar, and learning highlights. Default to enabled; setting any
+		// of them to false prevents the corresponding server-side job from being
+		// enqueued (translation jobs are never enqueued when off). Additive and
+		// backfilled (NOT NULL DEFAULT true) so existing rows stay valid.
+		`ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS translation_enabled BOOLEAN NOT NULL DEFAULT true`,
+		`ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS grammar_auto BOOLEAN NOT NULL DEFAULT true`,
+		`ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS highlights_enabled BOOLEAN NOT NULL DEFAULT true`,
 
 		// Phase 2: Media attachments
 		`CREATE TABLE IF NOT EXISTS media_attachments (
@@ -283,6 +304,13 @@ func Migrate(db *sql.DB) error {
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'member'`,
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS suspended_at TIMESTAMP`,
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP`,
+
+		// Onboarding (REQ 2.1): structured first/last name so the profile can
+		// show a composed displayName and deterministic initials/avatar (2.2).
+		// Nullable so accounts created before this migration stay valid; the
+		// composed display_name is the derived, still-editable display name.
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name VARCHAR(100)`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name VARCHAR(100)`,
 		`CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)`,
 		`CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users(deleted_at) WHERE deleted_at IS NULL`,
 
@@ -333,6 +361,12 @@ func Migrate(db *sql.DB) error {
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(20)`,
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS next_billing_date TIMESTAMP`,
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_payment_at TIMESTAMP`,
+
+		// REQ 2.2 / FR-20: reserved upload path for a custom avatar image. The
+		// Phase 1 initials avatar is derived from the user's name plus a
+		// deterministic color (computed server-side), so this stays NULL until
+		// attachment infrastructure ships.
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500)`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_subscription_id ON users(subscription_id) WHERE subscription_id IS NOT NULL`,
 		// grace_notified_at marks users whose grace period has already triggered
 		// the "premium ended" email, so the expiry sweeper is idempotent.
@@ -430,6 +464,83 @@ func Migrate(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_grammar_jobs_message ON grammar_jobs(message_id)`,
 
 		// -------------------------------------------------------------------
+		// FR-30 Quality pipeline — lineage + cross-model evaluation
+		// -------------------------------------------------------------------
+		// Lineage metadata on the durable translation/grammar jobs so every AI
+		// output can be attributed to the provider, model prompt version, and
+		// measured latency/tokens that produced it. This is what makes KPIs
+		// (accuracy, p95 latency, cost/1k tokens, cache hit rate) derivable.
+		`ALTER TABLE translation_jobs ADD COLUMN IF NOT EXISTS provider VARCHAR(100)`,
+		`ALTER TABLE translation_jobs ADD COLUMN IF NOT EXISTS model VARCHAR(200)`,
+		`ALTER TABLE translation_jobs ADD COLUMN IF NOT EXISTS prompt_version VARCHAR(50) NOT NULL DEFAULT 'v2'`,
+		`ALTER TABLE translation_jobs ADD COLUMN IF NOT EXISTS latency_ms INTEGER`,
+		`ALTER TABLE translation_jobs ADD COLUMN IF NOT EXISTS tokens INTEGER`,
+		`ALTER TABLE translation_jobs ADD COLUMN IF NOT EXISTS cache_hit BOOLEAN NOT NULL DEFAULT false`,
+		`CREATE INDEX IF NOT EXISTS idx_translation_jobs_provider ON translation_jobs(provider, created_at DESC)`,
+
+		`ALTER TABLE grammar_jobs ADD COLUMN IF NOT EXISTS provider_used_lineage VARCHAR(100)`,
+		`ALTER TABLE grammar_jobs ADD COLUMN IF NOT EXISTS model VARCHAR(200)`,
+		`ALTER TABLE grammar_jobs ADD COLUMN IF NOT EXISTS prompt_version VARCHAR(50) NOT NULL DEFAULT 'v2'`,
+		`ALTER TABLE grammar_jobs ADD COLUMN IF NOT EXISTS latency_ms INTEGER`,
+		`ALTER TABLE grammar_jobs ADD COLUMN IF NOT EXISTS tokens INTEGER`,
+		`CREATE INDEX IF NOT EXISTS idx_grammar_jobs_provider ON grammar_jobs(provider_used_lineage, created_at DESC)`,
+
+		// Cross-model evaluation: one row per scored translation. The evaluator
+		// is a *different* model than the producer; rows start 'pending', are
+		// picked up by the QualityEvaluatorService worker, and end 'done'/'failed'.
+		`CREATE TABLE IF NOT EXISTS translation_evals (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			translation_job_id UUID REFERENCES translation_jobs(id) ON DELETE CASCADE,
+			message_id UUID REFERENCES messages(id) ON DELETE CASCADE,
+			chat_id UUID REFERENCES chats(id) ON DELETE CASCADE,
+			source_lang VARCHAR(10),
+			target_lang VARCHAR(10) NOT NULL,
+			source_text TEXT NOT NULL,
+			translated_text TEXT NOT NULL,
+			producer_provider VARCHAR(100),
+			evaluator_provider VARCHAR(100),
+			accuracy_score NUMERIC(5,2),
+			fluency_score NUMERIC(5,2),
+			cefr_level VARCHAR(2),
+			critique TEXT,
+			status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'done', 'failed')),
+			attempts INTEGER NOT NULL DEFAULT 0,
+			last_error TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			next_attempt_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			processing_at TIMESTAMP,
+			completed_at TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_translation_evals_status ON translation_evals(status, created_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_translation_evals_job ON translation_evals(translation_job_id)`,
+
+		// Cross-model evaluation for grammar analyses. criterion_scores holds
+		// per-pattern scores (grammar accuracy, structure, helpfulness) as JSON.
+		`CREATE TABLE IF NOT EXISTS grammar_evals (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			grammar_job_id UUID REFERENCES grammar_jobs(id) ON DELETE CASCADE,
+			user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+			text TEXT NOT NULL,
+			language VARCHAR(10) NOT NULL,
+			native_language VARCHAR(10) NOT NULL,
+			producer_provider VARCHAR(100),
+			evaluator_provider VARCHAR(100),
+			accuracy_score NUMERIC(5,2),
+			cefr_level VARCHAR(2),
+			criterion_scores JSONB NOT NULL DEFAULT '{}',
+			critique TEXT,
+			status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'done', 'failed')),
+			attempts INTEGER NOT NULL DEFAULT 0,
+			last_error TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			next_attempt_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			processing_at TIMESTAMP,
+			completed_at TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_grammar_evals_status ON grammar_evals(status, created_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_grammar_evals_job ON grammar_evals(grammar_job_id)`,
+
+		// -------------------------------------------------------------------
 		// Learning engine: pair-aware structured courses, vocabulary mining,
 		// staged SRS, lessons, scenarios, placement, streaks, and score data.
 		// Translation/grammar are broadly model-powered; these tables represent
@@ -493,7 +604,7 @@ func Migrate(db *sql.DB) error {
 			readiness_score INTEGER NOT NULL DEFAULT 0 CHECK (readiness_score >= 0 AND readiness_score <= 1000),
 			active_course_id UUID REFERENCES curriculum_courses(id) ON DELETE SET NULL,
 			active_unit_id UUID REFERENCES curriculum_units(id) ON DELETE SET NULL,
-			placement_status VARCHAR(20) NOT NULL DEFAULT 'not_started' CHECK (placement_status IN ('not_started', 'in_progress', 'completed', 'skipped')),
+			placement_status VARCHAR(20) NOT NULL DEFAULT 'not_started' CHECK (placement_status IN ('not_started', 'in_progress', 'completed', 'skipped', 'self_selected')),
 			primary_goal VARCHAR(30) NOT NULL DEFAULT 'conversational_fluency' CHECK (primary_goal IN ('conversational_fluency', 'structured_study', 'travel', 'work', 'exam_prep')),
 			daily_goal_items INTEGER NOT NULL DEFAULT 10,
 			mining_enabled BOOLEAN NOT NULL DEFAULT true,
@@ -504,6 +615,13 @@ func Migrate(db *sql.DB) error {
 			PRIMARY KEY (user_id, native_language, target_language)
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_user_language_profiles_active_unit ON user_language_profiles(active_unit_id)`,
+
+		// Migration (task 2.3): allow onboarding level self-selection to mark a
+		// profile as placement_status='self_selected'. CREATE TABLE IF NOT EXISTS
+		// does not touch existing tables, so drop and re-add the CHECK with the
+		// extended value set. Idempotent on every boot.
+		`ALTER TABLE user_language_profiles DROP CONSTRAINT IF EXISTS user_language_profiles_placement_status_check`,
+		`ALTER TABLE user_language_profiles ADD CONSTRAINT user_language_profiles_placement_status_check CHECK (placement_status IN ('not_started', 'in_progress', 'completed', 'skipped', 'self_selected'))`,
 
 		`CREATE TABLE IF NOT EXISTS grammar_points (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

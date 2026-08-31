@@ -11,14 +11,14 @@ import (
 
 func TestNormalizeLang(t *testing.T) {
 	cases := map[string]string{
-		"":           "",
-		"EN":         "en",
-		" es ":       "es",
-		"es-MX":      "es",
-		"zh-Hant":    "zh",
-		"pt-BR":      "pt",
-		"Spanish":    "spanish",
-		"en-US-x":    "en",
+		"":        "",
+		"EN":      "en",
+		" es ":    "es",
+		"es-MX":   "es",
+		"zh-Hant": "zh",
+		"pt-BR":   "pt",
+		"Spanish": "spanish",
+		"en-US-x": "en",
 	}
 	for in, want := range cases {
 		if got := normalizeLang(in); got != want {

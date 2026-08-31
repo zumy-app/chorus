@@ -113,8 +113,22 @@ test.describe('two-user messaging', () => {
     console.log('[E2E] direct chat created')
 
     // ---- 4. Send a message and time real-time delivery to B ----
-    const msg = `E2E two-user ${Date.now()} — good morning, how are you doing today my friend`
-    await aPage.getByPlaceholder('Type a message...').fill(msg)
+    const msg = `E2E two-user ${Date.now()} — good morning, how are you doing today my friend 🙂`
+
+    // FR-21: the emoji picker opens and inserts an emoji into the composer.
+    const composer = aPage.getByPlaceholder('Type a message...')
+    await aPage.getByRole('button', { name: /Insert emoji/i }).click()
+    const emojiPicker = aPage.getByRole('dialog', { name: 'Emoji picker' })
+    await expect(emojiPicker).toBeVisible({ timeout: T.ui })
+    // 😁 is only rendered inside the grid (it is not a category tab label), so a
+    // click reliably inserts it rather than switching categories.
+    await emojiPicker.getByRole('button', { name: '😁', exact: true }).click()
+    await expect(composer).toHaveValue('😁')
+    await aPage.keyboard.press('Escape')
+    await expect(emojiPicker).not.toBeVisible()
+
+    // Now compose the real message (replaces the inserted preview emoji).
+    await composer.fill(msg)
 
     const tSend = Date.now()
     await aPage.getByRole('button', { name: 'Send' }).click()
@@ -138,6 +152,12 @@ test.describe('two-user messaging', () => {
     await expect(bBubble.getByText(/In your language:/)).toBeVisible({ timeout: T.llm })
     times.translation = `${Date.now() - tSend}ms`
     console.log(`[E2E] translation visible on B in ${Date.now() - tSend}ms (from send)`)
+
+    // FR-21: emoji must pass through translation unchanged — the "In your
+    // language:" block must still contain the sender's emoji rather than having
+    // it stripped or rewritten (e.g. to '?') anywhere in the pipeline.
+    const nativeTranslation = bBubble.locator('.font-translation-text').last()
+    await expect(nativeTranslation).toContainText('🙂', { timeout: T.llm })
 
     // ---- 6. Grammar analysis (async job flow) on B ----
     await bMsgText.hover()

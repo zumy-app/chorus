@@ -15,6 +15,7 @@ export default function LessonSessionScreen({ navigation }: any) {
   const [index, setIndex] = useState(0);
   const [answer, setAnswer] = useState('');
   const [feedback, setFeedback] = useState<{ correct: boolean; message: string } | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [xp, setXp] = useState(0);
 
@@ -47,13 +48,20 @@ export default function LessonSessionScreen({ navigation }: any) {
   }, [user, targetLanguage, nativeLanguage, mode]);
 
   const submit = useCallback(async (value: string) => {
-    if (!sessionId || !items[index]) return;
+    if (!sessionId || !items[index] || submitting) return;
     setFeedback(null);
+    setSubmitting(true);
     const it = items[index];
-    const res = await apiService.answerSessionItem(sessionId, it.id, { text: value, choice: value }, 800);
-    setFeedback({ correct: res.correct, message: res.feedback.message });
-    if (res.correct) setXp((x) => x + 10);
-  }, [sessionId, items, index]);
+    try {
+      const res = await apiService.answerSessionItem(sessionId, it.id, { text: value, choice: value }, 800);
+      setFeedback({ correct: res.correct, message: res.feedback.message });
+      if (res.correct) setXp((x) => x + 10);
+    } catch {
+      Alert.alert('Error', 'Could not submit your answer. Try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }, [sessionId, items, index, submitting]);
 
   const next = useCallback(async () => {
     setFeedback(null);
@@ -98,7 +106,7 @@ export default function LessonSessionScreen({ navigation }: any) {
           {current.prompt.choices && current.prompt.choices.length > 0 ? (
             <View style={styles.choices}>
               {current.prompt.choices.map((choice, i) => (
-                <Pressable key={i} style={styles.choice} onPress={() => submit(choice)} disabled={!!feedback}>
+                <Pressable key={i} style={styles.choice} onPress={() => submit(choice)} disabled={!!feedback || submitting}>
                   <Text style={styles.choiceText}>{choice}</Text>
                 </Pressable>
               ))}
@@ -112,10 +120,17 @@ export default function LessonSessionScreen({ navigation }: any) {
                 placeholder="Escribe aquí..."
                 placeholderTextColor={COLOR.outline}
                 style={styles.input}
+                editable={!submitting}
               />
-              <Pressable style={styles.sendButton} onPress={() => answer.trim() && submit(answer.trim())}>
+              <Pressable style={styles.sendButton} onPress={() => answer.trim() && submit(answer.trim())} disabled={submitting}>
                 <Text style={styles.sendButtonText}>→</Text>
               </Pressable>
+            </View>
+          )}
+          {submitting && (
+            <View style={styles.submittingRow}>
+              <ActivityIndicator size="small" color={COLOR.primary} />
+              <Text style={styles.submittingText}>Checking…</Text>
             </View>
           )}
           {feedback && (
@@ -152,6 +167,8 @@ const styles = StyleSheet.create({
   input: { flex: 1, backgroundColor: COLOR.surfaceContainer, borderRadius: RADIUS.lg, paddingHorizontal: SPACING.stackMd, paddingVertical: 12, color: COLOR.onSurface, fontFamily: FONTS.body },
   sendButton: { backgroundColor: COLOR.primary, borderRadius: RADIUS.lg, paddingHorizontal: 18, paddingVertical: 12 },
   sendButtonText: { color: COLOR.onPrimary, fontSize: 18, fontFamily: FONTS.label },
+  submittingRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.stackSm },
+  submittingText: { ...TYPOGRAPHY.labelSm, color: COLOR.onSurfaceVariant, fontFamily: FONTS.label },
   feedback: { borderRadius: RADIUS.lg, padding: SPACING.stackMd, gap: SPACING.stackSm },
   feedbackOk: { backgroundColor: 'rgba(0,124,85,0.12)' },
   feedbackErr: { backgroundColor: 'rgba(186,26,26,0.12)' },

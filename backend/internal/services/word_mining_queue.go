@@ -137,15 +137,15 @@ func (q *WordMiningQueueService) GetJob(jobID, userID string) (*WordMiningJobRes
 }
 
 type wordMiningJob struct {
-	ID             string
-	UserID         string
-	MessageID      string
-	ChatID         string
-	SourceType     string
-	SourceText     string
-	SourceLang     string
-	NativeLang     string
-	Attempts       int
+	ID         string
+	UserID     string
+	MessageID  string
+	ChatID     string
+	SourceType string
+	SourceText string
+	SourceLang string
+	NativeLang string
+	Attempts   int
 }
 
 func (q *WordMiningQueueService) claimJob(id string) (*wordMiningJob, bool) {

@@ -1,1 +1,0 @@
-﻿Starting: Intent { cmp=com.chorusmobile/.MainActivity }

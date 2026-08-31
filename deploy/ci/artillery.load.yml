@@ -1,0 +1,31 @@
+# Chorus WebSocket load-smoke config (Artillery, NFR-26).
+# Run via deploy/ci/load-smoke.sh so the WS_URL/token are injected.
+# Profile: 100 concurrent virtual users, ~10 arrivals/s, 5 minutes.
+config:
+  target: "{{ $processEnvironment.WS_URL }}"
+  phases:
+    - duration: 300
+      arrivalRate: 10
+      maxVusers: 100
+      name: "100 concurrent WS / 10 msg/s / 5m"
+  engines:
+    ws: {}
+  ensure:
+    thresholds:
+      - "errors.rate < 0.02"
+scenarios:
+  - engine: ws
+    flow:
+      - connect:
+          headers:
+            Authorization: "Bearer {{ $processEnvironment.WS_TOKEN }}"
+      # Hold the socket open and emit a lightweight liveness/typing frame a few
+      # times to exercise the read+write path under 100 concurrent sockets.
+      - think: 1
+      - loop:
+          - send: '{"type":"typing_start"}'
+          - think: 3
+          - send: '{"type":"typing_stop"}'
+          - think: 3
+        count: 30
+      - disconnect

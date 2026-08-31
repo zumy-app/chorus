@@ -245,4 +245,29 @@ describe('Store - State Management', () => {
     useStore.getState().updateUser({ displayName: 'New Name' })
     expect(useStore.getState().user?.displayName).toBe('New Name')
   })
+
+  it('should track typing per chat per user', () => {
+    useStore.getState().setTyping('chat-1', 'user-2', true)
+    expect(useStore.getState().typingUsers['chat-1']?.['user-2']).toBe(true)
+    useStore.getState().setTyping('chat-1', 'user-2', false)
+    expect(useStore.getState().typingUsers['chat-1']?.['user-2']).toBe(false)
+  })
+
+  it('should track typing separately across users and chats', () => {
+    useStore.getState().setTyping('chat-1', 'user-2', true)
+    useStore.getState().setTyping('chat-1', 'user-3', true)
+    useStore.getState().setTyping('chat-2', 'user-2', true)
+    expect(useStore.getState().typingUsers['chat-1']?.['user-2']).toBe(true)
+    expect(useStore.getState().typingUsers['chat-1']?.['user-3']).toBe(true)
+    expect(useStore.getState().typingUsers['chat-2']?.['user-2']).toBe(true)
+  })
+
+  it('should store presence by user id', () => {
+    useStore.getState().setPresence({
+      userId: 'user-2',
+      status: 'online',
+      lastSeen: new Date().toISOString(),
+    } as any)
+    expect(useStore.getState().presence['user-2']?.status).toBe('online')
+  })
 })

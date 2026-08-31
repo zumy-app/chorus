@@ -1,6 +1,6 @@
 import { create } from 'zustand'
-import type { User, Chat, Message, Entitlements, TranslationBlocked, GrammarJob } from '@chorus/shared'
-import { chatAPI, messageAPI, adminAPI, authAPI, grammarAPI } from '../services/api'
+import type { User, Chat, Message, Entitlements, TranslationBlocked, GrammarJob, PresenceStatus } from '@chorus/shared'
+import { chatAPI, messageAPI, adminAPI, authAPI, grammarAPI, presenceAPI } from '../services/api'
 import { wsService } from '../services/websocket'
 
 // --- Slug helpers ---
@@ -63,6 +63,8 @@ interface AppState {
   messages: Record<string, Message[]>
   blockedTranslations: Record<string, TranslationBlocked>
   grammarJobs: Record<string, GrammarJob>
+  typingUsers: Record<string, Record<string, boolean>>
+  presence: Record<string, PresenceStatus>
 
   // Actions
   setUser: (user: User | null) => void
@@ -83,8 +85,27 @@ interface AppState {
   markTranslationBlocked: (blocked: TranslationBlocked) => void
   setGrammarJob: (job: GrammarJob) => void
   resyncGrammarJob: (messageId: string) => Promise<void>
+  setTyping: (chatId: string, userId: string, isTyping: boolean) => void
+  setPresence: (presence: PresenceStatus) => void
+  fetchPresence: (userIds: string[]) => Promise<void>
   // Slug-based navigation
   navigateToSlug: (slug: string) => boolean
+}
+
+// Typing indicators auto-expire if a typing_stop is missed (e.g. the other
+// user's tab crashed), so the UI never shows a stuck "typing…" state.
+const typingExpiryTimers: Record<string, ReturnType<typeof setTimeout>> = {}
+
+// Collects the participant ids of every direct chat so we can fetch presence.
+function directChatParticipantIds(chats: Chat[], currentUserId?: string): string[] {
+  const ids = new Set<string>()
+  for (const chat of chats) {
+    if (chat.type !== 'direct') continue
+    for (const p of chat.participants) {
+      if (p.userId !== currentUserId) ids.add(p.userId)
+    }
+  }
+  return Array.from(ids)
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -98,6 +119,8 @@ export const useStore = create<AppState>((set, get) => ({
   messages: {},
   blockedTranslations: {},
   grammarJobs: {},
+  typingUsers: {},
+  presence: {},
 
   setUser: (user) => set({ user }),
   setEntitlements: (entitlements) => set({ entitlements }),
@@ -129,6 +152,7 @@ export const useStore = create<AppState>((set, get) => ({
     try {
       const chats = await chatAPI.getChats()
       set({ chats })
+      get().fetchPresence(directChatParticipantIds(chats, get().user?.id))
     } catch (error) {
       console.error('Failed to load chats:', error)
     }
@@ -368,6 +392,69 @@ export const useStore = create<AppState>((set, get) => ({
       } catch {}
     }
   },
+
+  setTyping: (chatId, userId, isTyping) => {
+    const key = `${chatId}:${userId}`
+    const existing = typingExpiryTimers[key]
+    if (existing) {
+      clearTimeout(existing)
+      delete typingExpiryTimers[key]
+    }
+    if (isTyping) {
+      typingExpiryTimers[key] = setTimeout(() => {
+        set((state) => {
+          const chatTyping = state.typingUsers[chatId] || {}
+          if (!chatTyping[userId]) return state
+          return {
+            typingUsers: {
+              ...state.typingUsers,
+              [chatId]: { ...chatTyping, [userId]: false },
+            },
+          }
+        })
+        delete typingExpiryTimers[key]
+      }, 5000)
+    }
+    set((state) => {
+      const chatTyping = state.typingUsers[chatId] || {}
+      if ((chatTyping[userId] || false) === isTyping) return state
+      return {
+        typingUsers: {
+          ...state.typingUsers,
+          [chatId]: { ...chatTyping, [userId]: isTyping },
+        },
+      }
+    })
+  },
+
+  setPresence: (presence) => {
+    if (!presence?.userId) return
+    set((state) => ({
+      presence: {
+        ...state.presence,
+        [presence.userId]: { ...state.presence[presence.userId], ...presence },
+      },
+    }))
+  },
+
+  fetchPresence: async (userIds) => {
+    const ids = (userIds || []).filter(Boolean)
+    if (ids.length === 0) return
+    try {
+      const result = await presenceAPI.getMultiple(ids)
+      if (!result) return
+      set((state) => {
+        const next = { ...state.presence }
+        for (const userId of ids) {
+          const p = result[userId]
+          if (p) next[userId] = { ...next[userId], ...p }
+        }
+        return { presence: next }
+      })
+    } catch (error) {
+      // Presence is best-effort; never block chat on a failed snapshot.
+    }
+  },
 }))
 
 // Setup WebSocket listeners
@@ -389,6 +476,20 @@ wsService.onMessage((message) => {
       break
     case 'chat_updated':
       store.loadChats()
+      break
+    case 'user_typing': {
+      const data = message.data || {}
+      // Ignore our own typing events (broadcast back to the sender).
+      if (data.chatId && data.userId && data.userId !== store.user?.id) {
+        store.setTyping(data.chatId, data.userId, Boolean(data.isTyping))
+      }
+      break
+    }
+    case 'user_presence':
+    case 'presence_update':
+      if (message.data?.userId) {
+        store.setPresence(message.data)
+      }
       break
   }
 })

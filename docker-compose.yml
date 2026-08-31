@@ -51,6 +51,8 @@ services:
       - REDIS_URL=redis:6379
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
       - PORT=8080
+      - PHOENIX_ENABLED=true
+      - PHOENIX_OTLP_ENDPOINT=phoenix:4317
     depends_on:
       postgres:
         condition: service_healthy
@@ -148,8 +150,108 @@ services:
           memory: 2g
           cpus: '1.0'
 
+  # ============================================================================
+  # Arize Phoenix — local OpenTelemetry backend for the FR-30/NFR-25 quality
+  # pipeline. TranslationService + GrammarService export spans over OTLP gRPC
+  # (port 4317); the web UI is at http://localhost:6006. Offline + realtime
+  # evaluation of translation/grammar: traces, prompts, and evals are stored
+  # here for KPI review (accuracy, p95 latency, cost/1k tokens, cache hits).
+  # Not in the request hot path; the backend drops spans if Phoenix is down.
+  # ============================================================================
+  phoenix:
+    image: arizephoenix/phoenix:latest
+    container_name: chorus-phoenix
+    mem_limit: 1g
+    ports:
+      - "6006:6006"   # Phoenix web UI
+      - "4317:4317"   # OTLP gRPC (traces from backend)
+      - "4318:4318"   # OTLP HTTP
+    volumes:
+      - phoenix_data:/phoenix
+    environment:
+      - PHOENIX_SQL_DATABASE_URL=sqlite:////phoenix/phoenix.db
+    restart: unless-stopped
+
+  # ============================================================================
+  # Prometheus — NFR-18 metrics. Scrapes the backend /metrics (and the optional
+  # DB/Redis exporters) on the Docker network. Grafana reads from this.
+  # Web UI: http://localhost:9090
+  # ============================================================================
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    container_name: chorus-prometheus
+    mem_limit: 256m
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deploy/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
+  # PostgreSQL exporter (optional infra metrics for the Prometheus DB panel).
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.17.1
+    container_name: chorus-postgres-exporter
+    mem_limit: 128m
+    environment:
+      - DATA_SOURCE_URI=postgres:5432?sslmode=disable
+      - DATA_SOURCE_USER=messenger
+      - DATA_SOURCE_PASS=password
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Redis exporter (optional infra metrics for the Prometheus cache panel).
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.65.0
+    container_name: chorus-redis-exporter
+    mem_limit: 128m
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ============================================================================
+  # Grafana — NFR-18 dashboards for the above metrics. Auto-provisions the
+  # Prometheus datasource and the Chorus backend dashboard. Login: admin/admin
+  # (set GF_SECURITY_ADMIN_PASSWORD to change). Web UI: http://localhost:3001
+  # ============================================================================
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: chorus-grafana
+    mem_limit: 256m
+    ports:
+      - "3001:3000"   # host 3001 avoids clashing with the frontend (host 3000)
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      # Show the Chorus dashboard by default.
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/chorus-backend.json
+    volumes:
+      - ./deploy/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
   ollama_data:
   libretranslate_data:
+  phoenix_data:
+  prometheus_data:
+  grafana_data:

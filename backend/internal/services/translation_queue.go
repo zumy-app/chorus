@@ -30,6 +30,12 @@ type TextTranslator interface {
 	TranslateQuick(text, targetLang, sourceLang string) (string, error)
 }
 
+// TranslatedStatsProvider is an optional capability of the translator that adds
+// FR-30 lineage (provider/model, latency, tokens, cache hit) to each result.
+type TranslatedStatsProvider interface {
+	TranslateQuickResult(text, targetLang, sourceLang string) (*TranslatedResult, error)
+}
+
 // TranslationLoadMessage loads a fresh message row by id.
 type TranslationLoadMessage func(messageID string) (*models.Message, error)
 
@@ -62,6 +68,8 @@ type TranslationQueueService struct {
 	sema   chan struct{}
 	wg     sync.WaitGroup
 	stopCh chan struct{}
+
+	onDone func(jobID string)
 }
 
 func NewTranslationQueueService(
@@ -104,6 +112,12 @@ func (q *TranslationQueueService) Stop() {
 	close(q.stopCh)
 	q.cancel()
 	q.wg.Wait()
+}
+
+// SetOnDone wires a callback fired after a translation job completes. Used by
+// the quality pipeline (FR-30) to enqueue a cross-model evaluation.
+func (q *TranslationQueueService) SetOnDone(fn func(jobID string)) {
+	q.onDone = fn
 }
 
 // EnqueueForMessage creates one durable job per target language and triggers
@@ -234,21 +248,65 @@ func (q *TranslationQueueService) translateJob(job queuedJob) {
 	if source == "" {
 		source = "auto"
 	}
-	start := time.Now()
-	translated, err := q.translator.TranslateQuick(job.Text, job.TargetLang, source)
+
+	var (
+		res        *TranslatedResult
+		start      = time.Now()
+		translated string
+		err        error
+	)
+	// Prefer the lineage-aware path (one provider call). Fall back to the plain
+	// TranslateQuick interface used by test fakes.
+	if provider, ok := q.translator.(TranslatedStatsProvider); ok {
+		res, err = provider.TranslateQuickResult(job.Text, job.TargetLang, source)
+		if err == nil {
+			translated = res.Text
+		}
+	} else {
+		translated, err = q.translator.TranslateQuick(job.Text, job.TargetLang, source)
+	}
 	if err != nil {
 		log.Printf("[Translate] job %s (%s): %v", job.ID, job.TargetLang, err)
 		q.markFailed(job.ID, job.Attempts, err)
 		return
 	}
-	log.Printf("[Translate] job %s (%s) done in %s", job.ID, job.TargetLang, time.Since(start).Round(time.Millisecond))
-	q.markDone(job.ID, job.TargetLang, translated)
+	latency := time.Since(start)
+	log.Printf("[Translate] job %s (%s) done in %s", job.ID, job.TargetLang, latency.Round(time.Millisecond))
+
+	l := translationLineage{
+		PromptVersion: TranslationPromptVersion,
+		LatencyMS:     int(latency.Milliseconds()),
+	}
+	if res != nil {
+		l.Provider = res.Provider
+		l.Model = res.Model
+		l.Tokens = res.Tokens
+		l.CacheHit = res.CacheHit
+		if res.Latency > 0 {
+			l.LatencyMS = int(res.Latency.Milliseconds())
+		}
+	}
+	q.markDone(job.ID, job.TargetLang, translated, l)
+	if q.onDone != nil {
+		q.onDone(job.ID)
+	}
 }
 
-func (q *TranslationQueueService) markDone(id, targetLang, result string) {
+// translationLineage is the FR-30 metadata captured for a completed translation.
+type translationLineage struct {
+	Provider      string
+	Model         string
+	PromptVersion string
+	LatencyMS     int
+	Tokens        int
+	CacheHit      bool
+}
+
+func (q *TranslationQueueService) markDone(id, targetLang, result string, l translationLineage) {
 	if _, err := q.db.Exec(`UPDATE translation_jobs
-		SET status = 'done', result = $1, last_error = NULL, processing_at = NULL, completed_at = CURRENT_TIMESTAMP
-		WHERE id = $2`, result, id); err != nil {
+		SET status = 'done', result = $1, last_error = NULL, processing_at = NULL, completed_at = CURRENT_TIMESTAMP,
+		    provider = $2, model = $3, prompt_version = $4, latency_ms = $5, tokens = $6, cache_hit = $7
+		WHERE id = $8`, result, nullStr(l.Provider), nullStr(l.Model), l.PromptVersion, l.LatencyMS, l.Tokens, l.CacheHit, id); err != nil {
 		log.Printf("[Translate] mark done %s: %v", id, err)
 		return
 	}
@@ -437,7 +495,9 @@ func (q *TranslationQueueService) List(status, qq string, limit int) ([]models.T
 		limit = 100
 	}
 	query := `SELECT id, message_id, chat_id, text, COALESCE(source_lang,''), target_lang, priority, status,
-		COALESCE(result,''), attempts, COALESCE(last_error,''), created_at, next_attempt_at, completed_at
+		COALESCE(result,''), attempts, COALESCE(last_error,''), created_at, next_attempt_at, completed_at,
+		COALESCE(provider,''), COALESCE(model,''), COALESCE(prompt_version,''),
+		COALESCE(latency_ms,0), COALESCE(tokens,0), COALESCE(cache_hit,false)
 		FROM translation_jobs WHERE 1=1`
 	args := []interface{}{}
 	if status != "" && status != "all" {
@@ -459,14 +519,23 @@ func (q *TranslationQueueService) List(status, qq string, limit int) ([]models.T
 	jobs := []models.TranslationJob{}
 	for rows.Next() {
 		var j models.TranslationJob
-		var source, result, lastErr string
+		var source, result, lastErr, provider, model, promptVersion string
+		var latencyMS, tokens int
+		var cacheHit bool
 		if err := rows.Scan(&j.ID, &j.MessageID, &j.ChatID, &j.Text, &source, &j.TargetLang,
-			&j.Priority, &j.Status, &result, &j.Attempts, &lastErr, &j.CreatedAt, &j.NextAttempt, &j.CompletedAt); err != nil {
+			&j.Priority, &j.Status, &result, &j.Attempts, &lastErr, &j.CreatedAt, &j.NextAttempt, &j.CompletedAt,
+			&provider, &model, &promptVersion, &latencyMS, &tokens, &cacheHit); err != nil {
 			return nil, err
 		}
 		j.SourceLang = source
 		j.Result = result
 		j.LastError = lastErr
+		j.Provider = provider
+		j.Model = model
+		j.PromptVersion = promptVersion
+		j.LatencyMS = latencyMS
+		j.Tokens = tokens
+		j.CacheHit = cacheHit
 		jobs = append(jobs, j)
 	}
 	return jobs, rows.Err()

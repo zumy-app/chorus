@@ -18,12 +18,12 @@ func billingTestService(t *testing.T, db *sql.DB) *BillingService {
 
 func userRowWithPlan(plan string) *sqlmock.Rows {
 	return sqlmock.NewRows([]string{
-		"id", "username", "email", "display_name", "native_language", "target_languages",
+		"id", "username", "email", "display_name", "first_name", "last_name", "native_language", "target_languages",
 		"role", "created_at", "last_active_at", "suspended_at", "deleted_at", "plan",
 		"plan_grace_until", "premium_since", "subscription_id", "subscription_provider",
-		"subscription_plan_id", "subscription_status", "next_billing_date", "last_payment_at",
-	}).AddRow("user-1", "testuser", "test@example.com", "Test User", "en", pq.Array([]string{"es"}),
-		"member", time.Now(), time.Now(), nil, nil, plan, nil, nil, nil, "paypal", nil, nil, nil, nil)
+		"subscription_plan_id", "subscription_status", "next_billing_date", "last_payment_at", "avatar_url",
+	}).AddRow("user-1", "testuser", "test@example.com", "Test User", "", "", "en", pq.Array([]string{"es"}),
+		"member", time.Now(), time.Now(), nil, nil, plan, nil, nil, nil, "paypal", nil, nil, nil, nil, nil)
 }
 
 func TestBillingService_GrantPremium_Indefinite(t *testing.T) {
@@ -35,7 +35,7 @@ func TestBillingService_GrantPremium_Indefinite(t *testing.T) {
 	s := billingTestService(t, db)
 	s.now = func() time.Time { return time.Date(2026, 8, 12, 12, 0, 0, 0, time.UTC) }
 
-	mock.ExpectQuery(`SELECT id, username, email, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at FROM users WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url FROM users WHERE id = \$1`).
 		WithArgs("user-1").WillReturnRows(userRowWithPlan("free"))
 	mock.ExpectExec(`UPDATE users SET plan = \$1, plan_grace_until = \$2, premium_since = \$3 WHERE id = \$4`).
 		WithArgs("premium", sqlmock.AnyArg(), sqlmock.AnyArg(), "user-1").
@@ -43,7 +43,7 @@ func TestBillingService_GrantPremium_Indefinite(t *testing.T) {
 	mock.ExpectExec(`INSERT INTO plan_changes \(user_id, actor_id, from_plan, to_plan, grace_until, source, reason\) VALUES \(\$1, \$2, \$3, \$4, \$5, \$6, \$7\)`).
 		WithArgs("user-1", "admin-1", "free", "premium", sqlmock.AnyArg(), "admin", "manual grant").
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectQuery(`SELECT id, username, email, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at FROM users WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url FROM users WHERE id = \$1`).
 		WithArgs("user-1").WillReturnRows(userRowWithPlan("premium"))
 
 	actor := "admin-1"

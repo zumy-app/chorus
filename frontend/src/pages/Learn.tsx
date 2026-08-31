@@ -5,7 +5,7 @@ import BottomNav from '../components/BottomNav'
 import AppHeader from '../components/AppHeader'
 import { learningAPI } from '../services/api'
 import { useStore } from '../store'
-import type { LearningDashboard } from '@chorus/shared'
+import type { LearningDashboard, MonthlyActivityPoint } from '@chorus/shared'
 
 const RING_RADIUS = 42
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS
@@ -45,8 +45,7 @@ export default function Learn() {
 
   const startSession = (mode: string) => navigate(`/learn/session?mode=${mode}`)
 
-  return (
-    <div className="h-screen flex flex-col bg-background">
+  return (    <div className="h-screen flex flex-col bg-background">
       <AppHeader />
       <main className="flex-1 overflow-y-auto px-margin-mobile pt-4 pb-32 max-w-md w-full mx-auto">
         <header className="flex flex-col gap-unit">
@@ -227,6 +226,9 @@ export default function Learn() {
               )}
             </div>
 
+            {/* Monthly activity (FR-31): words learned / sentences understood per month */}
+            <MonthlyActivityCard activity={dashboard.monthlyActivity ?? []} />
+
             {/* Recommended activities */}
             {dashboard.recommendedActivities.length > 0 && (
               <section className="flex flex-col gap-stack-md mt-6">
@@ -277,4 +279,84 @@ export default function Learn() {
       <BottomNav />
     </div>
   )
+}
+
+function MonthlyActivityCard({ activity }: { activity: MonthlyActivityPoint[] }) {
+  const { t } = useTranslation()
+  // Default to the most recent bucket (ascending order), but always allow
+  // browsing back through the 12 returned months.
+  const [idx, setIdx] = useState(() => Math.max(0, activity.length - 1))
+  const clamped = Math.min(idx, Math.max(0, activity.length - 1))
+  const point = activity[clamped]
+
+  const prev = () => setIdx(i => Math.max(0, Math.min(i, activity.length - 1) - 1))
+  const next = () => setIdx(i => Math.min(activity.length - 1, Math.min(i, activity.length - 1) + 1))
+
+  return (
+    <div data-testid="learn-monthly" className="bg-surface-container-lowest rounded-[1.25rem] p-5 shadow-[0px_4px_12px_rgba(0,0,0,0.05)] flex flex-col gap-stack-md mt-6 relative overflow-hidden">
+      <div className="flex items-center justify-between">
+        <div className="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center text-primary">
+          <span className="material-symbols-outlined text-[20px]">insights</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            aria-label={t('learn.previousMonth')}
+            onClick={prev}
+            disabled={clamped <= 0}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high disabled:opacity-30 disabled:pointer-events-none"
+          >
+            <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+          </button>
+          <button
+            aria-label={t('learn.nextMonth')}
+            onClick={next}
+            disabled={clamped >= activity.length - 1}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high disabled:opacity-30 disabled:pointer-events-none"
+          >
+            <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+          </button>
+        </div>
+      </div>
+      <div>
+        <div className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
+          {t('learn.monthlyActivity')}
+        </div>
+        <div className="font-headline-md text-headline-md text-on-surface mt-1">
+          {point ? formatMonth(point.month) : t('learn.noMonthlyActivity')}
+        </div>
+      </div>
+
+      {point ? (
+        <div className="flex items-center gap-stack-md">
+          <div className="flex-1 bg-secondary-container/10 rounded-xl p-4">
+            <div className="font-headline-lg text-headline-lg text-secondary">{point.wordsLearned}</div>
+            <div className="font-label-sm text-label-sm text-on-surface-variant mt-1">
+              {t('learn.wordsThisMonth')}
+            </div>
+          </div>
+          <div className="flex-1 bg-tertiary-container/10 rounded-xl p-4">
+            <div className="font-headline-lg text-headline-lg text-tertiary">{point.sentencesUnderstood}</div>
+            <div className="font-label-sm text-label-sm text-on-surface-variant mt-1">
+              {t('learn.sentencesThisMonth')}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-xl p-4 bg-surface-container-high/40">
+          <p className="font-body-sm text-body-sm text-on-surface-variant">{t('learn.noMonthlyActivity')}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+
+function formatMonth(month: string): string {
+  const [y, m] = month.split('-').map(Number)
+  if (!y || !m || m < 1 || m > 12) return month
+  return `${MONTH_NAMES[m - 1]} ${y}`
 }

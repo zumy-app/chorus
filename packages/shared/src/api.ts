@@ -12,6 +12,10 @@ import type {
   Block,
   Chat,
   CheckoutResponse,
+  ContactInvite,
+  ContactInviteRequest,
+  ContactMatch,
+  ContactScanRequest,
   CreateChatRequest,
   CurriculumStep,
   EmailOutboxEntry,
@@ -29,10 +33,12 @@ import type {
   LoginRequest,
   Message,
   MinedItem,
+  OnboardRequest,
   PlanChange,
   PlacementResult,
   PremiumAnalytics,
   PremiumUserRow,
+  PresenceStatus,
   ProviderHealth,
   RealTalkPrompt,
   RegisterRequest,
@@ -188,11 +194,20 @@ export function createApiClient(options: ApiClientOptions) {
     },
 
     updateMe: async (data: {
+      firstName?: string
+      lastName?: string
       displayName?: string
       nativeLanguage?: string
       targetLanguages?: string[]
     }) => {
       const response = await client.put<User>('/users/me', data)
+      return response.data
+    },
+
+    // Onboarding name capture (REQ 2.1): composes displayName from first + last
+    // unless an explicit displayName override is provided.
+    onboard: async (data: OnboardRequest) => {
+      const response = await client.put<User>('/users/me/onboard', data)
       return response.data
     },
 
@@ -217,6 +232,25 @@ export function createApiClient(options: ApiClientOptions) {
         emailSent?: boolean
       }>('/waitlist', data)
       return response.data
+    },
+  }
+
+  // Contacts & Invites epic (REQ 2.4 / FR-22-23): hashed on-platform scan and
+  // single-use off-platform invites (email dispatched, sms/whatsapp link).
+  const contacts = {
+    scan: async (data: ContactScanRequest) => {
+      const response = await client.post<{ data: ContactMatch[] }>('/contacts/scan', data)
+      return response.data.data
+    },
+    createInvite: async (data: ContactInviteRequest) => {
+      const response = await client.post<{ data: ContactInvite }>('/contacts/invites', data)
+      return response.data.data
+    },
+    listInvites: async (params?: { limit?: number; offset?: number }) => {
+      const response = await client.get<{ data: ContactInvite[] }>(
+        `/contacts/invites${qs({ limit: params?.limit, offset: params?.offset })}`
+      )
+      return response.data.data
     },
   }
 
@@ -641,6 +675,13 @@ export function createApiClient(options: ApiClientOptions) {
       )
       return response.data.data
     },
+    selectLevel: async (level: 'beginner' | 'intermediate' | 'advanced', targetLanguage: string, nativeLanguage?: string) => {
+      const response = await client.post<{ data: PlacementResult }>(
+        '/learning/level/select',
+        { level, targetLanguage, nativeLanguage }
+      )
+      return response.data.data
+    },
     getPlacement: async (attemptId: string) => {
       const response = await client.get<{ data: StartPlacementResponse }>(
         `/learning/placement/${attemptId}`
@@ -779,6 +820,33 @@ export function createApiClient(options: ApiClientOptions) {
     return response.data
   }
 
+  const presence = {
+    get: async (userId: string) => {
+      const response = await client.get<{ data: PresenceStatus }>(`/presence/${userId}`)
+      return response.data.data
+    },
+
+    getMultiple: async (userIds: string[]) => {
+      const response = await client.post<{ data: Record<string, PresenceStatus> }>(
+        '/presence/batch',
+        { userIds }
+      )
+      return response.data.data
+    },
+
+    update: async (data: { status: PresenceStatus['status']; deviceType?: string }) => {
+      return client.put('/presence', data)
+    },
+
+    heartbeat: async (deviceType?: string) => {
+      return client.post(`/presence/heartbeat${qs({ deviceType })}`)
+    },
+
+    activity: async () => {
+      return client.post('/presence/activity')
+    },
+  }
+
   return {
     api: client,
     auth,
@@ -792,6 +860,8 @@ export function createApiClient(options: ApiClientOptions) {
     grammar,
     translation,
     learning,
+    contacts,
+    presence,
     health,
   }
 }

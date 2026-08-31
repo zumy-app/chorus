@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus Premium</title>
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788156392938&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YTUxY2Q5ZDlkYzcwMzgzOWM4Mjc1M2M0NTAxEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-primary": "#b4c5ff",
+                        "surface-container-high": "#dce9ff",
+                        "on-tertiary-fixed": "#002113",
+                        "on-primary": "#ffffff",
+                        "primary-container": "#2563eb",
+                        "inverse-on-surface": "#eaf1ff",
+                        "surface-container-lowest": "#ffffff",
+                        "outline": "#737686",
+                        "outline-variant": "#c3c6d7",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "secondary-fixed": "#e9ddff",
+                        "secondary-fixed-dim": "#d0bcff",
+                        "secondary": "#6b38d4",
+                        "on-secondary-container": "#fffbff",
+                        "on-primary-container": "#eeefff",
+                        "error-container": "#ffdad6",
+                        "on-background": "#0b1c30",
+                        "primary-fixed": "#dbe1ff",
+                        "primary": "#004ac6",
+                        "tertiary": "#006242",
+                        "tertiary-fixed": "#6ffbbe",
+                        "on-secondary-fixed-variant": "#5516be",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "on-surface": "#0b1c30",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "on-primary-fixed": "#00174b",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-tertiary-container": "#bdffdb",
+                        "surface-variant": "#d3e4fe",
+                        "secondary-container": "#8455ef",
+                        "background": "#f8f9ff",
+                        "on-error-container": "#93000a",
+                        "surface-bright": "#f8f9ff",
+                        "surface": "#f8f9ff",
+                        "inverse-surface": "#213145",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed": "#23005c",
+                        "surface-container-low": "#eff4ff",
+                        "surface-dim": "#cbdbf5",
+                        "tertiary-container": "#007d55",
+                        "surface-tint": "#0053db",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#434655",
+                        "surface-container": "#e5eeff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "4px",
+                        "stack-lg": "24px",
+                        "gutter-mobile": "12px",
+                        "stack-md": "16px",
+                        "stack-sm": "8px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "body-md": ["Be Vietnam Pro"],
+                        "translation-text": ["Be Vietnam Pro"],
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "body-sm": ["Be Vietnam Pro"],
+                        "label-sm": ["Inter"],
+                        "body-lg": ["Be Vietnam Pro"],
+                        "label-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #e5eeff 0%, #dce9ff 100%);
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen font-body-md antialiased overflow-x-hidden selection:bg-primary-container selection:text-on-primary-container pb-24 md:pb-0">
+<!-- Top Navigation (Hidden on Mobile) -->
+<header class="hidden md:flex fixed top-0 w-full z-50 bg-surface shadow-sm items-center justify-between px-6 h-16">
+<div class="flex items-center gap-4">
+<span class="font-headline-md text-headline-md text-primary">Chorus</span>
+</div>
+<nav class="flex gap-6">
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-md text-label-md" href="#">Home</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-md text-label-md" href="#">Learn</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-md text-label-md" href="#">Community</a>
+<a class="text-primary font-label-md text-label-md border-b-2 border-primary pb-1" href="#">Premium</a>
+</nav>
+<div class="flex items-center gap-3">
+<button class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant">
+<img alt="Profile" class="w-full h-full object-cover" data-alt="A small, circular avatar portrait of a modern user in a brightly lit room. The image should be suitable for a profile picture in a sleek, humanist design system, focusing on a friendly face with soft, inviting lighting against a neutral background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBX6RLCyfrT4pOLzUT4uUV90967wNASVgjwtL5oQu0exE-ljjUdcDmSLQUkNJXjke4uIY2bF34wpQmc-87BWMFWTPr84dPqg8vj8jOGNTBV5DFk6sFR9QotN2IpEuL9Dj-6iTiBBkpbYtHX1-_KBKAwwJhz5wRe9Nd_K2ywN_RkErcMd1cc-pqJd394urCscIUXnSjAf_rfq7sXVaikFaLi7m5iV2vMBzPwTEJHw0IcLfj5kJ1X3xoS"/>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="w-full max-w-4xl mx-auto px-margin-mobile pt-8 md:pt-24 pb-stack-lg">
+<!-- Mobile Header (Close/Back) -->
+<div class="flex items-center justify-between mb-stack-lg md:hidden">
+<button class="p-2 text-on-surface hover:bg-surface-variant rounded-full transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+<span class="font-label-md text-label-md text-primary tracking-wider uppercase">Upgrade</span>
+<div class="w-10"></div> <!-- Spacer for centering -->
+</div>
+<div class="flex flex-col md:flex-row gap-stack-lg md:gap-12 items-start">
+<!-- Value Proposition Section -->
+<div class="flex-1 space-y-stack-md">
+<div class="inline-flex items-center gap-2 bg-primary-fixed px-3 py-1 rounded-full text-on-primary-fixed font-label-sm text-label-sm mb-2">
+<span class="material-symbols-outlined fill text-[14px]">stars</span>
+                    CHORUS PREMIUM
+                </div>
+<h1 class="font-headline-lg text-[32px] md:text-headline-lg text-on-background leading-tight">
+                    Master languages faster with <span class="text-primary">unlimited insights</span>.
+                </h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant">
+                    Unlock deep grammar analysis, longer conversations, and exclusive tools designed to accelerate your fluency journey.
+                </p>
+<!-- Bento Grid for Features -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-stack-sm mt-stack-lg">
+<!-- Feature 1: AI Deep Dives -->
+<div class="glass-card rounded-xl p-stack-md flex flex-col gap-stack-sm relative overflow-hidden group hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] transition-all duration-300">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-secondary-fixed/50 rounded-full blur-2xl group-hover:bg-secondary-fixed transition-colors"></div>
+<div class="w-10 h-10 rounded-full bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center mb-2 z-10">
+<span class="material-symbols-outlined fill">psychology</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface z-10">Unlimited AI Deep Dives</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant z-10">Get instant, detailed explanations for any grammar rule or cultural nuance without limits.</p>
+</div>
+<!-- Feature 2: Message Limits -->
+<div class="glass-card rounded-xl p-stack-md flex flex-col gap-stack-sm relative overflow-hidden group hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] transition-all duration-300">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-primary-fixed/50 rounded-full blur-2xl group-hover:bg-primary-fixed transition-colors"></div>
+<div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center mb-2 z-10">
+<span class="material-symbols-outlined">forum</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface z-10">1000 Char Messages</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant z-10">Express yourself fully. Extended character limits for deeper, more meaningful conversations.</p>
+</div>
+<!-- Feature 3: Trial Credits -->
+<div class="glass-card rounded-xl p-stack-md flex flex-col gap-stack-sm relative overflow-hidden group hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] transition-all duration-300">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-tertiary-fixed/50 rounded-full blur-2xl group-hover:bg-tertiary-fixed transition-colors"></div>
+<div class="w-10 h-10 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center mb-2 z-10">
+<span class="material-symbols-outlined">school</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface z-10">Teacher Trial Credits</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant z-10">Receive 1 free trial lesson credit every month to connect with professional tutors.</p>
+</div>
+<!-- Feature 4: Reduced Fees -->
+<div class="glass-card rounded-xl p-stack-md flex flex-col gap-stack-sm relative overflow-hidden group hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] transition-all duration-300">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-surface-variant/80 rounded-full blur-2xl group-hover:bg-surface-variant transition-colors"></div>
+<div class="w-10 h-10 rounded-full bg-surface-variant text-on-surface flex items-center justify-center mb-2 z-10">
+<span class="material-symbols-outlined">payments</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface z-10">Reduced Platform Fees</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant z-10">Save money on all marketplace transactions and booked lessons with lower service fees.</p>
+</div>
+</div>
+</div>
+<!-- Pricing Sticky Card -->
+<div class="w-full md:w-[360px] md:sticky md:top-24 mt-8 md:mt-0">
+<div class="gradient-bg rounded-[24px] p-stack-lg shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-surface-container-high relative overflow-hidden">
+<!-- Decorative element -->
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
+<div class="relative z-10">
+<div class="mb-stack-md">
+<h2 class="font-headline-md text-headline-md text-on-surface">Premium Subscription</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Cancel anytime. Billed monthly.</p>
+</div>
+<div class="flex items-baseline gap-1 mb-stack-lg">
+<span class="font-headline-lg text-[40px] text-on-surface leading-none">$7.99</span>
+<span class="font-body-md text-body-md text-on-surface-variant">/month</span>
+</div>
+<button class="w-full bg-primary text-on-primary font-label-md text-label-md py-4 rounded-xl hover:bg-primary/90 transition-all active:scale-95 shadow-md flex items-center justify-center gap-2">
+                            Start 7-Day Free Trial
+                            <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+<p class="font-label-sm text-label-sm text-center text-on-surface-variant mt-stack-sm">
+                            $7.99/month after trial ends.
+                        </p>
+<!-- Mini testimonial / trust badge -->
+<div class="mt-stack-lg pt-stack-md border-t border-outline-variant/30 flex items-center gap-3">
+<div class="flex -space-x-2">
+<img alt="User" class="w-8 h-8 rounded-full border-2 border-surface-container-high object-cover" data-alt="A small circular avatar of a smiling young woman, styled for a modern app interface, softly lit against a clean background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBRDT8QaJxwxZyPF87fm9WBboTUgGqlaxCmXmK4VMaySz9Be5vos2Xpdc_XVBzOJ0FwpiZC57k8ntkyg7TADSlKcYX053FeaeAbpUe_obzQCcASmLWN7vAgYGU2UTE1VKOsYPA40hixTVvCnjCFaueb0nhuGYJUws3ScBu3zlnmUEZXOdSe0J9uFMEq5jVBOcg25nMTnfwQuY2HEX9spS0nuZGHU9hw-Yag3IkyBWJUUot8dC_pHccu"/>
+<img alt="User" class="w-8 h-8 rounded-full border-2 border-surface-container-high object-cover" data-alt="A small circular avatar of an older gentleman with glasses, styled for a modern app interface, softly lit against a clean background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBVXgD_PLZGwl0KIOUn1gJjl-tnmLghWWGh_9CjbNlQFnnx4a8OdqpPyxwWH8XwgGFqUS7z94-_nXWTkMfzAsR2sB-ydNb8nJnkp2a0n2jzkXOhT82W3Lxh1-VScMGxRrPjNNJKydRYsbcmlhj3cFBfYQMHXujrheQcNc-wbBP3N7TkIC8yufqtvEZR2UmCquo8WgMw2D9BOj4dzc1wGgYBg6BKcQmijz-XtJ-TAz3KSGzh1hwvJxfd"/>
+<div class="w-8 h-8 rounded-full border-2 border-surface-container-high bg-primary-fixed flex items-center justify-center font-label-sm text-label-sm text-on-primary-fixed z-10">+2k</div>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant text-[12px] leading-tight">Join thousands learning faster with Premium.</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation (Mobile Only) - Suppressed per rules for transactional/upgrade screens, but including as a comment to note logic applied. Since this is an upgrade flow, it acts as a focused journey, so standard bottom nav is hidden. -->
+</body></html>

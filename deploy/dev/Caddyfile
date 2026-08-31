@@ -1,0 +1,40 @@
+# Chorus — dev LB (Caddy) fronting the `chorus-dev` stack.
+#
+# Exposes only the frontend to clients; reverse-proxies the API, WebSocket and
+# health probes to the backend so the SAME frontend image (relative /api origin)
+# works in dev and prod. Swap `dev.chorus.talk` for your dev hostname / LB domain.
+{
+	# Email used for ACME (only relevant when TLS is not "internal").
+	email ${CADDY_EMAIL:-dev@chorus.talk}
+}
+
+dev.chorus.talk {
+	# Internal TLS for a local dev host (Caddy's own CA, no real cert needed).
+	# For a public dev domain, remove the "internal" keyword so Caddy issues a
+	# Let's Encrypt certificate automatically.
+	tls internal
+
+	# REST API -> backend (prefix preserved; backend routes are /api/v1/*).
+	@api path /api/*
+	reverse_proxy @api backend-dev:8080
+
+	# WebSocket upgrade path -> backend.
+	@ws path /ws
+	reverse_proxy @ws backend-dev:8080
+
+	# Liveness / readiness probes -> backend (used by the CI quality gates).
+	@health path /health /health/ready
+	reverse_proxy @health backend-dev:8080
+
+	# Everything else -> frontend static bundle.
+	@static not path /api/* /ws /health /health/ready
+	reverse_proxy @static frontend-dev:3000
+
+	# Phoenix tracer UI is bound to a separate host port (6006) for admin use;
+	# it is intentionally NOT routed through the public LB.
+}
+
+# Plain-HTTP alias so an http://dev.chorus.talk visit is still served.
+http://dev.chorus.talk {
+	redir https://dev.chorus.talk{uri} permanent
+}

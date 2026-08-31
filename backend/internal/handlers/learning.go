@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
+	"github.com/chorus/messenger/internal/middleware"
 	"github.com/chorus/messenger/internal/models"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/gin-gonic/gin"
@@ -24,6 +26,8 @@ type LearningHandler struct {
 	scenario     *services.ScenarioService
 	fluency      *services.FluencyScoreService
 	vocab        *services.VocabularyService
+	seed         *services.SeedQueueService
+	queue        *services.SRSQueueService
 }
 
 func NewLearningHandler(
@@ -38,6 +42,8 @@ func NewLearningHandler(
 	scenario *services.ScenarioService,
 	fluency *services.FluencyScoreService,
 	vocab *services.VocabularyService,
+	seed *services.SeedQueueService,
+	queue *services.SRSQueueService,
 ) *LearningHandler {
 	return &LearningHandler{
 		capabilities: capabilities,
@@ -51,13 +57,15 @@ func NewLearningHandler(
 		scenario:     scenario,
 		fluency:      fluency,
 		vocab:        vocab,
+		seed:         seed,
+		queue:        queue,
 	}
 }
 
 func (h *LearningHandler) GetCapabilities(c *gin.Context) {
 	capability, err := h.capabilities.GetCapability(c.Request.Context(), c.Query("nativeLanguage"), c.Query("targetLanguage"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to resolve learning capability"})
+		WriteError(c, middleware.ErrInternal("Failed to resolve learning capability"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": capability})
@@ -66,7 +74,7 @@ func (h *LearningHandler) GetCapabilities(c *gin.Context) {
 func (h *LearningHandler) GetProfile(c *gin.Context) {
 	profile, err := h.profiles.GetProfile(c.Request.Context(), c.GetString("userID"), c.Query("targetLanguage"), c.Query("nativeLanguage"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load learning profile"})
+		WriteError(c, middleware.ErrInternal("Failed to load learning profile"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": profile})
@@ -75,12 +83,12 @@ func (h *LearningHandler) GetProfile(c *gin.Context) {
 func (h *LearningHandler) UpdateProfile(c *gin.Context) {
 	var req models.LearningProfileUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		WriteError(c, middleware.ErrValidation("Invalid request body"))
 		return
 	}
 	profile, err := h.profiles.UpdateProfile(c.Request.Context(), c.GetString("userID"), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update learning profile"})
+		WriteError(c, middleware.ErrInternal("Failed to update learning profile"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": profile})
@@ -89,7 +97,7 @@ func (h *LearningHandler) UpdateProfile(c *gin.Context) {
 func (h *LearningHandler) GetDashboard(c *gin.Context) {
 	dash, err := h.dashboard.GetDashboard(c.Request.Context(), c.GetString("userID"), c.Query("targetLanguage"), c.Query("nativeLanguage"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load dashboard"})
+		WriteError(c, middleware.ErrInternal("Failed to load dashboard"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": dash})
@@ -101,17 +109,17 @@ func (h *LearningHandler) GetPath(c *gin.Context) {
 	native := c.Query("nativeLanguage")
 	capability, err := h.capabilities.GetCapability(c.Request.Context(), native, target)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to resolve learning capability"})
+		WriteError(c, middleware.ErrInternal("Failed to resolve learning capability"))
 		return
 	}
 	profile, err := h.profiles.GetProfile(c.Request.Context(), userID, target, native)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load learning profile"})
+		WriteError(c, middleware.ErrInternal("Failed to load learning profile"))
 		return
 	}
 	path, err := h.curriculum.GetLearningPath(c.Request.Context(), userID, profile, capability)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load learning path"})
+		WriteError(c, middleware.ErrInternal("Failed to load learning path"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": path})
@@ -125,7 +133,7 @@ func (h *LearningHandler) StartPlacement(c *gin.Context) {
 	userID := c.GetString("userID")
 	resp, err := h.placement.StartPlacement(c.Request.Context(), userID, c.Query("targetLanguage"), c.Query("nativeLanguage"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start placement"})
+		WriteError(c, middleware.ErrInternal("Failed to start placement"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": resp})
@@ -135,7 +143,7 @@ func (h *LearningHandler) AnswerPlacement(c *gin.Context) {
 	attemptID := c.Param("attemptId")
 	var req models.PlacementAnswerRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		WriteError(c, middleware.ErrValidation("Invalid request"))
 		return
 	}
 	result, err := h.placement.AnswerPlacement(c.Request.Context(), c.GetString("userID"), attemptID, req.Answer)
@@ -146,7 +154,7 @@ func (h *LearningHandler) AnswerPlacement(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"data": resp})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to answer placement"})
+		WriteError(c, middleware.ErrInternal("Failed to answer placement"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": result})
@@ -155,7 +163,7 @@ func (h *LearningHandler) AnswerPlacement(c *gin.Context) {
 func (h *LearningHandler) SkipPlacement(c *gin.Context) {
 	result, err := h.placement.SkipPlacement(c.Request.Context(), c.GetString("userID"), c.Query("targetLanguage"), c.Query("nativeLanguage"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to skip placement"})
+		WriteError(c, middleware.ErrInternal("Failed to skip placement"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": result})
@@ -164,10 +172,32 @@ func (h *LearningHandler) SkipPlacement(c *gin.Context) {
 func (h *LearningHandler) GetPlacement(c *gin.Context) {
 	resp, err := h.placement.GetPlacement(c.Request.Context(), c.GetString("userID"), c.Param("attemptId"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load placement"})
+		WriteError(c, middleware.ErrInternal("Failed to load placement"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": resp})
+}
+
+// SelectLevel applies an onboarding self-selected starting level
+// (beginner | intermediate | advanced) to seed the learner's CEFR level without
+// running the placement test (task 2.3).
+func (h *LearningHandler) SelectLevel(c *gin.Context) {
+	var req models.LevelSelectionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		WriteError(c, middleware.ErrValidation("Invalid level selection"))
+		return
+	}
+	result, err := h.placement.SelectLevel(c.Request.Context(), c.GetString("userID"), req.Level, req.TargetLanguage, req.NativeLanguage)
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to apply level selection"))
+		return
+	}
+	// Seed the initial SRS queue from the newly selected level's curriculum
+	// sequences (FR-32 seed path).
+	if h.seed != nil {
+		_, _ = h.seed.EnsureSeeded(c.Request.Context(), c.GetString("userID"), req.NativeLanguage, req.TargetLanguage)
+	}
+	c.JSON(http.StatusOK, gin.H{"data": result})
 }
 
 // ---------------------------------------------------------------------------
@@ -179,7 +209,7 @@ func (h *LearningHandler) GetUnit(c *gin.Context) {
 	userID := c.GetString("userID")
 	unit, err := h.curriculum.GetUnitDetail(c.Request.Context(), userID, unitID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load unit"})
+		WriteError(c, middleware.ErrInternal("Failed to load unit"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": unit})
@@ -188,7 +218,7 @@ func (h *LearningHandler) GetUnit(c *gin.Context) {
 func (h *LearningHandler) StartLesson(c *gin.Context) {
 	resp, err := h.lessons.StartLesson(c.Request.Context(), c.GetString("userID"), c.Param("lessonId"), c.Query("targetLanguage"), c.Query("nativeLanguage"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start lesson"})
+		WriteError(c, middleware.ErrInternal("Failed to start lesson"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": resp})
@@ -197,12 +227,12 @@ func (h *LearningHandler) StartLesson(c *gin.Context) {
 func (h *LearningHandler) AnswerLessonStep(c *gin.Context) {
 	var req models.AnswerLessonStepRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		WriteError(c, middleware.ErrValidation("Invalid request"))
 		return
 	}
 	result, err := h.lessons.AnswerStep(c.Request.Context(), c.GetString("userID"), c.Param("attemptId"), c.Param("stepId"), req.UserAnswer)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to answer step"})
+		WriteError(c, middleware.ErrInternal("Failed to answer step"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": result})
@@ -211,7 +241,7 @@ func (h *LearningHandler) AnswerLessonStep(c *gin.Context) {
 func (h *LearningHandler) CompleteLesson(c *gin.Context) {
 	result, err := h.lessons.CompleteLesson(c.Request.Context(), c.GetString("userID"), c.Param("attemptId"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to complete lesson"})
+		WriteError(c, middleware.ErrInternal("Failed to complete lesson"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": result})
@@ -220,7 +250,7 @@ func (h *LearningHandler) CompleteLesson(c *gin.Context) {
 func (h *LearningHandler) GetLessonAttempt(c *gin.Context) {
 	attempt, steps, err := h.lessons.GetAttempt(c.Request.Context(), c.GetString("userID"), c.Param("attemptId"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load lesson attempt"})
+		WriteError(c, middleware.ErrInternal("Failed to load lesson attempt"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{"attempt": attempt, "steps": steps}})
@@ -233,12 +263,17 @@ func (h *LearningHandler) GetLessonAttempt(c *gin.Context) {
 func (h *LearningHandler) StartSession(c *gin.Context) {
 	var req models.StartSessionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		WriteError(c, middleware.ErrValidation("Invalid request"))
 		return
+	}
+	// Lazily seed the learner's SRS queue so a fresh learner has curriculum
+	// (seed) material mixed with their own mined cards (FR-32).
+	if h.seed != nil {
+		_, _ = h.seed.EnsureSeeded(c.Request.Context(), c.GetString("userID"), req.NativeLanguage, req.TargetLanguage)
 	}
 	resp, err := h.sessions.StartSession(c.Request.Context(), c.GetString("userID"), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start session: " + err.Error()})
+		WriteError(c, middleware.ErrInternal("Failed to start session"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": resp})
@@ -247,7 +282,7 @@ func (h *LearningHandler) StartSession(c *gin.Context) {
 func (h *LearningHandler) GetSession(c *gin.Context) {
 	sess, err := h.sessions.GetSession(c.Request.Context(), c.GetString("userID"), c.Param("sessionId"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load session"})
+		WriteError(c, middleware.ErrInternal("Failed to load session"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": sess})
@@ -256,12 +291,12 @@ func (h *LearningHandler) GetSession(c *gin.Context) {
 func (h *LearningHandler) AnswerSessionItem(c *gin.Context) {
 	var req models.AnswerSessionItemRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		WriteError(c, middleware.ErrValidation("Invalid request"))
 		return
 	}
 	resp, err := h.sessions.AnswerItem(c.Request.Context(), c.GetString("userID"), c.Param("sessionId"), c.Param("itemId"), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to answer item"})
+		WriteError(c, middleware.ErrInternal("Failed to answer item"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": resp})
@@ -270,10 +305,23 @@ func (h *LearningHandler) AnswerSessionItem(c *gin.Context) {
 func (h *LearningHandler) CompleteSession(c *gin.Context) {
 	sess, err := h.sessions.CompleteSession(c.Request.Context(), c.GetString("userID"), c.Param("sessionId"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to complete session"})
+		WriteError(c, middleware.ErrInternal("Failed to complete session"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": sess})
+}
+
+// GetSRSQueue returns the interleaved, SM-2-scheduled review queue for the
+// learner's pair, mixing seed (curriculum) and personal (mined) vocabulary with
+// due grammar-cloze items (FR-32 unified queue).
+func (h *LearningHandler) GetSRSQueue(c *gin.Context) {
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "12"))
+	queue, err := h.queue.GetQueue(c.Request.Context(), c.GetString("userID"), c.Query("nativeLanguage"), c.Query("targetLanguage"), limit)
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to load SRS queue"))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": queue})
 }
 
 // ---------------------------------------------------------------------------
@@ -283,7 +331,7 @@ func (h *LearningHandler) CompleteSession(c *gin.Context) {
 func (h *LearningHandler) GetMinedItems(c *gin.Context) {
 	items, err := h.mining.GetCandidateItems(c.Request.Context(), c.GetString("userID"), c.Query("targetLanguage"), c.Query("status"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load mined items"})
+		WriteError(c, middleware.ErrInternal("Failed to load mined items"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": items})
@@ -292,7 +340,7 @@ func (h *LearningHandler) GetMinedItems(c *gin.Context) {
 func (h *LearningHandler) AcceptMinedItem(c *gin.Context) {
 	card, err := h.mining.AcceptMinedItem(c.Request.Context(), c.GetString("userID"), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to accept mined item"})
+		WriteError(c, middleware.ErrInternal("Failed to accept mined item"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": card})
@@ -300,7 +348,7 @@ func (h *LearningHandler) AcceptMinedItem(c *gin.Context) {
 
 func (h *LearningHandler) IgnoreMinedItem(c *gin.Context) {
 	if err := h.mining.IgnoreMinedItem(c.Request.Context(), c.GetString("userID"), c.Param("id")); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to ignore mined item"})
+		WriteError(c, middleware.ErrInternal("Failed to ignore mined item"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{"ok": true}})
@@ -313,7 +361,7 @@ func (h *LearningHandler) IgnoreMinedItem(c *gin.Context) {
 func (h *LearningHandler) ListScenarios(c *gin.Context) {
 	scenarios, err := h.scenario.ListScenarios(c.Request.Context(), c.GetString("userID"), c.Query("targetLanguage"), c.Query("nativeLanguage"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load scenarios"})
+		WriteError(c, middleware.ErrInternal("Failed to load scenarios"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": scenarios})
@@ -322,7 +370,7 @@ func (h *LearningHandler) ListScenarios(c *gin.Context) {
 func (h *LearningHandler) GetScenario(c *gin.Context) {
 	scenario, err := h.scenario.GetScenario(c.Request.Context(), c.GetString("userID"), c.Param("scenarioId"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load scenario"})
+		WriteError(c, middleware.ErrInternal("Failed to load scenario"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": scenario})
@@ -331,7 +379,7 @@ func (h *LearningHandler) GetScenario(c *gin.Context) {
 func (h *LearningHandler) StartScenario(c *gin.Context) {
 	resp, err := h.scenario.StartScenario(c.Request.Context(), c.GetString("userID"), c.Param("scenarioId"), c.Query("targetLanguage"), c.Query("nativeLanguage"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start scenario"})
+		WriteError(c, middleware.ErrInternal("Failed to start scenario"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": resp})
@@ -340,7 +388,7 @@ func (h *LearningHandler) StartScenario(c *gin.Context) {
 func (h *LearningHandler) GetScenarioRun(c *gin.Context) {
 	run, err := h.scenario.GetRun(c.Request.Context(), c.GetString("userID"), c.Param("runId"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load scenario run"})
+		WriteError(c, middleware.ErrInternal("Failed to load scenario run"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": run})
@@ -349,12 +397,12 @@ func (h *LearningHandler) GetScenarioRun(c *gin.Context) {
 func (h *LearningHandler) SendScenarioMessage(c *gin.Context) {
 	var req models.SendScenarioMessageRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		WriteError(c, middleware.ErrValidation("Invalid request"))
 		return
 	}
 	reply, err := h.scenario.SendMessage(c.Request.Context(), c.GetString("userID"), c.Param("runId"), req.Message)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process scenario message"})
+		WriteError(c, middleware.ErrInternal("Failed to process scenario message"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": reply})
@@ -363,7 +411,7 @@ func (h *LearningHandler) SendScenarioMessage(c *gin.Context) {
 func (h *LearningHandler) ScenarioHint(c *gin.Context) {
 	hints, err := h.scenario.RequestHint(c.Request.Context(), c.GetString("userID"), c.Param("runId"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load hint"})
+		WriteError(c, middleware.ErrInternal("Failed to load hint"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": hints})
@@ -372,7 +420,7 @@ func (h *LearningHandler) ScenarioHint(c *gin.Context) {
 func (h *LearningHandler) CompleteScenario(c *gin.Context) {
 	reply, err := h.scenario.CompleteScenario(c.Request.Context(), c.GetString("userID"), c.Param("runId"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to complete scenario"})
+		WriteError(c, middleware.ErrInternal("Failed to complete scenario"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": reply})
@@ -388,7 +436,7 @@ func (h *LearningHandler) RealTalkPrompts(c *gin.Context) {
 	native := c.Query("nativeLanguage")
 	profile, err := h.profiles.GetProfile(c.Request.Context(), userID, target, native)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load profile"})
+		WriteError(c, middleware.ErrInternal("Failed to load profile"))
 		return
 	}
 	unitTitle := ""

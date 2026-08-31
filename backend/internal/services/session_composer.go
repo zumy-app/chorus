@@ -16,11 +16,11 @@ import (
 // grades answers using the PracticeService, and books completed sessions into
 // daily stats + activity events + readiness so the dashboard updates live.
 type SessionComposerService struct {
-	db        *sql.DB
-	practice  *PracticeService
+	db         *sql.DB
+	practice   *PracticeService
 	curriculum *CurriculumService
-	profiles  *LearningProfileService
-	lessons   *LessonService
+	profiles   *LearningProfileService
+	lessons    *LessonService
 }
 
 func NewSessionComposerService(db *sql.DB, practice *PracticeService, curriculum *CurriculumService, profiles *LearningProfileService, lessons *LessonService) *SessionComposerService {
@@ -87,13 +87,13 @@ func (s *SessionComposerService) StartSession(ctx context.Context, userID string
 			composed = append(composed, sessionComposedItem{
 				itemType: "lesson_step", activityType: step.Type,
 				payload: map[string]any{
-					"prompt":       q.Prompt,
-					"promptType":   promptType,
+					"prompt":        q.Prompt,
+					"promptType":    promptType,
 					"correctAnswer": correct,
-					"stepId":       step.ID,
-					"lessonId":     lessonID,
-					"unitId":       unitID,
-					"activityType": step.Type,
+					"stepId":        step.ID,
+					"lessonId":      lessonID,
+					"unitId":        unitID,
+					"activityType":  step.Type,
 				},
 			})
 		}
@@ -218,7 +218,7 @@ func (s *SessionComposerService) GetSession(ctx context.Context, userID, session
 // the updated item + next pending item.
 func (s *SessionComposerService) AnswerItem(ctx context.Context, userID, sessionID, itemID string, req models.AnswerSessionItemRequest) (*models.AnswerSessionItemResponse, error) {
 	var (
-		itemType, status, payloadJSON string
+		itemType, status, payloadJSON         string
 		vocabularyID, grammarID, lessonStepID string
 	)
 	err := s.db.QueryRowContext(ctx, `
@@ -391,7 +391,8 @@ func (s *SessionComposerService) BookRecovery(ctx context.Context, userID, targe
 	return 1, err
 }
 
-func (s *SessionComposerService) bookStats(ctx context.Context, userID, targetLang string, items, xp int) {	_, _ = s.db.ExecContext(ctx, `
+func (s *SessionComposerService) bookStats(ctx context.Context, userID, targetLang string, items, xp int) {
+	_, _ = s.db.ExecContext(ctx, `
 		INSERT INTO daily_learning_stats (
 			user_id, target_language, activity_date, xp, items_completed, reviews_completed, minutes_active
 		) VALUES ($1, $2, CURRENT_DATE, $3, $4, $4, GREATEST(1, LEAST(15, $4)))

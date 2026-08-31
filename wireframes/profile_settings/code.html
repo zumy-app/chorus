@@ -1,0 +1,374 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>Chorus - Profile &amp; Settings</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&amp;family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "inverse-primary": "#b4c5ff",
+                      "surface-container-high": "#dce9ff",
+                      "on-tertiary-fixed": "#002113",
+                      "on-primary": "#ffffff",
+                      "primary-container": "#2563eb",
+                      "inverse-on-surface": "#eaf1ff",
+                      "surface-container-lowest": "#ffffff",
+                      "outline": "#737686",
+                      "outline-variant": "#c3c6d7",
+                      "on-secondary": "#ffffff",
+                      "on-primary-fixed-variant": "#003ea8",
+                      "secondary-fixed": "#e9ddff",
+                      "secondary-fixed-dim": "#d0bcff",
+                      "secondary": "#6b38d4",
+                      "on-secondary-container": "#fffbff",
+                      "on-primary-container": "#eeefff",
+                      "error-container": "#ffdad6",
+                      "on-background": "#0b1c30",
+                      "primary-fixed": "#dbe1ff",
+                      "primary": "#004ac6",
+                      "tertiary": "#006242",
+                      "tertiary-fixed": "#6ffbbe",
+                      "on-secondary-fixed-variant": "#5516be",
+                      "on-tertiary-fixed-variant": "#005236",
+                      "on-surface": "#0b1c30",
+                      "on-error": "#ffffff",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "on-primary-fixed": "#00174b",
+                      "surface-container-highest": "#d3e4fe",
+                      "on-tertiary-container": "#bdffdb",
+                      "surface-variant": "#d3e4fe",
+                      "secondary-container": "#8455ef",
+                      "background": "#f8f9ff",
+                      "on-error-container": "#93000a",
+                      "surface-bright": "#f8f9ff",
+                      "surface": "#f8f9ff",
+                      "inverse-surface": "#213145",
+                      "primary-fixed-dim": "#b4c5ff",
+                      "error": "#ba1a1a",
+                      "on-secondary-fixed": "#23005c",
+                      "surface-container-low": "#eff4ff",
+                      "surface-dim": "#cbdbf5",
+                      "tertiary-container": "#007d55",
+                      "surface-tint": "#0053db",
+                      "on-tertiary": "#ffffff",
+                      "on-surface-variant": "#434655",
+                      "surface-container": "#e5eeff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "unit": "4px",
+                      "stack-lg": "24px",
+                      "gutter-mobile": "12px",
+                      "stack-md": "16px",
+                      "stack-sm": "8px",
+                      "margin-mobile": "16px"
+              },
+              "fontFamily": {
+                      "headline-md": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "body-md": [
+                              "Be Vietnam Pro"
+                      ],
+                      "translation-text": [
+                              "Be Vietnam Pro"
+                      ],
+                      "headline-sm": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "headline-lg": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "body-sm": [
+                              "Be Vietnam Pro"
+                      ],
+                      "label-sm": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Be Vietnam Pro"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "translation-text": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-sm": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg": [
+                              "30px",
+                              {
+                                      "lineHeight": "38px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-sm": [
+                              "11px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.03em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-md": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "letterSpacing": "0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+            }
+          }
+        }
+      </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        /* Ambient Background Blur */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        /* Fluid Grid */
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen pb-24 font-body-md selection:bg-primary-container selection:text-on-primary-container">
+<!-- Top App Bar -->
+<header class="fixed top-0 w-full z-50 bg-surface shadow-sm flex items-center justify-between px-margin-mobile h-16">
+<div class="flex items-center gap-4 w-full">
+<h1 class="font-headline-sm text-headline-sm-mobile text-primary font-bold tracking-tight">Chorus</h1>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-20 px-margin-mobile max-w-5xl mx-auto space-y-stack-lg">
+<!-- Search Bar -->
+<div class="relative w-full max-w-md mx-auto">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full h-12 pl-12 pr-4 rounded-full bg-surface-container-low border border-surface-variant focus:border-primary focus:ring-2 focus:ring-primary-container focus:outline-none transition-all font-body-md text-body-md text-on-surface placeholder:text-outline shadow-sm" placeholder="Search settings..." type="text">
+</div>
+<!-- Profile Header Bento -->
+<section class="glass-panel rounded-3xl p-6 flex flex-col md:flex-row items-center gap-stack-lg shadow-[0px_4px_12px_rgba(0,0,0,0.05)] relative overflow-hidden">
+<!-- Decorative Blob -->
+<div class="absolute -top-10 -right-10 w-40 h-40 bg-secondary-container rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+<div class="relative shrink-0">
+<img class="w-32 h-32 rounded-full object-cover border-4 border-surface shadow-md" data-alt="A modern, high-quality profile picture of a young woman smiling warmly, set against a bright, airy background with soft lighting, reflecting a welcoming and professional tech-savvy persona." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBRc3rvtUdzYWS-0FQfNZd0jLcvUTBFynZYoi41za_Uv6uCy_ZlX57ARFm3h2yGLV-8Jv-Lp-tGs91a3vkNUPRXNifBc_N_vteN2FxIXmfKLDD9Fpm-uRDUGtOz8BLEMJT_cNmXCaKwL8NOwnAmNU36sOypHk9U0eOEY-QFBsWZAlX7r9l3WIJOZEQwQJtv4dPeZYMuIG3k6fp9lKzX4MiJxqZUQP0ZvXW2Z3X6NhqHvbdfcgeRBWAa">
+<button aria-label="Edit Profile Picture" class="absolute bottom-0 right-0 bg-primary text-on-primary p-2 rounded-full shadow-lg hover:scale-105 transition-transform">
+<span class="material-symbols-outlined fill text-sm">edit</span>
+</button>
+</div>
+<div class="flex-1 text-center md:text-left space-y-2 relative z-10">
+<h2 class="font-headline-lg text-headline-lg-mobile text-on-surface">Maya</h2>
+<div class="inline-flex items-center gap-1.5 px-3 py-1 bg-tertiary-container/10 text-tertiary rounded-full font-label-md text-label-md">
+<span class="material-symbols-outlined fill text-sm">workspace_premium</span>
+                    Premium Member
+                </div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-2 max-w-sm">Learning Spanish everyday. Focus on conversational fluency.</p>
+</div>
+</section>
+<!-- Settings Bento Grid -->
+<div class="bento-grid">
+<!-- Language Settings -->
+<section class="glass-panel rounded-2xl p-6 shadow-[0px_4px_12px_rgba(0,0,0,0.05)] hover:-translate-y-1 transition-transform duration-300">
+<div class="flex items-center gap-3 mb-4">
+<div class="w-10 h-10 rounded-full bg-primary-container/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">translate</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm-mobile">Language</h3>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center p-3 rounded-xl bg-surface-container-lowest border border-surface-variant">
+<div>
+<p class="font-label-sm text-label-sm text-outline">Base Language</p>
+<p class="font-body-md text-body-md text-on-surface font-medium">English</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant">chevron_right</span>
+</div>
+<div class="flex justify-between items-center p-3 rounded-xl bg-surface-container-lowest border border-surface-variant relative overflow-hidden">
+<!-- AI Indicator Border -->
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-secondary"></div>
+<div class="pl-2">
+<p class="font-label-sm text-label-sm text-secondary flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">psychology</span> Learning Target
+                            </p>
+<p class="font-body-md text-body-md text-on-surface font-medium">Spanish (Intermediate)</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant">chevron_right</span>
+</div>
+</div>
+</section>
+<!-- Account Settings -->
+<section class="glass-panel rounded-2xl p-6 shadow-[0px_4px_12px_rgba(0,0,0,0.05)] hover:-translate-y-1 transition-transform duration-300">
+<div class="flex items-center gap-3 mb-4">
+<div class="w-10 h-10 rounded-full bg-secondary-container/20 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined">manage_accounts</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm-mobile">Account</h3>
+</div>
+<ul class="space-y-2">
+<li class="">
+<button class="w-full flex items-center justify-between p-3 rounded-xl hover:bg-surface-container-highest transition-colors">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-outline">person</span>
+<span class="font-body-md text-body-md">Personal Information</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant">chevron_right</span>
+</button>
+</li>
+<li class="">
+<button class="w-full flex items-center justify-between p-3 rounded-xl hover:bg-surface-container-highest transition-colors">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-outline">security</span>
+<span class="font-body-md text-body-md">Security &amp; Password</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant">chevron_right</span>
+</button>
+</li>
+<li class="">
+<button class="w-full flex items-center justify-between p-3 rounded-xl hover:bg-surface-container-highest transition-colors">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-outline">credit_card</span>
+<span class="font-body-md text-body-md">Subscription</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant">chevron_right</span>
+</button>
+</li>
+</ul>
+</section>
+<!-- Privacy Settings -->
+<section class="glass-panel rounded-2xl p-6 shadow-[0px_4px_12px_rgba(0,0,0,0.05)] hover:-translate-y-1 transition-transform duration-300">
+<div class="flex items-center gap-3 mb-4">
+<div class="w-10 h-10 rounded-full bg-tertiary-container/20 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined">visibility</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm-mobile">Privacy</h3>
+</div>
+<ul class="space-y-4">
+<li class="flex items-center justify-between">
+<div>
+<p class="font-body-md text-body-md">Last Seen</p>
+<p class="font-label-sm text-label-sm text-outline">Nobody</p>
+</div>
+<button class="text-primary font-label-md text-label-md hover:underline">Change</button>
+</li>
+<li class="flex items-center justify-between">
+<div>
+<p class="font-body-md text-body-md">Profile Photo</p>
+<p class="font-label-sm text-label-sm text-outline">My Contacts</p>
+</div>
+<button class="text-primary font-label-md text-label-md hover:underline">Change</button>
+</li>
+</ul>
+</section>
+<!-- Notifications -->
+<section class="glass-panel rounded-2xl p-6 shadow-[0px_4px_12px_rgba(0,0,0,0.05)] hover:-translate-y-1 transition-transform duration-300">
+<div class="flex items-center gap-3 mb-4">
+<div class="w-10 h-10 rounded-full bg-error-container/40 flex items-center justify-center text-on-error-container">
+<span class="material-symbols-outlined">notifications</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm-mobile">Notifications</h3>
+</div>
+<ul class="space-y-4">
+<li class="flex items-center justify-between">
+<span class="font-body-md text-body-md">Message Alerts</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value="">
+<div class="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</li>
+<li class="flex items-center justify-between">
+<span class="font-body-md text-body-md">Daily Learning Reminders</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value="">
+<div class="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</li>
+</ul>
+</section>
+</div>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-xl bg-surface-container shadow-[0px_-4px_12px_rgba(0,0,0,0.05)] flex justify-around items-center h-20 px-4 pb-safe md:hidden">
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1 hover:bg-surface-container-high transition-all duration-300 ease-out active:scale-90 group rounded-lg">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors" data-icon="chat">chat</span>
+<span class="font-label-md text-label-md mt-1">Chats</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1 hover:bg-surface-container-high transition-all duration-300 ease-out active:scale-90 group rounded-lg">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors" data-icon="school">school</span>
+<span class="font-label-md text-label-md mt-1">Learn</span>
+</button>
+<button class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-5 py-1 transition-all duration-300 ease-out active:scale-90">
+<span class="material-symbols-outlined fill" data-icon="person">person</span>
+<span class="font-label-md text-label-md mt-1">Profile</span>
+</button>
+</nav>
+
+
+</body></html>

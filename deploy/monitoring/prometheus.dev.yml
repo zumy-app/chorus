@@ -1,0 +1,21 @@
+# Prometheus scrape config for the dev compose stack (NFR-18/25).
+# The dev backend service is named backend-dev, so scrape targets differ from the
+# main stack. Mounted into the prometheus-dev container.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: chorus
+    stack: dev
+
+scrape_configs:
+  - job_name: chorus-backend-dev
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["backend-dev:8080"]
+        labels:
+          service: chorus-backend-dev
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

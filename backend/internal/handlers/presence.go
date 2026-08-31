@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/chorus/messenger/internal/middleware"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/gin-gonic/gin"
 )
@@ -22,19 +23,19 @@ func NewPresenceHandler(ps *services.PresenceService) *PresenceHandler {
 func (h *PresenceHandler) GetPresence(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
 	targetUserID := c.Param("userId")
 	if targetUserID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "User ID required"})
+		WriteError(c, middleware.ErrValidation("User ID required"))
 		return
 	}
 
 	presence, err := h.presenceService.GetPresence(targetUserID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get presence"})
+		WriteError(c, middleware.ErrInternal("Failed to get presence"))
 		return
 	}
 
@@ -48,7 +49,7 @@ func (h *PresenceHandler) GetPresence(c *gin.Context) {
 func (h *PresenceHandler) GetMultiplePresence(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
@@ -56,18 +57,18 @@ func (h *PresenceHandler) GetMultiplePresence(c *gin.Context) {
 		UserIDs []string `json:"userIds" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		WriteError(c, middleware.ErrValidation("Invalid request body"))
 		return
 	}
 
 	if len(req.UserIDs) > 100 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Maximum 100 users per request"})
+		WriteError(c, middleware.ErrValidation("Maximum 100 users per request"))
 		return
 	}
 
 	presence, err := h.presenceService.GetMultiplePresence(req.UserIDs)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get presence"})
+		WriteError(c, middleware.ErrInternal("Failed to get presence"))
 		return
 	}
 
@@ -81,7 +82,7 @@ func (h *PresenceHandler) GetMultiplePresence(c *gin.Context) {
 func (h *PresenceHandler) UpdatePresence(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
@@ -90,7 +91,7 @@ func (h *PresenceHandler) UpdatePresence(c *gin.Context) {
 		DeviceType string `json:"deviceType"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		WriteError(c, middleware.ErrValidation("Invalid request body"))
 		return
 	}
 
@@ -105,7 +106,7 @@ func (h *PresenceHandler) UpdatePresence(c *gin.Context) {
 	}
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update presence"})
+		WriteError(c, middleware.ErrInternal("Failed to update presence"))
 		return
 	}
 
@@ -119,7 +120,7 @@ func (h *PresenceHandler) UpdatePresence(c *gin.Context) {
 func (h *PresenceHandler) Heartbeat(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
@@ -127,7 +128,7 @@ func (h *PresenceHandler) Heartbeat(c *gin.Context) {
 
 	err := h.presenceService.Heartbeat(userID, deviceType)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update heartbeat"})
+		WriteError(c, middleware.ErrInternal("Failed to update heartbeat"))
 		return
 	}
 
@@ -141,12 +142,12 @@ func (h *PresenceHandler) Heartbeat(c *gin.Context) {
 func (h *PresenceHandler) UpdateActivity(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
 	if err := h.presenceService.UpdateUserActivity(userID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update activity"})
+		WriteError(c, middleware.ErrInternal("Failed to update activity"))
 		return
 	}
 
@@ -158,7 +159,7 @@ func (h *PresenceHandler) UpdateActivity(c *gin.Context) {
 func (h *PresenceHandler) GetOnlineCount(c *gin.Context) {
 	count, err := h.presenceService.GetOnlineUserCount()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get online count"})
+		WriteError(c, middleware.ErrInternal("Failed to get online count"))
 		return
 	}
 
@@ -174,7 +175,7 @@ func (h *PresenceHandler) GetOnlineCount(c *gin.Context) {
 func (h *PresenceHandler) GetPresenceStats(c *gin.Context) {
 	stats, err := h.presenceService.GetPresenceStats()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get stats"})
+		WriteError(c, middleware.ErrInternal("Failed to get stats"))
 		return
 	}
 

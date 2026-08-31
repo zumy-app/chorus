@@ -1,0 +1,162 @@
+# =============================================================================
+# Chorus — Mailu mail server (isolated) — NFR-22
+# =============================================================================
+# SECURITY BOUNDARY (NFR-22): Prod mail (Mailu) must NOT share the same host or
+# network namespace as the Chorus app servers. Deploy THIS compose on a
+# SEPARATE host (or an isolated Docker network on a dedicated node), never on
+# the same node that runs docker-compose.prod.yml.
+#
+# The ONLY ingress the Chorus app needs is SMTP SUBMISSION on port 587
+# (authenticated, STARTTLS). Everything else (25 inbound, 465/993/995/143/110,
+# admin web UI on 443) is for the mail stack itself.
+#
+# Host firewall minimum (see README.md for exact rules, SPF/DKIM/DMARC and the
+# release-gate policy check):
+#   - Allow 587 FROM the Chorus app subnet -> this host (app outbound only).
+#   - Block inbound 25 except from major sender ASNs (or block entirely if the
+#     Chorus mailbox is relay-only). This matches "block 25 from public".
+#   - Never expose the mail host on the app's public VLAN; use a private
+#     network / VPN / restricted interface.
+#
+# How the app reaches Mailu:
+#   docker-compose.prod.yml sets:
+#     MAILU_SMTP_HOST=<mail host private IP or mail.your-domain.com>
+#     MAILU_SMTP_PORT=587            <-- submission (STARTTLS)
+#     MAILU_SMTP_USERNAME=...
+#     MAILU_SMTP_PASSWORD=...        <-- from Dokploy secrets, never VITE_*
+#     MAILU_SMTP_FROM=...
+# =============================================================================
+
+services:
+  # --- Edge: TLS + reverse proxy + the only service that publishes ports -----
+  front:
+    image: ghcr.io/mailu/nginx:2.0
+    restart: always
+    env_file: mailu.env
+    depends_on:
+      - admin
+      - smtp
+      - imap
+      - antispam
+      - websocket
+    ports:
+      # Public mail ingress. Only 587 is allowed from the Chorus app subnet.
+      - "127.0.0.1:25:25"     # SMTP ingest — bind to a loopback/dedicated interface
+      - "${BIND_ADDRESS:-0.0.0.0}:587:587"   # SUBMISSION — the app uses this
+      - "127.0.0.1:465:465"   # implicit-TLS SMTP (optional, outbound relay)
+      - "127.0.0.1:110:110"
+      - "127.0.0.1:143:143"
+      - "127.0.0.1:993:993"
+      - "127.0.0.1:995:995"
+      - "${BIND_ADDRESS:-0.0.0.0}:80:80"     # webmail -> 443 redirect
+      - "127.0.0.1:443:443"
+    # NFR-22: 587 is the only port reachable from the app network. Bind the app
+    # connection here; do NOT add the app's compose service to this network.
+    networks:
+      - mailu
+      - default
+    stop_grace_period: 1m
+
+  # --- Admin web UI (creates mailboxes, manages accounts/aliases) -----------
+  admin:
+    image: ghcr.io/mailu/admin:2.0
+    restart: always
+    env_file: mailu.env
+    depends_on:
+      - resolver
+    expose:
+      - "8000"
+    networks:
+      - mailu
+    volumes:
+      - ${MAILU_DATA_DIR:-./mail_data}/overrides:/overrides
+      - ${MAILU_DATA_DIR:-./mail_data}/dkim:/dkim
+      - ${MAILU_DATA_DIR:-./mail_data}/admin:/data
+      - ${MAILU_DATA_DIR:-./mail_data}/services:/services
+
+  # --- Postfix: SMTP submission (587) + outbound delivery (25 to MX) ---------
+  smtp:
+    image: ghcr.io/mailu/postfix:2.0
+    restart: always
+    env_file: mailu.env
+    depends_on:
+      - resolver
+    expose:
+      - "25"
+      - "587"
+    networks:
+      - mailu
+    volumes:
+      - ${MAILU_DATA_DIR:-./mail_data}/overrides:/overrides
+      - ${MAILU_DATA_DIR:-./mail_data}/spool:/spool
+      - ${MAILU_DATA_DIR:-./mail_data}/services:/services
+
+  # --- Dovecot: IMAP/POP3 for the Chorus mailbox -----------------------------
+  imap:
+    image: ghcr.io/mailu/dovecot:2.0
+    restart: always
+    env_file: mailu.env
+    depends_on:
+      - resolver
+    expose:
+      - "110"
+      - "143"
+      - "993"
+      - "995"
+    networks:
+      - mailu
+    volumes:
+      - ${MAILU_DATA_DIR:-./mail_data}/overrides:/overrides
+      - ${MAILU_DATA_DIR:-./mail_data}/mail:/mail
+      - ${MAILU_DATA_DIR:-./mail_data}/services:/services
+
+  # --- Rspamd: spam filtering + DKIM signing key generation ------------------
+  antispam:
+    image: ghcr.io/mailu/rspamd:2.0
+    restart: always
+    env_file: mailu.env
+    depends_on:
+      - resolver
+    expose:
+      - "11334"
+    networks:
+      - mailu
+    volumes:
+      - ${MAILU_DATA_DIR:-./mail_data}/filter:/filter
+      - ${MAILU_DATA_DIR:-./mail_data}/dkim:/dkim
+      - ${MAILU_DATA_DIR:-./mail_data}/overrides:/overrides
+
+  # --- WebSocket for the webmail --------------------------------------------
+  websocket:
+    image: ghcr.io/mailu/websocket:2.0
+    restart: always
+    env_file: mailu.env
+    depends_on:
+      - resolver
+    expose:
+      - "8080"
+    networks:
+      - mailu
+
+  # --- Unbound: local DNS resolver used by Mailu (never exposed publicly) ----
+  resolver:
+    image: ghcr.io/mailu/unbound:2.0
+    restart: always
+    env_file: mailu.env
+    expose:
+      - "53"
+      - "53/udp"
+    networks:
+      - mailu
+
+# Data is persisted to ${MAILU_DATA_DIR:-./mail_data} (host bind mount),
+# set in mailu.env / on the mail host. Keep it OFF the app host.
+
+networks:
+  # Isolated internal network. The app is NOT on this network — it reaches the
+  # mail host only over the published 587 submission port, constrained by the
+  # host firewall to the app subnet (verify-isolation.sh enforces the config).
+  mailu:
+    driver: bridge
+  default:
+    driver: bridge

@@ -12,6 +12,11 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// learnedWordThresholdDays is the interval_days at/above which a vocabulary
+// term counts as "learned/known" for the translation pipeline (FR-26). It
+// matches the REQUIREMENTS.md note (interval_days >= 21 vs explicit known).
+const learnedWordThresholdDays = 21
+
 // VocabularyService handles vocabulary management and spaced repetition
 type VocabularyService struct {
 	db    *sql.DB
@@ -35,8 +40,9 @@ func (s *VocabularyService) SaveWord(userID string, req models.SaveVocabularyReq
 		return nil, fmt.Errorf("failed to get message: %w", err)
 	}
 
-	// Get translation
-	translation, err := translationService.Translate(req.Term, "en") // Translate to English
+	// Get translation (per-word cache: repeated terms across chat saves avoid
+	// redundant LLM calls — FR-26).
+	translation, err := translationService.TranslateWord(req.Term, "en", "auto")
 	if err != nil {
 		translation = "" // Continue without translation
 	}
@@ -79,6 +85,7 @@ func (s *VocabularyService) SaveWord(userID string, req models.SaveVocabularyReq
 	// Invalidate cache
 	s.redis.Del(ctx, fmt.Sprintf("vocab:%s:due", userID))
 	s.redis.Del(ctx, fmt.Sprintf("vocab:%s:all", userID))
+	s.redis.Del(ctx, fmt.Sprintf("vocab:%s:known", userID))
 
 	return &entry, nil
 }
@@ -249,6 +256,7 @@ func (s *VocabularyService) RecordPracticeResult(userID, vocabularyID string, co
 
 	// Invalidate cache
 	s.redis.Del(ctx, fmt.Sprintf("vocab:%s:due", userID))
+	s.redis.Del(ctx, fmt.Sprintf("vocab:%s:known", userID))
 
 	return nil
 }
@@ -297,6 +305,7 @@ func (s *VocabularyService) DeleteVocabulary(userID, vocabularyID string) error 
 	// Invalidate cache
 	s.redis.Del(ctx, fmt.Sprintf("vocab:%s:due", userID))
 	s.redis.Del(ctx, fmt.Sprintf("vocab:%s:all", userID))
+	s.redis.Del(ctx, fmt.Sprintf("vocab:%s:known", userID))
 
 	return nil
 }
@@ -364,6 +373,66 @@ func (s *VocabularyService) GetLearningProgress(userID string) (map[string]inter
 		"streak":        streak,
 		"languages":     languages,
 	}, nil
+}
+
+// LearnedWords returns the normalized set of terms the user has already
+// learned (interval_days >= learnedWordThresholdDays). It backs the FR-26
+// KnownWordsResolver so the translation pipeline can skip known words. Results
+// are cached in Redis (vocab:{userID}:known) and invalidated whenever a term is
+// saved, removed, or practiced.
+func (s *VocabularyService) LearnedWords(userID string) (map[string]struct{}, error) {
+	ctx := context.Background()
+	cacheKey := fmt.Sprintf("vocab:%s:known", userID)
+
+	if s.redis != nil {
+		if cached, err := s.redis.Get(ctx, cacheKey).Result(); err == nil && cached != "" {
+			var words []string
+			if json.Unmarshal([]byte(cached), &words) == nil {
+				set := make(map[string]struct{}, len(words))
+				for _, w := range words {
+					set[w] = struct{}{}
+				}
+				return set, nil
+			}
+		}
+	}
+
+	rows, err := s.db.Query(`
+		SELECT term FROM vocabulary
+		WHERE user_id = $1 AND interval_days >= $2
+	`, userID, learnedWordThresholdDays)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load learned words: %w", err)
+	}
+	defer rows.Close()
+
+	set := make(map[string]struct{})
+	list := make([]string, 0, 32)
+	for rows.Next() {
+		var term string
+		if err := rows.Scan(&term); err != nil {
+			return nil, err
+		}
+		norm := NormalizeLearningTerm(term, "")
+		if norm == "" {
+			continue
+		}
+		if _, dup := set[norm]; dup {
+			continue
+		}
+		set[norm] = struct{}{}
+		list = append(list, norm)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to scan learned words: %w", err)
+	}
+
+	if s.redis != nil {
+		if data, err := json.Marshal(list); err == nil {
+			s.redis.Set(ctx, cacheKey, data, 5*time.Minute)
+		}
+	}
+	return set, nil
 }
 
 // SearchVocabulary finds entries matching a query with optional language filter.

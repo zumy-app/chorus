@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus - Group Room Management</title>
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788158188199&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YTUyOWY4YTc4NzEwMWI0ZTU1OTc5MDVlN2IzEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                            "on-error-container": "#93000a",
+                            "tertiary-fixed": "#6ffbbe",
+                            "on-tertiary-container": "#bdffdb",
+                            "tertiary-container": "#007d55",
+                            "primary-fixed-dim": "#b4c5ff",
+                            "on-tertiary": "#ffffff",
+                            "on-tertiary-fixed": "#002113",
+                            "surface-container-lowest": "#ffffff",
+                            "on-tertiary-fixed-variant": "#005236",
+                            "surface-container-high": "#dce9ff",
+                            "surface-dim": "#cbdbf5",
+                            "surface-tint": "#0053db",
+                            "surface-container-low": "#eff4ff",
+                            "surface": "#f8f9ff",
+                            "error": "#ba1a1a",
+                            "secondary-fixed": "#e9ddff",
+                            "secondary-container": "#8455ef",
+                            "on-surface": "#0b1c30",
+                            "primary-container": "#2563eb",
+                            "surface-container-highest": "#d3e4fe",
+                            "on-primary-container": "#eeefff",
+                            "on-background": "#0b1c30",
+                            "on-secondary-container": "#fffbff",
+                            "on-primary-fixed": "#00174b",
+                            "on-secondary-fixed": "#23005c",
+                            "on-primary": "#ffffff",
+                            "outline": "#737686",
+                            "primary": "#004ac6",
+                            "error-container": "#ffdad6",
+                            "on-surface-variant": "#434655",
+                            "on-primary-fixed-variant": "#003ea8",
+                            "primary-fixed": "#dbe1ff",
+                            "outline-variant": "#c3c6d7",
+                            "tertiary-fixed-dim": "#4edea3",
+                            "surface-bright": "#f8f9ff",
+                            "inverse-surface": "#213145",
+                            "on-error": "#ffffff",
+                            "secondary-fixed-dim": "#d0bcff",
+                            "secondary": "#6b38d4",
+                            "background": "#f8f9ff",
+                            "inverse-on-surface": "#eaf1ff",
+                            "inverse-primary": "#b4c5ff",
+                            "on-secondary": "#ffffff",
+                            "surface-container": "#e5eeff",
+                            "on-secondary-fixed-variant": "#5516be",
+                            "surface-variant": "#d3e4fe",
+                            "tertiary": "#006242"
+                    },
+                    "borderRadius": {
+                            "DEFAULT": "0.25rem",
+                            "lg": "0.5rem",
+                            "xl": "0.75rem",
+                            "full": "9999px"
+                    },
+                    "spacing": {
+                            "margin-mobile": "16px",
+                            "stack-sm": "8px",
+                            "gutter-mobile": "12px",
+                            "stack-lg": "24px",
+                            "stack-md": "16px",
+                            "unit": "4px"
+                    },
+                    "fontFamily": {
+                            "translation-text": [
+                                    "Be Vietnam Pro"
+                            ],
+                            "body-sm": [
+                                    "Be Vietnam Pro"
+                            ],
+                            "headline-md": [
+                                    "Plus Jakarta Sans"
+                            ],
+                            "headline-sm": [
+                                    "Plus Jakarta Sans"
+                            ],
+                            "label-sm": [
+                                    "Inter"
+                            ],
+                            "body-lg": [
+                                    "Be Vietnam Pro"
+                            ],
+                            "headline-lg": [
+                                    "Plus Jakarta Sans"
+                            ],
+                            "label-md": [
+                                    "Inter"
+                            ],
+                            "body-md": [
+                                    "Be Vietnam Pro"
+                            ]
+                    },
+                    "fontSize": {
+                            "translation-text": [
+                                    "14px",
+                                    {
+                                            "lineHeight": "20px",
+                                            "fontWeight": "500"
+                                    }
+                            ],
+                            "body-sm": [
+                                    "14px",
+                                    {
+                                            "lineHeight": "20px",
+                                            "fontWeight": "400"
+                                    }
+                            ],
+                            "headline-md": [
+                                    "24px",
+                                    {
+                                            "lineHeight": "32px",
+                                            "letterSpacing": "-0.01em",
+                                            "fontWeight": "700"
+                                    }
+                            ],
+                            "headline-sm": [
+                                    "20px",
+                                    {
+                                            "lineHeight": "28px",
+                                            "fontWeight": "600"
+                                    }
+                            ],
+                            "label-sm": [
+                                    "11px",
+                                    {
+                                            "lineHeight": "16px",
+                                            "letterSpacing": "0.03em",
+                                            "fontWeight": "500"
+                                    }
+                            ],
+                            "body-lg": [
+                                    "18px",
+                                    {
+                                            "lineHeight": "28px",
+                                            "fontWeight": "400"
+                                    }
+                            ],
+                            "headline-lg": [
+                                    "30px",
+                                    {
+                                            "lineHeight": "38px",
+                                            "letterSpacing": "-0.02em",
+                                            "fontWeight": "700"
+                                    }
+                            ],
+                            "label-md": [
+                                    "13px",
+                                    {
+                                            "lineHeight": "18px",
+                                            "letterSpacing": "0.01em",
+                                            "fontWeight": "600"
+                                    }
+                            ],
+                            "body-md": [
+                                    "16px",
+                                    {
+                                            "lineHeight": "24px",
+                                            "fontWeight": "400"
+                                    }
+                            ]
+                    }
+            },
+                },
+            }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined[data-weight="fill"] {
+            font-variation-settings: 'FILL' 1;
+        }
+        
+        /* Ambient depth for bento items */
+        .bento-card {
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease-in-out;
+        }
+        .bento-card:hover {
+            box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background antialiased min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-surface-dim docked full-width top-0 shadow-sm flex justify-between items-center w-full px-margin-mobile py-stack-sm sticky z-40">
+<div class="flex items-center gap-3">
+<!-- Leading Avatar -->
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary-fixed-dim">
+<img alt="AI Tutor Sparky" class="w-full h-full object-cover" data-alt="A small, friendly digital avatar representing an AI tutor. It has a modern, minimalist design with a soft blue and white color palette, fitting a modern humanist educational app style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCPD2RD_GyuNlXag5Lz4_cp3ysWJwUpDHChnCW67p0rkYx2-TJrVNji2NDtt6tdRah5x5FCSCBPM7vrAUx8kFU1kJ2GBWERpfE6tYymz77n3sMios8GEfoqVcc45QenQngGKDTweRsyfvj4QUfO1WUqzcWjbyWErRqDLf8JmKoofnM5-QKr6A2NZW3wlV-r8DdY2ljRibhz7KEo387SkBfrSamaDb3of3mxlj5mjbniiKjdmniube03"/>
+</div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim">Chorus</h1>
+</div>
+<!-- Trailing Icon -->
+<button class="p-2 rounded-full hover:bg-surface-container dark:hover:bg-surface-container-high transition-colors active:scale-95 duration-150 text-primary dark:text-primary-fixed-dim">
+<span class="material-symbols-outlined" data-icon="translate">translate</span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow p-margin-mobile md:p-stack-lg max-w-4xl mx-auto w-full pb-24">
+<div class="mb-stack-lg flex items-center justify-between">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Study Session Management</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Host controls for 'Advanced French Conversation'</p>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-12 gap-stack-md">
+<!-- AI Learning Guard Control -->
+<div class="md:col-span-12 lg:col-span-8 bg-surface-container-lowest rounded-xl p-stack-md bento-card relative overflow-hidden">
+<div class="absolute top-0 right-0 w-32 h-32 bg-secondary-fixed opacity-30 rounded-bl-full blur-2xl pointer-events-none"></div>
+<div class="flex items-start gap-4 mb-stack-md relative z-10">
+<div class="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0 shadow-md">
+<span class="material-symbols-outlined" data-icon="shield" data-weight="fill">shield</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">AI Learning Guard Strength</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Controls how strictly the AI tutor intervenes on grammar and vocabulary mistakes during the group chat.</p>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-unit mt-stack-md relative z-10 bg-surface-container rounded-lg p-unit">
+<button class="py-2 px-3 rounded-md text-center transition-all duration-200 font-label-md text-label-md hover:bg-surface-variant text-on-surface-variant">
+                        Relaxed
+                    </button>
+<button class="py-2 px-3 rounded-md bg-surface-container-lowest shadow-sm text-center transition-all duration-200 font-label-md text-label-md text-primary font-bold border-b-2 border-primary">
+                        Balanced
+                    </button>
+<button class="py-2 px-3 rounded-md text-center transition-all duration-200 font-label-md text-label-md hover:bg-surface-variant text-on-surface-variant">
+                        Strict
+                    </button>
+</div>
+<p class="text-center font-label-sm text-label-sm text-secondary mt-3 opacity-80">Currently balancing fluency with accuracy.</p>
+</div>
+<!-- Global Controls -->
+<div class="md:col-span-12 lg:col-span-4 bg-surface-container-lowest rounded-xl p-stack-md bento-card flex flex-col justify-between">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2 mb-stack-sm">
+<span class="material-symbols-outlined text-outline" data-icon="settings_voice">settings_voice</span>
+                        Room Audio
+                    </h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-stack-md">Quickly manage microphone access for all participants.</p>
+</div>
+<button class="w-full bg-error-container text-on-error-container hover:bg-error/20 font-label-md text-label-md py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors">
+<span class="material-symbols-outlined" data-icon="mic_off">mic_off</span>
+                    Mute All Participants
+                </button>
+</div>
+<!-- Active Participants List -->
+<div class="md:col-span-12 bg-surface-container-lowest rounded-xl p-stack-md bento-card">
+<div class="flex justify-between items-center mb-stack-md pb-stack-sm border-b border-outline-variant/30">
+<h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="group">group</span>
+                        Active Participants (4)
+                    </h3>
+<!-- Search small -->
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm" data-icon="search">search</span>
+<input class="pl-9 pr-3 py-1.5 bg-surface-container text-on-surface font-body-sm text-body-sm rounded-full border-none focus:ring-2 focus:ring-primary w-48 transition-all outline-none" placeholder="Find user..." type="text"/>
+</div>
+</div>
+<div class="space-y-unit">
+<!-- Participant 1 (Host) -->
+<div class="flex items-center justify-between p-3 rounded-lg hover:bg-surface-container/50 transition-colors">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-primary-container">
+<img alt="User Avatar" class="w-full h-full object-cover" data-alt="A portrait of a young adult looking directly at the camera, smiling warmly. The lighting is soft and natural, suggesting a friendly online learning environment. High key lighting, modern style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDUqDdNidwXsIk6y_2koNofqAzrlYgDYWzN9YcpfPOYcqOPxrIL6GMGHG3cWTgGoigElTjaAJmyJ_KfifGMBDKyvEtmmUppkqMHpz5x5E3zA8HhL88-uPdQRKjTemdfNR1a-G375zw0gNs3Zr2geokoF5vfO3jTnc8QNjH2d1kuXNLGjg8JBCbyvxpGhE6L-xI7GY15ASAL6HHx-kmDBsTxZeINaYAKgH6-cwP_7sTKVYwAG4zYFEhS"/>
+</div>
+<div class="absolute -bottom-1 -right-1 bg-surface-container-lowest rounded-full p-0.5">
+<span class="material-symbols-outlined text-tertiary-container text-[14px]" data-icon="star" data-weight="fill">star</span>
+</div>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface">You (Host)</p>
+<div class="flex gap-1 items-center mt-0.5">
+<span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary-container text-on-primary-container leading-none">C1</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-outline" data-icon="mic">mic</span>
+</div>
+</div>
+<!-- Participant 2 -->
+<div class="flex items-center justify-between p-3 rounded-lg hover:bg-surface-container/50 transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-secondary-container">
+<img alt="User Avatar" class="w-full h-full object-cover" data-alt="A casual portrait of a student wearing glasses, looking attentive. The background is slightly blurred indicating a home office setting. Soft lighting, modern aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjbAW9SkN4-I08mHCZkoDAvGWA8J8Oo4RUMa6dMEsPM_KzkPq0o9NbOnJwnXiugI6cW2yZSEJbks-7eBRQbGi0M33aq1qWDy2xwM73qT6lLpHHTaWNMnJfI4IKI_Fz1v1zPuA3OWhF8v2adPEXk2Fniy320AXir7IjAOGwO-nVDj2SDhxlskDz48GNeh9n-leuXtVKeSuiqHzyOay3NeZ9lbJ9bk7XLk1wTFueG03gkb09DXLbppL7"/>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface">Alex Mercer</p>
+<div class="flex gap-1 items-center mt-0.5">
+<span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-secondary-fixed text-on-secondary-fixed leading-none">B2</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-1.5 text-outline hover:text-on-surface hover:bg-surface-variant rounded-full transition-colors" title="Mute">
+<span class="material-symbols-outlined text-[20px]" data-icon="mic">mic</span>
+</button>
+<button class="p-1.5 text-error hover:bg-error-container rounded-full transition-colors" title="Remove">
+<span class="material-symbols-outlined text-[20px]" data-icon="person_remove">person_remove</span>
+</button>
+</div>
+</div>
+<!-- Participant 3 -->
+<div class="flex items-center justify-between p-3 rounded-lg hover:bg-surface-container/50 transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-tertiary-container">
+<img alt="User Avatar" class="w-full h-full object-cover" data-alt="A portrait of a focused learner holding a coffee cup. Bright, airy room in the background. Modern, approachable style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjI-NtlC8CrlOmSVP_V7hO9jsJ4tUtrUPQMbn8yrj3IN_W5gBMYYulKiL8yZJL9ueVyygrbYpOuv7Mem_RfNQOD8JLt_Ic6zM-zdWeIjFmnuEl-houUDX_eO_YB0Gucgdo1Ba91JxKYCSEtri-cAb0tCTi9IF_ohp3BbI6Im5IYO9Gbx2G3g0j8rMD7UA1nFbFRKB2WeQlIwzZNLCx4BSQ5D2Jdnh6a1Hs6p2LPeF0Pf_HRcEQ992r"/>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface">Samira Chen</p>
+<div class="flex gap-1 items-center mt-0.5">
+<span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-secondary-fixed text-on-secondary-fixed leading-none">B2</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-1.5 text-error hover:bg-error-container rounded-full transition-colors" title="Unmute (Currently Muted)">
+<span class="material-symbols-outlined text-[20px]" data-icon="mic_off">mic_off</span>
+</button>
+<button class="p-1.5 text-error hover:bg-error-container rounded-full transition-colors" title="Remove">
+<span class="material-symbols-outlined text-[20px]" data-icon="person_remove">person_remove</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Moderation Policy Footer -->
+<div class="md:col-span-12 mt-stack-sm text-center">
+<a class="inline-flex items-center gap-1 font-label-sm text-label-sm text-primary hover:text-primary-fixed-dim transition-colors" href="#">
+<span class="material-symbols-outlined text-[14px]" data-icon="info">info</span>
+                    Review Moderation Policy &amp; Community Guidelines
+                </a>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Hidden on md and up, typical for mobile destinations) -->
+<!-- Note: Assuming "Chats" is the closest intent for a group study room management, though arguably it's a sub-task. We'll show the nav to follow the semantic shell mandate if this is considered a primary destination, but usually management panels might suppress it. Let's include it with 'Chats' active as the closest intent. -->
+<nav class="bg-surface dark:bg-surface-dim border-t border-outline-variant dark:border-outline shadow-lg fixed bottom-0 w-full z-50 flex justify-around items-center px-margin-mobile py-stack-sm md:hidden rounded-t-xl">
+<a class="flex flex-col items-center justify-center bg-primary-container dark:bg-secondary-container text-on-primary-container dark:text-on-secondary-container rounded-full px-stack-md py-unit active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="chat_bubble" data-weight="fill">chat_bubble</span>
+<span class="font-label-md text-label-md mt-1">Chats</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-stack-md py-unit hover:text-primary dark:hover:text-primary-fixed-dim active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="school">school</span>
+<span class="font-label-md text-label-md mt-1">Learn</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-stack-md py-unit hover:text-primary dark:hover:text-primary-fixed-dim active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-md text-label-md mt-1">Profile</span>
+</a>
+</nav>
+</body></html>

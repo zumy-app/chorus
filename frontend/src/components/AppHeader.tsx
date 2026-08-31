@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useStore } from '../store'
 
 interface AppHeaderProps {
@@ -12,14 +13,14 @@ export default function AppHeader({ title = 'Chorus', showAvatar = true, onTrans
   return (
     <header className="bg-surface shadow-sm z-40 shrink-0">
       <div className="flex justify-between items-center w-full px-margin-mobile py-stack-sm">
-        <div className="flex items-center gap-2">
+        <Link to="/chat" aria-label="Home" className="flex items-center gap-2">
           {showAvatar && (
             <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-sm">
               {user?.displayName?.charAt(0).toUpperCase() || user?.username?.charAt(0).toUpperCase() || 'C'}
             </div>
           )}
-          <h1 className="font-headline-md text-headline-md font-bold text-primary tracking-tight">{title}</h1>
-        </div>
+          <span className="font-headline-md text-headline-md font-bold text-primary tracking-tight">{title}</span>
+        </Link>
         <button
           aria-label="Translate"
           onClick={onTranslate}

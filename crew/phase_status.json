@@ -61,117 +61,161 @@
         {
           "id": "1.1",
           "name": "Home button link dashboard",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788183158.6895297,
+          "note": "I have enough context. The task maps to Issue #40. Let me run the verification suite to confirm the state.\nBoth pass cleanly. Let me run the full frontend test suite to ensure the shared `AppHeader` change didn't regress anything else.\nImplemented and verified (Issue #40, id 1.1).\n\n**What the fix is:** The dashboard/learn header was a static `<div>` (not clickable). It is now a real router link so the \"Home\" button navigates home.\n\n**Files (already on disk, uncommitted):**\n- `frontend/src/compon"
         },
         {
           "id": "1.2",
           "name": "Admin dashboard back",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788183435.841056,
+          "note": "The web implementation for this task already exists in the working tree (back button `→ /chat` + a test). Let me verify it builds and tests pass.\nTest passes. Now the full suite and build:\nTask 1.2 (Admin → dashboard back affordance) is implemented and verified green.\n\n**Web implementation (already in working tree, verified):**\n- `frontend/src/pages/AdminWaitlist.tsx:273` — `<Link to=\"/chat\">` back button with `arrow_back` icon and `admin.back` label, rendered in the header of all admin routes ("
         },
         {
           "id": "1.3",
           "name": "Premium copy 280 vs 28",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788183805.0507321,
+          "note": "Build passes. Now the tests:\nTask 1.3 (\"Premium copy 280 vs 28\", Issue #42) is already implemented in the working tree; I verified it and confirmed green.\n\n**Server cap confirmed** — `backend/internal/services/entitlement.go:47-49`:\n- `TranslationWordLimitFree = 280`, `TranslationWordLimitPremium = 1000`.\n\n**Implementation present (all `frontend/src/**`):**\n- `frontend/src/pages/Premium.tsx:166-171` — billing row now renders a dedicated label + unit (`plan.messageSizeLimit` / `plan.words`) inste"
         },
         {
           "id": "1.4",
           "name": "Emoji picker + passthrough",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788184101.7933278,
+          "note": "Now I understand the task. The emoji picker is largely implemented and unit-tested. I need to fix a bug (duplicate emoji key) and add e2e coverage for the passthrough. Let me set up todos.\nTodo 1 done. Now let me add e2e coverage for emoji picker insertion and translation passthrough.\nNow let me verify with unit tests, lint, and build.\nAll 86 tests pass. Now lint and build.\nEslint isn't installed (not a devDependency in this repo), so `lint` can't run here. The build gate is `tsc && vite build` "
         },
         {
           "id": "1.5",
           "name": "Typed error handling",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788185376.3785806
         },
         {
           "id": "2.1",
           "name": "Onboarding first+last name",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788185459.340912,
+          "note": "I'll explore the codebase to understand the structure and the onboarding task context.\nThe onboarding infrastructure appears to already exist. Let me examine the user service and related code to understand what's already implemented.\nThe onboarding backend appears largely implemented. Let me check the task requirements and verify the current state (git status, tests) before deciding what's missing.\nFound it — task 45 \"Onboarding: first + last name\" (MOVE → Phase 1 P0) at BACKLOG_REFINEMENT_2026-"
         },
         {
           "id": "2.2",
           "name": "Initials avatar",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788185635.9792178,
+          "note": "Task 2.2 \"Initials avatar\" (#46) — backend verification: the implementation is already present in the working tree and fully green. No code changes were required; I verified the complete backend contract end-to-end and force-ran tests uncached.\n\n**Backend implementation confirmed (files + exact locations):**\n\n- `backend/internal/models/models.go:18-22` — `User.AvatarColor` (json `avatarColor`, derived, never persisted) and `User.AvatarURL` (json `avatarUrl,omitempty`, reserved upload path)\n- `ba"
         },
         {
           "id": "2.3",
           "name": "Level self-selection",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788185774.8281739,
+          "note": "I'll start by exploring the codebase to understand the structure and context.\nLet me look at the specific task 2.3 references and placement endpoints.\nNow let me explore the backend structure to understand existing patterns.\nThe learning engine already exists. Let me examine the relevant files that task 2.3 touches.\nThe `SelectLevel` service method already exists. Let me check the handler and routes to see what's already wired up vs. what's missing.\nHandler and service for `SelectLevel` exist. L"
         },
         {
           "id": "2.4",
           "name": "Contacts & invites epic",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788186000.2222588,
+          "note": "Substantial work already exists. Let me understand the epic requirements and current state.\nThe backend for the epic appears largely implemented. Let me verify it compiles and tests pass.\nAll epic tests pass. Let me run the full backend suite and confirm wiring in main.go compiles cleanly (already did). Let me check the EmailSender notification service wiring and full test run.\nFull backend suite green. Let me verify the shared API contract and remaining epic wiring are coherent.\nNo shared clien"
         },
         {
           "id": "3.1",
           "name": "Feature toggles FR-25",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788186284.2782848,
+          "note": "I've confirmed the FR-25 backend implementation is largely complete and green. The one gap is test coverage proving the acceptance criterion \"toggle off → no jobs enqueued.\" Let me add a focused handler test for the manual translate path.\nThe orchestrator's gate for a backend task also runs `frontend npm test`. Let me confirm that stays green since it's part of my task's verification.\nDone. The FR-25 feature toggles backend was already largely implemented in the working tree; I verified it end-t"
         },
         {
           "id": "3.2",
           "name": "Learned-word optimization FR-26",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788186587.4644818,
+          "note": "I'll start by exploring the codebase to understand its structure and find relevant context about the task.\nLet me search for relevant context about this task across the project.\nThe task references \"3.2\" which is a checklist item. Let me read the requirements and explore the backend structure.\nLet me explore the backend services and the translation-related code in detail.\nLet me read the translation and vocabulary services which are core to this task.\nThe core code exists. Let me verify whether "
         },
         {
           "id": "3.3",
           "name": "Simplify Chat Language Settings FR-35",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788186760.6025057,
+          "note": "The working-tree change already removes `theirLanguage`. Now let me verify the modal code is clean and add the acceptance test (per FR-35 \"Existing tests updated\"). Let me create the test file.\nNow let me run the new test plus the full frontend test suite and build to verify nothing regressed.\nThe new tests pass. Now the full frontend suite and build.\nBuild and all 88 tests pass. Let me check whether this task's status should be updated via the crew state tooling.\nTask FR-35 (id 3.3) — Simplify "
         },
         {
           "id": "3.4",
           "name": "Highlight new words FR-27/28",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788186888.6907182,
+          "note": "The feature is fully implemented and verified (88 tests pass, build green). Now marking task 3.4 as complete.\nTask 3.4 (FR-27/28 \"Highlight new words\") is complete and verified.\n\n**Implemented via:**\n- `frontend/src/utils/words.ts` — `tokenize`, `normalizeWord`, `isHighlightableWord` (pure, unit-tested)\n- `frontend/src/hooks/useKnownWords.ts` — loads known vocabulary per language, cached\n- `frontend/src/components/HighlightableText.tsx` — highlights unknown words, dims known ones; tap opens affo"
         },
         {
           "id": "3.5",
           "name": "Quality pipeline FR-30 + Phoenix",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788188291.5645614
         },
         {
           "id": "3.6",
           "name": "Web presence + typing render",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788188934.5511668,
+          "note": "I'll explore the codebase to understand the project structure and find context about \"Web presence\" and \"typing\" features.\nLet me find the task definition for \"3.6\" and understand \"Web presence\" and \"typing\" context.\nTask found: **3.6 - improve in-chat `presence` + `typing` rendering on web (currently omitted) (FR-9)**. Let me examine the frontend implementation.\nLet me read the core frontend files for chat and websocket handling.\nNow let me examine the shared package for websocket event types a"
         },
         {
           "id": "4.1",
           "name": "Your Learning Path FR-31",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788189804.7566795,
+          "note": "Now let me implement. Starting with the shared types:\nNow the backend model:\nNow the backend aggregation in `learning_dashboard.go`:\nNow add the `monthlyActivity` method at the end of the service file:\nNow add the `MonthlyActivityCard` component at the end of the file:\nNow add the `MonthlyActivityCard` component in mobile:\nNow update the mobile import to include `MonthlyActivityPoint`:\nNow add the new styles to the mobile StyleSheet:\nNow add the Learn test block at the end of the file:\nI need to"
         },
         {
           "id": "4.2",
           "name": "AI writing assistant FR-33",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788190004.334655,
+          "note": "I'll explore the codebase to understand the context and find the feature request FR-33.\nLet me examine the key files to understand the patterns before implementing.\nLet me look at the i18n setup and mobile ChatScreen to understand both surfaces.\nLet me examine the mobile ChatScreen, theme, and an existing mobile modal pattern plus the store."
         },
         {
           "id": "4.3",
           "name": "Seed+personal+unified SRS FR-32",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788190722.1498759,
+          "note": "Now I have a thorough understanding. Let me set up a task list and implement.\nNow create the SeedQueueService:\nNow the SRSQueueService:\nNow update the handler:\nNow add the `GetSRSQueue` handler and wire `EnsureSeeded` into `StartSession` and `SelectLevel`:\nNow wire up the services in main.go:\nLet me build to catch errors early:\nNow let me write tests. First, verify the exact column list used by the practice scan so tests match:\nAll green. Let me check formatting on the files I touched:\nLet me re"
         },
         {
           "id": "4.4",
           "name": "Scenario role-play FR-34",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788191053.1887746,
+          "note": "I'll explore the codebase to understand what FR-34 refers to and how this scenario role-play feature should be implemented.\nLet me find FR-34 reference in the requirements and understand the scenario role-play feature.\nLet me read the current scenario role-play implementation and understand the frontend structure.\nLet me look at the scenarios list page, routing, and API/tests related to scenario role-play.\nLet me read the Scenarios page, API service, shared types, and the test file to understand"
         },
         {
           "id": "5.1",
           "name": "Mail server isolation NFR-22",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788191515.1830642,
+          "note": "Implemented **NFR-22 Mail server isolation (id 5.1)**.\n\n## Files changed (only my edits; all under Phase 1 allowed paths)\n\n**New — `deploy/mail/`**\n- `docker-compose.mail.yml` — Mailu stack on its own isolated `mailu` bridge network. Only `587` (submission) is reachable from the app subnet; `25`/`465`/webmail/IMAP are bound to loopback. Excludes Mailu from any `chorus-network`.\n- `mailu.env.example` — Mailu config template (domain, TLS, admin, submission port). Copy → `mailu.env`, never commit.\n"
         },
         {
           "id": "5.2",
           "name": "Rate limiting coverage NFR-24",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788191886.1634028,
+          "note": "Now update the ReadPump to enforce the per-connection message throttle:\nNow wire translation and the WebSocket handshake rate limits:\nImplemented NFR-24 (id 5.2) rate-limiting coverage. Extended beyond waitlist/register to login, translation, and WebSockets.\n\n## Changes\n\n- **`backend/internal/services/ratelimit.go`** (new): concurrency-safe `FixedWindowLimiter` (per-key fixed window, bounded keys with lazy eviction) — shared by the HTTP middleware and the WS throttle.\n- **`backend/internal/middl"
         },
         {
           "id": "5.3",
           "name": "Observability NFR-18/25",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788192633.755611,
+          "note": "I'll start by exploring the codebase and looking for context about this task.\nFound the requirement. Let me investigate the existing observability code and requirements context.\nLet me examine the existing observability code and check for current health/metrics endpoints.\nNow let me examine the server entry point and check what dependencies exist.\nLet me examine the go.mod dependencies, health tests, and check for existing instrumentation in key handlers.\nLet me gather context on config, docker-"
         },
         {
           "id": "5.4",
           "name": "Dev env + CI/CD gates NFR-26",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788193329.4485533,
+          "note": "Now I have full context. Let me build the task. Starting with the dev environment under `deploy/dev/`.\nNow the CI gate scripts under `deploy/ci/`.\nNow the promotion script and the main CI workflow.\nNow the main CI workflow:\nNow fix the notify-failure step's malformed Slack curl:\nNow let me validate the compose file and YAML:\nLet me update todos and write the docs:\nImplemented **NFR-26 (id 5.4) — Dev env + CI/CD quality gates** as the SRE role. All changes are under Phase-1 ALLOWED paths (`deploy"
         }
       ],
       "gate": "all P0 closed, e2e passes, mobile builds"

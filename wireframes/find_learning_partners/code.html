@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus - Find &amp; Invite Partners</title>
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788158188199&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YTUyNzA4ZGIxNzcwMWE2MzJmMTIxM2E0MzUyEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&amp;family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary-fixed-variant": "#003ea8",
+                    "tertiary-container": "#007d55",
+                    "background": "#f8f9ff",
+                    "on-secondary-fixed": "#23005c",
+                    "surface-container-high": "#dce9ff",
+                    "on-surface-variant": "#434655",
+                    "secondary": "#6b38d4",
+                    "on-error-container": "#93000a",
+                    "inverse-surface": "#213145",
+                    "on-secondary": "#ffffff",
+                    "secondary-container": "#8455ef",
+                    "surface-variant": "#d3e4fe",
+                    "surface-container-highest": "#d3e4fe",
+                    "on-primary-container": "#eeefff",
+                    "primary-fixed": "#dbe1ff",
+                    "on-background": "#0b1c30",
+                    "on-tertiary-fixed-variant": "#005236",
+                    "tertiary-fixed-dim": "#4edea3",
+                    "primary-container": "#2563eb",
+                    "outline": "#737686",
+                    "on-secondary-fixed-variant": "#5516be",
+                    "on-surface": "#0b1c30",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary-container": "#fffbff",
+                    "on-tertiary-fixed": "#002113",
+                    "surface-dim": "#cbdbf5",
+                    "surface-tint": "#0053db",
+                    "error-container": "#ffdad6",
+                    "surface": "#f8f9ff",
+                    "surface-container": "#e5eeff",
+                    "secondary-fixed-dim": "#d0bcff",
+                    "on-tertiary-container": "#bdffdb",
+                    "on-tertiary": "#ffffff",
+                    "tertiary-fixed": "#6ffbbe",
+                    "on-primary-fixed": "#00174b",
+                    "secondary-fixed": "#e9ddff",
+                    "outline-variant": "#c3c6d7",
+                    "primary-fixed-dim": "#b4c5ff",
+                    "tertiary": "#006242",
+                    "surface-container-low": "#eff4ff",
+                    "inverse-on-surface": "#eaf1ff",
+                    "primary": "#004ac6",
+                    "error": "#ba1a1a",
+                    "on-primary": "#ffffff",
+                    "surface-bright": "#f8f9ff",
+                    "on-error": "#ffffff",
+                    "inverse-primary": "#b4c5ff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-mobile": "16px",
+                    "stack-lg": "24px",
+                    "gutter-mobile": "12px",
+                    "stack-md": "16px",
+                    "stack-sm": "8px",
+                    "unit": "4px"
+            },
+            "fontFamily": {
+                    "body-lg": [
+                            "Be Vietnam Pro"
+                    ],
+                    "headline-sm": [
+                            "Plus Jakarta Sans"
+                    ],
+                    "headline-md": [
+                            "Plus Jakarta Sans"
+                    ],
+                    "headline-lg": [
+                            "Plus Jakarta Sans"
+                    ],
+                    "translation-text": [
+                            "Be Vietnam Pro"
+                    ],
+                    "label-md": [
+                            "Inter"
+                    ],
+                    "label-sm": [
+                            "Inter"
+                    ],
+                    "body-sm": [
+                            "Be Vietnam Pro"
+                    ],
+                    "body-md": [
+                            "Be Vietnam Pro"
+                    ]
+            },
+            "fontSize": {
+                    "body-lg": [
+                            "18px",
+                            {
+                                    "lineHeight": "28px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-sm": [
+                            "20px",
+                            {
+                                    "lineHeight": "28px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "headline-md": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "letterSpacing": "-0.01em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "headline-lg": [
+                            "30px",
+                            {
+                                    "lineHeight": "38px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "translation-text": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "label-md": [
+                            "13px",
+                            {
+                                    "lineHeight": "18px",
+                                    "letterSpacing": "0.01em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "label-sm": [
+                            "11px",
+                            {
+                                    "lineHeight": "16px",
+                                    "letterSpacing": "0.03em",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "body-sm": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "body-md": [
+                            "16px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "400"
+                            }
+                    ]
+            }
+    },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .filled-icon {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .interest-tag {
+            transition: all 0.2s ease-in-out;
+        }
+        .interest-tag:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 74, 198, 0.15);
+        }
+        .interest-tag.active {
+            background-color: theme('colors.primary');
+            color: theme('colors.on-primary');
+            border-color: theme('colors.primary');
+        }
+        
+        .score-ring {
+            stroke-dasharray: 100;
+            stroke-dashoffset: 25; /* Represents 75% score */
+            transition: stroke-dashoffset 1s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen pb-24 font-body-md">
+<!-- TopAppBar -->
+<header class="docked full-width top-0 bg-surface dark:bg-surface-container-low shadow-sm flex justify-between items-center px-margin-mobile py-stack-sm w-full sticky z-40">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container-high border-2 border-primary-container">
+<img alt="User profile avatar" class="w-full h-full object-cover" data-alt="A close-up, softly lit portrait of a young professional smiling confidently. The lighting is bright and modern, creating a welcoming and approachable mood consistent with a modern social learning app. High resolution, shallow depth of field." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB1bChoDcWvsd1lRVBlD39TaJ60uN7qolxHpGOzzcrdsyifMd24OZALfdZKijhhlyyV09B3PYGJCkuT1AyUOOYtteDzVxn8Qqpd84W_pZ-h6b-6jFcaeKFtt74obhls2-ZMPA2AbGaXzW0YFIG5MBSGNQ9yAK66aRRf-jNiDI_nkd4T1MQZp7dVUDqX4G6-3UeF1eXsS3RL21GKFzRu7HHbWune55945xIgJm1wjBmVbWN3cv6Jiby4"/>
+</div>
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim">Chorus</span>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</header>
+<main class="px-margin-mobile pt-stack-lg max-w-2xl mx-auto space-y-stack-lg">
+<!-- Page Title -->
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-background mb-1">Find Partners</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Connect and practice together.</p>
+</div>
+<!-- Sync Contacts Card (Bento Style) -->
+<section class="glass-card rounded-xl p-5 relative overflow-hidden flex flex-col md:flex-row gap-5 items-center justify-between">
+<div class="absolute -right-10 -top-10 w-40 h-40 bg-primary-fixed rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+<div class="flex-1 space-y-3 z-10 text-center md:text-left">
+<div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-surface-container text-primary mb-2">
+<span class="material-symbols-outlined text-2xl" data-icon="contacts">contacts</span>
+</div>
+<h2 class="font-headline-sm text-headline-sm text-on-background">Find Friends</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Sync your contacts to find people you know already learning on Chorus.</p>
+</div>
+<div class="w-full md:w-auto z-10">
+<button class="w-full md:w-auto px-6 py-3 bg-primary text-on-primary rounded-full font-label-md text-label-md flex items-center justify-center gap-2 hover:bg-surface-tint active:scale-95 transition-all shadow-md">
+<span class="material-symbols-outlined text-lg" data-icon="sync">sync</span>
+                    Sync Contacts
+                </button>
+</div>
+</section>
+<!-- Search by Interest -->
+<section class="space-y-4">
+<div class="flex justify-between items-end">
+<h2 class="font-headline-sm text-headline-sm text-on-background">Search by Interest</h2>
+<a class="font-label-md text-label-md text-primary hover:underline" href="#">View All</a>
+</div>
+<div class="flex flex-wrap gap-3">
+<button class="interest-tag px-4 py-2 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface font-label-md text-label-md flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="flight_takeoff">flight_takeoff</span>
+                    Travel
+                </button>
+<button class="interest-tag px-4 py-2 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface font-label-md text-label-md flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="work">work</span>
+                    Business
+                </button>
+<button class="interest-tag active px-4 py-2 rounded-full border border-primary bg-primary text-on-primary font-label-md text-label-md flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="movie">movie</span>
+                    Pop Culture
+                </button>
+<button class="interest-tag px-4 py-2 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface font-label-md text-label-md flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="sports_esports">sports_esports</span>
+                    Gaming
+                </button>
+<button class="interest-tag px-4 py-2 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface font-label-md text-label-md flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="restaurant">restaurant</span>
+                    Food
+                </button>
+</div>
+</section>
+<!-- Suggested for You -->
+<section class="space-y-4">
+<h2 class="font-headline-sm text-headline-sm text-on-background">Suggested for You</h2>
+<div class="space-y-3">
+<!-- Suggestion Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-4 shadow-sm border border-surface-container flex items-center gap-4 active:scale-[0.98] transition-transform cursor-pointer hover:border-primary-fixed-dim">
+<div class="relative">
+<img alt="Partner Avatar" class="w-14 h-14 rounded-full object-cover border border-surface-container-highest" data-alt="A portrait of an energetic young woman in a brightly lit coffee shop, smiling warmly at the camera. The scene is shot with soft, flattering lighting indicative of a modern, premium social app aesthetic. Shallow depth of field blurs the background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCp0YftHxs7PHPwQn4Kn2nr7xPovcvSHQ65bKwQAF3iTtgzEau7J7NleKlIfDRfzu7Aib-0-ED_apNNsPareVa7RwYVvfZ5sEP8N96VHUDXt4abq5yic5KYl_Quve7xNY8DYklh28qp6lZpM_69N4Lmyqt9UGFdJ5-Q_DrC15Tj8tn1HHTCfd0TRkjYG2u20jdnn53wtr4YfsVi8zstOyU6CRvNwUGYX9An_Iy8LsjMNaPMQMTwFRUB"/>
+<div class="absolute -bottom-1 -right-1 w-6 h-6 bg-surface-container-lowest rounded-full flex items-center justify-center">
+<span class="w-4 h-4 rounded-full bg-tertiary-container border border-surface-container-lowest"></span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<h3 class="font-label-md text-label-md text-on-background truncate">Elena R.</h3>
+<div class="flex items-center gap-1 text-on-surface-variant mt-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="translate">translate</span>
+<span class="font-label-sm text-label-sm">Native: ES • Learning: EN</span>
+</div>
+</div>
+<div class="flex flex-col items-center">
+<div class="relative w-10 h-10 flex items-center justify-center">
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 36 36">
+<path class="text-surface-container-highest" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3"></path>
+<path class="text-tertiary-container score-ring" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="100, 100" stroke-width="3" style="stroke-dashoffset: 15;"></path> <!-- 85% -->
+</svg>
+<span class="absolute font-label-sm text-label-sm text-tertiary-container">85%</span>
+</div>
+<span class="font-label-sm text-[10px] text-outline mt-1">Match</span>
+</div>
+</div>
+<!-- Suggestion Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-4 shadow-sm border border-surface-container flex items-center gap-4 active:scale-[0.98] transition-transform cursor-pointer hover:border-primary-fixed-dim">
+<div class="relative">
+<img alt="Partner Avatar" class="w-14 h-14 rounded-full object-cover border border-surface-container-highest" data-alt="A portrait of a thoughtful young man in a minimalist workspace, looking directly at the camera with a gentle smile. Soft, natural daylight illuminates his face, creating a clean, modern aesthetic suitable for an educational platform. Shallow depth of field." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJF0x0oLrz7umzliZM4JV-prAj4jIwm9X51XxyXbSUHZtFUvNCS_SV9rpyj9qY3t5oKtzshgAJz_csl1GujtTp46IUqNf2eTvUHEZGHI8KUyij7osCCqPLSXBIGQ790ToqZhE1Kjc5LQOmYe5dhfLG0NCeHg_SKnQ7KnduoaeBN9-YPbejUNDtVu_KJcYP2JemYrwdpJY-Kyi8Pu0sXYkvo5yb5pKzgy-tflcm7mTAV5zcvMFFICsz"/>
+<div class="absolute -bottom-1 -right-1 w-6 h-6 bg-surface-container-lowest rounded-full flex items-center justify-center">
+<span class="w-4 h-4 rounded-full bg-outline-variant border border-surface-container-lowest"></span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<h3 class="font-label-md text-label-md text-on-background truncate">Kenji M.</h3>
+<div class="flex items-center gap-1 text-on-surface-variant mt-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="translate">translate</span>
+<span class="font-label-sm text-label-sm">Native: JA • Learning: EN</span>
+</div>
+</div>
+<div class="flex flex-col items-center">
+<div class="relative w-10 h-10 flex items-center justify-center">
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 36 36">
+<path class="text-surface-container-highest" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3"></path>
+<path class="text-primary-container score-ring" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="100, 100" stroke-width="3" style="stroke-dashoffset: 28;"></path> <!-- 72% -->
+</svg>
+<span class="absolute font-label-sm text-label-sm text-primary-container">72%</span>
+</div>
+<span class="font-label-sm text-[10px] text-outline mt-1">Match</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Share Link Action -->
+<section class="pt-4">
+<button class="w-full py-4 bg-surface-container-low border border-primary-fixed-dim text-primary rounded-xl font-label-md text-label-md flex items-center justify-center gap-2 hover:bg-surface-container-high active:scale-95 transition-all shadow-sm">
+<span class="material-symbols-outlined" data-icon="ios_share">ios_share</span>
+                Share Invite Link
+            </button>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed full-width bottom-0 z-50 bg-surface dark:bg-surface-container-low shadow-lg fixed bottom-0 w-full z-50 flex justify-around items-center px-4 py-2 bg-surface dark:bg-surface-container-low md:hidden">
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-5 py-1 hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all active:scale-90 transition-transform duration-200">
+<span class="material-symbols-outlined mb-1" data-icon="school">school</span>
+<span class="font-label-sm text-label-sm">Learn</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-5 py-1 hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all active:scale-90 transition-transform duration-200">
+<span class="material-symbols-outlined mb-1" data-icon="chat_bubble">chat_bubble</span>
+<span class="font-label-sm text-label-sm">Chats</span>
+</button>
+<!-- Active Tab: Hub (implies finding partners/exploring) -->
+<button class="flex flex-col items-center justify-center bg-secondary-container dark:bg-secondary-fixed-dim text-on-secondary-container dark:text-on-secondary-fixed-variant rounded-full px-5 py-1 hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all active:scale-90 transition-transform duration-200">
+<span class="material-symbols-outlined filled-icon mb-1" data-icon="explore">explore</span>
+<span class="font-label-sm text-label-sm">Hub</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-5 py-1 hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all active:scale-90 transition-transform duration-200">
+<span class="material-symbols-outlined mb-1" data-icon="person">person</span>
+<span class="font-label-sm text-label-sm">Profile</span>
+</button>
+</nav>
+<script>
+        // Simple script to toggle active state on interest tags for interaction demonstration
+        document.addEventListener('DOMContentLoaded', () => {
+            const tags = document.querySelectorAll('.interest-tag');
+            tags.forEach(tag => {
+                tag.addEventListener('click', () => {
+                    tag.classList.toggle('active');
+                    if(tag.classList.contains('active')) {
+                        tag.classList.remove('bg-surface-container-lowest', 'text-on-surface', 'border-outline-variant');
+                        tag.classList.add('bg-primary', 'text-on-primary', 'border-primary');
+                    } else {
+                        tag.classList.add('bg-surface-container-lowest', 'text-on-surface', 'border-outline-variant');
+                        tag.classList.remove('bg-primary', 'text-on-primary', 'border-primary');
+                    }
+                });
+            });
+        });
+    </script>
+</body></html>

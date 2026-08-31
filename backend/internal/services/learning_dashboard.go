@@ -55,6 +55,7 @@ func (s *LearningDashboardService) GetDashboard(ctx context.Context, userID, tar
 		Scenario:              s.scenario(ctx, userID, targetLanguage, profile, capability),
 		RecommendedActivities: s.recommended(profile, capability),
 		WeeklyActivity:        s.weeklyActivity(ctx, userID, targetLanguage),
+		MonthlyActivity:       s.monthlyActivity(ctx, userID, targetLanguage),
 	}
 
 	if capability.SupportTier == string(models.LearningSupportFullCourse) {
@@ -372,4 +373,67 @@ func (s *LearningDashboardService) recommended(profile *models.UserLanguageProfi
 		})
 	}
 	return acts
+}
+
+// monthlyActivity returns time-bucketed per-month learning metrics for FR-31.
+// Words learned is derived from the vocabulary bank (words saved/learned for
+// the target language). Sentences understood is derived from messages carrying a
+// translation that the user can consume in their chats. The last 12 months are
+// always returned (zero-filled), so clients can render a month picker with real
+// and empty states.
+func (s *LearningDashboardService) monthlyActivity(ctx context.Context, userID, targetLanguage string) []models.MonthlyActivityPoint {
+	wordsByMonth := make(map[string]int)
+	sentencesByMonth := make(map[string]int)
+
+	if rows, err := s.db.QueryContext(ctx, `
+		SELECT to_char(date_trunc('month', created_at), 'YYYY-MM') AS month, COUNT(*)
+		FROM vocabulary
+		WHERE user_id = $1 AND language = $2 AND created_at IS NOT NULL
+		GROUP BY month
+	`, userID, targetLanguage); err == nil {
+		for rows.Next() {
+			var m string
+			var n int
+			if rows.Scan(&m, &n) == nil {
+				wordsByMonth[m] = n
+			}
+		}
+		rows.Close()
+	}
+
+	if rows, err := s.db.QueryContext(ctx, `
+		SELECT to_char(date_trunc('month', m.created_at), 'YYYY-MM') AS month, COUNT(*)
+		FROM messages m
+		JOIN chat_participants cp ON cp.chat_id = m.chat_id
+		WHERE cp.user_id = $1
+		  AND m.created_at IS NOT NULL
+		  AND m.translations IS NOT NULL
+		  AND m.translations <> '{}'::jsonb
+		GROUP BY month
+	`, userID); err == nil {
+		for rows.Next() {
+			var m string
+			var n int
+			if rows.Scan(&m, &n) == nil {
+				sentencesByMonth[m] = n
+			}
+		}
+		rows.Close()
+	}
+
+	// Build the last 12 month buckets (ascending) so the month picker always has
+	// a full range, even across a year boundary.
+	points := make([]models.MonthlyActivityPoint, 0, 12)
+	now := time.Now()
+	anchor := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	for i := 11; i >= 0; i-- {
+		month := anchor.AddDate(0, -i, 0)
+		key := month.Format("2006-01")
+		points = append(points, models.MonthlyActivityPoint{
+			Month:               key,
+			WordsLearned:        wordsByMonth[key],
+			SentencesUnderstood: sentencesByMonth[key],
+		})
+	}
+	return points
 }

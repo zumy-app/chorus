@@ -1,134 +1,129 @@
 <!DOCTYPE html>
 
-<html class="light" lang="en"><head>
+<html lang="en"><head>
 <meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
-<title>Chorus - Chat with Sofia</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;display=swap" rel="stylesheet"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Fluency Messenger - Chat with Sofia</title>
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788152794930&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1OTFjZmE3MzUwMDIwMWI0ZTRkMTRkMDA1N2Q3EgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700&amp;family=Inter:wght@500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <script id="tailwind-config">
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            "colors": {
-                    "secondary-fixed": "#e9ddff",
-                    "on-tertiary-fixed": "#002113",
-                    "primary-fixed": "#dbe1ff",
-                    "surface-container": "#e5eeff",
-                    "on-error-container": "#93000a",
-                    "error": "#ba1a1a",
-                    "on-background": "#0b1c30",
-                    "surface-dim": "#cbdbf5",
-                    "on-secondary": "#ffffff",
-                    "secondary-container": "#8455ef",
-                    "error-container": "#ffdad6",
-                    "primary-container": "#2563eb",
-                    "inverse-primary": "#b4c5ff",
-                    "on-primary-container": "#eeefff",
-                    "surface-container-high": "#dce9ff",
-                    "surface-container-highest": "#d3e4fe",
-                    "tertiary-fixed": "#6ffbbe",
-                    "on-primary": "#ffffff",
-                    "on-tertiary": "#ffffff",
-                    "background": "#f8f9ff",
-                    "outline": "#737686",
-                    "primary": "#004ac6",
-                    "tertiary-container": "#007d55",
-                    "surface-container-lowest": "#ffffff",
-                    "surface-tint": "#0053db",
-                    "primary-fixed-dim": "#b4c5ff",
-                    "on-primary-fixed-variant": "#003ea8",
-                    "on-primary-fixed": "#00174b",
-                    "inverse-surface": "#213145",
-                    "on-secondary-container": "#fffbff",
-                    "surface": "#f8f9ff",
-                    "on-tertiary-fixed-variant": "#005236",
-                    "on-secondary-fixed": "#23005c",
-                    "surface-variant": "#d3e4fe",
-                    "surface-container-low": "#eff4ff",
-                    "on-surface": "#0b1c30",
-                    "on-secondary-fixed-variant": "#5516be",
-                    "secondary-fixed-dim": "#d0bcff",
-                    "tertiary-fixed-dim": "#4edea3",
-                    "secondary": "#6b38d4",
-                    "surface-bright": "#f8f9ff",
-                    "on-error": "#ffffff",
-                    "tertiary": "#006242",
-                    "on-tertiary-container": "#bdffdb",
-                    "inverse-on-surface": "#eaf1ff",
-                    "on-surface-variant": "#434655",
-                    "outline-variant": "#c3c6d7"
-            },
-            "borderRadius": {
-                    "DEFAULT": "0.25rem",
-                    "lg": "0.5rem",
-                    "xl": "0.75rem",
-                    "full": "9999px"
-            },
-            "spacing": {
-                    "margin-mobile": "16px",
-                    "stack-lg": "24px",
-                    "stack-md": "16px",
-                    "unit": "4px",
-                    "stack-sm": "8px",
-                    "gutter-mobile": "12px"
-            },
-            "fontFamily": {
-                    "label-md": ["Inter"],
-                    "translation-text": ["Be Vietnam Pro"],
-                    "body-md": ["Be Vietnam Pro"],
-                    "headline-sm": ["Plus Jakarta Sans"],
-                    "body-sm": ["Be Vietnam Pro"],
-                    "label-sm": ["Inter"],
-                    "body-lg": ["Be Vietnam Pro"],
-                    "headline-md": ["Plus Jakarta Sans"],
-                    "headline-lg": ["Plus Jakarta Sans"]
-            },
-            "fontSize": {
-                    "label-md": ["13px", {"lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600"}],
-                    "translation-text": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
-                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
-                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
-                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
-                    "label-sm": ["11px", {"lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500"}],
-                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
-                    "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
-                    "headline-lg": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed": "#e9ddff",
+                        "on-background": "#0b1c30",
+                        "surface-container-highest": "#d3e4fe",
+                        "surface-bright": "#f8f9ff",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "outline": "#737686",
+                        "tertiary-fixed": "#6ffbbe",
+                        "error": "#ba1a1a",
+                        "surface-container-low": "#eff4ff",
+                        "on-surface": "#0b1c30",
+                        "error-container": "#ffdad6",
+                        "surface-tint": "#0053db",
+                        "surface-variant": "#d3e4fe",
+                        "on-secondary-fixed-variant": "#5516be",
+                        "surface-dim": "#cbdbf5",
+                        "primary": "#004ac6",
+                        "on-secondary": "#ffffff",
+                        "secondary": "#6b38d4",
+                        "inverse-primary": "#b4c5ff",
+                        "on-primary-container": "#eeefff",
+                        "secondary-container": "#8455ef",
+                        "primary-container": "#2563eb",
+                        "outline-variant": "#c3c6d7",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-secondary-fixed": "#23005c",
+                        "on-tertiary-fixed": "#002113",
+                        "tertiary-container": "#007d55",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "on-tertiary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "surface-container-high": "#dce9ff",
+                        "inverse-surface": "#213145",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "background": "#f8f9ff",
+                        "on-primary-fixed": "#00174b",
+                        "surface": "#f8f9ff",
+                        "on-secondary-container": "#fffbff",
+                        "on-tertiary-container": "#bdffdb",
+                        "tertiary": "#006242",
+                        "on-primary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-fixed": "#dbe1ff",
+                        "secondary-fixed-dim": "#d0bcff",
+                        "on-surface-variant": "#434655",
+                        "surface-container": "#e5eeff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-sm": "8px",
+                        "margin-mobile": "16px",
+                        "unit": "4px",
+                        "gutter-mobile": "12px",
+                        "stack-lg": "24px",
+                        "stack-md": "16px"
+                    },
+                    "fontFamily": {
+                        "translation-text": ["Be Vietnam Pro"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "label-sm": ["Inter"],
+                        "body-lg": ["Be Vietnam Pro"],
+                        "body-md": ["Be Vietnam Pro"],
+                        "label-md": ["Inter"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "body-sm": ["Be Vietnam Pro"]
+                    },
+                    "fontSize": {
+                        "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
             }
-          }
         }
-      }
     </script>
 <style>
-        .grammar-spark {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 16px;
-            height: 16px;
-            background-color: theme('colors.secondary-fixed');
-            color: theme('colors.secondary');
-            border-radius: 50%;
-            font-size: 10px;
-            margin-left: 4px;
-            vertical-align: middle;
-            cursor: pointer;
-            position: relative;
-            top: -2px;
-            box-shadow: 0 0 4px rgba(132, 85, 239, 0.4);
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .bubble-incoming {
+            border-radius: 1.5rem 1.5rem 1.5rem 0.25rem;
+        }
+        .bubble-outgoing {
+            border-radius: 1.5rem 1.5rem 0.25rem 1.5rem;
         }
         
-        /* Hide scrollbar for clean look */
-        ::-webkit-scrollbar {
-            display: none;
+        /* Toggle Switch Styles */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #004ac6; /* primary */
         }
-        
-        .chat-container {
-            height: calc(100vh - 140px); /* Adjust based on header/footer */
-            overflow-y: auto;
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #004ac6; /* primary */
+        }
+        .toggle-checkbox:checked + .toggle-label:after {
+            transform: translateX(100%);
+            border-color: white;
         }
     </style>
 <style>
@@ -137,183 +132,202 @@
     }
   </style>
   </head>
-<body class="bg-surface text-on-surface h-screen flex flex-col relative font-body-md overflow-hidden antialiased">
-<!-- TopAppBar -->
-<header class="bg-surface shadow-sm docked full-width top-0 z-40 relative">
-<div class="flex justify-between items-center w-full px-margin-mobile py-stack-sm">
+<body class="bg-background text-on-background font-body-md text-body-md h-screen flex flex-col overflow-hidden selection:bg-primary-fixed-dim selection:text-on-primary-fixed">
+<!-- TopAppBar JSON Implementation -->
+<header class="bg-surface fixed top-0 w-full z-50 flex items-center justify-between px-margin-mobile h-16 shadow-sm">
 <div class="flex items-center gap-3">
-<button class="text-on-surface-variant hover:bg-surface-container transition-colors p-2 rounded-full active:scale-95 duration-150">
-<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+<button aria-label="Go back" class="flex items-center justify-center w-10 h-10 rounded-full text-on-surface-variant hover:bg-surface-variant/20 transition-transform duration-200 active:scale-95">
+<span class="material-symbols-outlined" style="font-variation-settings: 'wght' 400;">arrow_back</span>
 </button>
-<div class="relative">
-<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container-high border-2 border-surface-container">
-<img alt="Sofia" class="w-full h-full object-cover" data-alt="A close up portrait of a friendly young woman named Sofia, smiling warmly. She has dark hair and is wearing a casual blue sweater. The lighting is soft and natural, emphasizing a modern, approachable aesthetic suitable for a language learning app profile picture." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA7X--MQojdy-3HPGT-mIPD4yIgwSBOXQPk-W3fsSdils3f_V4x7yo9srT8Ju-Gp1GF9olUFyeNU3-CuhYTxcRBOwxSLQDGczEgTs-mBG1ZyGUddzdl9ygh_x6i40Glrw5TFqPGwk_a98VoCveST2G4kvV2WVyJafIY58sC7J0qiuJLWvb3Nm0ZlXRdmraTE_LQNEMvEICdPi-MezKAs02ch0qJsfvMOrsH5wCs0ruOGamRL9sZBLLu"/>
-</div>
-<div class="absolute bottom-0 right-0 w-3 h-3 bg-tertiary-fixed-dim border-2 border-surface rounded-full"></div>
-</div>
-<div>
-<h1 class="font-headline-sm text-headline-sm text-on-surface">Sofia</h1>
-<p class="font-label-sm text-label-sm text-tertiary-container">Online • Learning Spanish</p>
+<img alt="Sofia's avatar" class="w-10 h-10 rounded-full object-cover border border-outline-variant/30" data-alt="A close-up, high-quality circular profile picture of an approachable young woman with dark hair, smiling warmly. The lighting is soft and natural, suggesting a friendly, welcoming persona suitable for a language learning app profile." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWITldBp3e0YJG4ecpk-7oOdnQ3nQsQqwLTbQCcMahd5X10xBPlGNlXFf0uZvD59EIyCPpi9fLoZFxR5bUJpVh5KI7F-jpj857zyGFbC1KsP3mmK1IqstU5_-HoagD_k2GERUKku5k580o0lZSNOasWdIDYCfWyalPF0HnRqUTJFSrvBHYrRXi-z1kM4Nbd5-x4AgV5I82FeqqYf3zWUk3GwD4HlSKLDK-DjCIOihitmmmSF4i-1vx"/>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-primary">Sofia (Spain)</span>
+<span class="font-label-sm text-label-sm text-tertiary-container flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-tertiary-container"></span> Online
+                </span>
 </div>
 </div>
-<button class="text-primary hover:bg-surface-container transition-colors p-2 rounded-full active:scale-95 duration-150 relative" id="tutor-toggle">
-<span class="material-symbols-outlined" data-icon="school" data-weight="fill" style="font-variation-settings: 'FILL' 1;">school</span>
-<!-- Pulse indicator for AI -->
-<span class="absolute top-1 right-1 w-2 h-2 bg-secondary rounded-full animate-pulse"></span>
+<button class="flex items-center justify-center w-10 h-10 rounded-full text-primary hover:bg-surface-variant/20 transition-transform duration-200 active:scale-95">
+<span class="material-symbols-outlined">translate</span>
 </button>
-</div>
 </header>
-<!-- Main Chat Canvas -->
-<main class="flex-1 chat-container px-margin-mobile py-stack-lg flex flex-col gap-stack-md relative z-10">
-<!-- Date Header -->
-<div class="text-center w-full my-stack-sm">
-<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-low px-3 py-1 rounded-full">Today, 10:42 AM</span>
+<!-- Chat Canvas -->
+<main class="flex-1 overflow-y-auto hide-scroll px-margin-mobile pt-[88px] pb-stack-lg flex flex-col gap-stack-md bg-background" id="chat-container">
+<!-- Date Separator -->
+<div class="flex justify-center my-2">
+<span class="bg-surface-container py-1 px-3 rounded-full font-label-sm text-label-sm text-on-surface-variant">Today</span>
 </div>
 <!-- Incoming Message -->
-<div class="flex flex-col gap-1 w-full max-w-[85%] self-start">
-<div class="bg-white p-3 rounded-2xl rounded-tl-sm shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-surface-variant relative text-on-surface">
-<p class="font-body-md text-body-md">¡Hola! ¿Cómo estás hoy? Estoy emocionada por nuestra charla.</p>
+<div class="flex items-end gap-gutter-mobile w-full">
+<img alt="Avatar" class="w-8 h-8 rounded-full object-cover mb-1 shrink-0" data-alt="A close-up, high-quality circular profile picture of an approachable young woman with dark hair, smiling warmly. The lighting is soft and natural, suggesting a friendly, welcoming persona suitable for a language learning app profile." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6xoMKpUaxD7bTpEYmOUMXEQHry9x2Z8gZ5mRm7s2ixY352xDrY4GKrI_K0EBqPuETP8R-SD5LZsXW3AHNmOzn8-wNf83utbn5oWPW27vnhZxZxhVJMfWAEU_S9j5xDa0rU8To8KntH3AmynoT1_XdhVWs3TmiNemAPZELA8U-WNu5Dky17p-JbFDcq6OgcHNs4iugZFhajVALQCslDsVdduIJwWU7mmChAE2MLIRyFmkwU5tbvwup"/>
+<div class="flex flex-col gap-1 max-w-[80%] group">
+<div class="bg-surface-container-lowest text-on-surface bubble-incoming px-4 py-3 shadow-[0px_4px_12px_rgba(0,0,0,0.05)] border border-outline-variant/20 relative">
+<p class="font-body-md text-body-md">¡Hola! ¿Cómo estuvo tu fin de semana? Fui a la playa con mi familia.</p>
+<!-- Translation (Expandable) -->
+<div class="mt-2 pt-2 border-t border-outline-variant/30 hidden group-hover:block transition-all duration-300 origin-top">
+<p class="font-translation-text text-translation-text text-on-surface-variant/80">
+                            Hi! How was your weekend? I went to the beach with my family.
+                        </p>
 </div>
 </div>
-<!-- Outgoing Message (User) -->
-<div class="flex flex-col gap-1 w-full max-w-[85%] self-end items-end">
-<div class="bg-primary p-3 rounded-2xl rounded-tr-sm shadow-[0_4px_12px_rgba(0,0,0,0.05)] text-on-primary">
-<p class="font-body-md text-body-md">Hola Sofia. Estoy bien, pero un poco <span class="relative">cansada<span class="grammar-spark" onclick="document.getElementById('grammar-card-1').classList.toggle('hidden')"><span class="material-symbols-outlined" data-icon="temp_preferences_custom" style="font-size: 12px;">temp_preferences_custom</span></span></span> hoy.</p>
+<span class="font-label-sm text-label-sm text-on-surface-variant ml-2 opacity-0 group-hover:opacity-100 transition-opacity">10:42 AM</span>
 </div>
-<span class="font-label-sm text-label-sm text-on-surface-variant mr-1">Read 10:45 AM</span>
-<!-- Grammar Context Card (Hidden by default, positioned relative to the word conceptually, but absolute here for simplicity in static HTML) -->
-<div class="hidden absolute mt-12 right-margin-mobile w-[280px] bg-white rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.1)] border border-secondary-fixed z-30 p-3 flex flex-col gap-2" id="grammar-card-1">
-<div class="flex justify-between items-start">
-<div class="flex items-center gap-1.5 text-secondary">
-<span class="material-symbols-outlined text-[18px]" data-icon="temp_preferences_custom" data-weight="fill" style="font-variation-settings: 'FILL' 1;">temp_preferences_custom</span>
-<span class="font-label-md text-label-md">Grammar Spark</span>
 </div>
-<button class="text-outline hover:text-on-surface" onclick="document.getElementById('grammar-card-1').classList.add('hidden')">
-<span class="material-symbols-outlined text-[18px]" data-icon="close">close</span>
+<!-- Outgoing Message -->
+<div class="flex items-end justify-end gap-gutter-mobile w-full mt-2">
+<div class="flex flex-col gap-1 max-w-[80%] items-end group">
+<div class="bg-primary text-on-primary bubble-outgoing px-4 py-3 shadow-[0px_4px_12px_rgba(0,0,0,0.05)] relative">
+<p class="font-body-md text-body-md">Fue genial. Descansé mucho y leí un buen libro.</p>
+<!-- Subtle checkmarks -->
+<div class="absolute bottom-1 right-2 flex opacity-70">
+<span class="material-symbols-outlined text-[14px]">done_all</span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant mr-2 opacity-0 group-hover:opacity-100 transition-opacity">10:45 AM</span>
+</div>
+</div>
+<!-- AI Enhanced Incoming Message (Highlighted) -->
+<div class="flex items-end gap-gutter-mobile w-full mt-4">
+<img alt="Avatar" class="w-8 h-8 rounded-full object-cover mb-1 shrink-0" data-alt="A close-up, high-quality circular profile picture of an approachable young woman with dark hair, smiling warmly. The lighting is soft and natural, suggesting a friendly, welcoming persona suitable for a language learning app profile." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAd_dNO8xve1-s5Fum78vgm5Cq3oFyzonaHyuebO3aviEkODnH8_2aEv0887bZCIdS4iClxO31cBjSi0DrHG1s8j29hf7OMF0j549u03wlieH45jbXYKs-6nDMlHJhFhpH7IQeFxMECfWJQL4FMoPOImLEPmJ7HP0wb2a9mIOmXfGalh47WuSvJ2kvCiowj99e_a6YfJiN49nopCvdoGpXZqzmd4xTKa8OsUF7KSW8DVLVY9ASnwhkN"/>
+<div class="flex flex-col gap-1 max-w-[85%]">
+<!-- AI Insight Wrapper -->
+<div class="relative bg-secondary-fixed/30 border-l-[3px] border-secondary bubble-incoming px-4 py-3 shadow-[0_0_12px_rgba(107,56,212,0.08)] p-[calc(0.75rem+4px)]">
+<!-- Header with Icon -->
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-sm text-label-sm text-secondary font-semibold uppercase tracking-wider flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">auto_awesome</span> Learning Moment
+                        </span>
+<button class="w-6 h-6 flex items-center justify-center rounded-full bg-surface-container-lowest text-secondary shadow-sm hover:bg-secondary-fixed transition-colors active:scale-95" id="ai-insight-btn">
+<span class="material-symbols-outlined text-[18px]">info</span>
 </button>
 </div>
-<p class="font-body-sm text-body-sm text-on-surface">You used the feminine form <strong>"cansada"</strong>. Make sure it matches your gender if you are identifying as male ("cansado").</p>
-<button class="mt-1 w-full bg-surface-container-high text-primary font-label-md text-label-md py-2 rounded-lg hover:bg-surface-variant transition-colors flex justify-center items-center gap-2">
-<span class="material-symbols-outlined text-[16px]" data-icon="school">school</span>
-                    Ask Sparky
-                </button>
+<p class="font-body-md text-body-md text-on-background mt-1">
+                        Me alegro mucho. Ojalá <span class="bg-secondary-container/20 text-secondary-container font-semibold px-1 rounded inline-block cursor-pointer hover:bg-secondary-container/30 transition-colors">hubiéramos tenido</span> más tiempo para relajarnos también.
+                    </p>
+<!-- Permanent Translation for AI enhanced blocks -->
+<div class="mt-3 pt-2 border-t border-secondary/20">
+<p class="font-translation-text text-translation-text text-on-surface-variant">
+                            I'm very glad. I wish we <span class="font-bold text-secondary-container">had had</span> more time to relax too.
+                        </p>
 </div>
-</div>
-<!-- Incoming Message with Translation -->
-<div class="flex flex-col gap-1 w-full max-w-[85%] self-start">
-<div class="bg-white p-3 rounded-2xl rounded-tl-sm shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-surface-variant relative text-on-surface">
-<p class="font-body-md text-body-md">¡Oh, lo entiendo! Trabajar mucho cansa a cualquiera. ¿Qué vas a hacer este fin de semana para <span class="relative">relajarte<span class="grammar-spark"><span class="material-symbols-outlined" data-icon="temp_preferences_custom" style="font-size: 12px;">temp_preferences_custom</span></span></span>?</p>
-</div>
-<!-- AI Enhanced Translation Bubble -->
-<div class="bg-[#fcfaff] border-l-2 border-secondary p-2 rounded-r-lg rounded-bl-lg shadow-sm mt-1 flex items-start gap-2 max-w-[95%] ml-2">
-<span class="material-symbols-outlined text-secondary text-[16px] mt-0.5" data-icon="translate">translate</span>
-<p class="font-translation-text text-translation-text text-on-surface-variant">Oh, I understand! Working a lot tires anyone. What are you going to do this weekend to relax?</p>
-</div>
-</div>
-<!-- Typing Indicator -->
-<div class="flex flex-col gap-1 w-full max-w-[85%] self-end items-end opacity-50 mt-2">
-<div class="bg-primary p-3 rounded-2xl rounded-tr-sm shadow-sm flex items-center gap-1 h-10 px-4">
-<div class="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style="animation-delay: 0s;"></div>
-<div class="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style="animation-delay: 0.2s;"></div>
-<div class="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style="animation-delay: 0.4s;"></div>
-</div>
-</div>
-<!-- Spacer for bottom input -->
-<div class="h-4"></div>
-</main>
-<!-- Side Panel AI Tutor (Sparky) - Hidden by default -->
-<div class="absolute right-0 top-0 h-full w-[85%] max-w-[320px] bg-surface shadow-[-8px_0_24px_rgba(0,0,0,0.1)] z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col border-l border-surface-variant" id="ai-tutor-panel">
-<!-- Tutor Header -->
-<div class="flex items-center justify-between p-stack-md border-b border-surface-variant bg-surface-container-lowest">
-<div class="flex items-center gap-2">
-<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container shadow-[0_0_8px_rgba(132,85,239,0.3)]">
-<span class="material-symbols-outlined text-[18px]" data-icon="robot_2">robot_2</span>
+<!-- AI Insight Popover (Hidden by default) -->
+<div class="hidden absolute top-full left-0 mt-2 w-full sm:w-[320px] z-20 bg-surface-container-lowest rounded-xl shadow-[0px_8px_24px_rgba(0,0,0,0.12)] border border-outline-variant/30 p-4 transform origin-top transition-all duration-200" id="ai-insight-popover">
+<div class="flex items-start gap-3">
+<div class="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-secondary text-[18px]">school</span>
 </div>
 <div>
-<h2 class="font-headline-sm text-headline-sm text-on-surface leading-tight">Sparky</h2>
-<p class="font-label-sm text-label-sm text-secondary">AI Tutor</p>
-</div>
-</div>
-<button class="text-outline p-1 hover:bg-surface-container rounded-full" id="close-tutor">
-<span class="material-symbols-outlined" data-icon="close">close</span>
-</button>
-</div>
-<!-- Tutor Content -->
-<div class="flex-1 overflow-y-auto p-stack-md flex flex-col gap-4 bg-background">
-<div class="bg-white p-3 rounded-xl shadow-sm border border-surface-variant relative">
-<p class="font-body-sm text-body-sm text-on-surface mb-2">I noticed you were looking at <strong>"cansada"</strong>. In Spanish, adjectives must agree in gender and number with the noun they modify.</p>
-<div class="bg-surface-container-low p-2 rounded-lg mt-2 mb-3">
-<p class="font-body-sm text-body-sm text-on-surface"><span class="text-error font-medium">✗</span> Estoy cansado (if you are female)</p>
-<p class="font-body-sm text-body-sm text-on-surface"><span class="text-tertiary-container font-medium">✓</span> Estoy cansada (if you are female)</p>
-</div>
-<button class="w-full bg-surface text-primary border border-primary-container font-label-md text-label-md py-1.5 rounded-lg hover:bg-surface-container transition-colors">
-                    Practice this rule
-                </button>
-</div>
-<div class="self-end bg-surface-container p-2 rounded-xl rounded-tr-sm max-w-[85%]">
-<p class="font-body-sm text-body-sm text-on-surface">Can you give me more examples?</p>
-</div>
-<div class="bg-white p-3 rounded-xl shadow-sm border border-surface-variant border-l-2 border-l-secondary relative flex flex-col gap-2">
-<div class="w-1.5 h-1.5 bg-secondary rounded-full animate-bounce absolute top-4 left-3"></div>
-<p class="font-body-sm text-body-sm text-on-surface pl-4">Generating examples...</p>
-</div>
-</div>
-</div>
-<!-- Bottom Input Area -->
-<div class="bg-surface border-t border-outline-variant py-3 px-margin-mobile relative z-40 shadow-[0_-4px_12px_rgba(0,0,0,0.02)]">
-<!-- Translate as I type toggle -->
-<div class="flex items-center gap-2 mb-2 ml-1">
-<span class="material-symbols-outlined text-outline text-[16px]" data-icon="g_translate">g_translate</span>
-<span class="font-label-sm text-label-sm text-on-surface-variant">Translate to Spanish as I type</span>
-<!-- Simple Toggle Switch -->
-<label class="relative inline-flex items-center cursor-pointer ml-auto mr-1">
-<input checked="" class="sr-only peer" type="checkbox" value=""/>
-<div class="w-8 h-4 bg-surface-variant rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-surface-variant after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary"></div>
-</label>
-</div>
-<!-- Input Field -->
-<div class="flex items-end gap-2">
-<div class="relative flex-1">
-<textarea class="w-full bg-white border-2 border-surface-container rounded-[1rem] py-3 pl-4 pr-12 font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-0 resize-none overflow-hidden block" placeholder="Escribe un mensaje..." rows="1" style="min-height: 48px; max-height: 120px;">Voy a leer un</textarea>
-<!-- Live Translation Preview (Absolute over the textarea conceptually, placed below for layout stability) -->
-<div class="absolute bottom-[48px] left-0 w-full bg-[#fcfaff] border border-secondary-fixed rounded-t-lg p-2 shadow-sm text-on-surface-variant font-translation-text text-translation-text flex items-center gap-2 z-[-1] opacity-90 transition-all">
-<span class="material-symbols-outlined text-[14px] text-secondary" data-icon="auto_awesome">auto_awesome</span>
-                    I am going to read a
-                </div>
-<button class="absolute right-3 bottom-2.5 text-outline hover:text-primary transition-colors p-1 rounded-full bg-surface-container-low">
-<span class="material-symbols-outlined text-[20px]" data-icon="mic">mic</span>
-</button>
-</div>
-<!-- Send Button -->
-<button class="bg-primary text-on-primary w-12 h-12 rounded-full flex items-center justify-center shadow-md hover:bg-surface-tint active:scale-95 transition-all flex-shrink-0">
-<span class="material-symbols-outlined" data-icon="send">send</span>
+<h4 class="font-label-md text-label-md text-on-surface mb-1">Pluscuamperfecto de Subjuntivo</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                                    "Hubiéramos tenido" is the Past Perfect Subjunctive. It's used here after "Ojalá" to express a desire or wish about a past event that did not actually happen.
+                                </p>
+<button class="mt-3 font-label-md text-label-md text-primary hover:text-surface-tint flex items-center gap-1 transition-colors">
+                                    Practice this <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
 </button>
 </div>
 </div>
-<!-- Overlay for Tutor Panel -->
-<div class="absolute inset-0 bg-[rgba(11,28,48,0.2)] z-40 hidden backdrop-blur-[1px] transition-opacity" id="tutor-overlay"></div>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant ml-2">10:48 AM</span>
+</div>
+</div>
+<!-- Spacer for input area -->
+<div class="h-4"></div>
+</main>
+<!-- Input Area (Sticky Bottom) -->
+<footer class="bg-surface-container-lowest border-t border-outline-variant/20 shadow-[0px_-8px_16px_rgba(0,0,0,0.03)] z-40 pb-safe">
+<!-- Translate as I type Toggle Bar -->
+<div class="px-margin-mobile py-2 bg-surface-container flex items-center justify-between border-b border-outline-variant/10">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">g_translate</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">Translate as I type</span>
+</div>
+<!-- Toggle Switch -->
+<div class="relative inline-block w-10 h-5 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-2 border-outline-variant appearance-none cursor-pointer z-10 transition-transform duration-200" id="translate-toggle" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-5 rounded-full bg-surface-variant cursor-pointer transition-colors duration-200" for="translate-toggle"></label>
+</div>
+</div>
+<!-- Main Input Row -->
+<div class="px-margin-mobile py-3 flex items-end gap-2">
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-variant/50 transition-colors shrink-0">
+<span class="material-symbols-outlined" style="font-variation-settings: 'wght' 300;">add_circle</span>
+</button>
+<!-- Input Wrapper -->
+<div class="flex-1 bg-surface-container rounded-3xl relative focus-within:ring-2 focus-within:ring-primary focus-within:bg-surface-bright transition-all duration-200 flex flex-col justify-center min-h-[48px]">
+<textarea class="w-full bg-transparent border-none focus:ring-0 resize-none font-body-md text-body-md text-on-surface py-3 px-4 max-h-[120px] hide-scroll placeholder:text-on-surface-variant/60" id="chat-input" placeholder="Type in English..." rows="1"></textarea>
+<!-- Live Translation Preview (Visible when toggle is on and typing) -->
+<div class="absolute -top-10 left-4 right-4 bg-primary-fixed text-on-primary-fixed rounded-lg px-3 py-1.5 font-translation-text text-translation-text text-[13px] shadow-sm flex items-center gap-2 opacity-0 transition-opacity duration-200 pointer-events-none" id="translation-preview">
+<span class="material-symbols-outlined text-[14px]">psychology</span>
+<span class="truncate">Escribe en inglés...</span>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center gap-1 shrink-0 pb-1">
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-variant/50 transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'wght' 300;">mic</span>
+</button>
+<button class="w-10 h-10 rounded-full flex items-center justify-center bg-primary text-on-primary shadow-sm hover:bg-surface-tint transition-all active:scale-90">
+<span class="material-symbols-outlined" style="font-variation-settings: 'wght' 500;">send</span>
+</button>
+</div>
+</div>
+</footer>
 <script>
-        // Simple interactions
-        const tutorToggle = document.getElementById('tutor-toggle');
-        const tutorPanel = document.getElementById('ai-tutor-panel');
-        const closeTutor = document.getElementById('close-tutor');
-        const tutorOverlay = document.getElementById('tutor-overlay');
+        // JS for Micro-interactions
+        document.addEventListener('DOMContentLoaded', () => {
+            const insightBtn = document.getElementById('ai-insight-btn');
+            const insightPopover = document.getElementById('ai-insight-popover');
+            
+            // Toggle AI Insight Popover
+            if(insightBtn && insightPopover) {
+                insightBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isHidden = insightPopover.classList.contains('hidden');
+                    if(isHidden) {
+                        insightPopover.classList.remove('hidden');
+                        insightPopover.classList.add('opacity-100', 'scale-100');
+                        insightPopover.classList.remove('opacity-0', 'scale-95');
+                    } else {
+                        insightPopover.classList.add('hidden');
+                    }
+                });
 
-        function toggleTutor() {
-            const isHidden = tutorPanel.classList.contains('translate-x-full');
-            if (isHidden) {
-                tutorPanel.classList.remove('translate-x-full');
-                tutorOverlay.classList.remove('hidden');
-                setTimeout(() => tutorOverlay.classList.remove('opacity-0'), 10);
-            } else {
-                tutorPanel.classList.add('translate-x-full');
-                tutorOverlay.classList.add('opacity-0');
-                setTimeout(() => tutorOverlay.classList.add('hidden'), 300);
+                // Click outside to close
+                document.addEventListener('click', (e) => {
+                    if (!insightPopover.contains(e.target) && !insightBtn.contains(e.target)) {
+                        insightPopover.classList.add('hidden');
+                    }
+                });
             }
-        }
 
-        tutorToggle.addEventListener('click', toggleTutor);
-        closeTutor.addEventListener('click', toggleTutor);
-        tutorOverlay.addEventListener('click', toggleTutor);
+            // Simulate Live Translation Preview logic
+            const chatInput = document.getElementById('chat-input');
+            const translationPreview = document.getElementById('translation-preview');
+            const translateToggle = document.getElementById('translate-toggle');
+
+            if(chatInput && translationPreview && translateToggle) {
+                chatInput.addEventListener('input', (e) => {
+                    const text = e.target.value.trim();
+                    if(text.length > 0 && translateToggle.checked) {
+                        translationPreview.classList.remove('opacity-0');
+                        // Fake translation logic for demo
+                        translationPreview.querySelector('span.truncate').textContent = text + " (traducido)";
+                    } else {
+                        translationPreview.classList.add('opacity-0');
+                    }
+                    
+                    // Auto-resize textarea
+                    chatInput.style.height = 'auto';
+                    chatInput.style.height = (chatInput.scrollHeight) + 'px';
+                });
+            }
+            
+            // Scroll to bottom on load
+            const chatContainer = document.getElementById('chat-container');
+            if(chatContainer) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        });
     </script>
 </body></html>

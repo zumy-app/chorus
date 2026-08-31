@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/chorus/messenger/internal/middleware"
 	"github.com/chorus/messenger/internal/models"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/gin-gonic/gin"
@@ -28,19 +29,19 @@ func NewVocabularyHandler(vs *services.VocabularyService, ms *services.MessageSe
 func (h *VocabularyHandler) SaveVocabulary(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
 	var req models.SaveVocabularyRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		WriteError(c, middleware.ErrValidation("Invalid request body"))
 		return
 	}
 
 	entry, err := h.vocabularyService.SaveWord(userID, req, h.messageService, h.translationService)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save vocabulary"})
+		WriteError(c, middleware.ErrInternal("Failed to save vocabulary"))
 		return
 	}
 
@@ -59,7 +60,7 @@ func (h *VocabularyHandler) SaveWord(c *gin.Context) {
 func (h *VocabularyHandler) GetVocabulary(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
@@ -69,7 +70,7 @@ func (h *VocabularyHandler) GetVocabulary(c *gin.Context) {
 
 	entries, total, err := h.vocabularyService.GetUserVocabulary(userID, language, limit, offset)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get vocabulary"})
+		WriteError(c, middleware.ErrInternal("Failed to get vocabulary"))
 		return
 	}
 
@@ -89,7 +90,7 @@ func (h *VocabularyHandler) GetVocabulary(c *gin.Context) {
 func (h *VocabularyHandler) GetDueVocabulary(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
@@ -97,7 +98,7 @@ func (h *VocabularyHandler) GetDueVocabulary(c *gin.Context) {
 
 	entries, err := h.vocabularyService.GetDueVocabulary(userID, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get due vocabulary"})
+		WriteError(c, middleware.ErrInternal("Failed to get due vocabulary"))
 		return
 	}
 
@@ -111,7 +112,7 @@ func (h *VocabularyHandler) GetDueVocabulary(c *gin.Context) {
 func (h *VocabularyHandler) SearchVocabulary(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
@@ -119,13 +120,13 @@ func (h *VocabularyHandler) SearchVocabulary(c *gin.Context) {
 	language := c.Query("language")
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
 	if query == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Search query required"})
+		WriteError(c, middleware.ErrValidation("Search query required"))
 		return
 	}
 
 	entries, err := h.vocabularyService.SearchVocabulary(userID, query, language, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to search vocabulary"})
+		WriteError(c, middleware.ErrInternal("Failed to search vocabulary"))
 		return
 	}
 
@@ -137,19 +138,19 @@ func (h *VocabularyHandler) SearchVocabulary(c *gin.Context) {
 func (h *VocabularyHandler) RecordPractice(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
 	var req models.PracticeResultRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		WriteError(c, middleware.ErrValidation("Invalid request body"))
 		return
 	}
 
 	err := h.vocabularyService.RecordPracticeResult(userID, req.VocabularyID, req.Correct)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to record practice"})
+		WriteError(c, middleware.ErrInternal("Failed to record practice"))
 		return
 	}
 
@@ -169,13 +170,13 @@ func (h *VocabularyHandler) UpdatePracticeResult(c *gin.Context) {
 func (h *VocabularyHandler) GetProgress(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
 	progress, err := h.vocabularyService.GetLearningProgress(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get progress"})
+		WriteError(c, middleware.ErrInternal("Failed to get progress"))
 		return
 	}
 
@@ -189,19 +190,19 @@ func (h *VocabularyHandler) GetProgress(c *gin.Context) {
 func (h *VocabularyHandler) DeleteVocabulary(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
 	vocabularyID := c.Param("id")
 	if vocabularyID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Vocabulary ID required"})
+		WriteError(c, middleware.ErrValidation("Vocabulary ID required"))
 		return
 	}
 
 	err := h.vocabularyService.DeleteVocabulary(userID, vocabularyID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete vocabulary"})
+		WriteError(c, middleware.ErrInternal("Failed to delete vocabulary"))
 		return
 	}
 
@@ -215,14 +216,14 @@ func (h *VocabularyHandler) DeleteVocabulary(c *gin.Context) {
 func (h *VocabularyHandler) GetVocabularyByID(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
 	vid := c.Param("id")
 	entry, err := h.vocabularyService.GetVocabularyByID(userID, vid)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Vocabulary not found"})
+		WriteError(c, middleware.ErrNotFound("Vocabulary not found"))
 		return
 	}
 

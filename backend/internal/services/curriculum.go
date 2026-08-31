@@ -359,7 +359,8 @@ func (s *CurriculumService) getUnitProgress(ctx context.Context, userID, unitID 
 	return &unit, nil
 }
 
-func (s *CurriculumService) GetFirstUnitID(ctx context.Context, courseID string) (string, error) {	var id string
+func (s *CurriculumService) GetFirstUnitID(ctx context.Context, courseID string) (string, error) {
+	var id string
 	err := s.db.QueryRowContext(ctx, `
 		SELECT id::text
 		FROM curriculum_units

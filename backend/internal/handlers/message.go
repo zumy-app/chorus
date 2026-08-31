@@ -4,8 +4,11 @@ import (
 	"context"
 	"log"
 	"strings"
+	"time"
 
+	"github.com/chorus/messenger/internal/middleware"
 	"github.com/chorus/messenger/internal/models"
+	"github.com/chorus/messenger/internal/observability"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/gin-gonic/gin"
 )
@@ -16,6 +19,7 @@ type MessageHandler struct {
 	userService        *services.UserService
 	entitlementService *services.EntitlementService
 	translationQueue   *services.TranslationQueueService
+	settingsService    *services.SettingsService
 	moderation         *services.ModerationService
 	wsHub              *services.WebSocketHub
 	translation        *services.TranslationService
@@ -29,6 +33,7 @@ func NewMessageHandler(
 	userService *services.UserService,
 	entitlementService *services.EntitlementService,
 	translationQueue *services.TranslationQueueService,
+	settingsService *services.SettingsService,
 	moderation *services.ModerationService,
 	wsHub *services.WebSocketHub,
 	translation *services.TranslationService,
@@ -39,6 +44,7 @@ func NewMessageHandler(
 		userService:        userService,
 		entitlementService: entitlementService,
 		translationQueue:   translationQueue,
+		settingsService:    settingsService,
 		moderation:         moderation,
 		wsHub:              wsHub,
 		translation:        translation,
@@ -59,7 +65,7 @@ func (h *MessageHandler) GetMessages(c *gin.Context) {
 	// Check if user is a participant
 	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
 	if err != nil || !isParticipant {
-		c.JSON(403, gin.H{"error": "Access denied"})
+		WriteError(c, middleware.ErrForbidden("Access denied"))
 		return
 	}
 
@@ -75,7 +81,7 @@ func (h *MessageHandler) GetMessages(c *gin.Context) {
 
 	messages, err := h.messageService.GetMessages(chatID, limit, before)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to fetch messages"})
+		WriteError(c, middleware.ErrInternal("Failed to fetch messages"))
 		return
 	}
 
@@ -92,7 +98,7 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 	// Check if user is a participant
 	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
 	if err != nil || !isParticipant {
-		c.JSON(403, gin.H{"error": "Access denied"})
+		WriteError(c, middleware.ErrForbidden("Access denied"))
 		return
 	}
 
@@ -101,27 +107,30 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 	if h.moderation != nil {
 		blocked, err := h.moderation.ChatBlocked(c.Request.Context(), chatID, userID)
 		if err != nil {
-			c.JSON(500, gin.H{"error": "Failed to check blocked users"})
+			WriteError(c, middleware.ErrInternal("Failed to check blocked users"))
 			return
 		}
 		if blocked {
-			c.JSON(403, gin.H{"error": "You cannot send messages in this chat"})
+			WriteError(c, middleware.ErrForbidden("You cannot send messages in this chat"))
 			return
 		}
 	}
 
 	var req models.SendMessageRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": "Invalid request: " + err.Error()})
+		WriteError(c, middleware.ErrValidation("Invalid request"))
 		return
 	}
 
-	// Create message
+	// Create message with NFR-18 timing + outcome metric.
+	start := time.Now()
 	message, err := h.messageService.Create(chatID, userID, req.Text, req.ReplyToID)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to send message"})
+		observability.ObserveMessageSend("error", time.Since(start))
+		WriteError(c, middleware.ErrInternal("Failed to send message"))
 		return
 	}
+	observability.ObserveMessageSend("sent", time.Since(start))
 
 	// Broadcast new message to ALL chat participants (including sender for multi-device)
 	participants, _ := h.chatService.GetParticipants(chatID)
@@ -191,6 +200,20 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 		if ent.Features.FasterResponses {
 			priority = 1
 		}
+		// FR-25 Feature toggles: when the sender has auto-translation disabled,
+		// skip translation entirely so no translation jobs are enqueued. Message
+		// delivery is unaffected — the message was already persisted and acked
+		// above. Toggles are per-account; a misread falls back to enabled-safe
+		// behaviour and only warns.
+		if h.settingsService != nil {
+			fs, err := h.settingsService.GetFeatureSettings(userID)
+			if err != nil {
+				log.Printf("[Translate] read feature settings for %s: %v", userID, err)
+			} else if !fs.TranslationEnabled {
+				log.Printf("[Translate] auto-translation disabled for sender %s — not enqueuing jobs for message %s", userID, message.ID)
+				return
+			}
+		}
 		// Message-size gate (words): free = 280, premium = 1,000. Longer
 		// messages are stored but not translated. Notify participants so the
 		// UI can show the premium nudge. There are NO per-day usage quotas.
@@ -238,7 +261,7 @@ func (h *MessageHandler) TranslateMessage(c *gin.Context) {
 
 	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
 	if err != nil || !isParticipant {
-		c.JSON(403, gin.H{"error": "Access denied"})
+		WriteError(c, middleware.ErrForbidden("Access denied"))
 		return
 	}
 
@@ -246,17 +269,17 @@ func (h *MessageHandler) TranslateMessage(c *gin.Context) {
 		TargetLang string `json:"targetLang" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": "Invalid request: " + err.Error()})
+		WriteError(c, middleware.ErrValidation("Invalid request"))
 		return
 	}
 
 	message, err := h.messageService.GetMessageByID(c.Request.Context(), messageID)
 	if err != nil {
-		c.JSON(404, gin.H{"error": "Message not found"})
+		WriteError(c, middleware.ErrNotFound("Message not found"))
 		return
 	}
 	if message.ChatID != chatID {
-		c.JSON(404, gin.H{"error": "Message not found"})
+		WriteError(c, middleware.ErrNotFound("Message not found"))
 		return
 	}
 
@@ -264,6 +287,20 @@ func (h *MessageHandler) TranslateMessage(c *gin.Context) {
 	if message.Translations != nil {
 		if _, ok := message.Translations[req.TargetLang]; ok {
 			c.JSON(200, message)
+			return
+		}
+	}
+
+	// FR-25 Feature toggles: an explicit "Translate" request from a viewer with
+	// auto-translation disabled is also suppressed so no translation job is
+	// enqueued. The toggle is per-account and applies to both auto and explicit
+	// translation paths.
+	if h.settingsService != nil {
+		fs, err := h.settingsService.GetFeatureSettings(userID)
+		if err != nil {
+			log.Printf("[Translate] read feature settings for %s: %v", userID, err)
+		} else if !fs.TranslationEnabled {
+			WriteError(c, middleware.ErrForbidden("Translation is disabled in your settings"))
 			return
 		}
 	}
@@ -385,7 +422,7 @@ func (h *MessageHandler) MarkAsRead(c *gin.Context) {
 	// Check if user is a participant
 	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
 	if err != nil || !isParticipant {
-		c.JSON(403, gin.H{"error": "Access denied"})
+		WriteError(c, middleware.ErrForbidden("Access denied"))
 		return
 	}
 
@@ -394,12 +431,12 @@ func (h *MessageHandler) MarkAsRead(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": "Invalid request"})
+		WriteError(c, middleware.ErrValidation("Invalid request"))
 		return
 	}
 
 	if err := h.messageService.MarkAsRead(chatID, userID, req.MessageID); err != nil {
-		c.JSON(500, gin.H{"error": "Failed to mark as read"})
+		WriteError(c, middleware.ErrInternal("Failed to mark as read"))
 		return
 	}
 
@@ -412,7 +449,7 @@ func (h *MessageHandler) SearchMessages(c *gin.Context) {
 	chatID := c.Query("chatId")
 
 	if query == "" {
-		c.JSON(400, gin.H{"error": "Query parameter 'q' is required"})
+		WriteError(c, middleware.ErrValidation("Query parameter 'q' is required"))
 		return
 	}
 
@@ -420,7 +457,7 @@ func (h *MessageHandler) SearchMessages(c *gin.Context) {
 	if chatID != "" {
 		isParticipant, err := h.chatService.IsParticipant(chatID, userID)
 		if err != nil || !isParticipant {
-			c.JSON(403, gin.H{"error": "Access denied"})
+			WriteError(c, middleware.ErrForbidden("Access denied"))
 			return
 		}
 	}
@@ -433,7 +470,7 @@ func (h *MessageHandler) SearchMessages(c *gin.Context) {
 
 	messages, err := h.messageService.Search(query, chatIDPtr, limit)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Search failed"})
+		WriteError(c, middleware.ErrInternal("Search failed"))
 		return
 	}
 

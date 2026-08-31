@@ -165,8 +165,8 @@ export default function Premium() {
                 )}
                 {subscription?.wordLimit != null && (
                   <div className="flex justify-between py-3 text-sm">
-                    <dt className="text-on-surface-variant">{t('pricing.premiumFeature3')}</dt>
-                    <dd className="font-semibold text-on-surface">{subscription.wordLimit.toLocaleString()}</dd>
+                    <dt className="text-on-surface-variant">{t('plan.messageSizeLimit')}</dt>
+                    <dd className="font-semibold text-on-surface">{subscription.wordLimit.toLocaleString()} {t('plan.words')}</dd>
                   </div>
                 )}
               </dl>

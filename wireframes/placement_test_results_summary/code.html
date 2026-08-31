@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus - Placement Results</title>
+<!-- Material Symbols -->
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788152794930&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1OTQ5YjQxYzhkY2IwMzMyZWIwZjczMDlmYzkwEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@100..900&family=Inter:wght@100..900&family=Plus+Jakarta+Sans:wght@100..900&display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+        /* Lightweight entrance animation */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-up {
+            animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+        .delay-300 { animation-delay: 300ms; }
+    </style>
+<!-- Tailwind Config -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface": "#0b1c30",
+                        "surface-container": "#e5eeff",
+                        "surface": "#f8f9ff",
+                        "on-secondary": "#ffffff",
+                        "tertiary-container": "#007d55",
+                        "surface-dim": "#cbdbf5",
+                        "error": "#ba1a1a",
+                        "secondary-fixed-dim": "#d0bcff",
+                        "on-secondary-fixed": "#23005c",
+                        "inverse-primary": "#b4c5ff",
+                        "outline-variant": "#c3c6d7",
+                        "primary-container": "#2563eb",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-primary-fixed": "#00174b",
+                        "on-background": "#0b1c30",
+                        "inverse-surface": "#213145",
+                        "tertiary-fixed": "#6ffbbe",
+                        "surface-tint": "#0053db",
+                        "outline": "#737686",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-container": "#bdffdb",
+                        "surface-bright": "#f8f9ff",
+                        "on-secondary-container": "#fffbff",
+                        "on-tertiary": "#ffffff",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "on-primary-container": "#eeefff",
+                        "error-container": "#ffdad6",
+                        "secondary-fixed": "#e9ddff",
+                        "on-error-container": "#93000a",
+                        "surface-container-low": "#eff4ff",
+                        "primary": "#004ac6",
+                        "inverse-on-surface": "#eaf1ff",
+                        "surface-container-high": "#dce9ff",
+                        "on-tertiary-fixed": "#002113",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed-variant": "#5516be",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "secondary-container": "#8455ef",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "secondary": "#6b38d4",
+                        "tertiary": "#006242",
+                        "on-surface-variant": "#434655",
+                        "primary-fixed": "#dbe1ff",
+                        "background": "#f8f9ff",
+                        "surface-variant": "#d3e4fe",
+                        "on-error": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px",
+                        "2xl": "1rem",
+                        "3xl": "1.5rem"
+                    },
+                    "spacing": {
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "unit": "4px",
+                        "margin-mobile": "16px",
+                        "gutter-mobile": "12px",
+                        "stack-lg": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "body-sm": ["Be Vietnam Pro"],
+                        "body-lg": ["Be Vietnam Pro"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "body-md": ["Be Vietnam Pro"],
+                        "label-sm": ["Inter"],
+                        "translation-text": ["Be Vietnam Pro"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "label-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+                        "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface antialiased min-h-screen flex flex-col font-body-md overflow-x-hidden">
+<!-- TopAppBar -->
+<header class="docked full-width top-0 bg-background flex justify-between items-center px-margin-mobile h-16 w-full max-w-screen-xl mx-auto z-40 flat no shadows relative">
+<button class="text-on-surface-variant hover:bg-surface-container-low transition-colors active:scale-95 duration-150 p-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+<div class="font-headline-md text-headline-md font-bold text-primary">Chorus</div>
+<button class="text-primary font-label-md text-label-md hover:bg-surface-container-low transition-colors active:scale-95 duration-150 px-3 py-2 rounded-full">
+            Skip
+        </button>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow flex flex-col items-center px-margin-mobile pt-stack-lg pb-32 max-w-screen-sm mx-auto w-full relative">
+<!-- Ambient Background Glow -->
+<div class="absolute top-20 left-1/2 -translate-x-1/2 w-64 h-64 bg-primary/10 rounded-full blur-[80px] pointer-events-none z-0"></div>
+<!-- Hero Graphic -->
+<div class="relative w-48 h-48 mb-stack-lg z-10 animate-fade-up opacity-0" style="animation-fill-mode: forwards;">
+<img class="w-full h-full object-contain drop-shadow-xl" data-alt="A highly detailed, modern 3D illustration of a glowing stylized star and subtle geometric confetti elements floating in mid-air against a pristine light-mode background. The color palette features vibrant Fluency Blue and soft Emerald Green accents. The lighting is soft and diffused, creating an approachable, celebratory, and premium ed-tech aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCXCWcb3KBzWNtWA_wNBPos2R7ajAE28Kl-b9RyQBSedy5EsSmpkg_7Z4c-3M_KQxpep2Ihql0Bsobj73sqM0kqwwzxLIq36Azo32Vic8aS90uZDAzMMQ38MqK6sq0YP1DB6mvVQ8KpjO73HTYaQAkOS5vHro10k2Cdkt8d4gek1bjboYYG01i6mJBUz5z2b8Q_HZF2NkamjnyxAQY2amqwp_j8mxNT58IjAeiB3N5R-0HBlW28y6aP"/>
+</div>
+<!-- Celebratory Text -->
+<div class="text-center mb-stack-lg z-10 animate-fade-up opacity-0 delay-100" style="animation-fill-mode: forwards;">
+<h1 class="font-headline-lg text-headline-lg text-on-surface mb-stack-sm">You're ready!</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">We've personalized your learning path based on your results.</p>
+</div>
+<!-- Bento Grid Results -->
+<div class="w-full flex flex-col gap-stack-md z-10 animate-fade-up opacity-0 delay-200" style="animation-fill-mode: forwards;">
+<!-- Assigned Level Card (Hero Element) -->
+<div class="bg-surface-container-lowest rounded-3xl p-stack-lg relative overflow-hidden shadow-[0px_8px_24px_rgba(0,0,0,0.04)] border border-surface-variant/50 flex flex-col items-center text-center">
+<div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-inverse-primary"></div>
+<div class="w-12 h-12 bg-primary-container/20 rounded-full flex items-center justify-center mb-stack-sm text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">military_tech</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-unit">Level Assigned</span>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-lg text-[40px] leading-[48px] font-bold text-primary tracking-tight">A2</span>
+</div>
+<span class="font-body-md text-body-md text-primary/80 font-medium bg-primary/5 px-3 py-1 rounded-full mt-2">Beginner</span>
+</div>
+<!-- Starting Unit Card -->
+<div class="bg-surface-container-lowest rounded-2xl p-stack-md shadow-[0px_4px_12px_rgba(0,0,0,0.03)] border border-surface-variant/30 flex items-center justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-tertiary uppercase tracking-wider mb-1 block">Starting Unit</span>
+<div class="font-headline-sm text-headline-sm text-on-surface">Unit 5</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Social Routines</div>
+</div>
+<div class="w-10 h-10 bg-tertiary-container/10 rounded-full flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">map</span>
+</div>
+</div>
+<!-- Skipped Highlight Chip -->
+<div class="self-center bg-surface-variant/50 border border-outline-variant/30 px-4 py-2 rounded-full flex items-center gap-2 mt-stack-sm">
+<span class="material-symbols-outlined text-primary text-[18px]">fast_forward</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">You successfully skipped <strong class="text-primary font-bold">4 units</strong></span>
+</div>
+</div>
+</main>
+<!-- Bottom Action Area (Pinned) -->
+<div class="fixed bottom-0 left-0 w-full px-margin-mobile pb-stack-lg pt-12 bg-gradient-to-t from-background via-background to-transparent z-50 flex justify-center animate-fade-up opacity-0 delay-300" style="animation-fill-mode: forwards;">
+<button class="w-full max-w-sm bg-primary text-on-primary font-label-md text-label-md py-4 rounded-full shadow-[0px_8px_24px_rgba(37,99,235,0.2)] hover:bg-primary-fixed-variant transition-all active:scale-95 duration-200 flex justify-center items-center gap-2">
+            Start Learning
+            <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+</div>
+</body></html>

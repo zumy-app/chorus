@@ -47,7 +47,11 @@ export default function LearningRoadmap() {
                     <div className="flex-1 h-px bg-surface-container-high" />
                   </header>
                   {units.map(u => (
-                    <UnitRow key={u.id} unit={u} onOpen={() => navigate('/learn')} />
+                    <UnitRow
+                      key={u.id}
+                      unit={u}
+                      onOpen={() => navigate(u.status === 'completed' ? '/learn/session?mode=vocabulary' : '/learn/session?mode=lesson')}
+                    />
                   ))}
                 </section>
               )

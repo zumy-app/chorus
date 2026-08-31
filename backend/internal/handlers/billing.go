@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/chorus/messenger/internal/middleware"
 	"github.com/chorus/messenger/internal/models"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/gin-gonic/gin"
@@ -28,7 +29,7 @@ func NewBillingHandler(billing *services.BillingService, paypal *services.PayPal
 func (h *BillingHandler) GetMySubscription(c *gin.Context) {
 	info, err := h.billing.GetSubscription(c.Request.Context(), c.GetString("userID"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		WriteError(c, middleware.ErrNotFound("User not found"))
 		return
 	}
 	c.JSON(http.StatusOK, info)
@@ -40,7 +41,7 @@ func (h *BillingHandler) GetMySubscription(c *gin.Context) {
 func (h *BillingHandler) Checkout(c *gin.Context) {
 	var req models.CheckoutRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: plan must be monthly or annual"})
+		WriteError(c, middleware.ErrValidation("Invalid request: plan must be monthly or annual"))
 		return
 	}
 	origin := c.GetHeader("Origin")
@@ -65,10 +66,10 @@ func (h *BillingHandler) Checkout(c *gin.Context) {
 	resp, err := h.billing.Checkout(c.Request.Context(), c.GetString("userID"), req.Plan, abs(returnURL), abs(cancelURL))
 	if err != nil {
 		if errors.Is(err, services.ErrPayPalUnconfigured) || errors.Is(err, services.ErrPayPalInvalidPlan) {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Payments are not configured yet"})
+			WriteError(c, middleware.ErrUnavailable("Payments are not configured yet"))
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start checkout"})
+		WriteError(c, middleware.ErrInternal("Failed to start checkout"))
 		return
 	}
 	c.JSON(http.StatusCreated, resp)
@@ -78,7 +79,7 @@ func (h *BillingHandler) Checkout(c *gin.Context) {
 func (h *BillingHandler) GrantPlan(c *gin.Context) {
 	var req models.GrantPlanRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		WriteError(c, middleware.ErrValidation("Invalid request"))
 		return
 	}
 	actorID := c.GetString("userID")
@@ -86,13 +87,13 @@ func (h *BillingHandler) GrantPlan(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
-			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			WriteError(c, middleware.ErrNotFound("User not found"))
 		case errors.Is(err, services.ErrInvalidGrace):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid grace window (days must be > 0, until must be a future RFC3339 time)"})
+			WriteError(c, middleware.ErrValidation("Invalid grace window (days must be > 0, until must be a future RFC3339 time)"))
 		case errors.Is(err, services.ErrUserNotPremium):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "User has no active premium to revoke"})
+			WriteError(c, middleware.ErrValidation("User has no active premium to revoke"))
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update plan"})
+			WriteError(c, middleware.ErrInternal("Failed to update plan"))
 		}
 		return
 	}
@@ -108,7 +109,7 @@ func (h *BillingHandler) GrantPlan(c *gin.Context) {
 func (h *BillingHandler) RevokePlan(c *gin.Context) {
 	var req models.GrantPlanRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		WriteError(c, middleware.ErrValidation("Invalid request"))
 		return
 	}
 	actorID := c.GetString("userID")
@@ -116,11 +117,11 @@ func (h *BillingHandler) RevokePlan(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
-			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			WriteError(c, middleware.ErrNotFound("User not found"))
 		case errors.Is(err, services.ErrUserNotPremium):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "User has no active premium to revoke"})
+			WriteError(c, middleware.ErrValidation("User has no active premium to revoke"))
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update plan"})
+			WriteError(c, middleware.ErrInternal("Failed to update plan"))
 		}
 		return
 	}
@@ -137,7 +138,7 @@ func (h *BillingHandler) ListPremiumUsers(c *gin.Context) {
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 	users, total, err := h.billing.ListPremiumUsers(c.Request.Context(), c.Query("q"), limit, offset)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to load premium users"})
+		WriteError(c, middleware.ErrInternal("Unable to load premium users"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"users": users, "total": total})
@@ -147,7 +148,7 @@ func (h *BillingHandler) ListPremiumUsers(c *gin.Context) {
 func (h *BillingHandler) PremiumAnalytics(c *gin.Context) {
 	stats, err := h.billing.PremiumAnalytics(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to load premium analytics"})
+		WriteError(c, middleware.ErrInternal("Unable to load premium analytics"))
 		return
 	}
 	c.JSON(http.StatusOK, stats)
@@ -157,7 +158,7 @@ func (h *BillingHandler) PremiumAnalytics(c *gin.Context) {
 func (h *BillingHandler) PlanHistory(c *gin.Context) {
 	history, err := h.billing.PlanHistory(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to load plan history"})
+		WriteError(c, middleware.ErrInternal("Unable to load plan history"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"history": history})
@@ -168,11 +169,11 @@ func (h *BillingHandler) PlanHistory(c *gin.Context) {
 func (h *BillingHandler) Webhook(c *gin.Context) {
 	body, err := c.GetRawData()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Unable to read body"})
+		WriteError(c, middleware.ErrValidation("Unable to read body"))
 		return
 	}
 	if h.paypal == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Payments are not configured"})
+		WriteError(c, middleware.ErrUnavailable("Payments are not configured"))
 		return
 	}
 	if err := h.paypal.VerifyWebhook(c.Request.Context(),
@@ -182,11 +183,11 @@ func (h *BillingHandler) Webhook(c *gin.Context) {
 		c.GetHeader("PAYPAL-AUTH-ALGO"),
 		c.GetHeader("PAYPAL-TRANSMISSION-SIG"),
 		body); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Webhook verification failed"})
+		WriteError(c, middleware.ErrAuth("Webhook verification failed"))
 		return
 	}
 	if err := h.billing.ApplyWebhook(c.Request.Context(), body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Unable to process event"})
+		WriteError(c, middleware.ErrValidation("Unable to process event"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
