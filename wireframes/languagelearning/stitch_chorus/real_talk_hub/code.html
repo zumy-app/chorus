@@ -1,0 +1,261 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Chorus - Real Talk Starters</title>
+<script type="text/javascript" nonce="9ed34308ac864ea2bd7e94284be" src="//local.adguard.org?ts=1788136944898&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1OTRhM2U1Y2ZlMzQwMjJkNGJiMTgyMzk0OTlkEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script type="text/javascript" nonce="9ed34308ac864ea2bd7e94284be" src="//local.adguard.org?ts=1788136944898&amp;name=AdGuard%20Extra&amp;type=user-script"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#d3e4fe",
+                        "primary-fixed": "#dbe1ff",
+                        "outline": "#737686",
+                        "surface-container": "#e5eeff",
+                        "on-tertiary-fixed": "#002113",
+                        "on-secondary-fixed-variant": "#5516be",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "on-surface-variant": "#434655",
+                        "tertiary-fixed": "#6ffbbe",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-secondary-container": "#fffbff",
+                        "on-surface": "#0b1c30",
+                        "on-primary": "#ffffff",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "surface-tint": "#0053db",
+                        "inverse-on-surface": "#eaf1ff",
+                        "inverse-surface": "#213145",
+                        "surface-container-low": "#eff4ff",
+                        "on-primary-container": "#eeefff",
+                        "primary": "#004ac6",
+                        "surface-container-high": "#dce9ff",
+                        "secondary-fixed": "#e9ddff",
+                        "on-error": "#ffffff",
+                        "surface-dim": "#cbdbf5",
+                        "inverse-primary": "#b4c5ff",
+                        "on-tertiary": "#ffffff",
+                        "outline-variant": "#c3c6d7",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary": "#6b38d4",
+                        "on-error-container": "#93000a",
+                        "error-container": "#ffdad6",
+                        "secondary-fixed-dim": "#d0bcff",
+                        "on-secondary-fixed": "#23005c",
+                        "primary-container": "#2563eb",
+                        "tertiary": "#006242",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "tertiary-container": "#007d55",
+                        "on-tertiary-container": "#bdffdb",
+                        "secondary-container": "#8455ef",
+                        "background": "#f8f9ff",
+                        "surface-bright": "#f8f9ff",
+                        "surface": "#f8f9ff",
+                        "on-background": "#0b1c30",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed": "#00174b"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "stack-lg": "24px",
+                        "gutter-mobile": "12px",
+                        "stack-sm": "8px",
+                        "unit": "4px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Inter"],
+                        "body-sm": ["Be Vietnam Pro"],
+                        "translation-text": ["Be Vietnam Pro"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "body-md": ["Be Vietnam Pro"],
+                        "label-md": ["Inter"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "body-lg": ["Be Vietnam Pro"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: theme('colors.background'); color: theme('colors.on-background'); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 16px); }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col md:bg-surface-variant md:items-center">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface dark:bg-on-background shadow-sm dark:shadow-none transition-transform duration-200 active:scale-95 flex items-center justify-between px-margin-mobile h-16 w-full md:hidden">
+<div class="flex items-center gap-3">
+<button class="w-10 h-10 rounded-full bg-surface-container overflow-hidden">
+<img alt="User avatar" class="w-full h-full object-cover" data-alt="A smiling young adult user's profile picture with a brightly lit background and a soft shallow depth of field, conveying approachability in a modern social app context." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDI-fQELw_p8FTJKt_7IUcZj2LVhTIdextPaB3X1-NMCnWtzLjyoV4OHN0bTd-joH-bgRRLAz8xf9ZJrDNcy1x919yA2Vawrh5ZfrLEUUAAs9Z1jGxQWwot2A3lB9uccfDa9jy-AlT2fVDzJQ_-8SZcXAt1DnnVWYLrKwD1jS1aXhnJEeb14T8aHoCAY0mAXg6CAJRMZ61jNkIQirdC55SYpq4Zu-vpAglHadIGnnQQSl4D_7CeQLdY">
+</button>
+<h1 class="font-headline-sm text-headline-sm text-primary dark:text-primary-fixed-dim">Fluency Messenger</h1>
+</div>
+<button class="text-primary dark:text-primary-fixed-dim hover:bg-surface-variant/20 dark:hover:bg-on-secondary-fixed-variant/20 p-2 rounded-full transition-colors">
+<span class="material-symbols-outlined">translate</span>
+</button>
+</header>
+<!-- Web Navigation (Hidden on Mobile) -->
+<nav class="hidden md:flex fixed top-0 w-full z-50 bg-surface shadow-sm h-16 items-center px-8 justify-between">
+<div class="flex items-center gap-4">
+<h1 class="font-headline-md text-headline-md text-primary">Fluency Messenger</h1>
+</div>
+<div class="flex gap-6">
+<a class="text-on-surface-variant font-label-md text-label-md hover:bg-surface-variant/20 px-4 py-2 rounded-full transition-colors flex items-center gap-2" href="#">
+<span class="material-symbols-outlined">chat</span> Chats
+            </a>
+<a class="text-primary bg-primary-container text-on-primary-container font-label-md text-label-md px-4 py-2 rounded-full transition-colors flex items-center gap-2" href="#">
+<span class="material-symbols-outlined fill">school</span> Learn
+            </a>
+<a class="text-on-surface-variant font-label-md text-label-md hover:bg-surface-variant/20 px-4 py-2 rounded-full transition-colors flex items-center gap-2" href="#">
+<span class="material-symbols-outlined">person</span> Profile
+            </a>
+</div>
+<button class="w-10 h-10 rounded-full bg-surface-container overflow-hidden ring-2 ring-primary">
+<img alt="User avatar" class="w-full h-full object-cover" data-alt="A smiling young adult user's profile picture with a brightly lit background and a soft shallow depth of field, conveying approachability in a modern social app context." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAwvkieTmwDaCzN-sss-XbH7RYchIhVrxSBElwOCs4kuLvb_mIoNn9wfYLF8qemSH7e7Hg1EBkWiBhSBfG22bE_3BCsCj0Ncdt0t8ov-qYav6znbWDNrKaYaNrrrlPGZ5QJzIC9Gar0Q7ACB7LyAC83QLzEmVhjXHy5QEmuMgiy_FgbyaXNK3-A7XSxXXHqDbslYedWIf-X25QpUeFSRPtKDJ8gwgWNdc4vvTxrPUzZ1aHzwg7EAhhJ">
+</button>
+</nav>
+<!-- Main Canvas -->
+<main class="w-full max-w-md mx-auto bg-surface min-h-screen pt-[80px] pb-[100px] md:pt-24 md:pb-12 md:my-8 md:rounded-3xl md:shadow-[0px_8px_24px_rgba(0,0,0,0.1)] overflow-hidden relative shadow-[0px_8px_24px_rgba(0,0,0,0.1)] gap-6">
+<div class="px-margin-mobile">
+<h2 class="font-headline-lg text-headline-lg text-on-surface mb-stack-md">Real Talk Starters</h2>
+<!-- Current Goal Card -->
+<div class="bg-surface-container-high rounded-xl p-stack-md mb-stack-lg border-l-4 border-primary relative overflow-hidden shadow-[0px_4px_12px_rgba(0,0,0,0.05)] ring-1 ring-primary/10">
+<div class="absolute top-0 right-0 p-3 opacity-20 pointer-events-none">
+<span class="material-symbols-outlined text-4xl">flag</span>
+</div>
+<div class="flex items-center gap-2 mb-unit">
+<span class="bg-primary/10 text-primary font-label-sm text-label-sm px-2 py-1 rounded-full">Unit 4</span>
+<span class="text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider">Current Goal</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-stack-sm text-primary">Daily Routine</h3>
+<p class="font-body-md text-body-md text-on-surface-variant flex items-start gap-2">
+<span class="material-symbols-outlined text-tertiary-container text-lg mt-0.5">check_circle</span>
+                    "I can talk about my daily routine and ask others about theirs."
+                </p>
+</div>
+<!-- Categories Tabs -->
+<div class="flex overflow-x-auto hide-scrollbar gap-stack-sm mb-stack-lg pb-2 -mx-margin-mobile px-margin-mobile"><button class="whitespace-nowrap px-5 py-2 rounded-full bg-primary text-on-primary font-label-md text-label-md shadow-sm transition-transform active:scale-95">Icebreakers</button><button class="whitespace-nowrap px-5 py-2 rounded-full bg-surface-container text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high transition-transform active:scale-95">Deep Dives</button><button class="whitespace-nowrap px-5 py-2 rounded-full bg-surface-container text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high transition-transform active:scale-95">Task-Based</button></div>
+<!-- Prompts List -->
+<div class="space-y-stack-md">
+<!-- Prompt Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-stack-md shadow-[0px_4px_12px_rgba(0,0,0,0.05)] border border-surface-variant relative hover:shadow-md transition-shadow duration-300">
+<div class="flex justify-between items-start mb-stack-sm">
+<span class="bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm px-2 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">psychology</span> A2
+                        </span>
+<button class="text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined">bookmark_border</span>
+</button>
+</div>
+<p class="font-body-lg text-body-lg text-on-surface mb-stack-md leading-relaxed">
+                        "What is the first thing you usually do when you wake up in the morning?"
+                    </p>
+<div class="flex justify-between items-center mt-stack-md pt-stack-sm border-t border-surface-variant/50">
+<span class="font-body-sm text-body-sm text-outline flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">lightbulb</span> Try using 'usually'
+                        </span>
+<button class="bg-primary text-on-primary font-label-md text-label-md px-4 py-2 rounded-full hover:bg-primary/90 transition-all active:scale-95 flex items-center gap-2 px-6">
+                            Use in Chat <span class="material-symbols-outlined text-[18px]">send</span>
+</button>
+</div>
+</div>
+<!-- Prompt Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-stack-md shadow-[0px_4px_12px_rgba(0,0,0,0.05)] border border-surface-variant relative hover:shadow-md transition-shadow duration-300">
+<div class="flex justify-between items-start mb-stack-sm">
+<span class="bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm px-2 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">psychology</span> A2
+                        </span>
+<button class="text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined">bookmark_border</span>
+</button>
+</div>
+<p class="font-body-lg text-body-lg text-on-surface mb-stack-md leading-relaxed">
+                        "Ask Sofia about her morning routine on weekends."
+                    </p>
+<div class="flex justify-between items-center mt-stack-md pt-stack-sm border-t border-surface-variant/50">
+<span class="font-body-sm text-body-sm text-outline flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">lightbulb</span> Use question words
+                        </span>
+<button class="bg-primary text-on-primary font-label-md text-label-md px-4 py-2 rounded-full hover:bg-primary/90 transition-all active:scale-95 flex items-center gap-2 px-6">
+                            Use in Chat <span class="material-symbols-outlined text-[18px]">send</span>
+</button>
+</div>
+</div>
+<!-- Prompt Card 3 (AI Enhanced Hint) -->
+<div class="bg-surface-container-lowest rounded-xl p-stack-md shadow-[0px_4px_12px_rgba(0,0,0,0.05)] border border-surface-variant relative overflow-hidden hover:shadow-md transition-shadow duration-300">
+<div class="absolute top-0 left-0 w-1 h-full bg-[#5516be]"></div>
+<div class="flex justify-between items-start mb-stack-sm pl-2">
+<span class="bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm px-2 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">psychology</span> B1
+                        </span>
+<button class="text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined">bookmark_border</span>
+</button>
+</div>
+<p class="font-body-lg text-body-lg text-on-surface mb-stack-md leading-relaxed pl-2">
+                        "Describe your favorite weekend activity and why it helps you relax after a busy week."
+                    </p>
+<div class="bg-[#5516be]/5 rounded-lg p-3 mt-2 mb-stack-md border border-[#5516be]/10 ml-2 shadow-[0_0_8px_rgba(85,22,190,0.1)]">
+<p class="font-translation-text text-translation-text text-on-secondary-fixed-variant flex items-start gap-2">
+<span class="material-symbols-outlined text-[18px] mt-0.5">auto_awesome</span>
+                             Challenge: Try to use past tense to describe a specific time you did this.
+                         </p>
+</div>
+<div class="flex justify-between items-center mt-stack-md pt-stack-sm border-t border-surface-variant/50 pl-2">
+<span class="font-body-sm text-body-sm text-outline"></span>
+<button class="bg-primary text-on-primary font-label-md text-label-md px-4 py-2 rounded-full hover:bg-primary/90 transition-all active:scale-95 flex items-center gap-2 px-6">
+                            Use in Chat <span class="material-symbols-outlined text-[18px]">send</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-xl bg-surface-container dark:bg-inverse-surface shadow-[0px_-4px_12px_rgba(0,0,0,0.05)] transition-all duration-300 ease-out flex justify-around items-center h-20 px-4 pb-safe w-full md:hidden">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-5 py-1 hover:bg-surface-container-high dark:hover:bg-surface-variant/10 rounded-full transition-all active:scale-90" href="#">
+<span class="material-symbols-outlined">chat</span>
+<span class="font-label-md text-label-md mt-1">Chats</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container dark:bg-primary-fixed-dim dark:text-on-primary-fixed-variant rounded-full px-5 py-1 hover:bg-surface-container-high dark:hover:bg-surface-variant/10 transition-all active:scale-90" href="#">
+<span class="material-symbols-outlined fill">school</span>
+<span class="font-label-md text-label-md mt-1">Learn</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-5 py-1 hover:bg-surface-container-high dark:hover:bg-surface-variant/10 rounded-full transition-all active:scale-90" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-md text-label-md mt-1">Profile</span>
+</a>
+</nav>
+
+
+</body></html>
