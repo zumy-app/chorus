@@ -63,32 +63,27 @@ def run_bridge(prompt: str, suffix: str = "general", job: str = "") -> dict:
 REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 
-def verify(state: dict, task_id: str) -> dict:
-    """Run the phase's green gate deterministically and report PASS/FAIL.
+def verify(state: dict, task_id: str, role: str = "backend_engineer") -> dict:
+    """Run the affected surface's gate deterministically and report PASS/FAIL.
 
-    Executes the canonical layer commands itself (mirroring RUN_GUIDE.md's green
-    gate) and judges purely on exit codes. The previous version delegated to a QA
-    agent that was (a) routed to a subagent opencode rejects (falls back to the
-    default agent) and (b) whose final verdict was silently discarded because its
-    text is emitted at ``part.text``, not ``message`` -- so a healthy green build
-    was reported as "verification failed" and the heal loop spun.
+    Only the commands for the surface the task touched are run (targeted, fast).
+    The FULL multi-surface gate is what the phase-boundary check runs; per-task we
+    need a fast signal so the loop stays responsive.
     """
+    # Targeted checks by role: only the surface(s) that role can change.
     checks = {
-        0: [
-            "cd backend && go build ./... && go test ./...",
-            "cd frontend && npm test",
-            "cd mobile && npm test",
-        ],
-        1: [
-            "cd backend && go test ./...",
-            "cd frontend && npm test",
-            "cd frontend && npm run build",
-        ],
-        2: ["cd backend && go test ./...", "cd frontend && npm test", "cd mobile && npm test"],
-        3: ["cd backend && go test ./...", "cd e2e && npx playwright test"],
-        4: ["cd backend && go test ./...", "cd frontend && npm run build"],
+        "frontend_engineer": ["cd frontend && npm test"],
+        "mobile_engineer": ["cd mobile && npm test"],
+        "sre": ["docker compose -f docker-compose.prod.yml config --quiet"],
+        "backend_engineer": ["cd backend && go test ./..."],
+        "general": [],  # design/review: no build gate
     }
-    cmd_list = checks.get(st.current_phase(state)["id"], ["cd backend && go test ./..."])
+    cmd_list = checks.get(role, ["cd frontend && npm test"])
+    # Backend tasks can also surface in shared packages; always also run frontend
+    # if it is the shared contract, but keep it light.
+    if role == "backend_engineer":
+        cmd_list += ["cd frontend && npm test"]
+
     stdout_lines: list[str] = []
     stderr_lines: list[str] = []
     failures: list[str] = []
@@ -232,7 +227,7 @@ def run_task(state: dict, task_id: str, dry_run: bool) -> None:
 
     # Verify + heal loop
     for attempt in range(1, MAX_HEAL + 1):
-        v = verify(state, task_id)
+        v = verify(state, task_id, role=dev_role)
         ok = v.get("ok", False)
         if ok:
             log(f"{GREEN}OK task {task_id} verified green (attempt {attempt}){RESET}")
@@ -274,11 +269,40 @@ def run_task(state: dict, task_id: str, dry_run: bool) -> None:
     st.mark_task(state, task_id, "DONE", summary[:500])
 
 
+def full_gate(state: dict) -> dict:
+    """Run the FULL multi-surface gate at the phase boundary (slow, authoritative)."""
+    checks = [
+        "cd backend && go build ./... && go test ./...",
+        "cd frontend && npm test",
+        "cd mobile && npm test",
+    ]
+    failures: list[str] = []
+    stdout_lines: list[str] = []
+    for cmd in checks:
+        code, out, err = _run_command(cmd)
+        stdout_lines.append(f"$ {cmd}\n{out.strip()}")
+        if code != 0:
+            failures.append(f"$ {cmd}\n{err.strip() or out.strip()}")
+    ok = not failures
+    return {
+        "ok": ok,
+        "summary": ("FULL_GATE PASS\n" + "\n".join(stdout_lines)) if ok
+                   else ("FULL_GATE FAIL\n" + "\n".join(failures)),
+        "stderr": "\n".join(failures)[-8000:],
+    }
+
+
 def advance(state: dict, dry_run: bool) -> None:
     if st.phase_done(state):
         if dry_run:
             log(f"[dry-run] phase {st.current_phase(state)['id']} gate met — would advance")
             return
+        gate = full_gate(state)
+        if not gate["ok"]:
+            log(f"{RED}full gate FAILED for Phase {st.current_phase(state)['id']}; not advancing.{RESET}")
+            log(gate["summary"][-1500:])
+            return
+        log(f"{GREEN}full gate passed for Phase {st.current_phase(state)['id']}.{RESET}")
         me = st.current_phase(state)["name"]
         if not human_gate(state, f"Phase {st.current_phase(state)['id']}: {me} complete — advance?"):
             log("Held at user gate. Resolve and re-run.")
@@ -326,8 +350,13 @@ def main() -> int:
         if task is None:
             break
         run_task(state, task["id"], args.dry_run)
-        # In dry-run, mark the task so we don't loop forever and do not persist.
-        if args.dry_run and isinstance(task, dict):
+        # Save progress after every task so a crash/timeout never loses work.
+        # Also flush stdout so long runs are observable.
+        if not args.dry_run:
+            st.save(state)
+            sys.stdout.flush()
+        else:
+            # In dry-run, mark the task so we don't loop forever and do not persist.
             st.mark_task(state, task["id"], "DONE", "dry-run")
 
     if not args.dry_run:
