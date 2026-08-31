@@ -1,6 +1,6 @@
 {
   "$comment": "Machine-readable mirror of REQUIREMENTS_MASTER.md. The supervisor loop reads/writes this to persist progress across runs. Do not hand-edit; use crew/state.py.",
-  "current_phase": 1,
+  "current_phase": 2,
   "phases": [
     {
       "id": 0,
@@ -223,7 +223,7 @@
     {
       "id": 2,
       "name": "Messaging Parity + Audio Call Captions",
-      "status": "NOT_STARTED",
+      "status": "IN_PROGRESS",
       "tasks": [
         {
           "id": "6.1",
