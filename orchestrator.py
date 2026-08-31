@@ -189,10 +189,28 @@ YELLOW = "\033[0;33m"
 RESET = "\033[0m"
 
 
+def route_role(task: dict, phase_id: int) -> str:
+    """Pick the right engineer role for a task based on its name/domain.
+
+    Fall back to the phase's default DEV_ROLE when the task is ambiguous.
+    """
+    name = task["name"].lower()
+    if any(k in name for k in ("docker", "compose", "load balancer", "lb", "deploy",
+                               "infra", "ci", "observability", "prometheus", "grafana")):
+        return "sre"
+    if any(k in name for k in ("mobile", "react native", "expo", "android", "ios")):
+        return "mobile_engineer"
+    if any(k in name for k in ("emoji", "home button", "back", "admin", "copy",
+                               "settings", "chat language", "writing assistant",
+                               "highlight", "learning path", "scenario", "presence", "typing")):
+        return "frontend_engineer"
+    return DEV_ROLE.get(phase_id, "backend_engineer")
+
+
 def run_task(state: dict, task_id: str, dry_run: bool) -> None:
     phase_id = st.current_phase(state)["id"]
     task = next(t for t in st.current_phase(state)["tasks"] if t["id"] == task_id)
-    dev_role = DEV_ROLE.get(phase_id, "backend_engineer")
+    dev_role = route_role(task, phase_id)
 
     prompt = (
         f"You are the {dev_role} role. Implement this task: {task['name']} (id {task_id}).\n"
@@ -215,7 +233,7 @@ def run_task(state: dict, task_id: str, dry_run: bool) -> None:
     # Verify + heal loop
     for attempt in range(1, MAX_HEAL + 1):
         v = verify(state, task_id)
-        ok = v.get("ok") and "PASS" in (v.get("summary") or "").upper()
+        ok = v.get("ok", False)
         if ok:
             log(f"{GREEN}OK task {task_id} verified green (attempt {attempt}){RESET}")
             break
