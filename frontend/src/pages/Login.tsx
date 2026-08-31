@@ -11,8 +11,12 @@ interface LoginProps {
 
 export default function Login({ onLogin }: LoginProps) {
   const { t } = useTranslation()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  // Local-dev convenience: prefill the test account when VITE_TEST_USER_* are
+  // present in frontend/.env. Falls back to empty fields otherwise.
+  const testEmail = import.meta.env.VITE_TEST_USER_EMAIL as string | undefined
+  const testPassword = import.meta.env.VITE_TEST_USER_PASSWORD as string | undefined
+  const [email, setEmail] = useState(testEmail || '')
+  const [password, setPassword] = useState(testPassword || '')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)

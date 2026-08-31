@@ -14,8 +14,11 @@ import AuthLayout from '../components/AuthLayout';
 import { COLOR, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../theme';
 
 export default function LoginScreen({ navigation }: any) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  // Local-dev convenience: prefill the test account when
+  // EXPO_PUBLIC_TEST_USER_* are present (mobile/.env or the shell env). Falls
+  // back to empty fields otherwise.
+  const [username, setUsername] = useState(process.env.EXPO_PUBLIC_TEST_USER_EMAIL || '');
+  const [password, setPassword] = useState(process.env.EXPO_PUBLIC_TEST_USER_PASSWORD || '');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 

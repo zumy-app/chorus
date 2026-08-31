@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"math/rand"
+	"time"
 
 	"github.com/chorus/messenger/internal/models"
 )
@@ -20,9 +22,9 @@ const (
 // down per answer, and on completion writes the assigned level + readiness +
 // starting unit to the user's language profile.
 type PlacementService struct {
-	db       *sql.DB
+	db         *sql.DB
 	curriculum *CurriculumService
-	profiles *LearningProfileService
+	profiles   *LearningProfileService
 }
 
 func NewPlacementService(db *sql.DB, curriculum *CurriculumService, profiles *LearningProfileService) *PlacementService {
@@ -94,18 +96,7 @@ func (s *PlacementService) AnswerPlacement(ctx context.Context, userID, attemptI
 
 	item := meta.Items[meta.ItemIndex]
 	correct := normalizeAnswer(answer) == normalizeAnswer(item.Correct)
-	itemValue := levelToValue(item.CEFR)
-	if correct {
-		meta.Ability += 0.35 * (float64(itemValue) - meta.Ability + 150)
-	} else {
-		meta.Ability -= 0.35 * (meta.Ability - float64(itemValue) + 90)
-	}
-	if meta.Ability < 0 {
-		meta.Ability = 0
-	}
-	if meta.Ability > 1000 {
-		meta.Ability = 1000
-	}
+	meta.Ability = updatePlacementAbility(meta.Ability, levelToValue(item.CEFR), correct)
 
 	// Record the response.
 	promptJSON, _ := json.Marshal(map[string]any{"text": item.Prompt})
@@ -167,73 +158,86 @@ func (s *PlacementService) finalize(ctx context.Context, userID, attemptID strin
 func (s *PlacementService) buildItemBank(ctx context.Context, targetLang, nativeLang string) ([]placementItem, error) {
 	cap, err := s.capabilitiesFor(ctx, nativeLang, targetLang)
 	if err != nil || cap.ActiveCourseID == "" {
-		return s.buildFallbackBank(ctx, targetLang), nil
+		return buildPlacementFallback(), nil
 	}
-	courseID := cap.ActiveCourseID
+
+	// Load the course's core lexical items, preferring lower frequency rank
+	// (questions keep a clear "which Spanish word means X?" shape, so only items
+	// with an English gloss are usable).
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT cefr_level, display_text, COALESCE(translations->>'en','')
+		FROM lexical_items
+		WHERE course_id = $1
+		ORDER BY cefr_level, frequency_rank NULLS LAST, display_text`, cap.ActiveCourseID)
+	if err != nil {
+		return nil, err
+	}
+
+	termInfo := map[string]string{}     // term -> english gloss
+	levelTerms := map[string][]string{} // cefr -> ordered terms
+	for rows.Next() {
+		var level, term, trans string
+		if err := rows.Scan(&level, &term, &trans); err != nil {
+			continue
+		}
+		if trans == "" {
+			continue
+		}
+		if _, ok := termInfo[term]; ok {
+			continue
+		}
+		termInfo[term] = trans
+		levelTerms[level] = append(levelTerms[level], term)
+	}
+	rows.Close()
+
+	if len(termInfo) == 0 {
+		return buildPlacementFallback(), nil
+	}
+
+	// Global distractor pool (any distinct term in the course).
+	pool := make([]string, 0, len(termInfo))
+	for t := range termInfo {
+		pool = append(pool, t)
+	}
+
 	items := []placementItem{}
+	idx := 0
 	for _, level := range []string{"A1", "A2", "B1", "B2"} {
-		rows, err := s.db.QueryContext(ctx, `
-			SELECT display_text, COALESCE(translations->>'en','')
-			FROM lexical_items WHERE course_id = $1 AND cefr_level = $2
-			ORDER BY frequency_rank NULLS LAST LIMIT $3`, courseID, level, placementItemsPerLevel)
-		if err != nil {
-			continue
+		targets := levelTerms[level]
+		if len(targets) > placementItemsPerLevel {
+			targets = targets[:placementItemsPerLevel]
 		}
-		type pair struct{ term, trans string }
-		var pairs []pair
-		for rows.Next() {
-			var t, tr string
-			if err := rows.Scan(&t, &tr); err == nil {
-				pairs = append(pairs, pair{t, tr})
-			}
-		}
-		rows.Close()
-		if len(pairs) == 0 {
-			continue
-		}
-		for i, p := range pairs {
-			choices := []string{p.term}
-			used := map[string]bool{p.term: true}
-			for _, other := range pairs {
-				if len(choices) >= 4 {
-					break
-				}
-				if !used[other.term] {
-					choices = append(choices, other.term)
-					used[other.term] = true
-				}
-			}
-			for len(choices) < 4 {
-				choices = append(choices, fmt.Sprintf("Opción %d", len(choices)+1))
-			}
-			prompt := fmt.Sprintf("Which Spanish word means \"%s\"?", p.term)
-			if p.trans != "" {
-				prompt = fmt.Sprintf("Which Spanish word means \"%s\"?", p.trans)
-			}
+		for _, term := range targets {
 			items = append(items, placementItem{
-				Ref: fmt.Sprintf("%s-vocab-%d", level, i), Type: "vocabulary", CEFR: level,
-				Prompt: prompt, Choices: choices, Correct: p.term,
+				Ref:     fmt.Sprintf("%s-vocab-%d", level, idx),
+				Type:    "vocabulary",
+				CEFR:    level,
+				Prompt:  fmt.Sprintf("Which Spanish word means %q?", termInfo[term]),
+				Choices: buildChoices(term, pool),
+				Correct: term,
 			})
+			idx++
 		}
 	}
+
 	if len(items) < placementTotalQuestions-1 {
 		items = append(items, buildPlacementFallback()...)
+	}
+	if len(items) > placementTotalQuestions {
+		items = items[:placementTotalQuestions]
 	}
 	return items, nil
 }
 
-func (s *PlacementService) buildFallbackBank(ctx context.Context, targetLang string) []placementItem {
-	return buildPlacementFallback()
-}
-
 func buildPlacementFallback() []placementItem {
 	return []placementItem{
-		{Ref: "A1-grammar-1", Type: "grammar", CEFR: "A1", Prompt: "Complete: \"Yo ____ hablando español.\"", Choices: []string{"estoy", "soy", "es", "eres"}, Correct: "estoy"},
-		{Ref: "A1-grammar-2", Type: "grammar", CEFR: "A1", Prompt: "Choose the greeting:", Choices: []string{"Hola", "Adiós", "Gracias", "Por favor"}, Correct: "Hola"},
-		{Ref: "A2-grammar-1", Type: "grammar", CEFR: "A2", Prompt: "Yesterday I ____ al cine.", Choices: []string{"fui", "voy", "ir", "va"}, Correct: "fui"},
-		{Ref: "A2-grammar-2", Type: "grammar", CEFR: "A2", Prompt: "\"I am going to travel\" = ____ viajar.", Choices: []string{"Voy a", "Soy", "Estoy", "Voy de"}, Correct: "Voy a"},
-		{Ref: "B1-grammar-1", Type: "grammar", CEFR: "B1", Prompt: "Choose: \"If I had time, I ____ travel.\"", Choices: []string{"viajaría", "viajo", "viajaré", "viajé"}, Correct: "viajaría"},
-		{Ref: "B2-grammar-1", Type: "grammar", CEFR: "B2", Prompt: "Choose the more nuanced opinion opener:", Choices: []string{"Por un lado", "Es bueno", "Me gusta", "No sé"}, Correct: "Por un lado"},
+		{Ref: "A1-grammar-1", Type: "grammar", CEFR: "A1", Prompt: "Complete: \"Yo ____ hablando español.\"", Choices: shuffleStrings([]string{"estoy", "soy", "es", "eres"}, "A1-grammar-1"), Correct: "estoy"},
+		{Ref: "A1-grammar-2", Type: "grammar", CEFR: "A1", Prompt: "Choose the greeting:", Choices: shuffleStrings([]string{"Hola", "Adiós", "Gracias", "Por favor"}, "A1-grammar-2"), Correct: "Hola"},
+		{Ref: "A2-grammar-1", Type: "grammar", CEFR: "A2", Prompt: "Yesterday I ____ al cine.", Choices: shuffleStrings([]string{"fui", "voy", "ir", "va"}, "A2-grammar-1"), Correct: "fui"},
+		{Ref: "A2-grammar-2", Type: "grammar", CEFR: "A2", Prompt: "\"I am going to travel\" = ____ viajar.", Choices: shuffleStrings([]string{"Voy a", "Soy", "Estoy", "Voy de"}, "A2-grammar-2"), Correct: "Voy a"},
+		{Ref: "B1-grammar-1", Type: "grammar", CEFR: "B1", Prompt: "Choose: \"If I had time, I ____ travel.\"", Choices: shuffleStrings([]string{"viajaría", "viajo", "viajaré", "viajé"}, "B1-grammar-1"), Correct: "viajaría"},
+		{Ref: "B2-grammar-1", Type: "grammar", CEFR: "B2", Prompt: "Choose the more nuanced opinion opener:", Choices: shuffleStrings([]string{"Por un lado", "Es bueno", "Me gusta", "No sé"}, "B2-grammar-1"), Correct: "Por un lado"},
 	}
 }
 
@@ -305,8 +309,8 @@ type placementItem struct {
 }
 
 type placementMeta struct {
-	Ability   float64        `json:"ability"`
-	ItemIndex int            `json:"itemIndex"`
+	Ability   float64         `json:"ability"`
+	ItemIndex int             `json:"itemIndex"`
 	Items     []placementItem `json:"items"`
 }
 
@@ -366,7 +370,7 @@ func readinessWithinLevel(level string, ability int) int {
 func q(attemptID string, item placementItem) models.PlacementQuestion {
 	return models.PlacementQuestion{
 		Ref: item.Ref, ItemType: item.Type, CEFRLevel: item.CEFR,
-		Prompt: map[string]any{"text": item.Prompt},
+		Prompt:  map[string]any{"text": item.Prompt},
 		Choices: item.Choices,
 	}
 }
@@ -376,4 +380,76 @@ func scoreForPlacement(correct bool) int {
 		return 100
 	}
 	return 0
+}
+
+// updatePlacementAbility moves the ability estimate toward the item difficulty
+// on correct answers and away on errors, always in the direction the answer
+// implies. A small base step guarantees a correct answer never lowers the
+// estimate (and a wrong answer never raises it) even when the item difficulty
+// is far from the current estimate.
+func updatePlacementAbility(ability float64, itemValue int, correct bool) float64 {
+	const (
+		baseStep = 25.0
+		slope    = 0.35
+	)
+	value := float64(itemValue)
+	if correct {
+		ability += baseStep + slope*math.Max(0, value-ability)
+	} else {
+		ability -= baseStep + slope*math.Max(0, ability-value)
+	}
+	if ability < 0 {
+		ability = 0
+	}
+	if ability > 1000 {
+		ability = 1000
+	}
+	return ability
+}
+
+// buildChoices returns a shuffled 4-option set for a placement question. The
+// correct term is included; the first three distinct distractor terms come from
+// the pool, topped up from a curated list when the course bank is thin. The
+// correct answer is never hard-coded to a fixed position.
+func buildChoices(correct string, pool []string) []string {
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	choices := []string{correct}
+	used := map[string]bool{correct: true}
+
+	for _, idx := range rng.Perm(len(pool)) {
+		if len(choices) == 4 {
+			break
+		}
+		t := pool[idx]
+		if !used[t] {
+			choices = append(choices, t)
+			used[t] = true
+		}
+	}
+
+	// Refill with common Spanish words when the bank can't supply enough
+	// distractors. These never collide with the seeded course terms and can't be
+	// the correct answer for a different question's fixed option (each item
+	// builds its own pool).
+	for _, curated := range []string{"es", "también", "porque", "después", "siempre", "nunca", "muy", "ahora"} {
+		if len(choices) == 4 {
+			break
+		}
+		if !used[curated] {
+			choices = append(choices, curated)
+			used[curated] = true
+		}
+	}
+	return shuffleStrings(choices, correct)
+}
+
+// shuffleStrings returns a deterministic-ish copy with the slice order
+// randomized so the correct option is never always first across renders of the
+// same item ref.
+func shuffleStrings(in []string, seed string) []string {
+	out := make([]string, len(in))
+	copy(out, in)
+	rng := rand.New(rand.NewSource(time.Now().UnixNano() + int64(len(seed))))
+	rng.Shuffle(len(out), func(i, j int) { out[i], out[j] = out[j], out[i] })
+	return out
 }
