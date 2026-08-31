@@ -46,5 +46,6 @@ export const vocabularyAPI = client.vocabulary
 export const billingAPI = client.billing
 export const grammarAPI = client.grammar
 export const translationAPI = client.translation
+export const learningAPI = client.learning
 
 export default api

@@ -46,6 +46,11 @@ const apiService = {
   markAsRead: client.message.markAsRead,
   translateMessage: client.translation.translateMessage,
   healthCheck: client.health,
+  getLearningDashboard: client.learning.getDashboard,
+  getLearningProfile: client.learning.getProfile,
+  getLearningCapabilities: client.learning.getCapabilities,
+  getLearningPath: client.learning.getPath,
+  updateLearningProfile: client.learning.updateProfile,
 };
 
 export default apiService;
