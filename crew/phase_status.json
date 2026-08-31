@@ -1,6 +1,6 @@
 {
   "$comment": "Machine-readable mirror of REQUIREMENTS_MASTER.md. The supervisor loop reads/writes this to persist progress across runs. Do not hand-edit; use crew/state.py.",
-  "current_phase": 0,
+  "current_phase": 1,
   "phases": [
     {
       "id": 0,
@@ -56,7 +56,7 @@
     {
       "id": 1,
       "name": "Launch-Blocking Core (P0)",
-      "status": "NOT_STARTED",
+      "status": "IN_PROGRESS",
       "tasks": [
         {
           "id": "1.1",
