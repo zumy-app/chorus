@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Create Group Session - Chorus</title>
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788158188199&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YTUyOTc5ZDE1NmYwOTI1Yzc1YjNhMDI2Y2YyEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&amp;family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "outline-variant": "#c3c6d7",
+                      "on-tertiary-container": "#bdffdb",
+                      "error": "#ba1a1a",
+                      "on-tertiary": "#ffffff",
+                      "surface-container": "#e5eeff",
+                      "outline": "#737686",
+                      "surface-container-high": "#dce9ff",
+                      "on-primary-fixed": "#00174b",
+                      "on-secondary": "#ffffff",
+                      "on-primary-fixed-variant": "#003ea8",
+                      "on-surface": "#0b1c30",
+                      "on-secondary-fixed-variant": "#5516be",
+                      "inverse-primary": "#b4c5ff",
+                      "on-error": "#ffffff",
+                      "primary-fixed-dim": "#b4c5ff",
+                      "background": "#f8f9ff",
+                      "tertiary-container": "#007d55",
+                      "inverse-surface": "#213145",
+                      "surface-tint": "#0053db",
+                      "on-tertiary-fixed": "#002113",
+                      "surface-variant": "#d3e4fe",
+                      "on-error-container": "#93000a",
+                      "surface-bright": "#f8f9ff",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "on-background": "#0b1c30",
+                      "inverse-on-surface": "#eaf1ff",
+                      "on-tertiary-fixed-variant": "#005236",
+                      "surface-dim": "#cbdbf5",
+                      "on-surface-variant": "#434655",
+                      "secondary-fixed-dim": "#d0bcff",
+                      "secondary-fixed": "#e9ddff",
+                      "surface-container-highest": "#d3e4fe",
+                      "primary": "#004ac6",
+                      "primary-fixed": "#dbe1ff",
+                      "on-secondary-fixed": "#23005c",
+                      "secondary-container": "#8455ef",
+                      "tertiary": "#006242",
+                      "surface-container-low": "#eff4ff",
+                      "tertiary-fixed": "#6ffbbe",
+                      "error-container": "#ffdad6",
+                      "on-primary": "#ffffff",
+                      "secondary": "#6b38d4",
+                      "on-primary-container": "#eeefff",
+                      "on-secondary-container": "#fffbff",
+                      "surface": "#f8f9ff",
+                      "primary-container": "#2563eb",
+                      "surface-container-lowest": "#ffffff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "unit": "4px",
+                      "margin-mobile": "16px",
+                      "stack-md": "16px",
+                      "stack-lg": "24px",
+                      "stack-sm": "8px",
+                      "gutter-mobile": "12px"
+              },
+              "fontFamily": {
+                      "label-sm": ["Inter"],
+                      "label-md": ["Inter"],
+                      "headline-lg": ["Plus Jakarta Sans"],
+                      "body-lg": ["Be Vietnam Pro"],
+                      "headline-sm": ["Plus Jakarta Sans"],
+                      "translation-text": ["Be Vietnam Pro"],
+                      "body-sm": ["Be Vietnam Pro"],
+                      "headline-md": ["Plus Jakarta Sans"],
+                      "body-md": ["Be Vietnam Pro"]
+              },
+              "fontSize": {
+                      "label-sm": ["11px", {"lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500"}],
+                      "label-md": ["13px", {"lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                      "headline-lg": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                      "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "translation-text": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                      "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+              }
+            },
+          },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background antialiased min-h-screen flex flex-col font-body-md pb-24">
+<!-- Header (Suppressed standard nav due to task-focused linear flow, using a simple close header) -->
+<header class="flex justify-between items-center px-margin-mobile h-14 w-full bg-surface shadow-[0px_4px_12px_rgba(0,0,0,0.05)] sticky top-0 z-50">
+<button class="w-10 h-10 flex items-center justify-center text-on-surface hover:bg-surface-container-low rounded-full transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined">close</span>
+</button>
+<h1 class="font-headline-sm text-headline-sm font-semibold">Create Group Session</h1>
+<div class="w-10 h-10"></div> <!-- Spacer for centering -->
+</header>
+<main class="flex-1 w-full max-w-2xl mx-auto p-margin-mobile md:p-stack-lg space-y-stack-lg mt-4">
+<!-- Hero/Intro Card -->
+<div class="bg-white rounded-xl shadow-[0px_4px_12px_rgba(0,0,0,0.05)] p-6 relative overflow-hidden border border-outline-variant/30">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-primary-container/20 rounded-full blur-2xl"></div>
+<h2 class="font-headline-md text-headline-md text-primary mb-2 relative z-10">Host a Session</h2>
+<p class="font-body-md text-body-md text-on-surface-variant relative z-10">Gather learners, guide conversations, and help others improve their fluency in a collaborative environment.</p>
+</div>
+<form class="space-y-stack-lg">
+<!-- Topic & Description -->
+<section class="space-y-stack-md">
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-2" for="topic">Topic Title</label>
+<input class="w-full rounded-lg border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 bg-surface-bright font-body-md text-body-md py-3 px-4 transition-shadow" id="topic" placeholder="e.g., Casual French Conversation: Traveling" type="text"/>
+</div>
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-2" for="description">Description (Optional)</label>
+<textarea class="w-full rounded-lg border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 bg-surface-bright font-body-md text-body-md py-3 px-4 transition-shadow resize-none" id="description" placeholder="What will be discussed?" rows="3"></textarea>
+</div>
+</section>
+<hr class="border-outline-variant/30"/>
+<!-- Details Grid -->
+<section class="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
+<!-- CEFR Level -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-2" for="cefr">Target CEFR Level</label>
+<div class="relative">
+<select class="w-full appearance-none rounded-lg border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 bg-surface-bright font-body-md text-body-md py-3 pl-4 pr-10 transition-shadow" id="cefr">
+<option disabled="" selected="" value="">Select level...</option>
+<option value="A1">A1 - Beginner</option>
+<option value="A2">A2 - Elementary</option>
+<option value="B1">B1 - Intermediate</option>
+<option value="B2">B2 - Upper Intermediate</option>
+<option value="C1">C1 - Advanced</option>
+<option value="C2">C2 - Proficient</option>
+<option value="All">All Levels</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Max Participants -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-2" for="participants">Max Participants</label>
+<div class="relative">
+<input class="w-full rounded-lg border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 bg-surface-bright font-body-md text-body-md py-3 pl-10 pr-4 transition-shadow" id="participants" max="50" min="2" type="number" value="10"/>
+<div class="absolute inset-y-0 left-0 flex items-center pl-3 text-on-surface-variant pointer-events-none">
+<span class="material-symbols-outlined text-[20px]">group</span>
+</div>
+</div>
+</div>
+<!-- Date -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-2" for="date">Date</label>
+<div class="relative">
+<input class="w-full rounded-lg border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 bg-surface-bright font-body-md text-body-md py-3 pl-10 pr-4 transition-shadow" id="date" type="date"/>
+<div class="absolute inset-y-0 left-0 flex items-center pl-3 text-on-surface-variant pointer-events-none">
+<span class="material-symbols-outlined text-[20px]">calendar_today</span>
+</div>
+</div>
+</div>
+<!-- Time -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-2" for="time">Time</label>
+<div class="relative">
+<input class="w-full rounded-lg border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 bg-surface-bright font-body-md text-body-md py-3 pl-10 pr-4 transition-shadow" id="time" type="time"/>
+<div class="absolute inset-y-0 left-0 flex items-center pl-3 text-on-surface-variant pointer-events-none">
+<span class="material-symbols-outlined text-[20px]">schedule</span>
+</div>
+</div>
+</div>
+</section>
+<hr class="border-outline-variant/30"/>
+<!-- Privacy Toggle -->
+<section class="flex items-center justify-between p-4 bg-surface-container-low rounded-xl border border-outline-variant/20">
+<div class="flex-1 pr-4">
+<h3 class="font-headline-sm text-[16px] font-semibold text-on-surface mb-1">Public Session</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Anyone on Chorus can discover and join this session.</p>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-variant after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</section>
+<!-- Moderation Policy Reminder -->
+<section class="bg-surface-container/50 border border-primary/20 rounded-xl p-4 flex gap-4">
+<div class="flex-shrink-0 mt-1">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">security</span>
+</div>
+<div>
+<h4 class="font-label-md text-label-md text-on-surface mb-1">Moderation Policy</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">As a host, you are expected to maintain a supportive learning environment. Hate speech, harassment, or non-educational spam may result in session termination and account review.</p>
+</div>
+</section>
+</form>
+</main>
+<!-- Sticky Bottom Action -->
+<div class="fixed bottom-0 left-0 w-full bg-surface border-t border-outline-variant/20 p-margin-mobile shadow-[0px_-4px_12px_rgba(0,0,0,0.05)] z-40">
+<div class="max-w-2xl mx-auto flex gap-4">
+<button class="flex-1 py-3 px-6 rounded-lg font-label-md text-label-md text-primary bg-surface-container-low hover:bg-surface-container transition-colors text-center border border-primary/10">
+                Cancel
+            </button>
+<button class="flex-1 py-3 px-6 rounded-lg font-label-md text-label-md text-white bg-primary hover:bg-on-primary-fixed-variant transition-colors text-center shadow-sm">
+                Create Session
+            </button>
+</div>
+</div>
+</body></html>

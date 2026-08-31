@@ -4,22 +4,43 @@ import (
 	"encoding/json"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/chorus/messenger/internal/models"
+	"github.com/chorus/messenger/internal/observability"
 	"github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
 )
 
+// WebSocket message throttle bounds (NFR-24): at most wsMessageLimit inbound
+// messages per wsMessageWindow per connection. A client that floods the hub
+// with typing/join events is disconnected with a policy-violation close.
+const (
+	wsMessageLimit  = 60
+	wsMessageWindow = 10 * time.Second
+)
+
 type Client struct {
-	ID     string
-	UserID string
-	Conn   *websocket.Conn
-	Send   chan []byte
-	Hub    *WebSocketHub
+	ID       string
+	UserID   string
+	Conn     *websocket.Conn
+	Send     chan []byte
+	Hub      *WebSocketHub
+	msgLimit *FixedWindowLimiter
+}
+
+// MessageLimiter returns the per-connection throttle, creating it lazily so the
+// handler does not need to construct it. It is only touched from the client's
+// single read goroutine.
+func (c *Client) MessageLimiter() *FixedWindowLimiter {
+	if c.msgLimit == nil {
+		c.msgLimit = NewFixedWindowLimiter(wsMessageLimit, wsMessageWindow, 1)
+	}
+	return c.msgLimit
 }
 
 type WebSocketHub struct {
-	clients    map[string]*Client // clientID -> Client
+	clients    map[string]*Client            // clientID -> Client
 	userConns  map[string]map[string]*Client // userID -> clientID -> Client
 	Register   chan *Client
 	Unregister chan *Client
@@ -72,6 +93,11 @@ func (h *WebSocketHub) registerClient(client *Client) {
 	}
 	h.userConns[client.UserID][client.ID] = client
 
+	// NFR-18: connection metrics — gauge the current sockets + distinct online
+	// users and count total accepted connections.
+	observability.IncWSConnections()
+	observability.SetWSConnections(len(h.clients), len(h.userConns))
+
 	log.Printf("Client registered: %s (user: %s)", client.ID, client.UserID)
 }
 
@@ -89,6 +115,9 @@ func (h *WebSocketHub) unregisterClient(client *Client) {
 				delete(h.userConns, client.UserID)
 			}
 		}
+
+		// NFR-18: keep the connection gauges in sync after a disconnect.
+		observability.SetWSConnections(len(h.clients), len(h.userConns))
 
 		log.Printf("Client unregistered: %s (user: %s)", client.ID, client.UserID)
 	}
@@ -115,6 +144,7 @@ func (h *WebSocketHub) broadcastMessage(msg *BroadcastMessage) {
 				select {
 				case client.Send <- data:
 				default:
+					observability.IncWSFastDropped()
 					close(client.Send)
 					delete(h.clients, client.ID)
 					delete(userConns, client.ID)
@@ -127,6 +157,7 @@ func (h *WebSocketHub) broadcastMessage(msg *BroadcastMessage) {
 			select {
 			case client.Send <- data:
 			default:
+				observability.IncWSFastDropped()
 				close(client.Send)
 				delete(h.clients, client.ID)
 			}
@@ -188,6 +219,17 @@ func (c *Client) ReadPump() {
 				log.Printf("WebSocket error: %v", err)
 			}
 			break
+		}
+
+		// NFR-24: throttle inbound messages per connection so a single client
+		// cannot flood the hub and burn CPU/bandwidth. Over-the-limit clients
+		// are closed with a policy-violation frame.
+		if !c.MessageLimiter().Allow(c.ID) {
+			log.Printf("WebSocket client %s (user %s) exceeded message rate limit", c.ID, c.UserID)
+			_ = c.Conn.WriteControl(websocket.CloseMessage,
+				websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "message rate limit exceeded"),
+				time.Now().Add(time.Second))
+			return
 		}
 
 		// Handle incoming messages (typing indicators, etc.)

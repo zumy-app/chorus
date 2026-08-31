@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/chorus/messenger/internal/middleware"
 	"github.com/chorus/messenger/internal/models"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/gin-gonic/gin"
@@ -34,7 +35,7 @@ func NewAuthHandler(authService *services.AuthService, userService *services.Use
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req models.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": "Invalid registration data. Check email format and required fields."})
+		WriteError(c, middleware.ErrValidation("Invalid registration data. Check email format and required fields."))
 		return
 	}
 
@@ -43,7 +44,11 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		req.Username = req.Email
 	}
 	if strings.TrimSpace(req.DisplayName) == "" {
-		// Use email prefix as display name
+		// Prefer the composed first + last name, then fall back to the email
+		// prefix so a registration without any name still yields a displayName.
+		req.DisplayName = services.ComposeDisplayName(req.FirstName, req.LastName)
+	}
+	if strings.TrimSpace(req.DisplayName) == "" {
 		parts := strings.Split(req.Email, "@")
 		req.DisplayName = parts[0]
 	}
@@ -60,26 +65,26 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, services.ErrInvalidInvitation):
-			c.JSON(403, gin.H{"error": "A valid invitation for this email is required."})
+			WriteError(c, middleware.ErrForbidden("A valid invitation for this email is required."))
 		case errors.Is(err, services.ErrEmailAlreadyRegistered):
-			c.JSON(409, gin.H{"error": "Email is already registered"})
+			WriteError(c, middleware.ErrConflict("Email is already registered"))
 		case errors.Is(err, services.ErrUsernameAlreadyRegistered):
-			c.JSON(409, gin.H{"error": "Username is already registered"})
+			WriteError(c, middleware.ErrConflict("Username is already registered"))
 		default:
-			c.JSON(400, gin.H{"error": "Registration failed. Please try again."})
+			WriteError(c, middleware.ErrValidation("Registration failed. Please try again."))
 		}
 		return
 	}
 
 	accessToken, err := h.authService.GenerateAccessToken(user.ID)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to generate access token"})
+		WriteError(c, middleware.ErrInternal("Failed to generate access token"))
 		return
 	}
 
 	refreshToken, err := h.authService.GenerateRefreshToken(user.ID)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to generate refresh token"})
+		WriteError(c, middleware.ErrInternal("Failed to generate refresh token"))
 		return
 	}
 
@@ -106,16 +111,16 @@ func (h *AuthHandler) Register(c *gin.Context) {
 func (h *AuthHandler) InviteInfo(c *gin.Context) {
 	token := strings.TrimSpace(c.Query("token"))
 	if token == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invitation token is required."})
+		WriteError(c, middleware.ErrValidation("Invitation token is required."))
 		return
 	}
 	if h.invitationService == nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Invitations are not enabled."})
+		WriteError(c, middleware.ErrForbidden("Invitations are not enabled."))
 		return
 	}
 	email, err := h.invitationService.EmailByToken(token)
 	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": "This invitation is invalid, expired, or already used."})
+		WriteError(c, middleware.ErrForbidden("This invitation is invalid, expired, or already used."))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"email": email})
@@ -124,25 +129,25 @@ func (h *AuthHandler) InviteInfo(c *gin.Context) {
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req models.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": "Invalid request"})
+		WriteError(c, middleware.ErrValidation("Invalid request"))
 		return
 	}
 
 	user, err := h.authService.Login(req.Username, req.Password)
 	if err != nil {
-		c.JSON(401, gin.H{"error": "Invalid credentials"})
+		WriteError(c, middleware.ErrAuth("Invalid credentials"))
 		return
 	}
 
 	accessToken, err := h.authService.GenerateAccessToken(user.ID)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to generate access token"})
+		WriteError(c, middleware.ErrInternal("Failed to generate access token"))
 		return
 	}
 
 	refreshToken, err := h.authService.GenerateRefreshToken(user.ID)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to generate refresh token"})
+		WriteError(c, middleware.ErrInternal("Failed to generate refresh token"))
 		return
 	}
 
@@ -159,7 +164,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 	var req models.ForgotPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": "Please provide a valid email address."})
+		WriteError(c, middleware.ErrValidation("Please provide a valid email address."))
 		return
 	}
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
@@ -197,13 +202,13 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 func (h *AuthHandler) ResetPassword(c *gin.Context) {
 	var req models.ResetPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": "Invalid request. A new password of at least 8 characters is required."})
+		WriteError(c, middleware.ErrValidation("Invalid request. A new password of at least 8 characters is required."))
 		return
 	}
 
 	userID, err := h.authService.ResetPassword(req.Token, req.Password)
 	if err != nil {
-		c.JSON(400, gin.H{"error": "This reset link is invalid or has expired."})
+		WriteError(c, middleware.ErrValidation("This reset link is invalid or has expired."))
 		return
 	}
 	if err := h.authService.DeleteUserRefreshTokens(userID); err != nil {
@@ -219,19 +224,19 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": "Invalid request"})
+		WriteError(c, middleware.ErrValidation("Invalid request"))
 		return
 	}
 
 	userID, err := h.authService.ValidateRefreshToken(req.RefreshToken)
 	if err != nil {
-		c.JSON(401, gin.H{"error": "Invalid refresh token"})
+		WriteError(c, middleware.ErrAuth("Invalid refresh token"))
 		return
 	}
 
 	accessToken, err := h.authService.GenerateAccessToken(userID)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to generate access token"})
+		WriteError(c, middleware.ErrInternal("Failed to generate access token"))
 		return
 	}
 
@@ -246,7 +251,7 @@ func (h *AuthHandler) GetMe(c *gin.Context) {
 
 	user, err := h.userService.GetByID(userID)
 	if err != nil {
-		c.JSON(404, gin.H{"error": "User not found"})
+		WriteError(c, middleware.ErrNotFound("User not found"))
 		return
 	}
 
@@ -261,7 +266,7 @@ func (h *AuthHandler) GetMyEntitlements(c *gin.Context) {
 
 	user, err := h.userService.GetByID(userID)
 	if err != nil {
-		c.JSON(404, gin.H{"error": "User not found"})
+		WriteError(c, middleware.ErrNotFound("User not found"))
 		return
 	}
 
@@ -269,18 +274,39 @@ func (h *AuthHandler) GetMyEntitlements(c *gin.Context) {
 	c.JSON(200, entitlements)
 }
 
+// OnboardMe captures the user's first + last name and composes the displayName
+// (first + last) unless the request supplies an explicit override. It is the
+// backup for the post-registration onboarding step (REQ 2.1).
+func (h *AuthHandler) OnboardMe(c *gin.Context) {
+	userID := c.GetString("userID")
+
+	var req models.OnboardRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		WriteError(c, middleware.ErrValidation("First and last name are required."))
+		return
+	}
+
+	user, err := h.userService.Onboard(userID, req.FirstName, req.LastName, req.DisplayName)
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to update your name"))
+		return
+	}
+
+	c.JSON(200, user)
+}
+
 func (h *AuthHandler) UpdateMe(c *gin.Context) {
 	userID := c.GetString("userID")
 
 	var req models.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": "Invalid request"})
+		WriteError(c, middleware.ErrValidation("Invalid request"))
 		return
 	}
 
 	user, err := h.userService.Update(userID, req)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to update user"})
+		WriteError(c, middleware.ErrInternal("Failed to update user"))
 		return
 	}
 
@@ -290,14 +316,14 @@ func (h *AuthHandler) UpdateMe(c *gin.Context) {
 func (h *AuthHandler) SearchUsers(c *gin.Context) {
 	query := c.Query("q")
 	if query == "" {
-		c.JSON(400, gin.H{"error": "Query parameter 'q' is required"})
+		WriteError(c, middleware.ErrValidation("Query parameter 'q' is required"))
 		return
 	}
 
 	limit := 10
 	users, err := h.userService.Search(query, limit)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Search failed"})
+		WriteError(c, middleware.ErrInternal("Search failed"))
 		return
 	}
 

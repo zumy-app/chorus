@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Chorus - Language Learning Reimagined</title>
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788158188199&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YTUyMWFiYWY2NTkwMmE5YTRmMzdhMzJmMTMxEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "background": "#f8f9ff",
+                "outline": "#737686",
+                "surface-variant": "#d3e4fe",
+                "tertiary-container": "#007d55",
+                "tertiary-fixed-dim": "#4edea3",
+                "secondary": "#6b38d4",
+                "secondary-fixed": "#e9ddff",
+                "error-container": "#ffdad6",
+                "on-secondary-fixed": "#23005c",
+                "surface-container": "#e5eeff",
+                "surface-bright": "#f8f9ff",
+                "on-secondary-container": "#fffbff",
+                "surface": "#f8f9ff",
+                "inverse-on-surface": "#eaf1ff",
+                "primary-fixed-dim": "#b4c5ff",
+                "outline-variant": "#c3c6d7",
+                "primary": "#004ac6",
+                "on-primary-fixed-variant": "#003ea8",
+                "surface-dim": "#cbdbf5",
+                "on-surface": "#0b1c30",
+                "tertiary-fixed": "#6ffbbe",
+                "on-secondary-fixed-variant": "#5516be",
+                "on-primary": "#ffffff",
+                "primary-fixed": "#dbe1ff",
+                "on-tertiary": "#ffffff",
+                "on-tertiary-fixed": "#002113",
+                "on-secondary": "#ffffff",
+                "secondary-fixed-dim": "#d0bcff",
+                "on-error": "#ffffff",
+                "on-primary-container": "#eeefff",
+                "on-tertiary-fixed-variant": "#005236",
+                "surface-container-low": "#eff4ff",
+                "error": "#ba1a1a",
+                "on-tertiary-container": "#bdffdb",
+                "inverse-surface": "#213145",
+                "primary-container": "#2563eb",
+                "on-background": "#0b1c30",
+                "surface-container-lowest": "#ffffff",
+                "surface-container-high": "#dce9ff",
+                "surface-tint": "#0053db",
+                "on-primary-fixed": "#00174b",
+                "secondary-container": "#8455ef",
+                "surface-container-highest": "#d3e4fe",
+                "inverse-primary": "#b4c5ff",
+                "on-surface-variant": "#434655",
+                "on-error-container": "#93000a",
+                "tertiary": "#006242"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "gutter-mobile": "12px",
+                "margin-mobile": "16px",
+                "stack-lg": "24px",
+                "stack-md": "16px",
+                "stack-sm": "8px",
+                "unit": "4px"
+        },
+        "fontFamily": {
+                "label-sm": [
+                        "Inter"
+                ],
+                "body-lg": [
+                        "Be Vietnam Pro"
+                ],
+                "headline-sm": [
+                        "Plus Jakarta Sans"
+                ],
+                "headline-md": [
+                        "Plus Jakarta Sans"
+                ],
+                "headline-lg": [
+                        "Plus Jakarta Sans"
+                ],
+                "translation-text": [
+                        "Be Vietnam Pro"
+                ],
+                "label-md": [
+                        "Inter"
+                ],
+                "body-sm": [
+                        "Be Vietnam Pro"
+                ],
+                "body-md": [
+                        "Be Vietnam Pro"
+                ]
+        },
+        "fontSize": {
+                "label-sm": [
+                        "11px",
+                        {
+                                "lineHeight": "16px",
+                                "letterSpacing": "0.03em",
+                                "fontWeight": "500"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline-sm": [
+                        "20px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-md": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "letterSpacing": "-0.01em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "headline-lg": [
+                        "30px",
+                        {
+                                "lineHeight": "38px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "translation-text": [
+                        "14px",
+                        {
+                                "lineHeight": "20px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "label-md": [
+                        "13px",
+                        {
+                                "lineHeight": "18px",
+                                "letterSpacing": "0.01em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-sm": [
+                        "14px",
+                        {
+                                "lineHeight": "20px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "body-md": [
+                        "16px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "400"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* Ambient Background Grid */
+        .ambient-grid {
+            background-size: 40px 40px;
+            background-image: 
+                linear-gradient(to right, rgba(0, 74, 198, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 74, 198, 0.03) 1px, transparent 1px);
+        }
+        
+        .bento-card {
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .bento-card:active {
+            transform: scale(0.98);
+            box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.04);
+        }
+        
+        /* Mobile Nav Transition */
+        #mobile-menu {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface antialiased min-h-screen flex flex-col ambient-grid relative overflow-x-hidden">
+<!-- TopNavBar (Shared Component) -->
+<header class="bg-surface/80 dark:bg-surface-container-lowest/80 backdrop-blur-md sticky top-0 w-full z-50 bg-surface dark:bg-surface-container-lowest shadow-sm transition-all duration-200">
+<div class="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
+<!-- Brand -->
+<a class="font-headline-md text-headline-md text-primary dark:text-inverse-primary font-bold tracking-tight flex items-center gap-2" href="#">
+<img alt="Chorus Logo" class="h-8 w-auto" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDa6GYGIgVtywOaPb01RW695oait4jcaavx16r_nKo33XbyRf-0zAaymauW4w884StH5gn8sDcki7Zh0IoCPttuAck8NYnvSGCjj7JCXGVuxenqclT71o6xDo7KjLR_uzsdmcZfgviMidS0oJshP79Ss3UoB_Nkh0zH76bKG_esCs2PbivF_pwTdIoaEtCFA4ZJGbkL34pFiRw0v2wNIFWRNo4x_k1f4Dyk3oP0JVWWdVXde1-DK2G6"/>
+</a>
+<!-- Desktop Nav (Hidden on Mobile) -->
+<nav class="hidden md:flex gap-8 items-center">
+<a class="font-body-md text-body-md text-on-surface-variant dark:text-on-surface-variant hover:text-primary transition-colors" href="#features">Features</a>
+<a class="font-body-md text-body-md text-on-surface-variant dark:text-on-surface-variant hover:text-primary transition-colors" href="#pricing">Pricing</a>
+<a class="font-body-md text-body-md text-on-surface-variant dark:text-on-surface-variant hover:text-primary transition-colors" href="#about">About Us</a>
+</nav>
+<!-- CTA / Mobile Toggle -->
+<div class="flex items-center gap-4">
+<button class="hidden md:block bg-primary text-on-primary px-6 py-2 rounded-full font-label-md text-label-md hover:bg-primary-container transition-colors shadow-sm">
+                    Get Started
+                </button>
+<button class="md:hidden text-primary p-2" id="mobile-menu-btn">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+</div>
+</div>
+<!-- Mobile Nav Menu (Expandable) -->
+<div class="absolute top-full left-0 w-full bg-surface shadow-md overflow-hidden max-h-0 md:hidden flex flex-col border-t border-outline-variant/30" id="mobile-menu">
+<a class="font-body-md text-body-md text-on-surface px-6 py-4 border-b border-outline-variant/10" href="#features">Features</a>
+<a class="font-body-md text-body-md text-on-surface px-6 py-4 border-b border-outline-variant/10" href="#pricing">Pricing</a>
+<a class="font-body-md text-body-md text-on-surface px-6 py-4 border-b border-outline-variant/10" href="#about">About Us</a>
+<div class="p-6">
+<button class="w-full bg-primary text-on-primary px-6 py-3 rounded-full font-label-md text-label-md shadow-sm">
+                    Get Started
+                </button>
+</div>
+</div>
+</header>
+<main class="flex-grow flex flex-col items-center w-full max-w-md mx-auto px-margin-mobile">
+<!-- 1. Hero Section -->
+<section class="w-full pt-stack-lg pb-12 flex flex-col items-center text-center mt-4">
+<div class="inline-flex items-center gap-2 px-3 py-1 bg-surface-container-high rounded-full mb-6">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">The new standard in fluency</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface mb-stack-md">
+                Learn while you <span class="text-primary relative inline-block">Communicate
+                    <svg class="absolute w-full h-3 -bottom-1 left-0 text-secondary opacity-30" preserveaspectratio="none" viewbox="0 0 100 10"><path d="M0 5 Q 50 10 100 5" fill="none" stroke="currentColor" stroke-width="4"></path></svg>
+</span>
+</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mb-stack-lg px-2">
+                Ditch the flashcards. Build a personalized vocabulary based on what you actually want to say, powered by conversational AI.
+            </p>
+<button class="w-full bg-primary text-on-primary rounded-xl py-4 font-label-md text-label-md shadow-[0_4px_14px_0_rgba(0,74,198,0.39)] hover:shadow-[0_6px_20px_rgba(0,74,198,0.23)] transition-all flex items-center justify-center gap-2 mb-4">
+                Start Speaking Now
+                <span class="material-symbols-outlined text-[18px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<p class="font-label-sm text-label-sm text-outline">7-day free trial. Cancel anytime.</p>
+</section>
+<!-- 2. Value Proposition (Personal Corpus) -->
+<section class="w-full py-12 border-t border-outline-variant/20 relative" id="about">
+<!-- Decorative blur -->
+<div class="absolute top-10 right-0 w-32 h-32 bg-secondary/10 rounded-full blur-3xl -z-10"></div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-6 text-center">Your brain doesn't separate chatting from learning. Neither does Chorus.</h2>
+<img alt="Conceptual Brain showing communication and learning" class="w-full h-auto rounded-2xl mb-6 shadow-md object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDgQhw3sVSThrLEgije7dkEJr4B-KhL_jlmgoT7OCR-tu9Wg0-ZO2dCEUdRRXZtNDF1dZwNu2b_FAx2GdcCxm6CoPp34KNd6PLqadPWRBPd4j59XdYzmvDrD0ZwSt5MdqajfdJTvPtv7l5cJy0RUMrRtxQaYC4KwOAcAgo60N9p5sY_K985F67YZHqu-axUbl3PaATcc56Db3G9uFiF01Mlr7_6otiEFrdiqNS1TChuz0OZhchB31FT"/>
+<div class="bg-surface-container-lowest rounded-2xl p-6 bento-card relative overflow-hidden">
+<!-- Insight Purple Glow -->
+<div class="absolute top-0 left-0 w-1 h-full bg-secondary"></div>
+<div class="flex flex-col gap-4">
+<div class="bg-secondary/5 rounded-xl p-4 border border-secondary/20">
+<p class="font-body-md text-body-md text-on-secondary-fixed-variant">
+                            Chorus learns your specific interests, career, and slang to build a vocabulary that is entirely <strong>yours</strong>.
+                        </p>
+</div>
+</div>
+</div>
+</section>
+<!-- 3. Feature Grid (Bento Style) -->
+<section class="w-full py-8" id="features">
+<div class="grid grid-cols-1 gap-4">
+<!-- AI Deep Dive -->
+<div class="bg-surface-container-lowest rounded-2xl p-5 bento-card flex flex-col gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center text-primary mb-2">
+<span class="material-symbols-outlined" data-icon="neurology" style="font-variation-settings: 'FILL' 1;">neurology</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface">AI Deep Dive</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Instant grammar explanations and cultural context for any phrase you encounter.</p>
+</div>
+<!-- Real Talk -->
+<div class="bg-surface-container-lowest rounded-2xl p-5 bento-card flex flex-col gap-3">
+<div class="w-10 h-10 rounded-full bg-secondary-fixed flex items-center justify-center text-secondary mb-2">
+<span class="material-symbols-outlined" data-icon="forum" style="font-variation-settings: 'FILL' 1;">forum</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface">Real Talk Scenarios</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Practice voice conversations with AI personas tailored to real-world situations.</p>
+</div>
+<!-- Teacher Marketplace -->
+<div class="bg-surface-container-lowest rounded-2xl p-5 bento-card flex flex-col gap-3 bg-gradient-to-br from-surface-container-lowest to-surface-container-high">
+<div class="w-10 h-10 rounded-full bg-tertiary/10 flex items-center justify-center text-tertiary mb-2">
+<span class="material-symbols-outlined" data-icon="school" style="font-variation-settings: 'FILL' 1;">school</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface">Human Connection</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">When you're ready, book 1-on-1 sessions with verified tutors right from the app.</p>
+</div>
+</div>
+</section>
+<!-- Image Placeholder / Visual Break -->
+<section class="w-full py-8">
+<div class="bg-cover bg-center w-full h-64 rounded-2xl bento-card relative overflow-hidden" data-alt="A high-fidelity UI mockup of the Chorus app showing a split-screen experience" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBiIW1Pswg-d9O3dPkH_pRY26cjhtNRzdzPlybhdzB1bWm3ps3BcDeReivUrvxFJJb4cMfNDyX0at7osxAqWO_kXG0pEDgNWdOf2bFRW1RevouA_h6KZB1Zsi8Vs2Rug8O_vjxj-gCnyzbMaEiyc-C97oVFoNG8qbRqPArY4brforVqA2VZXHQTsTxaSpeQVGJFioF1OmlsYkD44Nn3ONhcNUHnp0FLlg9uU8L_Y8GSjYxxzcuD_XLd')">
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-6">
+<span class="font-headline-sm text-headline-sm text-white drop-shadow-md">Speak with confidence.</span>
+</div>
+</div>
+</section>
+<!-- 4. Pricing Table -->
+<section class="w-full py-12" id="pricing">
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-8 text-center">Simple, transparent pricing</h2>
+<div class="flex flex-col gap-6">
+<!-- Free Tier -->
+<div class="border border-outline-variant rounded-2xl p-6">
+<h3 class="font-label-md text-label-md text-on-surface uppercase tracking-wider mb-2">Basic</h3>
+<div class="font-headline-lg text-headline-lg text-on-surface mb-4">Free</div>
+<ul class="flex flex-col gap-3 mb-6 font-body-sm text-body-sm text-on-surface-variant">
+<li class="flex items-center gap-2"><span class="material-symbols-outlined text-tertiary text-[18px]" data-icon="check">check</span> Basic vocabulary building</li>
+<li class="flex items-center gap-2"><span class="material-symbols-outlined text-tertiary text-[18px]" data-icon="check">check</span> 15 mins daily AI chat</li>
+</ul>
+<button class="w-full py-3 rounded-xl border border-primary text-primary font-label-md text-label-md">Current Plan</button>
+</div>
+<!-- Premium Tier -->
+<div class="bg-primary-container text-on-primary-container rounded-2xl p-6 relative overflow-hidden shadow-lg border-2 border-primary">
+<div class="absolute top-0 right-0 bg-secondary text-white font-label-sm text-label-sm px-3 py-1 rounded-bl-lg">Most Popular</div>
+<h3 class="font-label-md text-label-md uppercase tracking-wider mb-2 opacity-90">Premium</h3>
+<div class="font-headline-lg text-headline-lg mb-4">$7.99<span class="font-body-sm text-body-sm font-normal opacity-80">/mo</span></div>
+<ul class="flex flex-col gap-3 mb-6 font-body-sm text-body-sm">
+<li class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px]" data-icon="check_circle">check_circle</span> Unlimited AI Conversations</li>
+<li class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px]" data-icon="check_circle">check_circle</span> Deep Grammar Insights</li>
+<li class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px]" data-icon="check_circle">check_circle</span> Personalized Audio Lessons</li>
+</ul>
+<button class="w-full py-3 rounded-xl bg-on-primary-container text-primary-container font-label-md text-label-md hover:opacity-90 transition-opacity">Upgrade to Premium</button>
+</div>
+</div>
+</section>
+<!-- 5. Mission & Final CTA -->
+<section class="w-full py-16 text-center border-t border-outline-variant/20">
+<div class="w-16 h-16 mx-auto bg-surface-container-high rounded-full flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="public">public</span>
+</div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-4">Ready to reach fluency?</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-8 px-4">
+                Join thousands of learners breaking the language barrier through genuine connection and context-driven AI.
+            </p>
+<button class="w-full bg-primary text-on-primary rounded-xl py-4 font-label-md text-label-md shadow-md hover:bg-primary-fixed-variant transition-colors">
+                Start Your Free Trial
+            </button>
+</section>
+</main>
+<!-- Footer (Shared Component) -->
+<footer class="w-full bg-surface-container-low dark:bg-inverse-surface border-t border-outline-variant mt-auto">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-8 px-6 py-12 max-w-7xl mx-auto">
+<!-- Brand Column -->
+<div class="flex flex-col gap-4 col-span-1 md:col-span-1">
+<div class="font-headline-sm text-headline-sm text-primary dark:text-inverse-primary flex items-center gap-2">
+<img alt="Chorus Logo" class="h-8 w-auto" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDa6GYGIgVtywOaPb01RW695oait4jcaavx16r_nKo33XbyRf-0zAaymauW4w884StH5gn8sDcki7Zh0IoCPttuAck8NYnvSGCjj7JCXGVuxenqclT71o6xDo7KjLR_uzsdmcZfgviMidS0oJshP79Ss3UoB_Nkh0zH76bKG_esCs2PbivF_pwTdIoaEtCFA4ZJGbkL34pFiRw0v2wNIFWRNo4x_k1f4Dyk3oP0JVWWdVXde1-DK2G6"/>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant dark:text-inverse-on-surface opacity-80">
+                    © 2024 Chorus AI. Language learning reimagined.
+                </p>
+</div>
+<!-- Links Column -->
+<div class="flex flex-col gap-3 col-span-1 md:col-span-3">
+<div class="grid grid-cols-2 gap-4">
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary hover:underline transition-all opacity-90 hover:opacity-100" href="#">Features</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary hover:underline transition-all opacity-90 hover:opacity-100" href="#">Privacy Policy</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary hover:underline transition-all opacity-90 hover:opacity-100" href="#">Pricing</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary hover:underline transition-all opacity-90 hover:opacity-100" href="#">Terms of Service</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary hover:underline transition-all opacity-90 hover:opacity-100" href="#">About Us</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary hover:underline transition-all opacity-90 hover:opacity-100" href="#">Help Center</a>
+</div>
+</div>
+</div>
+</footer>
+<!-- Interactive Scripts -->
+<script>
+        // Mobile Menu Toggle
+        const menuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        let menuOpen = false;
+
+        menuBtn.addEventListener('click', () => {
+            menuOpen = !menuOpen;
+            if(menuOpen) {
+                mobileMenu.style.maxHeight = '300px'; // Approximate height to slide down
+                menuBtn.innerHTML = '<span class="material-symbols-outlined" data-icon="close">close</span>';
+            } else {
+                mobileMenu.style.maxHeight = '0px';
+                menuBtn.innerHTML = '<span class="material-symbols-outlined" data-icon="menu">menu</span>';
+            }
+        });
+        
+        // Close menu on link click
+        mobileMenu.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.style.maxHeight = '0px';
+                menuOpen = false;
+                menuBtn.innerHTML = '<span class="material-symbols-outlined" data-icon="menu">menu</span>';
+            });
+        });
+    </script>
+</body></html>

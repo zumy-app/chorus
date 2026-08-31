@@ -5,7 +5,18 @@ export interface User {
   id: string
   username: string
   email: string
+  // Onboarding (REQ 2.1): structured name whose displayName ("first last") is
+  // composed server-side but still overridable. Optional for accounts created
+  // before onboarding was introduced.
+  firstName?: string
+  lastName?: string
   displayName: string
+  // REQ 2.2 / FR-20: deterministic initials avatar. avatarColor is derived
+  // server-side from the user's stable ID (identical across clients); avatarUrl
+  // is the reserved upload path and stays unset until attachment infra exists,
+  // in which case clients render initials + avatarColor instead of an image.
+  avatarColor?: string
+  avatarUrl?: string | null
   nativeLanguage: string
   targetLanguages: string[]
   role: 'member' | 'moderator' | 'admin'
@@ -235,10 +246,19 @@ export interface RegisterRequest {
   username?: string
   email: string
   password: string
+  firstName?: string
+  lastName?: string
   displayName: string
   nativeLanguage: string
   targetLanguages: string[]
   inviteToken?: string
+}
+
+export interface OnboardRequest {
+  firstName: string
+  lastName: string
+  // Optional override; when omitted the backend composes "first last".
+  displayName?: string
 }
 
 export interface WaitlistRequest {
@@ -272,6 +292,51 @@ export interface EmailOutboxEntry {
   createdAt: string
   nextAttemptAt: string
   sentAt?: string
+}
+
+// Contacts & Invites epic (REQ 2.4 / FR-22-23). Privacy-preserving: the scan
+// uploads only SHA-256 hashes of normalized identifiers; raw contacts never
+// leave the device.
+
+export type ContactInviteChannel = 'email' | 'sms' | 'whatsapp'
+
+export interface ContactMatch {
+  userId: string
+  username: string
+  displayName: string
+  email: string
+  emailHash: string
+  nativeLanguage: string
+  targetLanguages: string[]
+}
+
+export interface ContactScanRequest {
+  hashes: string[]
+}
+
+export interface ContactInviteRequest {
+  channel: ContactInviteChannel
+  contact: {
+    name?: string
+    email?: string
+    phone?: string
+  }
+}
+
+export type ContactInviteStatus = 'pending' | 'sent' | 'redeemed' | 'expired'
+
+export interface ContactInvite {
+  id: string
+  inviterId: string
+  channel: ContactInviteChannel
+  recipient: string
+  name?: string
+  token?: string
+  link?: string
+  status: ContactInviteStatus
+  expiresAt: string
+  createdAt: string
+  redeemedAt?: string
 }
 
 export interface AdminStats {
@@ -334,6 +399,22 @@ export interface WebSocketMessage {
   data: any
 }
 
+// Presence status returned by GET /presence/:userId and POST /presence/batch,
+// and pushed over the WebSocket as a "user_presence" / "presence_update" event.
+export interface PresenceStatus {
+  userId: string
+  status: 'online' | 'offline' | 'away'
+  lastSeen: string
+  deviceType?: string
+}
+
+// Payload of the client-initiated typing indicator (WebSocket "user_typing").
+export interface TypingEvent {
+  chatId: string
+  userId: string
+  isTyping: boolean
+}
+
 export type GrammarJobStatus = 'queued' | 'processing' | 'done' | 'failed'
 
 // Payload of the client-initiated AI grammar analysis job. Submitted via
@@ -394,7 +475,7 @@ export interface UserLanguageProfile {
   readinessScore: number
   activeCourseId?: string
   activeUnitId?: string
-  placementStatus: 'not_started' | 'in_progress' | 'completed' | 'skipped'
+  placementStatus: 'not_started' | 'in_progress' | 'completed' | 'skipped' | 'self_selected'
   primaryGoal: string
   dailyGoalItems: number
   miningEnabled: boolean
@@ -459,6 +540,12 @@ export interface DailyActivityPoint {
   itemsCompleted: number
 }
 
+export interface MonthlyActivityPoint {
+  month: string
+  wordsLearned: number
+  sentencesUnderstood: number
+}
+
 export interface LessonSummary {
   id: string
   unitId: string
@@ -505,6 +592,7 @@ export interface LearningDashboard {
   scenario: ScenarioSummary
   recommendedActivities: RecommendedActivity[]
   weeklyActivity: DailyActivityPoint[]
+  monthlyActivity: MonthlyActivityPoint[]
 }
 
 export interface LearningPath {

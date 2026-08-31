@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/chorus/messenger/internal/middleware"
 	"github.com/chorus/messenger/internal/models"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/gin-gonic/gin"
@@ -40,7 +41,7 @@ func (h *AdminWaitlistHandler) authorize(c *gin.Context) bool {
 	}
 	user, err := h.users.GetByID(c.GetString("userID"))
 	if err != nil || !h.adminEmails[strings.ToLower(user.Email)] {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Admin access required"})
+		WriteError(c, middleware.ErrForbidden("Admin access required"))
 		return false
 	}
 	return true
@@ -91,7 +92,7 @@ func (h *AdminWaitlistHandler) List(c *gin.Context) {
 
 	rows, err := h.db.Query(query, args...)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Unable to load waitlist"})
+		WriteError(c, middleware.ErrInternal("Unable to load waitlist"))
 		return
 	}
 	defer rows.Close()
@@ -99,7 +100,7 @@ func (h *AdminWaitlistHandler) List(c *gin.Context) {
 	for rows.Next() {
 		var entry models.WaitlistEntry
 		if err := rows.Scan(&entry.ID, &entry.Email, pq.Array(&entry.SpokenLanguages), pq.Array(&entry.TargetLanguages), pq.Array(&entry.Reasons), &entry.Comments, &entry.Status, &entry.QueuePosition, &entry.CreatedAt, &entry.ApprovedAt); err != nil {
-			c.JSON(500, gin.H{"error": "Unable to load waitlist"})
+			WriteError(c, middleware.ErrInternal("Unable to load waitlist"))
 			return
 		}
 		entries = append(entries, entry)
@@ -115,18 +116,18 @@ func (h *AdminWaitlistHandler) Approve(c *gin.Context) {
 	err := h.db.QueryRow(`UPDATE waitlist_entries SET status = 'approved', approved_at = CURRENT_TIMESTAMP
 		WHERE id = $1 AND status = 'pending' RETURNING id, email`, c.Param("id")).Scan(&entry.ID, &entry.Email)
 	if err != nil {
-		c.JSON(404, gin.H{"error": "Pending waitlist entry not found"})
+		WriteError(c, middleware.ErrNotFound("Pending waitlist entry not found"))
 		return
 	}
 	token, err := h.invitations.Create(entry.ID, entry.Email)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Unable to create invitation"})
+		WriteError(c, middleware.ErrInternal("Unable to create invitation"))
 		return
 	}
 	link := h.inviteURL + "?invite=" + token
 	subject, html := services.InvitationEmail(link)
 	if err := h.notifications.Send(entry.Email, subject, html); err != nil {
-		c.JSON(502, gin.H{"error": "Invitation created, but email delivery is pending retry. Check the email log."})
+		WriteError(c, middleware.ErrDelivery("Invitation created, but email delivery is pending retry. Check the email log."))
 		return
 	}
 	c.JSON(200, gin.H{"message": "Invitation sent"})
@@ -140,11 +141,11 @@ func (h *AdminWaitlistHandler) Decline(c *gin.Context) {
 	result, err := h.db.Exec(`UPDATE waitlist_entries SET status = 'declined', approved_at = NULL
 		WHERE id = $1 AND status = 'pending'`, c.Param("id"))
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Unable to decline entry"})
+		WriteError(c, middleware.ErrInternal("Unable to decline entry"))
 		return
 	}
 	if count, _ := result.RowsAffected(); count != 1 {
-		c.JSON(404, gin.H{"error": "Pending waitlist entry not found"})
+		WriteError(c, middleware.ErrNotFound("Pending waitlist entry not found"))
 		return
 	}
 	c.JSON(200, gin.H{"message": "Entry declined"})
@@ -161,18 +162,18 @@ func (h *AdminWaitlistHandler) ResendInvite(c *gin.Context) {
 	err := h.db.QueryRow(`SELECT id, email FROM waitlist_entries WHERE id = $1 AND status = 'approved'`, c.Param("id")).
 		Scan(&entryID, &email)
 	if err != nil {
-		c.JSON(404, gin.H{"error": "Approved waitlist entry not found"})
+		WriteError(c, middleware.ErrNotFound("Approved waitlist entry not found"))
 		return
 	}
 	token, err := h.invitations.Create(entryID, email)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Unable to create invitation"})
+		WriteError(c, middleware.ErrInternal("Unable to create invitation"))
 		return
 	}
 	link := h.inviteURL + "?invite=" + token
 	subject, html := services.InvitationEmail(link)
 	if err := h.notifications.Send(email, subject, html); err != nil {
-		c.JSON(502, gin.H{"error": "Invitation created, but email delivery is pending retry. Check the email log."})
+		WriteError(c, middleware.ErrDelivery("Invitation created, but email delivery is pending retry. Check the email log."))
 		return
 	}
 	c.JSON(200, gin.H{"message": "Invitation re-sent"})
@@ -211,7 +212,7 @@ func (h *AdminWaitlistHandler) Emails(c *gin.Context) {
 	}
 	entries, err := h.notifications.List(c.Query("status"))
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Unable to load email log"})
+		WriteError(c, middleware.ErrInternal("Unable to load email log"))
 		return
 	}
 	c.JSON(200, gin.H{"emails": entries})
@@ -223,7 +224,7 @@ func (h *AdminWaitlistHandler) RetryEmail(c *gin.Context) {
 		return
 	}
 	if err := h.notifications.RetryByID(c.Param("id")); err != nil {
-		c.JSON(502, gin.H{"error": err.Error()})
+		WriteError(c, middleware.ErrDelivery("Unable to resend email"))
 		return
 	}
 	c.JSON(200, gin.H{"message": "Email sent"})

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import Landing from './pages/Landing'
 import Pricing from './pages/Pricing'
@@ -18,7 +18,7 @@ import Scenarios from './pages/Scenarios'
 import ScenarioRoleplay from './pages/ScenarioRoleplay'
 import LearningRoadmap from './pages/LearningRoadmap'
 import Profile from './pages/Profile'
-import { authAPI } from './services/api'
+import { authAPI, presenceAPI } from './services/api'
 import { wsService } from './services/websocket'
 import { useStore } from './store'
 
@@ -27,6 +27,26 @@ function App() {
   const [isLoading, setIsLoading] = useState(true)
   const { isAdmin, isModerator, setUser, setEntitlements, setAdmin, refreshAdminStatus, refreshEntitlements } = useStore()
   const navigate = useNavigate()
+  const presenceHeartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Report the web client as online so other users see real presence (FR-9),
+  // and refresh the backend's Redis presence TTL so it doesn't go stale.
+  // The backend expires presence keys after 5 minutes, so we ping every 4.
+  const startPresenceReporting = () => {
+    presenceAPI.update({ status: 'online', deviceType: 'web' }).catch(() => {})
+    if (presenceHeartbeatRef.current) clearInterval(presenceHeartbeatRef.current)
+    presenceHeartbeatRef.current = setInterval(() => {
+      presenceAPI.heartbeat('web').catch(() => {})
+    }, 4 * 60 * 1000)
+  }
+
+  const stopPresenceReporting = () => {
+    if (presenceHeartbeatRef.current) {
+      clearInterval(presenceHeartbeatRef.current)
+      presenceHeartbeatRef.current = null
+    }
+    presenceAPI.update({ status: 'offline' }).catch(() => {})
+  }
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -39,6 +59,7 @@ function App() {
           refreshAdminStatus()
           refreshEntitlements()
           wsService.connect(token)
+          startPresenceReporting()
         } catch (error) {
           localStorage.removeItem('accessToken')
           localStorage.removeItem('refreshToken')
@@ -62,6 +83,7 @@ function App() {
     refreshAdminStatus()
     refreshEntitlements()
     wsService.connect(tokens.accessToken)
+    startPresenceReporting()
     navigate('/chat')
   }
 
@@ -73,6 +95,7 @@ function App() {
     setAdmin(false)
     setIsAuthenticated(false)
     wsService.disconnect()
+    stopPresenceReporting()
     navigate('/login')
   }
 

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus - Invite &amp; Find Partners</title>
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788158188199&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YTUyNWViNGQxOTAwNzNhZDYwYmIxMmMyZjVlEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-primary-container": "#eeefff",
+                      "on-secondary": "#ffffff",
+                      "on-secondary-container": "#fffbff",
+                      "surface-container-low": "#eff4ff",
+                      "on-tertiary": "#ffffff",
+                      "outline-variant": "#c3c6d7",
+                      "on-tertiary-fixed-variant": "#005236",
+                      "on-surface": "#0b1c30",
+                      "surface-container-lowest": "#ffffff",
+                      "on-primary-fixed": "#00174b",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "tertiary-fixed": "#6ffbbe",
+                      "primary-fixed": "#dbe1ff",
+                      "primary-container": "#2563eb",
+                      "surface-container": "#e5eeff",
+                      "secondary-container": "#8455ef",
+                      "surface-container-high": "#dce9ff",
+                      "primary": "#004ac6",
+                      "inverse-surface": "#213145",
+                      "error": "#ba1a1a",
+                      "on-background": "#0b1c30",
+                      "on-tertiary-fixed": "#002113",
+                      "surface-tint": "#0053db",
+                      "surface": "#f8f9ff",
+                      "on-secondary-fixed-variant": "#5516be",
+                      "on-primary": "#ffffff",
+                      "inverse-on-surface": "#eaf1ff",
+                      "on-error": "#ffffff",
+                      "secondary-fixed": "#e9ddff",
+                      "tertiary": "#006242",
+                      "error-container": "#ffdad6",
+                      "surface-container-highest": "#d3e4fe",
+                      "surface-variant": "#d3e4fe",
+                      "on-tertiary-container": "#bdffdb",
+                      "on-surface-variant": "#434655",
+                      "secondary": "#6b38d4",
+                      "surface-bright": "#f8f9ff",
+                      "secondary-fixed-dim": "#d0bcff",
+                      "outline": "#737686",
+                      "on-primary-fixed-variant": "#003ea8",
+                      "on-error-container": "#93000a",
+                      "primary-fixed-dim": "#b4c5ff",
+                      "background": "#f8f9ff",
+                      "surface-dim": "#cbdbf5",
+                      "inverse-primary": "#b4c5ff",
+                      "on-secondary-fixed": "#23005c",
+                      "tertiary-container": "#007d55"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "stack-md": "16px",
+                      "gutter-mobile": "12px",
+                      "stack-sm": "8px",
+                      "stack-lg": "24px",
+                      "unit": "4px",
+                      "margin-mobile": "16px"
+              },
+              "fontFamily": {
+                      "body-sm": [
+                              "Be Vietnam Pro"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "translation-text": [
+                              "Be Vietnam Pro"
+                      ],
+                      "body-md": [
+                              "Be Vietnam Pro"
+                      ],
+                      "headline-lg": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "headline-sm": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "label-sm": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Be Vietnam Pro"
+                      ]
+              },
+              "fontSize": {
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-md": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "letterSpacing": "0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "translation-text": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg": [
+                              "30px",
+                              {
+                                      "lineHeight": "38px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-sm": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-sm": [
+                              "11px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.03em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined[data-weight="fill"] {
+            font-variation-settings: 'FILL' 1;
+        }
+        body {
+            background-color: #F8FAFC; /* Level 0 Slate-50 equivalent from prompt */
+        }
+        /* Custom scrollbar to match modern aesthetic */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #dce9ff; 
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #b4c5ff; 
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md antialiased pb-24 md:pb-0">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky bg-surface dark:bg-background shadow-[0px_4px_12px_rgba(0,0,0,0.05)] z-40 flex justify-between items-center px-margin-mobile py-stack-sm hidden md:flex">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-variant flex items-center justify-center">
+<img class="w-full h-full object-cover" data-alt="A close up portrait of a young professional woman smiling warmly in a bright, modern light-mode office setting. The lighting is soft and flattering, highlighting her natural features against a clean, white background. The aesthetic is approachable and friendly." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD5e_tUcQrPvx3Tw_zP88iV8ZgDqfyGcXFCjtzWnJFPCZrQhYCmxs6UGj7v-BEx8SB9WsT52_4LflkKDELjpzccTgTVgDumyCdDwIq7epCltqTI-qSj9iwmq2uZxBmR4oqB7_Eo4ACdQIRMGD0MSxyj8gI4Y22AaDscrli6hsUvbvM_B79P7gmjcu5fnnIupxyhXiHQDzVQrFHaCS-iN-X6Swjnf5Hv5FM20uSmPcJtQuJg578oajGT"/>
+</div>
+<span class="font-headline-md text-primary font-bold tracking-tight">Chorus</span>
+</div>
+<!-- Desktop Nav Items -->
+<nav class="flex items-center gap-6">
+<a class="text-on-surface-variant hover:opacity-80 transition-opacity font-label-md flex items-center gap-2" href="#">
+<span class="material-symbols-outlined text-[20px]">school</span> Learn
+            </a>
+<a class="text-on-surface-variant hover:opacity-80 transition-opacity font-label-md flex items-center gap-2" href="#">
+<span class="material-symbols-outlined text-[20px]">chat_bubble</span> Chats
+            </a>
+<a class="text-primary hover:opacity-80 transition-opacity font-label-md flex items-center gap-2 border-b-2 border-primary pb-1" href="#">
+<span class="material-symbols-outlined text-[20px]" data-weight="fill">auto_awesome</span> Hub
+            </a>
+<a class="text-on-surface-variant hover:opacity-80 transition-opacity font-label-md flex items-center gap-2" href="#">
+<span class="material-symbols-outlined text-[20px]">person</span> Profile
+            </a>
+</nav>
+<div class="flex items-center gap-2 bg-surface-container-low px-3 py-1.5 rounded-full shadow-[0px_2px_4px_rgba(0,0,0,0.02)]">
+<span class="material-symbols-outlined text-tertiary-container text-[18px]" data-weight="fill">local_fire_department</span>
+<span class="font-label-md text-on-surface">92 XP</span>
+</div>
+</header>
+<!-- Mobile Top Header (Since TopAppBar component logic is complex, ensuring a fallback for mobile title if standard nav is hidden) -->
+<header class="w-full top-0 sticky bg-surface/90 backdrop-blur-md shadow-sm z-40 flex justify-between items-center px-margin-mobile py-stack-sm md:hidden">
+<span class="font-headline-md text-primary font-bold">Find Partners</span>
+<div class="flex items-center gap-2 bg-surface-container-low px-3 py-1.5 rounded-full">
+<span class="material-symbols-outlined text-tertiary-container text-[16px]" data-weight="fill">local_fire_department</span>
+<span class="font-label-md text-on-surface">92 XP</span>
+</div>
+</header>
+<main class="max-w-3xl mx-auto px-margin-mobile pt-stack-lg pb-stack-lg flex flex-col gap-stack-lg">
+<!-- Search Bar -->
+<section class="w-full relative">
+<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">search</span>
+</div>
+<input class="w-full pl-12 pr-4 py-3 bg-surface-container-lowest border-none rounded-full shadow-[0px_4px_12px_rgba(0,0,0,0.05)] focus:ring-2 focus:ring-primary focus:outline-none font-body-md text-on-surface placeholder:text-outline transition-shadow" placeholder="Search by name, language, or topic..." type="text"/>
+</section>
+<!-- Referral Rewards Banner (Glassmorphism inspired) -->
+<section class="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary-container to-secondary-container text-on-primary-container p-6 shadow-lg">
+<!-- Decorative blur -->
+<div class="absolute -top-10 -right-10 w-32 h-32 bg-white/20 blur-2xl rounded-full"></div>
+<div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex flex-col gap-1">
+<h2 class="font-headline-sm font-bold flex items-center gap-2">
+<span class="material-symbols-outlined" data-weight="fill">workspace_premium</span>
+                        Unlock Premium
+                    </h2>
+<p class="font-body-sm opacity-90 max-w-sm">Earn 1 week of Premium for every friend who joins Chorus and completes their first chat.</p>
+</div>
+<button class="self-start md:self-auto bg-surface-container-lowest text-primary font-label-md px-6 py-2.5 rounded-full shadow-sm hover:opacity-90 active:scale-95 transition-all w-fit">
+                    Share Link
+                </button>
+</div>
+</section>
+<!-- Invite Quick Actions (Bento Grid Style) -->
+<section>
+<h3 class="font-headline-sm text-on-surface mb-stack-md">Invite Friends</h3>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-gutter-mobile">
+<button class="flex flex-col items-center justify-center p-4 bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(0,0,0,0.05)] hover:shadow-md transition-shadow gap-2 active:scale-95">
+<div class="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center text-green-600">
+<span class="material-symbols-outlined text-[28px]">chat</span>
+</div>
+<span class="font-label-md text-on-surface">WhatsApp</span>
+</button>
+<button class="flex flex-col items-center justify-center p-4 bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(0,0,0,0.05)] hover:shadow-md transition-shadow gap-2 active:scale-95">
+<div class="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-500">
+<span class="material-symbols-outlined text-[28px]">mail</span>
+</div>
+<span class="font-label-md text-on-surface">Email</span>
+</button>
+<button class="flex flex-col items-center justify-center p-4 bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(0,0,0,0.05)] hover:shadow-md transition-shadow gap-2 active:scale-95">
+<div class="w-12 h-12 bg-surface-container-high rounded-full flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined text-[28px]">content_copy</span>
+</div>
+<span class="font-label-md text-on-surface">Copy Link</span>
+</button>
+<button class="flex flex-col items-center justify-center p-4 bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(0,0,0,0.05)] hover:shadow-md transition-shadow gap-2 active:scale-95">
+<div class="w-12 h-12 bg-surface-container-high rounded-full flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined text-[28px]">more_horiz</span>
+</div>
+<span class="font-label-md text-on-surface">More</span>
+</button>
+</div>
+</section>
+<!-- Suggested Partners -->
+<section>
+<div class="flex justify-between items-center mb-stack-md">
+<h3 class="font-headline-sm text-on-surface">Suggested Partners</h3>
+<button class="text-primary font-label-md hover:underline">View All</button>
+</div>
+<!-- Bento-ish List Layout -->
+<div class="flex flex-col gap-gutter-mobile">
+<!-- Partner Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-4 shadow-[0px_4px_12px_rgba(0,0,0,0.05)] flex items-start gap-4">
+<div class="relative shrink-0">
+<div class="w-14 h-14 rounded-full overflow-hidden bg-surface-variant">
+<img class="w-full h-full object-cover" data-alt="A portrait of a friendly young man with dark hair and glasses in a well-lit indoor environment. The background is slightly blurred indicating a modern workspace. He is smiling, conveying approachability suitable for a language exchange platform." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDpMX7mJUwIjJCGnXP2buWUyeZ62ur8tLf92AKAUS4K7pAxrb9mKn9O5_5NhX3NRKHjnWRFqzXVaAoFekVcUQM09h6jz1__qhNkwQNoFfCFbd1NyB3_PjaeuwyTLQN5tTRLcdA3zP3OjwfcvFDJg4a5sQqWMrnHUtkJU7CtcshGjLK8OI595BzMTRoki7BbbC5Mw-jVJjwehts5oBnJCrAhtNWIdN4zQLzVhUlxNNeHmKL6g8V6On21"/>
+</div>
+<div class="absolute -bottom-1 -right-1 bg-surface-container-lowest p-0.5 rounded-full">
+<span class="material-symbols-outlined text-primary text-[16px]" data-weight="fill">verified</span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start mb-1">
+<div>
+<h4 class="font-label-md text-on-surface truncate text-base">Carlos Rivera</h4>
+<p class="font-label-sm text-outline flex items-center gap-1">
+                                    Fluent in Spanish
+                                </p>
+</div>
+<span class="px-2 py-0.5 bg-primary-container/10 text-primary rounded-full font-label-sm whitespace-nowrap">B2 English</span>
+</div>
+<p class="font-body-sm text-on-surface-variant line-clamp-2 mt-1">
+                            Software engineer in Madrid. Looking to practice conversational English for work. I love talking about tech and travel!
+                        </p>
+</div>
+<button class="shrink-0 w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors">
+<span class="material-symbols-outlined">person_add</span>
+</button>
+</div>
+<!-- Partner Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-4 shadow-[0px_4px_12px_rgba(0,0,0,0.05)] flex items-start gap-4">
+<div class="relative shrink-0">
+<div class="w-14 h-14 rounded-full overflow-hidden bg-surface-variant">
+<img class="w-full h-full object-cover" data-alt="A casual portrait of a young woman with curly hair outdoors on a sunny day. She is smiling broadly. The light is natural and bright, creating a cheerful and welcoming mood." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBPqlH9-WYb_hFYQCAPExokvQPOTF7AQpYkZrbVvP1DuClmo1e1cjFcH0MuCk4CjqPVBptO1pk8RFpc090Oz8izLVCy6fotKl73qW7FHBQNQzDci72xCJ-IbnX4iZ7-VjysLMzTp8Om5q7KHiCRlMAyqXIvSmgEEm2WOiXiu7c2Src7ismT8RyAaD5znqMU0B9PtIidppnmWElFK9BsoWr0YBwOJUY1uSfLrQ7KdNPAb41XU5p2kZBs"/>
+</div>
+<!-- No verified badge here for variety -->
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start mb-1">
+<div>
+<h4 class="font-label-md text-on-surface truncate text-base">Elena Rossi</h4>
+<p class="font-label-sm text-outline flex items-center gap-1">
+                                    Fluent in Italian
+                                </p>
+</div>
+<span class="px-2 py-0.5 bg-primary-container/10 text-primary rounded-full font-label-sm whitespace-nowrap">A2 Spanish</span>
+</div>
+<p class="font-body-sm text-on-surface-variant line-clamp-2 mt-1">
+                            Art history student. Let's exchange languages! I can help you with Italian culture and cuisine.
+                        </p>
+</div>
+<button class="shrink-0 w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors">
+<span class="material-symbols-outlined">person_add</span>
+</button>
+</div>
+<!-- Partner Card 3 (AI Enhanced visual cue) -->
+<div class="bg-surface-container-lowest rounded-xl p-4 shadow-[0px_4px_12px_rgba(0,0,0,0.05)] border border-secondary-container/20 relative overflow-hidden flex items-start gap-4">
+<!-- Subtle Insight Purple glow -->
+<div class="absolute -left-4 -top-4 w-12 h-12 bg-secondary-container/10 blur-xl rounded-full pointer-events-none"></div>
+<div class="relative shrink-0 z-10">
+<div class="w-14 h-14 rounded-full overflow-hidden bg-surface-variant">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a middle-aged man in a modern setting. He has a neat beard and is wearing a smart-casual shirt. The lighting is even and soft, projecting a reliable and experienced persona." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjH6gT_ZFN-gf6JuHvHYUFA8nKOZLxGcEgWXDbfP-LwJ0IRTSgi5ViOBSuOnwegaFK3hW2jQiM_opMXNoJLAqY33RWry4SLcKzeuAwqZPI0qJASZywXLME6pB_mpxrHYP59MxFQzJFKdZh9NcZKC8_HZ2z_j9Jd6zGREsOQPvL5UmA3z2lseX5k6zlg3WQFYx1ynVipWTHgpp1-4pLP7R4zSzNYNy5aqIXTUIERyr7_fN0LU_wLUVq"/>
+</div>
+<div class="absolute -bottom-1 -right-1 bg-surface-container-lowest p-0.5 rounded-full">
+<span class="material-symbols-outlined text-secondary-container text-[16px]" data-weight="fill">auto_awesome</span>
+</div>
+</div>
+<div class="flex-1 min-w-0 z-10">
+<div class="flex justify-between items-start mb-1">
+<div>
+<h4 class="font-label-md text-on-surface truncate text-base">Kenji Tanaka</h4>
+<p class="font-label-sm text-outline flex items-center gap-1">
+                                    Fluent in Japanese
+                                </p>
+</div>
+<span class="px-2 py-0.5 bg-secondary-container/10 text-secondary-container rounded-full font-label-sm whitespace-nowrap">Perfect Match</span>
+</div>
+<p class="font-body-sm text-on-surface-variant line-clamp-2 mt-1">
+                            Highly compatible based on your recent topics. Kenji is also interested in photography and cooking.
+                        </p>
+</div>
+<button class="shrink-0 w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center text-white hover:bg-secondary transition-colors z-10 shadow-sm shadow-secondary-container/30">
+<span class="material-symbols-outlined">person_add</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 pb-safe bg-surface-container-lowest dark:bg-inverse-surface shadow-[0px_-4px_12px_rgba(0,0,0,0.05)] rounded-t-xl md:hidden">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant p-2 hover:bg-surface-variant/50 dark:hover:bg-surface-variant/20 rounded-full active:scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-[24px]">school</span>
+<span class="font-label-sm text-label-sm mt-1">Learn</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant p-2 hover:bg-surface-variant/50 dark:hover:bg-surface-variant/20 rounded-full active:scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-[24px]">chat_bubble</span>
+<span class="font-label-sm text-label-sm mt-1">Chats</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container dark:bg-primary-container text-on-primary-container rounded-full px-4 py-1 hover:bg-surface-variant/50 dark:hover:bg-surface-variant/20 active:scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-[24px]" data-weight="fill">auto_awesome</span>
+<span class="font-label-sm text-label-sm mt-1">Hub</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant p-2 hover:bg-surface-variant/50 dark:hover:bg-surface-variant/20 rounded-full active:scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-[24px]">person</span>
+<span class="font-label-sm text-label-sm mt-1">Profile</span>
+</a>
+</nav>
+</body></html>

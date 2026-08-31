@@ -166,7 +166,7 @@ func (s *WordMiningService) fallbackExtract(ctx context.Context, text, sourceLan
 		seen[norm] = true
 		tr := ""
 		if s.translation != nil {
-			if v, err := s.translation.Translate(t, nativeLang); err == nil {
+			if v, err := s.translation.TranslateWord(t, nativeLang, sourceLang); err == nil {
 				tr = v
 			}
 		}
@@ -547,7 +547,7 @@ func (s *WordMiningService) SaveManualVocabulary(ctx context.Context, userID, te
 	}
 	c.ContextSentence = contextSentence(messageText, term)
 	if s.translation != nil {
-		if v, err := s.translation.Translate(term, nativeLang); err == nil {
+		if v, err := s.translation.TranslateWord(term, nativeLang, lang); err == nil {
 			c.Translation = v
 			c.Definition = v
 		}

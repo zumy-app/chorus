@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus - Daily Practice</title>
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788152794930&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1OTQ5YWJmZjgwMzMwMzMyY2FhMDA4MmQ1MTEyEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;family=Be+Vietnam+Pro:wght@400;500;600&amp;family=Inter:wght@500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-fixed-variant": "#003ea8",
+                        "surface-container": "#e5eeff",
+                        "secondary-fixed": "#e9ddff",
+                        "on-error-container": "#93000a",
+                        "surface-variant": "#d3e4fe",
+                        "error-container": "#ffdad6",
+                        "on-error": "#ffffff",
+                        "error": "#ba1a1a",
+                        "on-primary-container": "#eeefff",
+                        "on-surface-variant": "#434655",
+                        "surface-container-low": "#eff4ff",
+                        "primary-fixed": "#dbe1ff",
+                        "surface-container-highest": "#d3e4fe",
+                        "inverse-primary": "#b4c5ff",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "on-secondary-fixed-variant": "#5516be",
+                        "outline": "#737686",
+                        "secondary-fixed-dim": "#d0bcff",
+                        "surface-container-high": "#dce9ff",
+                        "inverse-on-surface": "#eaf1ff",
+                        "background": "#f8f9ff",
+                        "surface-bright": "#f8f9ff",
+                        "secondary-container": "#8455ef",
+                        "on-primary": "#ffffff",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "primary": "#004ac6",
+                        "surface-dim": "#cbdbf5",
+                        "on-background": "#0b1c30",
+                        "on-secondary": "#ffffff",
+                        "outline-variant": "#c3c6d7",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "primary-container": "#2563eb",
+                        "on-tertiary-container": "#bdffdb",
+                        "tertiary": "#006242",
+                        "on-tertiary-fixed": "#002113",
+                        "on-secondary-fixed": "#23005c",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-surface": "#213145",
+                        "secondary": "#6b38d4",
+                        "surface-tint": "#0053db",
+                        "on-secondary-container": "#fffbff",
+                        "on-primary-fixed": "#00174b",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-container": "#007d55",
+                        "surface": "#f8f9ff",
+                        "tertiary-fixed": "#6ffbbe",
+                        "on-surface": "#0b1c30"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px",
+                        "2xl": "1rem"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "unit": "4px",
+                        "margin-mobile": "16px",
+                        "stack-sm": "8px",
+                        "gutter-mobile": "12px",
+                        "stack-lg": "24px",
+                        "stack-xl": "32px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "body-md": ["Be Vietnam Pro"],
+                        "label-md": ["Inter"],
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "translation-text": ["Be Vietnam Pro"],
+                        "label-sm": ["Inter"],
+                        "body-sm": ["Be Vietnam Pro"],
+                        "body-lg": ["Be Vietnam Pro"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+        .insight-glow {
+            box-shadow: 0 0 12px 2px rgba(132, 85, 239, 0.1);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface h-screen flex flex-col font-body-md overflow-hidden">
+<!-- Top Section: Progress Bar -->
+<header class="w-full px-margin-mobile py-stack-md flex items-center justify-between z-10 relative bg-surface">
+<button aria-label="Close session" class="text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-low">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">close</span>
+</button>
+<div class="flex-1 mx-stack-md relative h-2 bg-slate-100 rounded-full overflow-hidden">
+<div class="absolute top-0 left-0 h-full bg-[#10b981] rounded-full transition-all duration-500 ease-out w-1/3"></div>
+</div>
+<div class="flex items-center space-x-1 bg-[#fff7ed] px-2 py-1 rounded-full border border-[#fdba74]">
+<span class="material-symbols-outlined text-[#f97316] text-[16px]" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<span class="font-label-md text-label-md text-[#ea580c]">12</span>
+</div>
+</header>
+<!-- Main Area: Practice Card -->
+<main class="flex-1 flex flex-col px-margin-mobile overflow-y-auto pb-32">
+<div class="max-w-md w-full mx-auto mt-stack-md flex-1 flex flex-col">
+<!-- Contextual Chat Bubble -->
+<div class="mb-stack-lg animate-fade-in-up">
+<p class="font-label-md text-label-md text-outline mb-stack-sm uppercase tracking-wider">From your chat with Sofia</p>
+<div class="bg-white rounded-2xl rounded-tl-none p-stack-md shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-slate-200 inline-block relative max-w-[85%]">
+<p class="font-body-md text-body-md text-on-surface leading-relaxed">
+                        ¡Hola Sofia! Estoy bien, pero un poco <span class="bg-primary-container text-on-primary-container px-1 py-0.5 rounded font-medium">cansada</span> hoy.
+                    </p>
+<div class="absolute -left-2 top-0 w-4 h-4 bg-white border-l border-t border-slate-200 transform -rotate-45 -translate-y-1/2 translate-x-1/2 clip-triangle"></div>
+</div>
+</div>
+<!-- Question Task -->
+<div class="flex-1 flex flex-col justify-center animate-fade-in-up" style="animation-delay: 150ms;">
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-stack-lg">
+                    What does this word mean in this context?
+                </h2>
+<!-- Multiple Choice Options -->
+<div class="space-y-stack-sm w-full">
+<button class="w-full text-left bg-surface-container-lowest border-2 border-outline-variant hover:border-primary-container rounded-xl p-stack-md flex items-center transition-all duration-200 focus:outline-none group">
+<div class="w-6 h-6 rounded-full border-2 border-outline-variant group-hover:border-primary-container mr-stack-md flex items-center justify-center"></div>
+<span class="font-body-md text-body-md text-on-surface">Tired</span>
+</button>
+<button class="w-full text-left bg-surface-container-lowest border-2 border-outline-variant hover:border-primary-container rounded-xl p-stack-md flex items-center transition-all duration-200 focus:outline-none group">
+<div class="w-6 h-6 rounded-full border-2 border-outline-variant group-hover:border-primary-container mr-stack-md flex items-center justify-center"></div>
+<span class="font-body-md text-body-md text-on-surface">Happy</span>
+</button>
+<button class="w-full text-left bg-surface-container-lowest border-2 border-outline-variant hover:border-primary-container rounded-xl p-stack-md flex items-center transition-all duration-200 focus:outline-none group">
+<div class="w-6 h-6 rounded-full border-2 border-outline-variant group-hover:border-primary-container mr-stack-md flex items-center justify-center"></div>
+<span class="font-body-md text-body-md text-on-surface">Busy</span>
+</button>
+<button class="w-full text-left bg-surface-container-lowest border-2 border-outline-variant hover:border-primary-container rounded-xl p-stack-md flex items-center transition-all duration-200 focus:outline-none group">
+<div class="w-6 h-6 rounded-full border-2 border-outline-variant group-hover:border-primary-container mr-stack-md flex items-center justify-center"></div>
+<span class="font-body-md text-body-md text-on-surface">Excited</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Section: Actions -->
+<footer class="fixed bottom-0 left-0 w-full bg-surface/90 backdrop-blur-md pb-8 pt-4 px-margin-mobile border-t border-surface-variant z-20">
+<div class="max-w-md mx-auto flex items-center justify-between gap-stack-md">
+<!-- Ask Sparky FAB -->
+<button aria-label="Ask Sparky for help" class="flex-shrink-0 w-12 h-12 bg-secondary-fixed-dim rounded-full flex items-center justify-center insight-glow hover:scale-105 transition-transform active:scale-95 border border-secondary">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">tips_and_updates</span>
+</button>
+<!-- Primary Action -->
+<button class="flex-1 bg-primary text-on-primary rounded-full py-3 px-6 font-label-md text-label-md text-center hover:bg-primary-container transition-colors active:scale-[0.98] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                Check Answer
+            </button>
+</div>
+</footer>
+<style>
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .animate-fade-in-up {
+            animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .clip-triangle {
+            clip-path: polygon(0 0, 100% 0, 0 100%);
+        }
+    </style>
+<script>
+        // Simple interactive script for the multiple choice options
+        document.addEventListener('DOMContentLoaded', () => {
+            const options = document.querySelectorAll('main button');
+            const checkBtn = document.querySelector('footer button:last-child');
+            
+            options.forEach(option => {
+                option.addEventListener('click', function() {
+                    // Reset all
+                    options.forEach(opt => {
+                        opt.classList.remove('border-primary', 'bg-surface-container-low');
+                        opt.classList.add('border-outline-variant', 'bg-surface-container-lowest');
+                        const circle = opt.querySelector('div');
+                        circle.classList.remove('border-primary', 'bg-primary');
+                        circle.classList.add('border-outline-variant');
+                        circle.innerHTML = '';
+                    });
+                    
+                    // Select clicked
+                    this.classList.remove('border-outline-variant', 'bg-surface-container-lowest');
+                    this.classList.add('border-primary', 'bg-surface-container-low');
+                    
+                    const circle = this.querySelector('div');
+                    circle.classList.remove('border-outline-variant');
+                    circle.classList.add('border-primary', 'bg-primary');
+                    circle.innerHTML = '<span class="material-symbols-outlined text-on-primary text-[14px]" style="font-variation-settings: \'FILL\' 1;">check</span>';
+                });
+            });
+        });
+    </script>
+</body></html>

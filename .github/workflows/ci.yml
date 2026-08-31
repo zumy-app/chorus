@@ -1,0 +1,265 @@
+# =============================================================================
+# Chorus CI/CD — NFR-26 Dev environment + quality gates + dev→prod promotion
+#
+# Pushes to `main` (and manual `workflow_dispatch`) build images, deploy them to
+# the isolated `chorus-dev` environment, run the full quality gate suite ON dev,
+# and only then promote the built image to `prod` — by image promotion (re-tag
+# the exact digest), not a rebuild. Pull requests run the static gates only; no
+# deploy.
+#
+# Required repository secrets (never committed — see docs/CI_CD_NFR26.md):
+#   CR_USERNAME, CR_PASSWORD          -> GHCR push (or use GITHUB_TOKEN)
+#   DEV_SSH_HOST, DEV_SSH_USER, DEV_SSH_KEY   -> dev host (chorus-dev project)
+#   PROD_SSH_HOST, PROD_SSH_USER, PROD_SSH_KEY -> prod host (Dokploy)
+#   PROVIDER_OPENROUTER_KEY, PROVIDER_NVIDIA_KEY
+#   SLACK_WEBHOOK_URL (optional, for gate-failure notifications)
+# Repo settings: require a green `test` + `security` workflow before merge/branch
+# protection on `main` (configured in GitHub, not in-file).
+# =============================================================================
+name: CI/CD (NFR-26)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy_dev:
+        description: "Deploy to dev + run gates + promote to prod"
+        type: boolean
+        default: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  CR_REGISTRY: ghcr.io
+  IMAGE_NAME: ghcr.io/zumy-app/chorus
+  GO_VERSION: 1.25
+  NODE_VERSION: 20
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1) Static gates: build + unit/integration + compose validity (PR + main)
+  # ---------------------------------------------------------------------------
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: backend/go.sum
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # Backend build + vet + test
+      - name: Backend build/vet/test
+        working-directory: backend
+        run: |
+          go build ./...
+          go vet ./...
+          go test ./...
+
+      # Frontend build + test
+      - name: Frontend build/test
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+          npm test
+
+      # Mobile test (jest)
+      - name: Mobile test
+        working-directory: mobile
+        run: |
+          npm ci --no-audit --no-fund
+          npm test
+
+      # Compose stacks valid
+      - name: Validate compose files
+        run: |
+          docker compose -f docker-compose.yml config --quiet
+          docker compose -f docker-compose.dev.yml config --quiet
+          docker compose -f deploy/dev/docker-compose.yml config --quiet
+
+  # ---------------------------------------------------------------------------
+  # 2) Security scan: govulncheck + npm audit (PR + main)
+  # ---------------------------------------------------------------------------
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: backend/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Security scan
+        run: bash deploy/ci/security-scan.sh
+
+  # ---------------------------------------------------------------------------
+  # 3) Build + push dev snapshot images (main only)
+  # ---------------------------------------------------------------------------
+  images:
+    needs: [test, security]
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_dev == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.CR_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.CR_PASSWORD || secrets.GITHUB_TOKEN }}
+
+      # Backend image
+      - name: Build & push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}/backend:${{ github.run_number }}
+            ${{ env.IMAGE_NAME }}/backend:dev
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      # Frontend image — baked WITHOUT VITE_API_URL so the same image serves dev
+      # and prod behind their respective LBs (client uses a relative /api origin).
+      - name: Build & push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}/frontend:${{ github.run_number }}
+            ${{ env.IMAGE_NAME }}/frontend:dev
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+          build-args: |
+            NGINX_CONFIG=nginx.conf
+
+  # ---------------------------------------------------------------------------
+  # 4) Deploy to dev + run quality gates ON dev (main only)
+  # ---------------------------------------------------------------------------
+  deploy-dev:
+    needs: [images]
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_dev == 'true')
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure SSH to dev host
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s' "${{ secrets.DEV_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.DEV_SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Sync deploy/ + e2e/ to dev host (exclude caches)
+        run: |
+          rsync -az -e ssh --exclude node_modules --exclude playwright-report --exclude test-results \
+            deploy/ e2e/ "${{ secrets.DEV_SSH_USER }}@${{ secrets.DEV_SSH_HOST }}:/opt/chorus/"
+
+      - name: Deploy dev stack
+        env:
+          DEV_HOST: ${{ secrets.DEV_SSH_HOST }}
+          DEV_USER: ${{ secrets.DEV_SSH_USER }}
+          IMAGE_TAG: ${{ github.run_number }}
+        run: |
+          # The dev host holds the GHCR credential (Dokploy registry account), so
+          # `docker compose pull` is authenticated there. We only pass the image
+          # tag (non-secret) and wait for a good /health/ready probe.
+          ssh "$DEV_USER@$DEV_HOST" "IMAGE_TAG='$IMAGE_TAG' bash -s" <<'REMOTE'
+            set -euo pipefail
+            cd /opt/chorus
+            IMAGE_TAG="$IMAGE_TAG" docker compose -f deploy/dev/docker-compose.yml pull
+            IMAGE_TAG="$IMAGE_TAG" docker compose -f deploy/dev/docker-compose.yml up -d
+            for i in $(seq 1 30); do
+              if curl -fsS "https://dev.chorus.talk/health/ready" >/dev/null 2>&1; then break; fi
+              sleep 5
+            done
+            curl -fsS "https://dev.chorus.talk/health/ready" >/dev/null
+            echo "dev stack up"
+          REMOTE
+
+      - name: Run NFR-26 quality gates on dev
+        env:
+          DEV_HOST: ${{ secrets.DEV_SSH_HOST }}
+          DEV_USER: ${{ secrets.DEV_SSH_USER }}
+          E2E_BASE_URL: https://dev.chorus.talk
+          DOCKER_COMPOSE_FILE: deploy/dev/docker-compose.yml
+        run: |
+          # gate-on-dev.sh runs seed + e2e + phoenix-eval + load-smoke on the dev
+          # host, where it can exec into postgres-dev for the phoenix-eval gate.
+          ssh "$DEV_USER@$DEV_HOST" 'cd /opt/chorus && E2E_BASE_URL='"$E2E_BASE_URL"' DOCKER_COMPOSE_FILE='"$DOCKER_COMPOSE_FILE"' bash deploy/ci/gate-on-dev.sh'
+          # Pull the Playwright report back so it can be published (best-effort).
+          rsync -az -e ssh "$DEV_USER@$DEV_HOST:/opt/chorus/e2e/playwright-report/" e2e/playwright-report/ || true
+
+      - name: Upload gate artifacts (e2e report)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: e2e/playwright-report/
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # 5) Promote to prod only if dev gates passed (image promotion, no rebuild)
+  # ---------------------------------------------------------------------------
+  promote-prod:
+    needs: [deploy-dev]
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_dev == 'true')
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+      - name: Promote image dev→prod (re-tag digest, no rebuild)
+        env:
+          CR_REGISTRY: ${{ env.CR_REGISTRY }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          DEV_TAG: ${{ github.run_number }}
+          PROD_TAG: prod
+          CR_USERNAME: ${{ github.actor }}
+          CR_PASSWORD: ${{ secrets.CR_PASSWORD || secrets.GITHUB_TOKEN }}
+        run: bash deploy/ci/promote.sh
+
+      - name: Trigger prod pull on Dokploy host
+        env:
+          PROD_HOST: ${{ secrets.PROD_SSH_HOST }}
+          PROD_USER: ${{ secrets.PROD_SSH_USER }}
+          PROD_SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh && printf '%s' "$PROD_SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$PROD_HOST" >> ~/.ssh/known_hosts
+          ssh "$PROD_USER@$PROD_HOST" 'cd /opt/chorus && docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d'
+          echo "prod stack pulled :prod and redeployed"
+
+  # ---------------------------------------------------------------------------
+  # 6) Notify on failure (Slack webhook, optional)
+  # ---------------------------------------------------------------------------
+  notify-failure:
+    needs: [test, security, deploy-dev, promote-prod]
+    if: failure() && (github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack alert
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        run: |
+          curl -fsS -X POST -H 'Content-Type: application/json' \
+            "${{ secrets.SLACK_WEBHOOK_URL }}" \
+            -d "{\"text\":\":x: Chorus CI/CD gate FAILED on run ${{ github.run_number }} — ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"

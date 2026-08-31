@@ -54,7 +54,13 @@ export default function LearningRoadmapScreen({ navigation }: any) {
                 <View style={styles.line} />
               </View>
               {units.map((u) => (
-                <UnitRow key={u.id} unit={u} onOpen={() => navigation.navigate('Learn' as never)} />
+                <UnitRow key={u.id} unit={u} onOpen={() => {
+                  if (u.status === 'completed') {
+                    navigation.navigate('LessonSession', { sessionId: undefined, mode: 'vocabulary' })
+                  } else {
+                    navigation.navigate('LessonSession', { sessionId: undefined, mode: 'lesson' })
+                  }
+                }} />
               ))}
             </View>
           );

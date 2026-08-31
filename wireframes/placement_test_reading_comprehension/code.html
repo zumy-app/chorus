@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus - Placement Test</title>
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788152794930&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1OTQ5YjM0MzkyMjAwNmFjNmQ0ZjZlMDRiOWZmEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-surface": "#0b1c30",
+                      "surface-container": "#e5eeff",
+                      "surface": "#f8f9ff",
+                      "on-secondary": "#ffffff",
+                      "tertiary-container": "#007d55",
+                      "surface-dim": "#cbdbf5",
+                      "error": "#ba1a1a",
+                      "secondary-fixed-dim": "#d0bcff",
+                      "on-secondary-fixed": "#23005c",
+                      "inverse-primary": "#b4c5ff",
+                      "outline-variant": "#c3c6d7",
+                      "primary-container": "#2563eb",
+                      "surface-container-highest": "#d3e4fe",
+                      "on-primary-fixed": "#00174b",
+                      "on-background": "#0b1c30",
+                      "inverse-surface": "#213145",
+                      "tertiary-fixed": "#6ffbbe",
+                      "surface-tint": "#0053db",
+                      "outline": "#737686",
+                      "surface-container-lowest": "#ffffff",
+                      "on-tertiary-container": "#bdffdb",
+                      "surface-bright": "#f8f9ff",
+                      "on-secondary-container": "#fffbff",
+                      "on-tertiary": "#ffffff",
+                      "primary-fixed-dim": "#b4c5ff",
+                      "on-primary-container": "#eeefff",
+                      "error-container": "#ffdad6",
+                      "secondary-fixed": "#e9ddff",
+                      "on-error-container": "#93000a",
+                      "surface-container-low": "#eff4ff",
+                      "primary": "#004ac6",
+                      "inverse-on-surface": "#eaf1ff",
+                      "surface-container-high": "#dce9ff",
+                      "on-tertiary-fixed": "#002113",
+                      "on-primary-fixed-variant": "#003ea8",
+                      "on-primary": "#ffffff",
+                      "on-secondary-fixed-variant": "#5516be",
+                      "on-tertiary-fixed-variant": "#005236",
+                      "secondary-container": "#8455ef",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "secondary": "#6b38d4",
+                      "tertiary": "#006242",
+                      "on-surface-variant": "#434655",
+                      "primary-fixed": "#dbe1ff",
+                      "background": "#f8f9ff",
+                      "surface-variant": "#d3e4fe",
+                      "on-error": "#ffffff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "stack-sm": "8px",
+                      "stack-md": "16px",
+                      "unit": "4px",
+                      "margin-mobile": "16px",
+                      "gutter-mobile": "12px",
+                      "stack-lg": "24px"
+              },
+              "fontFamily": {
+                      "headline-sm": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "body-sm": [
+                              "Be Vietnam Pro"
+                      ],
+                      "body-lg": [
+                              "Be Vietnam Pro"
+                      ],
+                      "headline-md": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "body-md": [
+                              "Be Vietnam Pro"
+                      ],
+                      "label-sm": [
+                              "Inter"
+                      ],
+                      "translation-text": [
+                              "Be Vietnam Pro"
+                      ],
+                      "headline-lg": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "headline-sm": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-sm": [
+                              "11px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.03em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "translation-text": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-lg": [
+                              "30px",
+                              {
+                                      "lineHeight": "38px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "label-md": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "letterSpacing": "0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+      </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen flex flex-col font-body-md antialiased selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<header class="bg-background dark:bg-on-surface docked full-width top-0 z-40">
+<div class="flex justify-between items-center px-margin-mobile h-16 w-full max-w-screen-xl mx-auto">
+<button aria-label="Close" class="text-primary dark:text-primary-fixed-dim hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors rounded-full p-2 active:scale-95 duration-150 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background">
+<span class="material-symbols-outlined text-[24px]">close</span>
+</button>
+<div class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim flex-1 text-center">
+                Chorus
+            </div>
+<button aria-label="Skip" class="font-label-md text-label-md text-primary dark:text-primary-fixed-dim hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors rounded-full px-4 py-2 active:scale-95 duration-150 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background">
+                Skip
+            </button>
+</div>
+</header>
+<!-- Progress Bar -->
+<div class="w-full max-w-screen-md mx-auto px-margin-mobile pt-stack-sm pb-stack-md">
+<div class="flex items-center justify-between mb-unit">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Placement Test</span>
+<span class="font-label-sm text-label-sm text-primary font-semibold">75%</span>
+</div>
+<div class="h-2 w-full bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full transition-all duration-500 ease-out" style="width: 75%;"></div>
+</div>
+</div>
+<!-- Main Content Canvas -->
+<main class="flex-1 w-full max-w-screen-md mx-auto px-margin-mobile pb-24 flex flex-col gap-stack-lg relative z-10">
+<!-- Instruction -->
+<div class="pt-stack-md">
+<h1 class="font-headline-sm text-headline-sm text-on-surface mb-stack-sm">Read the passage and answer the question.</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Take your time. Read carefully.</p>
+</div>
+<!-- Reading Passage Card -->
+<div class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_12px_rgba(0,0,0,0.05)] p-stack-lg border border-outline-variant/30 relative overflow-hidden group">
+<!-- Subtle gradient decorative element -->
+<div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-primary-container/20 to-transparent rounded-bl-full -z-0 opacity-50"></div>
+<div class="relative z-10">
+<div class="flex items-center gap-2 mb-stack-md text-primary">
+<span class="material-symbols-outlined text-[20px] fill" style="font-variation-settings: 'FILL' 1;">menu_book</span>
+<span class="font-label-md text-label-md uppercase tracking-wider">Reading Passage</span>
+</div>
+<p class="font-body-lg text-body-lg text-on-surface leading-relaxed text-justify hyphens-auto">
+                    Sofía se levanta temprano todos los días. Primero, ella toma una ducha rápida y se viste. Después, prepara el desayuno en la cocina. Ella come tostadas y bebe café con leche. Finalmente, Sofía toma el autobús para ir al trabajo en el centro de la ciudad.
+                </p>
+<!-- Tooltip Hint interaction (Javascript handles visibility) -->
+<button class="mt-stack-md flex items-center gap-2 text-primary hover:text-primary-fixed-variant transition-colors group/hint focus:outline-none focus:ring-2 focus:ring-primary rounded-md p-1 -ml-1">
+<span class="material-symbols-outlined text-[18px]">translate</span>
+<span class="font-label-md text-label-md underline decoration-primary/30 underline-offset-4 group-hover/hint:decoration-primary transition-all">Show English Hint</span>
+</button>
+</div>
+</div>
+<!-- Question Area -->
+<div class="flex flex-col gap-stack-md mt-stack-sm">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">What does Sofia do after breakfast?</h2>
+<!-- Multiple Choice Options -->
+<div aria-labelledby="question" class="flex flex-col gap-stack-sm" role="radiogroup">
+<!-- Option A -->
+<label class="relative flex items-center p-stack-md rounded-xl border-2 border-outline-variant/50 hover:border-primary-fixed hover:bg-surface-container-low cursor-pointer transition-all duration-200 group focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2">
+<input class="peer sr-only" name="answer" type="radio" value="a"/>
+<div class="w-6 h-6 rounded-full border-2 border-outline-variant peer-checked:border-primary peer-checked:bg-primary flex items-center justify-center mr-stack-md transition-colors flex-shrink-0">
+<span class="material-symbols-outlined text-on-primary text-[16px] opacity-0 peer-checked:opacity-100 transform scale-50 peer-checked:scale-100 transition-all duration-200" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<span class="font-body-md text-body-md text-on-surface peer-checked:font-semibold peer-checked:text-primary">She takes a shower.</span>
+</label>
+<!-- Option B -->
+<label class="relative flex items-center p-stack-md rounded-xl border-2 border-outline-variant/50 hover:border-primary-fixed hover:bg-surface-container-low cursor-pointer transition-all duration-200 group focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2">
+<input class="peer sr-only" name="answer" type="radio" value="b"/>
+<div class="w-6 h-6 rounded-full border-2 border-outline-variant peer-checked:border-primary peer-checked:bg-primary flex items-center justify-center mr-stack-md transition-colors flex-shrink-0">
+<span class="material-symbols-outlined text-on-primary text-[16px] opacity-0 peer-checked:opacity-100 transform scale-50 peer-checked:scale-100 transition-all duration-200" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<span class="font-body-md text-body-md text-on-surface peer-checked:font-semibold peer-checked:text-primary">She goes to work.</span>
+</label>
+<!-- Option C -->
+<label class="relative flex items-center p-stack-md rounded-xl border-2 border-outline-variant/50 hover:border-primary-fixed hover:bg-surface-container-low cursor-pointer transition-all duration-200 group focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2">
+<input class="peer sr-only" name="answer" type="radio" value="c"/>
+<div class="w-6 h-6 rounded-full border-2 border-outline-variant peer-checked:border-primary peer-checked:bg-primary flex items-center justify-center mr-stack-md transition-colors flex-shrink-0">
+<span class="material-symbols-outlined text-on-primary text-[16px] opacity-0 peer-checked:opacity-100 transform scale-50 peer-checked:scale-100 transition-all duration-200" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<span class="font-body-md text-body-md text-on-surface peer-checked:font-semibold peer-checked:text-primary">She wakes up early.</span>
+</label>
+<!-- Option D -->
+<label class="relative flex items-center p-stack-md rounded-xl border-2 border-outline-variant/50 hover:border-primary-fixed hover:bg-surface-container-low cursor-pointer transition-all duration-200 group focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2">
+<input class="peer sr-only" name="answer" type="radio" value="d"/>
+<div class="w-6 h-6 rounded-full border-2 border-outline-variant peer-checked:border-primary peer-checked:bg-primary flex items-center justify-center mr-stack-md transition-colors flex-shrink-0">
+<span class="material-symbols-outlined text-on-primary text-[16px] opacity-0 peer-checked:opacity-100 transform scale-50 peer-checked:scale-100 transition-all duration-200" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<span class="font-body-md text-body-md text-on-surface peer-checked:font-semibold peer-checked:text-primary">She prepares breakfast.</span>
+</label>
+</div>
+</div>
+</main>
+<!-- Bottom Action Area (Sticky) -->
+<div class="fixed bottom-0 left-0 w-full bg-surface-container-lowest/80 backdrop-blur-md border-t border-outline-variant/20 py-stack-md px-margin-mobile z-30 shadow-[0px_-4px_24px_rgba(0,0,0,0.05)]">
+<div class="max-w-screen-md mx-auto flex justify-end">
+<button class="bg-primary text-on-primary font-label-md text-label-md py-3 px-8 rounded-full shadow-md hover:bg-on-primary-fixed-variant transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2" disabled="" id="checkAnswerBtn">
+                Continue
+                <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Simple interaction script for the radio buttons to enable the continue button -->
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const radioButtons = document.querySelectorAll('input[type="radio"][name="answer"]');
+            const checkBtn = document.getElementById('checkAnswerBtn');
+            const optionLabels = document.querySelectorAll('label');
+
+            radioButtons.forEach(radio => {
+                radio.addEventListener('change', () => {
+                    if (document.querySelector('input[name="answer"]:checked')) {
+                        checkBtn.disabled = false;
+                        
+                        // Optional: Highlight selected container visually beyond CSS peer
+                        optionLabels.forEach(label => {
+                            if(label.querySelector('input').checked) {
+                                label.classList.add('border-primary', 'bg-primary-container/5');
+                                label.classList.remove('border-outline-variant/50');
+                            } else {
+                                label.classList.remove('border-primary', 'bg-primary-container/5');
+                                label.classList.add('border-outline-variant/50');
+                            }
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+</body></html>

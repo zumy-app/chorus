@@ -16,9 +16,13 @@ import (
 	"time"
 
 	"github.com/chorus/messenger/internal/models"
+	"github.com/chorus/messenger/internal/observability"
 	"github.com/chorus/messenger/pkg/logutil"
 	"github.com/chorus/messenger/pkg/translation"
 	"github.com/redis/go-redis/v9"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // grammarChatMessage represents a message in the OpenAI chat format.
@@ -139,6 +143,10 @@ func NewGrammarService(redis *redis.Client, endpoints []GrammarEndpoint) *Gramma
 		cooldowns: make(map[string]time.Time),
 	}
 }
+
+// grammarTracer emits FR-30/NFR-25 Phoenix spans from the grammar-analysis path
+// (no-op when tracing is disabled).
+var grammarTracer = observability.Tracer("chorus.grammar")
 
 // AnalyzeGrammar performs grammar analysis on a message.
 // nativeLanguage is the user's native language for explanation localization.
@@ -1587,6 +1595,16 @@ func localizedString(entries map[string]string, nativeLanguage, fallback string)
 // jsonMode forces response_format json_object (used only for the structured
 // grammar analysis; the AI Tutor learning prompts must return plain text).
 func (s *GrammarService) callGrammarAPI(prompt, nativeLangName string, jsonMode bool) (string, string, error) {
+	// FR-30/NFR-25: export a span to Phoenix (no-op when tracing is disabled).
+	ctx, span := grammarTracer.Start(context.Background(), "grammar.ai_analysis",
+		trace.WithAttributes(
+			attribute.Int("prompt_len", len(prompt)),
+			attribute.String("native_lang", nativeLangName),
+			attribute.Bool("json_mode", jsonMode),
+		),
+	)
+	defer span.End()
+
 	var lastErr error
 	tried := 0
 	for i, ep := range s.endpoints {
@@ -1599,11 +1617,17 @@ func (s *GrammarService) callGrammarAPI(prompt, nativeLangName string, jsonMode 
 		logutil.Infof("[Grammar] trying endpoint %d/%d: %s (url=%s, model=%s)",
 			i+1, len(s.endpoints), ep.Name, ep.APIURL, ep.Model)
 		start := time.Now()
-		result, err := ep.call(prompt, nativeLangName, jsonMode)
+		result, err := ep.call(ctx, prompt, nativeLangName, jsonMode)
 		logutil.Duration("Grammar", start, ep.Name)
 		if err == nil {
 			logutil.Infof("[Grammar] endpoint %d/%d %s succeeded (%d chars)",
 				i+1, len(s.endpoints), ep.Name, len(result))
+			span.SetAttributes(
+				attribute.String("endpoint", ep.Name),
+				attribute.String("provider", ep.Name),
+				attribute.String("model", ep.Model),
+				attribute.Int("latency_ms", int(time.Since(start).Milliseconds())),
+			)
 			return result, ep.Name, nil
 		}
 		lastErr = err
@@ -1612,8 +1636,12 @@ func (s *GrammarService) callGrammarAPI(prompt, nativeLangName string, jsonMode 
 			i+1, len(s.endpoints), ep.Name, err)
 	}
 	if tried == 0 {
+		span.RecordError(fmt.Errorf("all %d endpoints cooling down or unavailable: %w", len(s.endpoints), lastErr))
+		span.SetStatus(codes.Error, "all endpoints cooling down")
 		return "", "", fmt.Errorf("all %d endpoints cooling down or unavailable: %w", len(s.endpoints), lastErr)
 	}
+	span.RecordError(lastErr)
+	span.SetStatus(codes.Error, "all endpoints exhausted")
 	return "", "", fmt.Errorf("all %d endpoints exhausted: %w", len(s.endpoints), lastErr)
 }
 
@@ -1674,13 +1702,13 @@ func (s *GrammarService) coolDownFor(name string) (time.Time, bool) {
 }
 
 // call sends a single chat completion request to this endpoint.
-func (ep *GrammarEndpoint) call(prompt, nativeLangName string, jsonMode bool) (string, error) {
+func (ep *GrammarEndpoint) call(parent context.Context, prompt, nativeLangName string, jsonMode bool) (string, error) {
 	start := time.Now()
 	defer func() {
 		logutil.Duration("GrammarEndpoint", start, ep.Name)
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), ep.Timeout)
+	ctx, cancel := context.WithTimeout(parent, ep.Timeout)
 	defer cancel()
 
 	systemMsg := fmt.Sprintf(`You are a friendly language tutor teaching a student who speaks %s. Follow the user's instructions for the response format.`, nativeLangName)

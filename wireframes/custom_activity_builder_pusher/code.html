@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Activity Builder - Chorus Teacher Partner</title>
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788156392938&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YTUxYWU4ZDZiYTEwNzNhZTBiM2ZmMTljNWEwEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700&amp;family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed": "#6ffbbe",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "surface": "#f8f9ff",
+                        "on-secondary-container": "#fffbff",
+                        "on-surface-variant": "#434655",
+                        "primary": "#004ac6",
+                        "outline": "#737686",
+                        "on-secondary-fixed-variant": "#5516be",
+                        "error": "#ba1a1a",
+                        "surface-variant": "#d3e4fe",
+                        "secondary-fixed": "#e9ddff",
+                        "surface-dim": "#cbdbf5",
+                        "error-container": "#ffdad6",
+                        "on-background": "#0b1c30",
+                        "surface-container": "#e5eeff",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "on-tertiary": "#ffffff",
+                        "outline-variant": "#c3c6d7",
+                        "surface-bright": "#f8f9ff",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "background": "#f8f9ff",
+                        "tertiary": "#006242",
+                        "primary-container": "#2563eb",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed-dim": "#d0bcff",
+                        "secondary": "#6b38d4",
+                        "surface-tint": "#0053db",
+                        "inverse-primary": "#b4c5ff",
+                        "surface-container-low": "#eff4ff",
+                        "on-primary-fixed": "#00174b",
+                        "on-tertiary-container": "#bdffdb",
+                        "on-tertiary-fixed": "#002113",
+                        "on-surface": "#0b1c30",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-secondary-fixed": "#23005c",
+                        "primary-fixed": "#dbe1ff",
+                        "on-error": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "tertiary-container": "#007d55",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "on-secondary": "#ffffff",
+                        "inverse-surface": "#213145",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-primary-container": "#eeefff",
+                        "surface-container-high": "#dce9ff",
+                        "secondary-container": "#8455ef"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-lg": "24px",
+                        "unit": "4px",
+                        "stack-md": "16px",
+                        "stack-sm": "8px",
+                        "margin-mobile": "16px",
+                        "gutter-mobile": "12px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Be Vietnam Pro"],
+                        "body-sm": ["Be Vietnam Pro"],
+                        "label-sm": ["Inter"],
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "translation-text": ["Be Vietnam Pro"],
+                        "body-lg": ["Be Vietnam Pro"],
+                        "label-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: theme('colors.background'); color: theme('colors.on-background'); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .material-symbols-outlined.filled { font-variation-settings: 'FILL' 1; }
+        
+        /* Custom Tooltip styles */
+        .tooltip-container { position: relative; display: inline-block; }
+        .tooltip-content {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 50;
+        }
+        .tooltip-container:hover .tooltip-content {
+            visibility: visible;
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        /* Insight Glow for AI elements */
+        .ai-glow { box-shadow: 0 0 12px 2px rgba(132, 85, 239, 0.1); }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden antialiased">
+<!-- TopAppBar -->
+<header class="flex items-center justify-between px-margin-mobile md:px-stack-lg w-full h-16 bg-surface-container-lowest shadow-sm z-40 fixed top-0 left-0">
+<div class="flex items-center gap-4">
+<!-- Mobile Menu Toggle (hidden on lg) -->
+<button class="lg:hidden text-primary cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div class="font-headline-md text-headline-md font-bold text-primary">Chorus Teacher Partner</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:bg-surface-container transition-colors rounded-full p-2 cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant">
+<img alt="Teacher profile picture" class="w-full h-full object-cover" data-alt="A professional headshot of a smiling teacher in a brightly lit modern classroom setting. The teacher has warm, welcoming features. The lighting is soft and natural, emphasizing a modern educational technology environment. High quality, clear, approachable." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCnxxutRdIYMnhbW24V7VJLUfs47vTA1Ib4XJQtZf7IrriYa70KRVCgs8KWS-czUKUxutDSb1JDqDnYDL2UPBO5qDirottdjeNtI8U_s3AAMVeKHMa5FgSXBDbPeRpC_q5EXx4-2TxWhMjmofXvbDLGs7acBAS2bMUHac3cK7xl4xBY37oZDAuKT1KOmsPc7oETHkr0ldEDiIaNLV7kBPsEfWh-IGxUoYKoEpDhD9OzQXy_G72PbRbM"/>
+</div>
+</div>
+</header>
+<div class="flex flex-1 pt-16 h-full w-full max-w-7xl mx-auto">
+<!-- NavigationDrawer (Web) -->
+<nav class="hidden lg:flex flex-col h-full w-64 fixed left-0 top-16 bg-surface py-stack-lg shadow-md z-30">
+<div class="px-6 mb-8 flex flex-col items-start">
+<div class="w-16 h-16 rounded-full overflow-hidden mb-4 border-2 border-primary-container">
+<img alt="Teacher profile photo" class="w-full h-full object-cover" data-alt="A professional headshot of a smiling teacher in a brightly lit modern classroom setting. The teacher has warm, welcoming features. The lighting is soft and natural, emphasizing a modern educational technology environment. High quality, clear, approachable." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCb6ogvY3LBj1Vu_ADq_o4L1U-59Z_j679Nzkssh4uHZlHZD9pZnzKI-eX2UO_BntaK0YhLrn2H4kynfM-NJ3fvYuaZg-okbaNBGPPpSXS3Mg5NJ3kpD4-G970gZP-_Pm68ug0QIL1PHKRZtxHMZM6gp8_77TRK_RFDJyUn0Wjs5weXo3Zu6Cq_q63Ns1pHWdO8Z0-T0cH0sVqwiHI9NY5AwjH9DDPL_KZFuGVCklobrG3_8oVNnZvt"/>
+</div>
+<h2 class="font-headline-sm text-headline-sm font-black text-primary mb-1">Chorus Educator</h2>
+<div class="flex flex-col gap-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-high px-2 py-1 rounded-md inline-block w-max">Professional Tier</span>
+<span class="font-label-sm text-label-sm text-secondary flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">verified</span> Verified Teacher</span>
+</div>
+</div>
+<div class="flex flex-col gap-1 w-full flex-1 overflow-y-auto">
+<a class="text-on-surface-variant flex items-center px-4 py-3 my-1 mx-2 hover:bg-surface-container-high rounded-xl transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined mr-3">dashboard</span> Dashboard
+                </a>
+<a class="text-on-surface-variant flex items-center px-4 py-3 my-1 mx-2 hover:bg-surface-container-high rounded-xl transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined mr-3">payments</span> Earnings
+                </a>
+<a class="bg-primary-container text-on-primary-container rounded-xl flex items-center px-4 py-3 my-1 mx-2 scale-95 active:scale-90 transition-transform font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined mr-3 filled">group</span> Students
+                </a>
+<a class="text-on-surface-variant flex items-center px-4 py-3 my-1 mx-2 hover:bg-surface-container-high rounded-xl transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined mr-3">calendar_month</span> Schedule
+                </a>
+</div>
+<div class="mt-auto pt-4 border-t border-outline-variant w-full">
+<a class="text-on-surface-variant flex items-center px-4 py-3 my-1 mx-2 hover:bg-surface-container-high rounded-xl transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined mr-3">settings</span> Settings
+                </a>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-1 lg:ml-64 w-full h-full overflow-y-auto bg-surface-bright pb-24 lg:pb-8">
+<div class="p-margin-mobile md:p-stack-lg max-w-5xl mx-auto space-y-stack-lg mt-4">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-surface-variant pb-4">
+<div>
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-outline">arrow_back</span>
+<span class="font-label-sm text-label-sm text-outline tracking-wider uppercase">Student Profile / Activities</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Push to Student: Emma W.</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1 max-w-2xl">Design a targeted learning activity based on Emma's recent conversation history.</p>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-stack-md">
+<!-- Left Column: Templates -->
+<div class="lg:col-span-8 flex flex-col gap-stack-md">
+<!-- Activity Templates -->
+<section class="bg-surface-container-lowest rounded-xl p-stack-md shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">library_books</span> 
+                                Activity Templates
+                            </h2>
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+<!-- SRS Drill Card -->
+<div class="border-2 border-primary-container bg-surface-container-low rounded-lg p-4 cursor-pointer relative overflow-hidden transition-all hover:shadow-md">
+<div class="absolute top-2 right-2 text-primary">
+<span class="material-symbols-outlined filled text-[20px]">check_circle</span>
+</div>
+<div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center mb-3">
+<span class="material-symbols-outlined">style</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface mb-1">SRS Drill</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-3 line-clamp-2">Spaced repetition vocabulary flashcards tailored to recent errors.</p>
+<div class="tooltip-container">
+<div class="flex items-center gap-1 text-secondary font-label-sm text-label-sm cursor-help w-max">
+<span class="material-symbols-outlined text-[14px]">science</span> Scientific Basis
+                                        </div>
+<div class="tooltip-content w-48 bg-inverse-surface text-inverse-on-surface font-body-sm text-body-sm p-3 rounded-lg shadow-lg">
+                                            Leverages the Ebbinghaus Forgetting Curve to optimize recall through timed intervals. Best for vocabulary retention.
+                                            <div class="absolute w-3 h-3 bg-inverse-surface rotate-45 -bottom-1 left-1/2 -translate-x-1/2"></div>
+</div>
+</div>
+</div>
+<!-- Scenario Roleplay Card -->
+<div class="border border-outline-variant hover:border-primary-fixed-dim bg-surface-container-lowest rounded-lg p-4 cursor-pointer transition-all hover:shadow-md group">
+<div class="w-10 h-10 rounded-full bg-surface-container text-on-surface flex items-center justify-center mb-3 group-hover:bg-primary-container group-hover:text-on-primary-container transition-colors">
+<span class="material-symbols-outlined">forum</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface mb-1">Scenario Roleplay</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-3 line-clamp-2">AI-guided conversational practice for specific real-world situations.</p>
+<div class="tooltip-container">
+<div class="flex items-center gap-1 text-secondary font-label-sm text-label-sm cursor-help w-max">
+<span class="material-symbols-outlined text-[14px]">science</span> Scientific Basis
+                                        </div>
+<div class="tooltip-content w-48 bg-inverse-surface text-inverse-on-surface font-body-sm text-body-sm p-3 rounded-lg shadow-lg">
+                                            Communicative Language Teaching (CLT). Promotes active production and pragmatic competence in context.
+                                            <div class="absolute w-3 h-3 bg-inverse-surface rotate-45 -bottom-1 left-1/2 -translate-x-1/2"></div>
+</div>
+</div>
+</div>
+<!-- Grammar Contrast Card -->
+<div class="border border-outline-variant hover:border-primary-fixed-dim bg-surface-container-lowest rounded-lg p-4 cursor-pointer transition-all hover:shadow-md group">
+<div class="w-10 h-10 rounded-full bg-surface-container text-on-surface flex items-center justify-center mb-3 group-hover:bg-primary-container group-hover:text-on-primary-container transition-colors">
+<span class="material-symbols-outlined">compare_arrows</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface mb-1">Grammar Contrast</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-3 line-clamp-2">Targeted exercises contrasting two confusing grammatical structures.</p>
+<div class="tooltip-container">
+<div class="flex items-center gap-1 text-secondary font-label-sm text-label-sm cursor-help w-max">
+<span class="material-symbols-outlined text-[14px]">science</span> Scientific Basis
+                                        </div>
+<div class="tooltip-content w-48 bg-inverse-surface text-inverse-on-surface font-body-sm text-body-sm p-3 rounded-lg shadow-lg">
+                                            Noticing Hypothesis. Highlights differences between L1/L2 or closely related L2 structures to build explicit awareness.
+                                            <div class="absolute w-3 h-3 bg-inverse-surface rotate-45 -bottom-1 left-1/2 -translate-x-1/2"></div>
+</div>
+</div>
+</div>
+<!-- Custom Build -->
+<div class="border border-dashed border-outline hover:border-primary bg-transparent rounded-lg p-4 cursor-pointer transition-all flex flex-col items-center justify-center text-center h-full min-h-[160px]">
+<div class="w-10 h-10 rounded-full bg-surface-variant text-on-surface-variant flex items-center justify-center mb-2">
+<span class="material-symbols-outlined">add</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface">Custom Activity</h3>
+</div>
+</div>
+</section>
+<!-- Builder Canvas -->
+<section class="bg-surface-container-lowest rounded-xl p-stack-md shadow-[0_4px_12px_rgba(0,0,0,0.05)] border-t-4 border-t-primary flex-1">
+<div class="flex justify-between items-center mb-6">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Configure SRS Drill</h2>
+<span class="bg-surface-variant text-on-surface-variant font-label-sm text-label-sm px-3 py-1 rounded-full">Template</span>
+</div>
+<div class="space-y-6">
+<!-- Instruction Input -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-2">Activity Instructions for Student</label>
+<textarea class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg p-3 font-body-md text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-y min-h-[100px]" placeholder="Explain what Emma needs to do... e.g., 'Review these words we struggled with yesterday.'">Review these vocabulary words from our conversation about travel yesterday.</textarea>
+</div>
+<!-- Selected Items Preview -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-2 flex items-center justify-between">
+                                        Selected Target Words (4)
+                                        <button class="text-primary font-label-sm text-label-sm hover:underline">Clear All</button>
+</label>
+<div class="flex flex-wrap gap-2">
+<div class="bg-primary-container text-on-primary-container px-3 py-1.5 rounded-full font-body-sm text-body-sm flex items-center gap-2">
+                                            Itinerary
+                                            <button class="hover:bg-primary/20 rounded-full w-4 h-4 flex items-center justify-center"><span class="material-symbols-outlined text-[14px]">close</span></button>
+</div>
+<div class="bg-primary-container text-on-primary-container px-3 py-1.5 rounded-full font-body-sm text-body-sm flex items-center gap-2">
+                                            Luggage
+                                            <button class="hover:bg-primary/20 rounded-full w-4 h-4 flex items-center justify-center"><span class="material-symbols-outlined text-[14px]">close</span></button>
+</div>
+<div class="bg-primary-container text-on-primary-container px-3 py-1.5 rounded-full font-body-sm text-body-sm flex items-center gap-2">
+                                            Customs
+                                            <button class="hover:bg-primary/20 rounded-full w-4 h-4 flex items-center justify-center"><span class="material-symbols-outlined text-[14px]">close</span></button>
+</div>
+<div class="bg-primary-container text-on-primary-container px-3 py-1.5 rounded-full font-body-sm text-body-sm flex items-center gap-2">
+                                            To embark
+                                            <button class="hover:bg-primary/20 rounded-full w-4 h-4 flex items-center justify-center"><span class="material-symbols-outlined text-[14px]">close</span></button>
+</div>
+</div>
+<div class="mt-3 p-3 bg-surface-container rounded-lg flex items-start gap-3">
+<span class="material-symbols-outlined text-primary mt-0.5">info</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Select more words from the 'Candidate Words' panel on the right to add them to this drill.</p>
+</div>
+</div>
+</div>
+<div class="mt-8 pt-4 border-t border-outline-variant flex justify-end gap-3">
+<button class="px-5 py-2 rounded-lg font-label-md text-label-md text-primary border border-outline-variant hover:bg-surface-container transition-colors">Save as Draft</button>
+<button class="px-5 py-2 rounded-lg font-label-md text-label-md bg-primary text-on-primary hover:bg-primary/90 transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">send</span> Push to Student
+                                </button>
+</div>
+</section>
+</div>
+<!-- Right Column: Candidate Words AI Sidebar -->
+<div class="lg:col-span-4 flex flex-col h-full">
+<aside class="bg-surface-container-lowest rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] h-[600px] lg:h-full lg:sticky lg:top-20 flex flex-col border border-secondary-fixed/30 ai-glow overflow-hidden">
+<!-- AI Header -->
+<div class="p-4 bg-secondary-fixed-dim/20 border-b border-secondary-fixed/30 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">auto_awesome</span>
+<h3 class="font-label-md text-label-md text-on-surface">AI Mined Candidates</h3>
+</div>
+<span class="font-label-sm text-label-sm text-secondary bg-secondary-fixed px-2 py-0.5 rounded">From chat</span>
+</div>
+<div class="p-4 bg-surface-bright pb-2">
+<p class="font-body-sm text-body-sm text-on-surface-variant">Suggested vocabulary based on Emma's recent conversations and identified knowledge gaps.</p>
+<div class="relative mt-4 mb-2">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
+<input class="w-full bg-surface border border-outline-variant rounded-full pl-9 pr-4 py-1.5 font-body-sm text-body-sm focus:border-secondary focus:ring-1 focus:ring-secondary outline-none" placeholder="Filter candidates..." type="text"/>
+</div>
+</div>
+<!-- List of Candidates -->
+<div class="flex-1 overflow-y-auto p-2 space-y-1">
+<!-- Category Header -->
+<div class="px-2 py-1 mt-2">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Yesterday's Travel Chat</span>
+</div>
+<!-- Candidate Item (Selected) -->
+<div class="flex items-center justify-between p-2 rounded-lg bg-primary-fixed-dim/30 hover:bg-primary-fixed-dim/40 cursor-pointer transition-colors border border-primary/20">
+<div class="flex-1">
+<div class="flex items-center gap-2">
+<span class="font-body-sm text-body-sm font-medium text-on-surface">Itinerary</span>
+<span class="bg-error-container text-on-error-container font-label-sm text-[9px] px-1.5 py-0.5 rounded-sm">Struggled</span>
+</div>
+<p class="font-translation-text text-translation-text text-on-surface-variant text-[12px] truncate">"plan for trip"</p>
+</div>
+<button class="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</button>
+</div>
+<!-- Candidate Item -->
+<div class="flex items-center justify-between p-2 rounded-lg hover:bg-surface-container cursor-pointer transition-colors border border-transparent">
+<div class="flex-1">
+<div class="flex items-center gap-2">
+<span class="font-body-sm text-body-sm font-medium text-on-surface">To delay</span>
+<span class="bg-surface-variant text-on-surface-variant font-label-sm text-[9px] px-1.5 py-0.5 rounded-sm">New</span>
+</div>
+<p class="font-translation-text text-translation-text text-on-surface-variant text-[12px] truncate">Used by you, not student</p>
+</div>
+<button class="w-6 h-6 rounded-full border border-outline text-outline flex items-center justify-center shrink-0 hover:bg-surface-variant">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+<!-- Candidate Item -->
+<div class="flex items-center justify-between p-2 rounded-lg hover:bg-surface-container cursor-pointer transition-colors border border-transparent">
+<div class="flex-1">
+<div class="flex items-center gap-2">
+<span class="font-body-sm text-body-sm font-medium text-on-surface">Accommodation</span>
+</div>
+<p class="font-translation-text text-translation-text text-on-surface-variant text-[12px] truncate">Pronunciation error</p>
+</div>
+<button class="w-6 h-6 rounded-full border border-outline text-outline flex items-center justify-center shrink-0 hover:bg-surface-variant">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+<!-- Category Header -->
+<div class="px-2 py-1 mt-4">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Last Week's Review</span>
+</div>
+<!-- Candidate Item -->
+<div class="flex items-center justify-between p-2 rounded-lg hover:bg-surface-container cursor-pointer transition-colors border border-transparent">
+<div class="flex-1">
+<div class="flex items-center gap-2">
+<span class="font-body-sm text-body-sm font-medium text-on-surface">To apologize</span>
+<span class="bg-surface-variant text-on-surface-variant font-label-sm text-[9px] px-1.5 py-0.5 rounded-sm">Fading</span>
+</div>
+<p class="font-translation-text text-translation-text text-on-surface-variant text-[12px] truncate">Not used in 14 days</p>
+</div>
+<button class="w-6 h-6 rounded-full border border-outline text-outline flex items-center justify-center shrink-0 hover:bg-surface-variant">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+<!-- Candidate Item -->
+<div class="flex items-center justify-between p-2 rounded-lg hover:bg-surface-container cursor-pointer transition-colors border border-transparent">
+<div class="flex-1">
+<div class="flex items-center gap-2">
+<span class="font-body-sm text-body-sm font-medium text-on-surface">Consequently</span>
+</div>
+<p class="font-translation-text text-translation-text text-on-surface-variant text-[12px] truncate">Transition word goal</p>
+</div>
+<button class="w-6 h-6 rounded-full border border-outline text-outline flex items-center justify-center shrink-0 hover:bg-surface-variant">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+</div>
+</aside>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- BottomNavBar (Mobile) -->
+<nav class="lg:hidden fixed bottom-0 w-full z-50 flex justify-around items-center px-margin-mobile pb-safe bg-surface-container-lowest shadow-[0_-4px_12px_rgba(0,0,0,0.05)] h-20 border-t-0">
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:bg-surface-variant active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined mb-1">home</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:bg-surface-variant active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined mb-1">account_balance_wallet</span>
+<span class="font-label-sm text-label-sm">Earnings</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-5 py-1 active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined mb-1 filled">school</span>
+<span class="font-label-sm text-label-sm">Students</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:bg-surface-variant active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined mb-1">settings</span>
+<span class="font-label-sm text-label-sm">Settings</span>
+</a>
+</nav>
+</body></html>

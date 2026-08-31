@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/chorus/messenger/internal/middleware"
 	"github.com/chorus/messenger/internal/models"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/gin-gonic/gin"
@@ -27,7 +28,7 @@ func (h *ChatHandler) GetUserChats(c *gin.Context) {
 
 	chats, err := h.chatService.GetUserChats(userID)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to fetch chats"})
+		WriteError(c, middleware.ErrInternal("Failed to fetch chats"))
 		return
 	}
 
@@ -71,7 +72,7 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 
 	var req models.CreateChatRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": "Invalid request: " + err.Error()})
+		WriteError(c, middleware.ErrValidation("Invalid request"))
 		return
 	}
 
@@ -83,11 +84,11 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 			}
 			blocked, err := h.moderation.IsBlocked(c.Request.Context(), userID, p)
 			if err != nil {
-				c.JSON(500, gin.H{"error": "Failed to check blocked users"})
+				WriteError(c, middleware.ErrInternal("Failed to check blocked users"))
 				return
 			}
 			if blocked {
-				c.JSON(403, gin.H{"error": "You cannot start a chat with this user"})
+				WriteError(c, middleware.ErrForbidden("You cannot start a chat with this user"))
 				return
 			}
 		}
@@ -95,7 +96,7 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 
 	chat, err := h.chatService.Create(userID, req)
 	if err != nil {
-		c.JSON(400, gin.H{"error": "Failed to create chat: " + err.Error()})
+		WriteError(c, middleware.ErrValidation("Failed to create chat"))
 		return
 	}
 
@@ -127,13 +128,13 @@ func (h *ChatHandler) GetChat(c *gin.Context) {
 	// Check if user is a participant
 	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
 	if err != nil || !isParticipant {
-		c.JSON(403, gin.H{"error": "Access denied"})
+		WriteError(c, middleware.ErrForbidden("Access denied"))
 		return
 	}
 
 	chat, err := h.chatService.GetByID(chatID)
 	if err != nil {
-		c.JSON(404, gin.H{"error": "Chat not found"})
+		WriteError(c, middleware.ErrNotFound("Chat not found"))
 		return
 	}
 
@@ -161,7 +162,7 @@ func (h *ChatHandler) UpdateChat(c *gin.Context) {
 	// Check if user is a participant
 	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
 	if err != nil || !isParticipant {
-		c.JSON(403, gin.H{"error": "Access denied"})
+		WriteError(c, middleware.ErrForbidden("Access denied"))
 		return
 	}
 
@@ -171,7 +172,7 @@ func (h *ChatHandler) UpdateChat(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": "Invalid request"})
+		WriteError(c, middleware.ErrValidation("Invalid request"))
 		return
 	}
 
@@ -182,7 +183,7 @@ func (h *ChatHandler) UpdateChat(c *gin.Context) {
 
 	chat, err := h.chatService.UpdateChat(chatID, name, req.Settings)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to update chat"})
+		WriteError(c, middleware.ErrInternal("Failed to update chat"))
 		return
 	}
 
@@ -196,7 +197,7 @@ func (h *ChatHandler) AddParticipant(c *gin.Context) {
 	// Check if user is a participant
 	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
 	if err != nil || !isParticipant {
-		c.JSON(403, gin.H{"error": "Access denied"})
+		WriteError(c, middleware.ErrForbidden("Access denied"))
 		return
 	}
 
@@ -205,7 +206,7 @@ func (h *ChatHandler) AddParticipant(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": "Invalid request"})
+		WriteError(c, middleware.ErrValidation("Invalid request"))
 		return
 	}
 
@@ -214,7 +215,7 @@ func (h *ChatHandler) AddParticipant(c *gin.Context) {
 	if h.moderation != nil {
 		participants, err := h.chatService.GetParticipants(chatID)
 		if err != nil {
-			c.JSON(500, gin.H{"error": "Failed to load participants"})
+			WriteError(c, middleware.ErrInternal("Failed to load participants"))
 			return
 		}
 		others := []string{userID}
@@ -224,18 +225,18 @@ func (h *ChatHandler) AddParticipant(c *gin.Context) {
 		for _, other := range others {
 			blocked, err := h.moderation.IsBlocked(c.Request.Context(), req.UserID, other)
 			if err != nil {
-				c.JSON(500, gin.H{"error": "Failed to check blocked users"})
+				WriteError(c, middleware.ErrInternal("Failed to check blocked users"))
 				return
 			}
 			if blocked {
-				c.JSON(403, gin.H{"error": "You cannot add this user"})
+				WriteError(c, middleware.ErrForbidden("You cannot add this user"))
 				return
 			}
 		}
 	}
 
 	if err := h.chatService.AddParticipant(chatID, req.UserID, "member"); err != nil {
-		c.JSON(400, gin.H{"error": "Failed to add participant"})
+		WriteError(c, middleware.ErrValidation("Failed to add participant"))
 		return
 	}
 
@@ -250,12 +251,12 @@ func (h *ChatHandler) RemoveParticipant(c *gin.Context) {
 	// Check if user is a participant
 	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
 	if err != nil || !isParticipant {
-		c.JSON(403, gin.H{"error": "Access denied"})
+		WriteError(c, middleware.ErrForbidden("Access denied"))
 		return
 	}
 
 	if err := h.chatService.RemoveParticipant(chatID, targetUserID); err != nil {
-		c.JSON(400, gin.H{"error": "Failed to remove participant"})
+		WriteError(c, middleware.ErrValidation("Failed to remove participant"))
 		return
 	}
 
@@ -267,7 +268,7 @@ func (h *ChatHandler) LeaveChat(c *gin.Context) {
 	chatID := c.Param("chatId")
 
 	if err := h.chatService.RemoveParticipant(chatID, userID); err != nil {
-		c.JSON(400, gin.H{"error": "Failed to leave chat"})
+		WriteError(c, middleware.ErrValidation("Failed to leave chat"))
 		return
 	}
 

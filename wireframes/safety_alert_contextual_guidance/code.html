@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus - Notifications</title>
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788158188199&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YTUyNzcyMWFlZWQwMWE2MGRlNzc5MTJlNzE2EgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-background": "#0b1c30",
+                    "on-surface": "#0b1c30",
+                    "on-tertiary": "#ffffff",
+                    "on-tertiary-container": "#bdffdb",
+                    "on-primary-fixed-variant": "#003ea8",
+                    "surface-container-lowest": "#ffffff",
+                    "inverse-on-surface": "#eaf1ff",
+                    "on-secondary-fixed": "#23005c",
+                    "on-secondary-fixed-variant": "#5516be",
+                    "inverse-surface": "#213145",
+                    "surface": "#f8f9ff",
+                    "background": "#f8f9ff",
+                    "surface-dim": "#cbdbf5",
+                    "secondary-container": "#8455ef",
+                    "surface-container-low": "#eff4ff",
+                    "on-tertiary-fixed-variant": "#005236",
+                    "tertiary-fixed-dim": "#4edea3",
+                    "secondary-fixed": "#e9ddff",
+                    "outline": "#737686",
+                    "surface-variant": "#d3e4fe",
+                    "inverse-primary": "#b4c5ff",
+                    "surface-container-high": "#dce9ff",
+                    "on-primary-container": "#eeefff",
+                    "surface-bright": "#f8f9ff",
+                    "outline-variant": "#c3c6d7",
+                    "primary": "#004ac6",
+                    "primary-fixed-dim": "#b4c5ff",
+                    "tertiary-container": "#007d55",
+                    "on-secondary-container": "#fffbff",
+                    "surface-tint": "#0053db",
+                    "primary-container": "#2563eb",
+                    "primary-fixed": "#dbe1ff",
+                    "error": "#ba1a1a",
+                    "on-primary-fixed": "#00174b",
+                    "surface-container": "#e5eeff",
+                    "on-tertiary-fixed": "#002113",
+                    "tertiary": "#006242",
+                    "on-secondary": "#ffffff",
+                    "surface-container-highest": "#d3e4fe",
+                    "secondary": "#6b38d4",
+                    "on-error-container": "#93000a",
+                    "error-container": "#ffdad6",
+                    "secondary-fixed-dim": "#d0bcff",
+                    "tertiary-fixed": "#6ffbbe",
+                    "on-error": "#ffffff",
+                    "on-surface-variant": "#434655",
+                    "on-primary": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter-mobile": "12px",
+                    "margin-mobile": "16px",
+                    "stack-lg": "24px",
+                    "stack-md": "16px",
+                    "stack-sm": "8px",
+                    "unit": "4px"
+            },
+            "fontFamily": {
+                    "body-lg": ["Be Vietnam Pro"],
+                    "headline-lg": ["Plus Jakarta Sans"],
+                    "headline-sm": ["Plus Jakarta Sans"],
+                    "body-sm": ["Be Vietnam Pro"],
+                    "label-sm": ["Inter"],
+                    "translation-text": ["Be Vietnam Pro"],
+                    "headline-md": ["Plus Jakarta Sans"],
+                    "label-md": ["Inter"],
+                    "body-md": ["Be Vietnam Pro"]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md min-h-screen pb-24 md:pb-0">
+<!-- TopAppBar from JSON -->
+<header class="w-full top-0 sticky bg-surface dark:bg-background shadow-[0px_4px_12px_rgba(0,0,0,0.05)] flex justify-between items-center px-margin-mobile py-stack-sm z-40">
+<div class="flex items-center gap-3">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="A close-up, high-quality profile picture of a young language learner smiling warmly in a well-lit modern cafe setting, soft natural lighting, shallow depth of field, optimistic and approachable mood." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCAx5U7vPXMrOj8epOhNZ7kuYEx1xJJmvYY_3RGr5GNncXiIuhhTQzkImLyx_WxbB380ENImLKmU2v_PXfCTjJljS4E9OVWhVngpoVpTnaCZ7L4vFPLfEEnsXX7edNevOtdYCl5G3x-CLXmPqIooa6GbCtwSlyvoLkSWzYV2iojDZAz4BEbmUa4Cotnx3Lb7KO8UAl1PwBKtRCYnJhfRg1c8nuJFc-Dh37tH3I61S7HuImC2_Poq4qu"/>
+<span class="font-headline-md text-[20px] md:text-[24px] font-bold text-primary dark:text-primary-fixed-dim leading-[32px] tracking-[-0.01em]">Chorus</span>
+</div>
+<!-- Desktop Nav Integration (per responsive rules) -->
+<nav class="hidden md:flex gap-6">
+<a class="font-label-md text-[13px] leading-[18px] font-semibold tracking-[0.01em] text-on-surface-variant dark:text-outline-variant hover:opacity-80 transition-opacity" href="#">Learn</a>
+<a class="font-label-md text-[13px] leading-[18px] font-semibold tracking-[0.01em] text-on-surface-variant dark:text-outline-variant hover:opacity-80 transition-opacity" href="#">Chats</a>
+<a class="font-label-md text-[13px] leading-[18px] font-semibold tracking-[0.01em] text-on-surface-variant dark:text-outline-variant hover:opacity-80 transition-opacity" href="#">Hub</a>
+<a class="font-label-md text-[13px] leading-[18px] font-semibold tracking-[0.01em] text-primary dark:text-primary-fixed-dim hover:opacity-80 transition-opacity" href="#">Profile</a>
+</nav>
+<div class="flex items-center">
+<button class="bg-surface-variant/50 px-3 py-1.5 rounded-full font-label-md text-[13px] leading-[18px] font-semibold tracking-[0.01em] text-primary dark:text-primary-fixed-dim hover:opacity-80 transition-opacity active:scale-95 transition-transform">
+                92 XP
+            </button>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="max-w-3xl mx-auto px-margin-mobile py-stack-lg md:py-8 flex flex-col gap-stack-lg">
+<!-- Page Header -->
+<div class="flex items-center gap-2 mb-2">
+<button class="p-2 -ml-2 rounded-full hover:bg-surface-variant/50 text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined text-[20px]">arrow_back</span>
+</button>
+<h1 class="font-headline-sm text-[20px] leading-[28px] font-semibold text-on-surface">Trust &amp; Safety Notifications</h1>
+</div>
+<!-- AI Moderation Primary Card (Bento/Glassmorphism style) -->
+<section class="bg-surface-container-lowest rounded-xl shadow-[0px_8px_24px_rgba(107,56,212,0.1)] border-l-[4px] border-secondary relative overflow-hidden group transition-all duration-300">
+<!-- Subtle AI Glow background effect -->
+<div class="absolute inset-0 bg-gradient-to-br from-secondary/5 to-transparent pointer-events-none"></div>
+<div class="p-5 sm:p-6 flex flex-col gap-4 relative z-10">
+<!-- Header of Card -->
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2 text-secondary">
+<span class="material-symbols-outlined fill text-[24px]">local_police</span>
+<span class="font-label-md text-[13px] leading-[18px] font-semibold tracking-[0.01em] uppercase">System Intervention</span>
+</div>
+<span class="font-label-sm text-[11px] leading-[16px] font-medium tracking-[0.03em] text-on-surface-variant">2 mins ago</span>
+</div>
+<!-- Main Content -->
+<div>
+<h2 class="font-headline-sm text-[20px] leading-[28px] font-semibold text-on-surface mb-2">Learning Integrity Check</h2>
+<p class="font-body-md text-[16px] leading-[24px] font-normal text-on-surface-variant">Our systems detected language that deviates from learning. To protect your experience, these messages are hidden by default. Chorus is dedicated to maintaining a safe, focused environment for language learning.</p>
+</div>
+<!-- Action Buttons -->
+<div class="bg-primary-container/10 p-4 rounded-lg border border-primary/20 mb-2"><p class="font-body-sm text-[14px] leading-[20px] text-on-primary-container"><span class="material-symbols-outlined text-[18px] align-middle mr-1">info</span>Interested in social discovery? You can enable "Mutual Consent Mode" in your Safety Settings to connect on a personal level with other consenting learners.</p></div><div class="flex flex-col sm:flex-row gap-3 mt-2 sm:items-center">
+<button class="bg-primary-container text-on-primary-container hover:bg-surface-variant/50 font-label-md text-[13px] leading-[18px] font-semibold tracking-[0.01em] py-2.5 px-5 rounded-xl transition-all w-full sm:w-auto text-center active:scale-95">
+                        Review Guidelines
+                    </button>
+<button class="bg-error-container text-on-error-container hover:bg-error-container/80 font-label-md text-[13px] leading-[18px] font-semibold tracking-[0.01em] py-2.5 px-5 rounded-xl transition-all w-full sm:w-auto text-center active:scale-95">
+                        Report User
+                    </button>
+<button class="text-on-surface-variant hover:bg-surface-variant/30 font-label-md text-[13px] leading-[18px] font-semibold tracking-[0.01em] py-2.5 px-5 rounded-xl transition-all w-full sm:w-auto text-center active:scale-95 sm:ml-auto">
+                        Dismiss
+                    </button>
+</div>
+</div>
+</section>
+<!-- Divider -->
+<div class="w-full h-px bg-outline-variant/30 my-2"></div>
+<!-- History List -->
+<section class="flex flex-col gap-stack-md">
+<h3 class="font-headline-sm text-[20px] leading-[28px] font-semibold text-on-surface">Recent Safety Activity</h3>
+<div class="flex flex-col gap-3">
+<!-- History Item 1 -->
+<div class="bg-surface-container-lowest p-4 rounded-lg shadow-[0px_4px_12px_rgba(0,0,0,0.05)] flex items-start gap-4 hover:bg-surface-container-low transition-colors cursor-pointer">
+<div class="w-10 h-10 rounded-full bg-tertiary/10 flex items-center justify-center flex-shrink-0 text-tertiary">
+<span class="material-symbols-outlined text-[20px]">verified_user</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-1">
+<h4 class="font-label-md text-[13px] leading-[18px] font-semibold tracking-[0.01em] text-on-surface">Account Verified</h4>
+<span class="font-label-sm text-[11px] leading-[16px] font-medium tracking-[0.03em] text-outline">Yesterday</span>
+</div>
+<p class="font-body-sm text-[14px] leading-[20px] font-normal text-on-surface-variant">Your identity verification was successful. You now have the verified badge on your profile.</p>
+</div>
+</div>
+<!-- History Item 2 -->
+<div class="bg-surface-container-lowest p-4 rounded-lg shadow-[0px_4px_12px_rgba(0,0,0,0.05)] flex items-start gap-4 hover:bg-surface-container-low transition-colors cursor-pointer">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center flex-shrink-0 text-on-primary-container">
+<span class="material-symbols-outlined text-[20px]">privacy_tip</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-1">
+<h4 class="font-label-md text-[13px] leading-[18px] font-semibold tracking-[0.01em] text-on-surface">New Privacy Feature: No-Dating Mode</h4>
+<span class="font-label-sm text-[11px] leading-[16px] font-medium tracking-[0.03em] text-outline">Oct 12</span>
+</div>
+<p class="font-body-sm text-[14px] leading-[20px] font-normal text-on-surface-variant">We've introduced stricter filters for unprompted personal questions. Enabled by default.</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar from JSON (Mobile Only) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 pb-safe bg-surface-container-lowest shadow-[0px_-4px_12px_rgba(0,0,0,0.05)] rounded-t-xl md:hidden">
+<button class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-variant/50 rounded-full active:scale-90 transition-all duration-200">
+<span class="material-symbols-outlined text-[24px]">school</span>
+<span class="font-label-sm text-[11px] leading-[16px] font-medium tracking-[0.03em] mt-1">Learn</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-variant/50 rounded-full active:scale-90 transition-all duration-200">
+<span class="material-symbols-outlined text-[24px]">chat_bubble</span>
+<span class="font-label-sm text-[11px] leading-[16px] font-medium tracking-[0.03em] mt-1">Chats</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-variant/50 rounded-full active:scale-90 transition-all duration-200">
+<span class="material-symbols-outlined text-[24px]">auto_awesome</span>
+<span class="font-label-sm text-[11px] leading-[16px] font-medium tracking-[0.03em] mt-1">Hub</span>
+</button>
+<!-- Active State Logic Applied Here -->
+<button class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 hover:bg-surface-variant/50 active:scale-90 transition-all duration-200">
+<span class="material-symbols-outlined text-[24px] fill">person</span>
+<span class="font-label-sm text-[11px] leading-[16px] font-medium tracking-[0.03em] mt-1">Profile</span>
+</button>
+</nav>
+</body></html>

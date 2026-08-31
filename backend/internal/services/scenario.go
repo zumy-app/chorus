@@ -21,10 +21,10 @@ import (
 // deterministic scripted fallback keeps the ordering-coffee flow fully working
 // offline. Intent coverage is detected with a lightweight keyword matcher.
 type ScenarioService struct {
-	db        *sql.DB
-	ai        *LearningAIService
-	practice  *PracticeService
-	fluency   *FluencyScoreService
+	db         *sql.DB
+	ai         *LearningAIService
+	practice   *PracticeService
+	fluency    *FluencyScoreService
 	curriculum *CurriculumService
 }
 
@@ -382,8 +382,8 @@ func (s *ScenarioService) genAIReply(ctx context.Context, userID, scenarioID, ta
 		"native_language": nativeLang,
 		"cefr_level":      "A1",
 		"current_phase": map[string]any{
-			"title":           phase.Title,
-			"learner_goal":    phase.LearnerGoal,
+			"title":            phase.Title,
+			"learner_goal":     phase.LearnerGoal,
 			"required_intents": phase.RequiredIntents,
 		},
 		"history":         covered,
@@ -441,12 +441,12 @@ func (s *ScenarioService) getPhases(ctx context.Context, scenarioID string) ([]m
 	defer rows.Close()
 	var phases []models.ScenarioPhase
 	for rows.Next() {
-	var ph models.ScenarioPhase
-	var chunkJSON []byte
-	if err := rows.Scan(&ph.ID, &ph.ScenarioID, &ph.Ordinal, &ph.Title, &ph.LearnerGoal,
-		pq.Array(&ph.RequiredIntents), &chunkJSON); err != nil {
-		return nil, err
-	}
+		var ph models.ScenarioPhase
+		var chunkJSON []byte
+		if err := rows.Scan(&ph.ID, &ph.ScenarioID, &ph.Ordinal, &ph.Title, &ph.LearnerGoal,
+			pq.Array(&ph.RequiredIntents), &chunkJSON); err != nil {
+			return nil, err
+		}
 		if len(chunkJSON) > 0 {
 			var chunks []models.Chunk
 			_ = json.Unmarshal(chunkJSON, &chunks)
@@ -513,11 +513,11 @@ func detectIntents(message string, required []string) []string {
 
 func intentMatches(norm, lower, intent string) bool {
 	bank := map[string][]string{
-		"greet":      {"hola", "buenos dias", "buenas tardes", "buenos días", "qué tal", "que tal"},
+		"greet":       {"hola", "buenos dias", "buenas tardes", "buenos días", "qué tal", "que tal"},
 		"order_drink": {"quisiera", "quiero", "café", "cafe", "me puede dar", "pedir", "un café", "un te"},
-		"customize":  {"para llevar", "sin azúcar", "sin azucar", "con leche", "tiene leche", "leche de avena", "azucar"},
-		"pay":        {"cuánto cuesta", "cuanto cuesta", "precio", "tarjeta", "cuesta", "cuanto", "cuánto"},
-		"close":      {"gracias", "adiós", "adios", "buen día", "buen dia", "hasta luego"},
+		"customize":   {"para llevar", "sin azúcar", "sin azucar", "con leche", "tiene leche", "leche de avena", "azucar"},
+		"pay":         {"cuánto cuesta", "cuanto cuesta", "precio", "tarjeta", "cuesta", "cuanto", "cuánto"},
+		"close":       {"gracias", "adiós", "adios", "buen día", "buen dia", "hasta luego"},
 	}
 	keywords := bank[intent]
 	for _, k := range keywords {

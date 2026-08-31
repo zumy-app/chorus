@@ -175,10 +175,10 @@ func TestGrammarQueue_ProcessJob_Done(t *testing.T) {
 	})
 
 	claimCols := []string{"id", "user_id", "message_id", "chat_id", "text", "language", "native_language", "attempts"}
-mock.ExpectQuery(`UPDATE grammar_jobs\s+SET status = 'processing'.*RETURNING id, user_id, COALESCE\(message_id::text,''\)`).
-	WillReturnRows(sqlmock.NewRows(claimCols).AddRow("job-1", "user-1", "msg-1", "chat-1", "Hola", "es", "en", 1))
-	mock.ExpectExec(`UPDATE grammar_jobs\s+SET status = 'done', result = \$1, provider_used = \$2, last_error = NULL, processing_at = NULL, completed_at = CURRENT_TIMESTAMP WHERE id = \$3`).
-		WithArgs(sqlmock.AnyArg(), "ollama", "job-1").
+	mock.ExpectQuery(`UPDATE grammar_jobs\s+SET status = 'processing'.*RETURNING id, user_id, COALESCE\(message_id::text,''\)`).
+		WillReturnRows(sqlmock.NewRows(claimCols).AddRow("job-1", "user-1", "msg-1", "chat-1", "Hola", "es", "en", 1))
+	mock.ExpectExec(`UPDATE grammar_jobs\s+SET status = 'done', result = \$1, provider_used = \$2, last_error = NULL, processing_at = NULL, completed_at = CURRENT_TIMESTAMP, provider_used_lineage = \$2, prompt_version = \$3, latency_ms = \$4 WHERE id = \$5`).
+		WithArgs(sqlmock.AnyArg(), "ollama", "v2", sqlmock.AnyArg(), "job-1").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	q.processJob("job-1")

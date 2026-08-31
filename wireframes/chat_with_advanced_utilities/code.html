@@ -1,0 +1,282 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>Chorus - Chat with Media Drawer</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&amp;family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-primary": "#b4c5ff",
+                        "surface-container-high": "#dce9ff",
+                        "on-tertiary-fixed": "#002113",
+                        "on-primary": "#ffffff",
+                        "primary-container": "#2563eb",
+                        "inverse-on-surface": "#eaf1ff",
+                        "surface-container-lowest": "#ffffff",
+                        "outline": "#737686",
+                        "outline-variant": "#c3c6d7",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "secondary-fixed": "#e9ddff",
+                        "secondary-fixed-dim": "#d0bcff",
+                        "secondary": "#6b38d4",
+                        "on-secondary-container": "#fffbff",
+                        "on-primary-container": "#eeefff",
+                        "error-container": "#ffdad6",
+                        "on-background": "#0b1c30",
+                        "primary-fixed": "#dbe1ff",
+                        "primary": "#004ac6",
+                        "tertiary": "#006242",
+                        "tertiary-fixed": "#6ffbbe",
+                        "on-secondary-fixed-variant": "#5516be",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "on-surface": "#0b1c30",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "on-primary-fixed": "#00174b",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-tertiary-container": "#bdffdb",
+                        "surface-variant": "#d3e4fe",
+                        "secondary-container": "#8455ef",
+                        "background": "#f8f9ff",
+                        "on-error-container": "#93000a",
+                        "surface-bright": "#f8f9ff",
+                        "surface": "#f8f9ff",
+                        "inverse-surface": "#213145",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed": "#23005c",
+                        "surface-container-low": "#eff4ff",
+                        "surface-dim": "#cbdbf5",
+                        "tertiary-container": "#007d55",
+                        "surface-tint": "#0053db",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#434655",
+                        "surface-container": "#e5eeff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "4px",
+                        "stack-lg": "24px",
+                        "gutter-mobile": "12px",
+                        "stack-md": "16px",
+                        "stack-sm": "8px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "body-md": ["Be Vietnam Pro"],
+                        "translation-text": ["Be Vietnam Pro"],
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "body-sm": ["Be Vietnam Pro"],
+                        "label-sm": ["Inter"],
+                        "body-lg": ["Be Vietnam Pro"],
+                        "label-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .drawer-up {
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col relative overflow-hidden">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface dark:bg-on-background text-primary dark:text-primary-fixed-dim font-headline-sm text-headline-sm-mobile shadow-sm dark:shadow-none flex items-center justify-between px-margin-mobile h-16 transition-transform duration-200 active:scale-95">
+<div class="flex items-center gap-3">
+<button class="p-2 -ml-2 rounded-full hover:bg-surface-variant/20 text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<div class="flex items-center gap-3">
+<img alt="Avatar" class="w-10 h-10 rounded-full object-cover shadow-sm" data-alt="A small circular profile picture of a young woman with dark hair smiling brightly against a soft pastel blue background. Lighting is soft and highly flattering, emphasizing an approachable and friendly demeanor." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsdkzXZA6L8Avs2zi-STxIFBDQT98mHZsQjntn5kDXyeQXNvo7R0FcHegBf618GPLNZ9z50j30tZL4ZBwMhw9Gh9RnprMyfKvLxbTPLzWp34n93xSHeAHoTvDFjb1BbCBWLXnkxQVkWE9q12Uy2suQbJqJh5604ft5vlQk4NZ4Zsu2NUXdGh7cpyf5IXktcpp0JHnbZCIU_9zoNbbTs2j2Gm00_JXNVak_VCGuamVcyoEXiOPZJqyJ">
+<div>
+<h1 class="font-headline-md text-headline-md text-primary dark:text-primary-fixed-dim leading-none mb-1">Chorus</h1>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-tertiary-fixed-dim"></span> Online
+                    </span>
+</div>
+</div>
+</div>
+<div class="flex items-center">
+<button class="p-2 rounded-full hover:bg-surface-variant/20 dark:hover:bg-on-secondary-fixed-variant/20 text-on-surface-variant dark:text-outline-variant">
+<span class="material-symbols-outlined" data-icon="translate">translate</span>
+</button>
+</div>
+</header>
+<!-- Chat Canvas -->
+<main class="flex-1 overflow-y-auto pt-20 pb-48 px-margin-mobile flex flex-col gap-stack-md hide-scrollbar">
+<!-- Time divider -->
+<div class="flex justify-center my-2">
+<span class="bg-surface-variant text-on-surface-variant font-label-sm text-label-sm px-3 py-1 rounded-full opacity-80">Today, 10:42 AM</span>
+</div>
+<!-- Incoming Message -->
+<div class="flex gap-gutter-mobile items-end max-w-[85%] self-start">
+<img alt="Avatar" class="w-8 h-8 rounded-full object-cover shadow-sm mb-1" data-alt="A small circular profile picture of a young woman with dark hair smiling brightly against a soft pastel blue background. Lighting is soft and highly flattering, emphasizing an approachable and friendly demeanor." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-izJ_m_a1Z1JvpI-LkDd1hbBk4oXD8m4z2_uWIoBxYfgTxsVC--DhXiURmXI0RELvv6o9qIW1B92aljE-Pxv_aBzhai8l6lIcl14XH-Xly1dnLZlHsSQuk8wsDMFsykVIj_PapjgEg_YoVyW3CbrkHud-Bc0mvZpmVIVHUvUi7k5rWI5CVhf-IBdYMoeup-m842fsbXOhGBfvqA2IAfewzwuU04dGhWgJT5hetupfAhW4txeVR-Av">
+<div class="bg-surface-container-lowest text-on-surface rounded-2xl rounded-bl-sm p-4 shadow-[0px_4px_12px_rgba(0,0,0,0.05)] border border-surface-variant">
+<p class="font-body-md text-body-md">Did you review the grammar guide I sent over?</p>
+</div>
+</div>
+<!-- Outgoing Message with Attachment -->
+<div class="flex gap-gutter-mobile items-end max-w-[85%] self-end flex-row-reverse">
+<div class="bg-primary text-on-primary rounded-2xl rounded-br-sm p-4 shadow-[0px_4px_12px_rgba(0,0,0,0.05)]">
+<p class="font-body-md text-body-md mb-3">Yes, I just finished reading it. The subjunctive mood section is tricky, but I think I'm getting it! Here are my notes.</p>
+<!-- Document Attachment Component -->
+<div class="bg-primary-fixed-dim/20 rounded-xl p-3 flex items-center gap-3 border border-primary-fixed/30 cursor-pointer active:scale-95 transition-transform">
+<div class="w-10 h-10 rounded-lg bg-surface-container-lowest text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined" data-icon="picture_as_pdf" data-weight="fill">picture_as_pdf</span>
+</div>
+<div class="overflow-hidden">
+<p class="font-label-md text-label-md text-on-primary truncate">Subjunctive_Notes_Draft_v2.pdf</p>
+<p class="font-label-sm text-label-sm text-on-primary/80">1.2 MB • Document</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Outgoing Sticker -->
+<div class="flex gap-gutter-mobile items-end max-w-[85%] self-end flex-row-reverse mt-2">
+<div class="relative w-32 h-32 transform rotate-2 animate-pulse">
+<img alt="Perfect Pronunciation Sticker" class="w-full h-full object-contain drop-shadow-[0_8px_16px_rgba(0,74,198,0.2)]" data-alt="A brightly colored digital sticker featuring a cute, stylized cartoon owl wearing a graduation cap and giving a thumbs up. The text 'Perfect Pronunciation!' curves around the top in bold, friendly bubble letters. The background is transparent, but the sticker has a thick white outline to pop against any background. The overall aesthetic is cheerful, rewarding, and educational." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA7LdIUhVK2pbF1PEC77EGPyhhkbq3CEaowaemglWSB5_wD9PG_PChXJZ5zdyFWeJULHv3EO1LBYwfY0M2lIwCUYRSckQueISW4f1t1cLaHeua4x62M6--Pk-AGx2AAyfcW9VoOecZDmgAgntmIIPRFPS-L_Oq2_UKM3gDlk_R5MZmwCFLL-XAYcvNz6yCaFHcDd30Pj0r2hXp7rzD9CdA1lndNZKjtXnszsxMd7ZMcSUBLAd6Dec_B">
+</div>
+</div>
+</main>
+<!-- Overlay & Media Drawer -->
+<div class="fixed inset-0 bg-on-background/20 z-40" id="drawerOverlay"></div>
+<div class="fixed bottom-0 left-0 w-full bg-surface-container-lowest rounded-t-3xl shadow-[0px_-8px_24px_rgba(0,0,0,0.1)] z-50 drawer-up flex flex-col h-[65vh]">
+<!-- Drawer Header & Handle -->
+<div class="flex justify-center pt-3 pb-2 w-full touch-none" id="drawerHandle">
+<div class="w-12 h-1.5 bg-outline-variant rounded-full"></div>
+</div>
+<div class="px-margin-mobile py-2 flex items-center justify-between border-b border-surface-variant">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Share</h2>
+<button class="p-2 rounded-full hover:bg-surface-variant/20 text-on-surface-variant" onclick="closeDrawer()">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</div>
+<!-- Utility Tabs -->
+<div class="flex px-margin-mobile gap-stack-sm overflow-x-auto hide-scrollbar py-4 border-b border-surface-variant shrink-0">
+<button class="flex flex-col items-center gap-2 min-w-[72px] group">
+<div class="w-14 h-14 rounded-full bg-surface-container flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors duration-200 shadow-sm">
+<span class="material-symbols-outlined text-2xl" data-icon="perm_media">perm_media</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant group-hover:text-on-surface">Media</span>
+</button>
+<button class="flex flex-col items-center gap-2 min-w-[72px] group">
+<div class="w-14 h-14 rounded-full bg-surface-container flex items-center justify-center text-tertiary group-hover:bg-tertiary group-hover:text-on-primary transition-colors duration-200 shadow-sm">
+<span class="material-symbols-outlined text-2xl" data-icon="description">description</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant group-hover:text-on-surface">Docs</span>
+</button>
+<button class="flex flex-col items-center gap-2 min-w-[72px] group">
+<div class="w-14 h-14 rounded-full bg-surface-container flex items-center justify-center text-error group-hover:bg-error group-hover:text-on-primary transition-colors duration-200 shadow-sm">
+<span class="material-symbols-outlined text-2xl" data-icon="location_on">location_on</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant group-hover:text-on-surface">Location</span>
+</button>
+<button class="flex flex-col items-center gap-2 min-w-[72px] group">
+<div class="w-14 h-14 rounded-full bg-surface-container flex items-center justify-center text-secondary group-hover:bg-secondary group-hover:text-on-primary transition-colors duration-200 shadow-sm">
+<span class="material-symbols-outlined text-2xl" data-icon="sentiment_satisfied">sentiment_satisfied</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant group-hover:text-on-surface">Emojis</span>
+</button>
+<button class="flex flex-col items-center gap-2 min-w-[72px] group">
+<div class="w-14 h-14 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center transition-colors duration-200 shadow-sm ring-2 ring-primary ring-offset-2 ring-offset-surface-container-lowest">
+<span class="material-symbols-outlined text-2xl" data-icon="emoji_events">emoji_events</span>
+</div>
+<span class="font-label-sm text-label-sm text-primary font-bold">Stickers</span>
+</button>
+</div>
+<!-- Stickers Content Area -->
+<div class="flex-1 overflow-y-auto px-margin-mobile py-stack-md bg-surface-bright hide-scrollbar">
+<div class="mb-4">
+<h3 class="font-label-md text-label-md text-on-surface-variant mb-3 uppercase tracking-wider">Language Rewards</h3>
+<div class="grid grid-cols-3 gap-4">
+<!-- Sticker 1 -->
+<button class="aspect-square bg-surface-container-low rounded-2xl p-2 hover:bg-surface-container transition-colors flex items-center justify-center active:scale-95">
+<img alt="Sticker" class="w-full h-full object-contain drop-shadow-md" data-alt="A brightly colored digital sticker featuring a cute, stylized cartoon owl wearing a graduation cap and giving a thumbs up. The text 'Perfect Pronunciation!' curves around the top in bold, friendly bubble letters. The background is transparent, but the sticker has a thick white outline to pop against any background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC3OL3aS1JYPe1HPmOooJvN_fZyN5lGiFuIcpQyE6RkjMs43061yjFe07CA558UXq9x6zUvHrbRS6FJd4x30qO2nkZRCcnaCaQifgDUQpPRZvkqzkvxmQSolD3tyktdLLzwGlI5vrLAfpg7QqiYkdVLdv6JBUIhLdpGwr2MhBjEwSIMHWJjWGht8HEvbwb9vYRMue6JxcHhVMFn0Qiwttfbh5GbkQibFA12yukI_9nOQunfgPiFWNz4">
+</button>
+<!-- Sticker 2 -->
+<button class="aspect-square bg-surface-container-low rounded-2xl p-2 hover:bg-surface-container transition-colors flex items-center justify-center active:scale-95">
+<img alt="Sticker" class="w-full h-full object-contain drop-shadow-md" data-alt="A vibrant digital sticker showing a stylized, glowing orange flame with a smiling face. Above it, the text 'Streak Saved!' is written in dynamic, energetic font. The style is modern and gamified, designed to motivate users in an educational app. Thick white border outline." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDyEXcUtIEtWqg-VXq8GCedc1ADPfCZQOq12NUhOwwVD1RQNT48PBwdP5zv4BFuggNerl5F9b4jWnNhs4sBKFCHjlwS8HHyMdiKqU69AXu5LfFMOAu2ZQGhTt8udz0HMaUCKTDuPnfGKXubZMsT2-_bqQFbXpBFxsHCvI1ZFF2R3oEpUIU0OHaJZBFWBzSEaNhC81JBbuo_KrEjUskzAoIkTqUuw6lwS6xA7vXfiXgh0F3eL9YPCUpx">
+</button>
+<!-- Sticker 3 -->
+<button class="aspect-square bg-surface-container-low rounded-2xl p-2 hover:bg-surface-container transition-colors flex items-center justify-center active:scale-95">
+<img alt="Sticker" class="w-full h-full object-contain drop-shadow-md" data-alt="A colorful digital sticker depicting a shiny gold star medal with a ribbon. The text 'Grammar Guru' is emblazoned across a banner at the bottom in a bold, serif font. The illustration style is clean, flat vector art with soft shading, suitable for modern UI." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwLpIftiq7F2jAX9UuHilnRWhZ4KTtBhqOl9Cw1tVJFGmAkVsIZ8S-A-nzjTBU5wGvq-LYunc0AF-n2Fh_iDZZHI7wq0KYRHRRZPZE8QNzdK1tYsdnQs3tJvb1FtldUOgakEGTsmAHmBq5t45nlvwqtIPNcB1ZWRQuLqXX-OVbAai-AhEoJHx7LRyrIU7s7tDpBTO-t5mqJqemtmY2-37xjjfWkjKUb3qHpvuWepfz1cu-h6CaI86L">
+</button>
+</div>
+</div>
+<div class="mb-4">
+<h3 class="font-label-md text-label-md text-on-surface-variant mb-3 uppercase tracking-wider">Encouragement</h3>
+<div class="grid grid-cols-3 gap-4">
+<!-- Sticker 4 -->
+<button class="aspect-square bg-surface-container-low rounded-2xl p-2 hover:bg-surface-container transition-colors flex items-center justify-center active:scale-95">
+<img alt="Sticker" class="w-full h-full object-contain drop-shadow-md" data-alt="A digital sticker featuring a cute, minimal cartoon turtle making slow but steady progress. The text 'Keep Going!' floats above in a playful, rounded sans-serif font. Pastel green and blue color palette. Thick white outline for contrast." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBhLnXJB3Ld36IU9dphYgW9kuiARNbg24nUgsLpJlDuAfqJYxm_dkpYDp7-R9PeuhZpb-5mbRyiJNR4TU9F2048xLPx6BAQasHm7dJS917oha-HzTosYaJc8XpnY0lo_yRo83qyHBFHX0UE-2lJSN-ZabamAKOQybUhJpA4uHeUtfAwwKZVOoiEw0VFZcjQTrXzBIYxBh2eFMHYhSm9NSFSwMrZz-bK4GZvsfFZB7KvUECeyOse59iU">
+</button>
+<!-- Sticker 5 -->
+<button class="aspect-square bg-surface-container-low rounded-2xl p-2 hover:bg-surface-container transition-colors flex items-center justify-center active:scale-95">
+<img alt="Sticker" class="w-full h-full object-contain drop-shadow-md" data-alt="A digital sticker showing a sparkling lightbulb bursting with colorful ideas. The text 'Brilliant!' is written in a lively, slightly cursive script underneath. Bright yellows and energetic purples dominate the palette. Thick white border." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBQrraWgcEUG0h3NyrajfuAqcmBCnib808ghXM0D4t1jWc8aoOppkvvwb4sTB9uPucTq3rrQw5FgFKrzhB4WQgi_UvWenhQsFZjitI8VGJVLEzg2hztjq5E2_WSL5xYqft8Fb3rKdMvSN4roRqTIf4WU4ErGbdgTalKfsviGPYMiqZs0dZOywTyX07bMwePueOwDoWF5hBbdL53Kexn4HhtdFe-0IfkBnhI_x0VMZjEFqyW5ACkn8Dj">
+</button>
+</div>
+</div>
+<div class="h-20"></div> <!-- Spacer for bottom area -->
+</div>
+</div>
+<!-- Background Chat Input (Disabled visually behind overlay) -->
+<div class="fixed bottom-0 w-full bg-surface border-t border-surface-variant px-margin-mobile py-3 flex items-center gap-2 z-30 pb-safe">
+<button class="p-2 text-primary hover:bg-surface-variant/20 rounded-full transition-colors">
+<span class="material-symbols-outlined text-[28px]" data-icon="add_circle">add_circle</span>
+</button>
+<div class="flex-1 bg-surface-container-lowest border border-outline-variant rounded-full h-12 flex items-center px-4 gap-2">
+<span class="text-on-surface-variant/50 font-body-md">Message...</span>
+</div>
+<button class="w-12 h-12 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined" data-icon="mic">mic</span>
+</button>
+</div>
+<script>
+        function closeDrawer() {
+            document.querySelector('.drawer-up').style.transform = 'translateY(100%)';
+            setTimeout(() => {
+                document.getElementById('drawerOverlay').style.display = 'none';
+            }, 300);
+        }
+    </script>
+
+
+</body></html>

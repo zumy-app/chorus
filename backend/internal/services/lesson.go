@@ -15,11 +15,11 @@ import (
 // persists real content steps (MCQ/cloze/production) from the unit's lexical
 // items and grammar point. This keeps every unit completable end-to-end.
 type LessonService struct {
-	db        *sql.DB
-	practice  *PracticeService
-	profiles  *LearningProfileService
+	db         *sql.DB
+	practice   *PracticeService
+	profiles   *LearningProfileService
 	curriculum *CurriculumService
-	fluency   *FluencyScoreService
+	fluency    *FluencyScoreService
 }
 
 func NewLessonService(db *sql.DB, practice *PracticeService, profiles *LearningProfileService, curriculum *CurriculumService, fluency *FluencyScoreService) *LessonService {
@@ -427,9 +427,9 @@ func (s *LessonService) queryLexicalItems(ctx context.Context, unitID string) []
 // ---------------------------------------------------------------------------
 
 type stepDef struct {
-	Type        string
-	Prompt      map[string]any
-	AnswerKey   map[string]any
+	Type      string
+	Prompt    map[string]any
+	AnswerKey map[string]any
 }
 
 func makeMCQStep(ctx context.Context, db *sql.DB, lessonID string, ordinal int, term, translation string) *stepDef {
@@ -447,8 +447,8 @@ func makeMCQStep(ctx context.Context, db *sql.DB, lessonID string, ordinal int, 
 		translated = "N/A"
 	}
 	return &stepDef{
-		Type: "mcq",
-		Prompt: map[string]any{"text": "What does this word/phrase mean?", "source": term, "choices": choices},
+		Type:      "mcq",
+		Prompt:    map[string]any{"text": "What does this word/phrase mean?", "source": term, "choices": choices},
 		AnswerKey: map[string]any{"correct": term, "accepted": []string{term, translated}, "explanation": "Match the Spanish term to its meaning."},
 	}
 }
@@ -456,17 +456,17 @@ func makeMCQStep(ctx context.Context, db *sql.DB, lessonID string, ordinal int, 
 func makeClozeStep(ctx context.Context, db *sql.DB, lessonID string) *stepDef {
 	return &stepDef{
 		Type:      "cloze",
-		Prompt:    map[string]any{"text": "Complete the phrase: Yo ____ un café.", "hint": "Common 1st-person present of querer", },
+		Prompt:    map[string]any{"text": "Complete the phrase: Yo ____ un café.", "hint": "Common 1st-person present of querer"},
 		AnswerKey: map[string]any{"accepted": []string{"quiero", "quisiera"}, "explanation": "Use quiero (I want) or quisiera (I would like)."},
 	}
 }
 
 func makeGenericStep(ctx context.Context, db *sql.DB, lessonID, lessonType string, ordinal int, unitID string) *stepDef {
 	prompts := map[string]string{
-		"grammar":       "Which form completes the sentence correctly?",
-		"reading":       "Read the mini-dialogue and choose the best response.",
-		"production":    "Write a short personal sentence using a new word.",
-		"checkpoint":    "Select the correct answer to show you can use this unit's language.",
+		"grammar":        "Which form completes the sentence correctly?",
+		"reading":        "Read the mini-dialogue and choose the best response.",
+		"production":     "Write a short personal sentence using a new word.",
+		"checkpoint":     "Select the correct answer to show you can use this unit's language.",
 		"scenario_intro": "Which phrase would you use in this real-world situation?",
 	}
 	text := prompts[lessonType]

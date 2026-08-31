@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Ordering Coffee - Scenario Roleplay</title>
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788152794930&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YTRiYjM0MWQ4NWIwMzgzOWM4Mjc1M2M0NTAxEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#d3e4fe",
+                        "secondary-fixed": "#e9ddff",
+                        "inverse-primary": "#b4c5ff",
+                        "tertiary-container": "#007d55",
+                        "surface-container": "#e5eeff",
+                        "on-tertiary-fixed": "#002113",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "inverse-surface": "#213145",
+                        "surface-container-low": "#eff4ff",
+                        "on-secondary-fixed-variant": "#5516be",
+                        "secondary-container": "#8455ef",
+                        "on-tertiary-container": "#bdffdb",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "surface": "#f8f9ff",
+                        "primary-fixed": "#dbe1ff",
+                        "on-error-container": "#93000a",
+                        "surface-container-high": "#dce9ff",
+                        "on-surface-variant": "#434655",
+                        "outline": "#737686",
+                        "on-primary": "#ffffff",
+                        "primary-container": "#2563eb",
+                        "surface-dim": "#cbdbf5",
+                        "on-surface": "#0b1c30",
+                        "on-secondary": "#ffffff",
+                        "primary": "#004ac6",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed": "#6ffbbe",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-primary-fixed": "#00174b",
+                        "on-secondary-container": "#fffbff",
+                        "on-secondary-fixed": "#23005c",
+                        "surface-container-highest": "#d3e4fe",
+                        "secondary": "#6b38d4",
+                        "surface-bright": "#f8f9ff",
+                        "tertiary": "#006242",
+                        "error": "#ba1a1a",
+                        "background": "#f8f9ff",
+                        "outline-variant": "#c3c6d7",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "surface-tint": "#0053db",
+                        "on-primary-container": "#eeefff",
+                        "on-background": "#0b1c30",
+                        "secondary-fixed-dim": "#d0bcff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "stack-lg": "24px",
+                        "gutter-mobile": "12px",
+                        "unit": "4px",
+                        "stack-md": "16px",
+                        "stack-sm": "8px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Be Vietnam Pro"],
+                        "translation-text": ["Be Vietnam Pro"],
+                        "label-md": ["Inter"],
+                        "body-sm": ["Be Vietnam Pro"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "body-md": ["Be Vietnam Pro"],
+                        "label-sm": ["Inter"],
+                        "headline-lg": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+                        "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col relative pb-32">
+<!-- Top Navigation (Contextual task, no main shell) -->
+<header class="w-full top-0 sticky bg-surface dark:bg-background shadow-[0px_4px_12px_rgba(0,0,0,0.05)] flex justify-between items-center px-margin-mobile py-stack-sm z-40">
+<button class="text-primary active:scale-95 transition-transform p-2 rounded-full hover:bg-surface-variant/50">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">close</span>
+</button>
+<h1 class="font-headline-sm text-headline-sm text-on-surface">Ordering Coffee</h1>
+<div class="flex items-center gap-1 bg-surface-container-highest px-3 py-1 rounded-full">
+<span class="material-symbols-outlined text-tertiary-container" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<span class="font-label-md text-label-md text-on-surface-variant">Streak Protection</span>
+</div>
+</header>
+<!-- Main Scenario Canvas -->
+<main class="flex-1 flex flex-col px-margin-mobile py-stack-lg gap-stack-lg max-w-2xl mx-auto w-full">
+<!-- Scenario Setup -->
+<div class="flex flex-col items-center justify-center text-center gap-stack-sm mb-4">
+<div class="w-24 h-24 rounded-full overflow-hidden border-4 border-surface-container-highest shadow-lg relative bg-surface-variant flex items-center justify-center">
+<img class="object-cover w-full h-full absolute inset-0" data-alt="A friendly, expressive 3D cartoon barista character named Sparky wearing a green apron, standing behind an espresso machine. The style is modern, approachable, and highly polished with soft, volumetric lighting suitable for a language learning app. Light mode color palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBCVebrH0VUUmP59fTbHTicOlpsAk7APE6smLGceBb89AIE1I3QzguNWuAUSHgRJoeSEemXnqrFSmnj8CRHXvKVSwTDRq4GqUAxLqxfXvwdBf_jeRRwiF2kNiH0DV6tIBE89PNJLoQS9NNx0Rcv_BOtZobTxuVuZSnoXo6DhS5v8gDjeE-0C_jLoxGHHR0VPkhvJI0hNCTHiKOEoBSUg5GflooSVhNaC2ecJ2Z_h5p41FFP4gwnG5PJ"/>
+</div>
+<h2 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">AI Barista • Sparky</h2>
+</div>
+<!-- Chat Area -->
+<div class="flex flex-col gap-stack-md flex-1 overflow-y-auto" id="chat-container">
+<!-- Incoming Bubble (Sparky) -->
+<div class="flex gap-gutter-mobile items-end">
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-variant flex-shrink-0 flex items-center justify-center border border-outline-variant/30">
+<img class="object-cover w-full h-full" data-alt="Close up face of a friendly, expressive 3D cartoon barista character named Sparky wearing a green apron. The style is modern, approachable, and highly polished with soft, volumetric lighting suitable for a language learning app. Light mode color palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA56Yj3A2uKVfaO0FdTdDx2nZ_OQ-cwzmRmi0wiL6tDkTuD5W0Wg4FkCkMiXUlgsUHxjaa-wWWNz2UV-e4QewbuYaePwNoQp4LZWvdqiAnfgjQfPWkLmnGxJOYYBX0pWKAlfITlpKjnW2yImYTxna2PN2VBbxF3cnf-9ySi_8cqonGmOyLk5fFvYVAlqyCLsPExny36qRm-FTM0ilZFC6saGq_xwT4w7C4ecRYxfbKFfS9UqPgp6zwu"/>
+</div>
+<div class="bg-surface-container-lowest rounded-2xl rounded-bl-sm p-4 shadow-[0px_4px_12px_rgba(0,0,0,0.05)] border border-outline-variant/20 max-w-[85%] relative">
+<p class="font-body-lg text-body-lg text-on-surface">¡Hola! ¿Qué te gustaría pedir hoy?</p>
+<button class="mt-2 text-primary font-label-sm text-label-sm flex items-center gap-1 active:scale-95 transition-transform" onclick="toggleTranslation('trans-1')">
+<span class="material-symbols-outlined text-[16px]">translate</span>
+                        View translation
+                    </button>
+<div class="hidden mt-2 p-2 bg-secondary-fixed/30 rounded-lg border-l-2 border-secondary-container" id="trans-1">
+<p class="font-translation-text text-translation-text text-on-surface-variant">Hello! What would you like to order today?</p>
+</div>
+</div>
+</div>
+<!-- Hinting Section -->
+<div class="mt-auto flex flex-col gap-stack-sm pt-8">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">tips_and_updates</span>
+<span class="font-label-md text-label-md text-secondary">Sparky's Nudges</span>
+</div>
+<!-- Nudge 1 -->
+<button class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-4 flex flex-col gap-1 text-left shadow-sm hover:border-primary/50 hover:bg-surface-container-low transition-all active:scale-[0.98]">
+<span class="font-body-md text-body-md text-on-surface">Quisiera un café con leche, por favor.</span>
+<span class="font-translation-text text-translation-text text-on-surface-variant">I would like a coffee with milk, please.</span>
+</button>
+<!-- Nudge 2 -->
+<button class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-4 flex flex-col gap-1 text-left shadow-sm hover:border-primary/50 hover:bg-surface-container-low transition-all active:scale-[0.98]">
+<span class="font-body-md text-body-md text-on-surface">¿Cuánto cuesta un espresso?</span>
+<span class="font-translation-text text-translation-text text-on-surface-variant">How much does an espresso cost?</span>
+</button>
+<!-- Nudge 3 -->
+<button class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-4 flex flex-col gap-1 text-left shadow-sm hover:border-primary/50 hover:bg-surface-container-low transition-all active:scale-[0.98]">
+<span class="font-body-md text-body-md text-on-surface">Sólo estoy mirando, gracias.</span>
+<span class="font-translation-text text-translation-text text-on-surface-variant">I'm just looking, thanks.</span>
+</button>
+</div>
+</div>
+</main>
+<!-- Input Area -->
+<div class="fixed bottom-0 left-0 w-full bg-surface dark:bg-background border-t border-outline-variant/20 px-margin-mobile py-stack-md z-40 pb-safe">
+<div class="max-w-2xl mx-auto flex items-center gap-gutter-mobile">
+<button class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-primary flex-shrink-0 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">mic</span>
+</button>
+<div class="flex-1 relative">
+<input class="w-full h-12 rounded-full border border-outline-variant/40 bg-surface-container-lowest px-4 pr-12 font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder-on-surface-variant/50" placeholder="Type your response..." type="text"/>
+<button class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center text-primary/70 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">lightbulb</span>
+</button>
+</div>
+<button class="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-on-primary flex-shrink-0 shadow-lg active:scale-90 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">send</span>
+</button>
+</div>
+</div>
+<script>
+        function toggleTranslation(id) {
+            const el = document.getElementById(id);
+            if (el.classList.contains('hidden')) {
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+            }
+        }
+    </script>
+</body></html>

@@ -25,6 +25,11 @@ const (
 	grammarPoolSize    = 3
 )
 
+// GrammarPromptVersion mirrors grammar.go's aiAnalysisCacheVersion and is
+// persisted as grammar_jobs.prompt_version so evals (FR-30) can be attributed
+// to the exact prompt that produced the analysis.
+const GrammarPromptVersion = "v2"
+
 // GrammarAnalyzer is the subset of GrammarService used by the queue. GrammarService
 // satisfies it, and tests inject a fake.
 type GrammarAnalyzer interface {
@@ -71,6 +76,8 @@ type GrammarQueueService struct {
 	sema   chan struct{}
 	wg     sync.WaitGroup
 	stopCh chan struct{}
+
+	onDone func(jobID string)
 }
 
 // NewGrammarQueueService creates a grammar job queue.
@@ -114,6 +121,12 @@ func (q *GrammarQueueService) Stop() {
 	close(q.stopCh)
 	q.cancel()
 	q.wg.Wait()
+}
+
+// SetOnDone wires a callback fired after a grammar job completes. Used by the
+// quality pipeline (FR-30) to enqueue a cross-model evaluation.
+func (q *GrammarQueueService) SetOnDone(fn func(jobID string)) {
+	q.onDone = fn
 }
 
 // EnqueueForAnalysis inserts a job and triggers near-real-time processing.
@@ -242,7 +255,7 @@ func (q *GrammarQueueService) processJob(id string) {
 	// Cheap hot-path: reuse the existing Redis cache before attempting a model.
 	if q.loadCache != nil {
 		if analysis, provider, found := q.loadCache(j.Text, j.Language, j.NativeLanguage); found {
-			q.finishJob(j, analysis, provider, "")
+			q.finishJob(j, analysis, provider, GrammarPromptVersion, 0, "")
 			return
 		}
 	}
@@ -254,11 +267,15 @@ func (q *GrammarQueueService) processJob(id string) {
 		q.markFailed(j.ID, j.Attempts, err)
 		return
 	}
-	log.Printf("[Grammar] job %s done in %s via %q", j.ID, time.Since(start).Round(time.Millisecond), provider)
-	q.finishJob(j, analysis, provider, "")
+	latencyMS := int(time.Since(start).Milliseconds())
+	log.Printf("[Grammar] job %s done in %dms via %q", j.ID, latencyMS, provider)
+	q.finishJob(j, analysis, provider, GrammarPromptVersion, latencyMS, "")
+	if q.onDone != nil {
+		q.onDone(j.ID)
+	}
 }
 
-func (q *GrammarQueueService) finishJob(j *grammarQueuedJob, analysis *models.AIGrammarAnalysis, provider, errMsg string) {
+func (q *GrammarQueueService) finishJob(j *grammarQueuedJob, analysis *models.AIGrammarAnalysis, provider, promptVersion string, latencyMS int, errMsg string) {
 	if errMsg != "" {
 		q.markFailed(j.ID, j.Attempts, fmt.Errorf("%s", errMsg))
 		return
@@ -267,8 +284,9 @@ func (q *GrammarQueueService) finishJob(j *grammarQueuedJob, analysis *models.AI
 	if _, err := q.db.Exec(`
 		UPDATE grammar_jobs
 		SET status = 'done', result = $1, provider_used = $2, last_error = NULL,
-		    processing_at = NULL, completed_at = CURRENT_TIMESTAMP
-		WHERE id = $3`, string(resultJSON), provider, j.ID); err != nil {
+		    processing_at = NULL, completed_at = CURRENT_TIMESTAMP,
+		    provider_used_lineage = $2, prompt_version = $3, latency_ms = $4
+		WHERE id = $5`, string(resultJSON), provider, promptVersion, latencyMS, j.ID); err != nil {
 		log.Printf("[Grammar] mark done %s: %v", j.ID, err)
 		return
 	}

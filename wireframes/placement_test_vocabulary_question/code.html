@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus - Placement Test</title>
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788152794930&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1OTQ5YjI4OTk3M2IwN2U4NDFhMTE3MDIzM2FjEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                            "on-surface": "#0b1c30",
+                            "surface-container": "#e5eeff",
+                            "surface": "#f8f9ff",
+                            "on-secondary": "#ffffff",
+                            "tertiary-container": "#007d55",
+                            "surface-dim": "#cbdbf5",
+                            "error": "#ba1a1a",
+                            "secondary-fixed-dim": "#d0bcff",
+                            "on-secondary-fixed": "#23005c",
+                            "inverse-primary": "#b4c5ff",
+                            "outline-variant": "#c3c6d7",
+                            "primary-container": "#2563eb",
+                            "surface-container-highest": "#d3e4fe",
+                            "on-primary-fixed": "#00174b",
+                            "on-background": "#0b1c30",
+                            "inverse-surface": "#213145",
+                            "tertiary-fixed": "#6ffbbe",
+                            "surface-tint": "#0053db",
+                            "outline": "#737686",
+                            "surface-container-lowest": "#ffffff",
+                            "on-tertiary-container": "#bdffdb",
+                            "surface-bright": "#f8f9ff",
+                            "on-secondary-container": "#fffbff",
+                            "on-tertiary": "#ffffff",
+                            "primary-fixed-dim": "#b4c5ff",
+                            "on-primary-container": "#eeefff",
+                            "error-container": "#ffdad6",
+                            "secondary-fixed": "#e9ddff",
+                            "on-error-container": "#93000a",
+                            "surface-container-low": "#eff4ff",
+                            "primary": "#004ac6",
+                            "inverse-on-surface": "#eaf1ff",
+                            "surface-container-high": "#dce9ff",
+                            "on-tertiary-fixed": "#002113",
+                            "on-primary-fixed-variant": "#003ea8",
+                            "on-primary": "#ffffff",
+                            "on-secondary-fixed-variant": "#5516be",
+                            "on-tertiary-fixed-variant": "#005236",
+                            "secondary-container": "#8455ef",
+                            "tertiary-fixed-dim": "#4edea3",
+                            "secondary": "#6b38d4",
+                            "tertiary": "#006242",
+                            "on-surface-variant": "#434655",
+                            "primary-fixed": "#dbe1ff",
+                            "background": "#f8f9ff",
+                            "surface-variant": "#d3e4fe",
+                            "on-error": "#ffffff"
+                    },
+                    "borderRadius": {
+                            "DEFAULT": "0.25rem",
+                            "lg": "0.5rem",
+                            "xl": "0.75rem",
+                            "full": "9999px"
+                    },
+                    "spacing": {
+                            "stack-sm": "8px",
+                            "stack-md": "16px",
+                            "unit": "4px",
+                            "margin-mobile": "16px",
+                            "gutter-mobile": "12px",
+                            "stack-lg": "24px"
+                    },
+                    "fontFamily": {
+                            "headline-sm": ["Plus Jakarta Sans"],
+                            "body-sm": ["Be Vietnam Pro"],
+                            "body-lg": ["Be Vietnam Pro"],
+                            "headline-md": ["Plus Jakarta Sans"],
+                            "body-md": ["Be Vietnam Pro"],
+                            "label-sm": ["Inter"],
+                            "translation-text": ["Be Vietnam Pro"],
+                            "headline-lg": ["Plus Jakarta Sans"],
+                            "label-md": ["Inter"]
+                    },
+                    "fontSize": {
+                            "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                            "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                            "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                            "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                            "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                            "label-sm": ["11px", {"lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500"}],
+                            "translation-text": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                            "headline-lg": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                            "label-md": ["13px", {"lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+        }
+        
+        .option-card {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .option-card:active {
+            transform: scale(0.98);
+        }
+
+        .option-input:checked + .option-card {
+            border-color: theme('colors.primary');
+            background-color: theme('colors.surface-container-low');
+        }
+        
+        .option-input:checked + .option-card .selection-ring {
+            border-color: theme('colors.primary');
+            background-color: theme('colors.primary');
+        }
+        
+        .option-input:checked + .option-card .selection-ring .inner-dot {
+            opacity: 1;
+            transform: scale(1);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen flex flex-col font-body-md overflow-x-hidden">
+<!-- TopAppBar -->
+<header class="bg-background flex justify-between items-center px-margin-mobile h-16 w-full max-w-screen-xl mx-auto docked full-width top-0 z-10 sticky">
+<button aria-label="Close" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors active:scale-95 duration-150 text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+<!-- Progress Bar (Injected into Header for flow) -->
+<div class="flex-1 max-w-xs mx-4">
+<div class="h-2 w-full bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-tertiary-container rounded-full transition-all duration-500 ease-out" style="width: 25%;"></div>
+</div>
+</div>
+<button class="font-label-md text-label-md text-primary hover:bg-surface-container-low px-3 py-2 rounded-lg transition-colors active:scale-95 duration-150">
+            Skip
+        </button>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 flex flex-col w-full max-w-screen-sm mx-auto px-margin-mobile pt-stack-lg pb-32">
+<div class="text-center mb-stack-lg">
+<h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">Translate this phrase</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant">"The Weekend"</p>
+</div>
+<!-- Options Container -->
+<div class="flex flex-col gap-stack-sm w-full mt-4">
+<label class="relative cursor-pointer">
+<input class="option-input sr-only peer" name="translation" type="radio" value="la_semana"/>
+<div class="option-card border-2 border-outline-variant bg-surface rounded-xl p-4 flex items-center justify-between hover:border-outline hover:bg-surface-container-lowest">
+<span class="font-body-lg text-body-lg text-on-surface">La semana</span>
+<div class="selection-ring w-6 h-6 rounded-full border-2 border-outline-variant flex items-center justify-center transition-colors">
+<div class="inner-dot w-2 h-2 rounded-full bg-on-primary opacity-0 scale-50 transition-all duration-200"></div>
+</div>
+</div>
+</label>
+<label class="relative cursor-pointer">
+<input class="option-input sr-only peer" name="translation" type="radio" value="el_fin_de_semana"/>
+<div class="option-card border-2 border-outline-variant bg-surface rounded-xl p-4 flex items-center justify-between hover:border-outline hover:bg-surface-container-lowest">
+<span class="font-body-lg text-body-lg text-on-surface">El fin de semana</span>
+<div class="selection-ring w-6 h-6 rounded-full border-2 border-outline-variant flex items-center justify-center transition-colors">
+<div class="inner-dot w-2 h-2 rounded-full bg-on-primary opacity-0 scale-50 transition-all duration-200"></div>
+</div>
+</div>
+</label>
+<label class="relative cursor-pointer">
+<input class="option-input sr-only peer" name="translation" type="radio" value="el_mes"/>
+<div class="option-card border-2 border-outline-variant bg-surface rounded-xl p-4 flex items-center justify-between hover:border-outline hover:bg-surface-container-lowest">
+<span class="font-body-lg text-body-lg text-on-surface">El mes</span>
+<div class="selection-ring w-6 h-6 rounded-full border-2 border-outline-variant flex items-center justify-center transition-colors">
+<div class="inner-dot w-2 h-2 rounded-full bg-on-primary opacity-0 scale-50 transition-all duration-200"></div>
+</div>
+</div>
+</label>
+<label class="relative cursor-pointer">
+<input class="option-input sr-only peer" name="translation" type="radio" value="el_ano"/>
+<div class="option-card border-2 border-outline-variant bg-surface rounded-xl p-4 flex items-center justify-between hover:border-outline hover:bg-surface-container-lowest">
+<span class="font-body-lg text-body-lg text-on-surface">El año</span>
+<div class="selection-ring w-6 h-6 rounded-full border-2 border-outline-variant flex items-center justify-center transition-colors">
+<div class="inner-dot w-2 h-2 rounded-full bg-on-primary opacity-0 scale-50 transition-all duration-200"></div>
+</div>
+</div>
+</label>
+</div>
+</main>
+<!-- Bottom Action Area -->
+<div class="fixed bottom-0 left-0 w-full bg-background border-t border-surface-variant p-4 md:p-6 z-40">
+<div class="max-w-screen-sm mx-auto w-full">
+<button class="w-full bg-surface-container border border-outline-variant text-on-surface-variant font-headline-sm text-headline-sm py-4 rounded-xl opacity-70 cursor-not-allowed transition-all duration-200" disabled="" id="checkButton">
+                Check
+            </button>
+</div>
+</div>
+<!-- Note: Suppressed BottomNavBar as this is a linear transactional/onboarding flow -->
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const radioInputs = document.querySelectorAll('.option-input');
+            const checkButton = document.getElementById('checkButton');
+
+            radioInputs.forEach(input => {
+                input.addEventListener('change', () => {
+                    // Enable button when an option is selected
+                    if (document.querySelector('.option-input:checked')) {
+                        checkButton.disabled = false;
+                        checkButton.classList.remove('bg-surface-container', 'border-outline-variant', 'text-on-surface-variant', 'opacity-70', 'cursor-not-allowed');
+                        checkButton.classList.add('bg-primary', 'text-on-primary', 'hover:bg-primary-fixed-variant', 'active:scale-95', 'shadow-md');
+                    }
+                });
+            });
+        });
+    </script>
+</body></html>

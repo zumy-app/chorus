@@ -52,24 +52,24 @@
 - [ ] 1.1 Home button link works from dashboard (#40).
 - [ ] 1.2 Admin → dashboard back affordance on mobile + web (#41).
 - [ ] 1.3 Premium copy 280 vs 28 — confirm server word cap, then fix copy or cap to match (#42).
-- [ ] 1.4 Emoji picker in message input; emojis pass through translation unchanged (#43) **[MISSING]**.
+- [x] 1.4 Emoji picker in message input; emojis pass through translation unchanged (#43).
 - [ ] 1.5 Replace generic error "Sorry, something went wrong" with typed errors + toast + retry (#47).
 
 ### 2.2 Identity & onboarding (P0)
 - [ ] 2.1 Onboarding first + last name; editable composed displayName (#45).
 - [ ] 2.2 Avatar from initials/color, deterministic; upload path reserved (#46).
-- [ ] 2.3 Onboarding level self-selection (Beginner/Intermediate/Advanced → CEFR seed) (#45/18).
+- [x] 2.3 Onboarding level self-selection (Beginner/Intermediate/Advanced → CEFR seed) (#45/18).
 - [ ] 2.4 Contacts & Invites epic: permission-gated scan, on-platform detect (hashed), invite via
           SMS/WhatsApp/email single-use links + status tracking (#44) **[PARTIAL=>SI]**.
 
 ### 2.3 Translation & grammar hardening
 - [ ] 3.1 Feature toggles FR-25: `translation_enabled`, `grammar_auto`, `highlights_enabled` in
           `user_settings`; gate enqueue; Settings UI + API.
-- [ ] 3.2 Learned-word optimization FR-26: `FilterKnownWords`, per-word cache, skip known words.
+- [x] 3.2 Learned-word optimization FR-26: `FilterKnownWords`, per-word cache, skip known words.
 - [ ] 3.3 Simplify Chat Language Settings FR-35 (remove "other person's language" dropdown).
-- [ ] 3.4 Highlight new words FR-27/28 in `MessageBubble` + tap-to-save + practice CTA.
-- [ ] 3.5 Quality pipeline FR-30: persist lineage + cross-model evaluator + KPIs; Arize Phoenix (NFR-25).
-- [ ] 3.6 Improve in-chat `presence` + `typing` rendering on web (currently omitted) (FR-9).
+- [x] 3.4 Highlight new words FR-27/28 in `MessageBubble` + tap-to-save + practice CTA.
+- [x] 3.5 Quality pipeline FR-30: persist lineage + cross-model evaluator + KPIs; Arize Phoenix (NFR-25).
+- [x] 3.6 Improve in-chat `presence` + `typing` rendering on web (currently omitted) (FR-9).
 
 ### 2.4 Learning engine core
 - [ ] 4.1 Your Learning Path FR-31: real metrics (words/sentences per month, XP/streak, due, CEFR).
@@ -80,7 +80,7 @@
 ### 2.5 Security, NFRs, infra
 - [ ] 5.1 Mail server isolation NFR-22 (Mailu off app network, 587-only, SPF/DKIM/DMARC).
 - [ ] 5.2 Rate limiting coverage NFR-24 (extend beyond waitlist/register: login, translation; WS).
-- [ ] 5.3 Observability NFR-18/25: `/health` + `/metrics`, Prometheus/Grafana hooks, Phoenix traces.
+- [x] 5.3 Observability NFR-18/25: `/health` + `/metrics`, Prometheus/Grafana hooks, Phoenix traces.
 - [ ] 5.4 Dev environment + CI/CD quality gates NFR-26 (GitHub Actions `ci.yml`).
 
 **Phase 1 gate:** all P0 closed, e2e on dev passes, mobile builds, no generic errors, p95 basics met.

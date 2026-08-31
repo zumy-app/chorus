@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/chorus/messenger/internal/middleware"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -41,14 +42,14 @@ func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
 			var err error
 			userID, err = h.authService.ValidateAccessToken(token)
 			if err != nil {
-				c.JSON(401, gin.H{"error": "Invalid token"})
+				WriteError(c, middleware.ErrAuth("Invalid token"))
 				return
 			}
 		}
 	}
 
 	if userID == "" {
-		c.JSON(401, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/chorus/messenger/internal/models"
@@ -54,7 +55,7 @@ func (s *PlacementService) StartPlacement(ctx context.Context, userID, targetLan
 	}
 
 	// Mark profile as in_progress.
-	_ = s.updatePlacementStatus(ctx, userID, targetLang, nativeLang, "in_progress")
+	_ = s.updatePlacementStatus(ctx, userID, targetLang, nativeLang, models.PlacementStatusInProgress)
 
 	first := q(attemptID, items[0])
 	return &models.PlacementStartResponse{
@@ -126,10 +127,50 @@ func (s *PlacementService) SkipPlacement(ctx context.Context, userID, targetLang
 	_ = s.db.QueryRowContext(ctx, `
 		SELECT id::text FROM placement_attempts WHERE user_id = $1 AND target_language = $2 AND native_language = $3
 		ORDER BY started_at DESC LIMIT 1`, userID, targetLang, nativeLang).Scan(&attemptID)
-	_ = s.updatePlacementStatus(ctx, userID, targetLang, nativeLang, "skipped")
+	_ = s.updatePlacementStatus(ctx, userID, targetLang, nativeLang, models.PlacementStatusSkipped)
 	unitID := s.startUnitID(ctx, "A1", targetLang, nativeLang)
 	_ = s.profiles.SetActiveUnit(ctx, userID, targetLang, nativeLang, unitID)
 	return &models.PlacementResult{AttemptID: attemptID, EstimatedCEFR: "A1", ReadinessScore: 0, ActiveUnitID: unitID}, nil
+}
+
+// SelectLevel applies an onboarding self-selected starting level
+// (beginner | intermediate | advanced) to the learner's profile without running
+// the placement test. It maps the bucket to a CEFR seed, points the profile at
+// the first unit for that band, and marks the placement status self_selected so
+// the "find your level" onboarding card is no longer surfaced.
+func (s *PlacementService) SelectLevel(ctx context.Context, userID, level, targetLang, nativeLang string) (*models.PlacementResult, error) {
+	if nativeLang == "" {
+		nativeLang = "en"
+	}
+	cefr := cefrFromSelfSelection(level)
+	if cefr == "" {
+		return nil, fmt.Errorf("invalid self-selected level %q: must be beginner, intermediate, or advanced", level)
+	}
+
+	// Ensure a profile row exists before seeding it.
+	if _, err := s.profiles.GetProfile(ctx, userID, targetLang, nativeLang); err != nil {
+		return nil, err
+	}
+
+	unitID := s.startUnitID(ctx, cefr, targetLang, nativeLang)
+	readiness := readinessSeedForSelfSelection(cefr)
+
+	_, err := s.db.ExecContext(ctx, `
+		UPDATE user_language_profiles
+		SET current_cefr_level = $4, readiness_score = $5, placement_status = $6,
+		    active_unit_id = $7, updated_at = CURRENT_TIMESTAMP
+		WHERE user_id = $1 AND target_language = $2 AND native_language = $3`,
+		userID, targetLang, nativeLang, cefr, readiness, models.PlacementStatusSelfSelected, nullStr(unitID))
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.PlacementResult{
+		AttemptID:      "",
+		EstimatedCEFR:  cefr,
+		ReadinessScore: readiness,
+		ActiveUnitID:   unitID,
+	}, nil
 }
 
 func (s *PlacementService) finalize(ctx context.Context, userID, attemptID string, meta *placementMeta) (*models.PlacementResult, error) {
@@ -140,7 +181,7 @@ func (s *PlacementService) finalize(ctx context.Context, userID, attemptID strin
 	var targetLang, nativeLang string
 	_ = s.db.QueryRowContext(ctx, `
 		SELECT target_language, native_language FROM placement_attempts WHERE id = $1`, attemptID).Scan(&targetLang, &nativeLang)
-	_ = s.updatePlacementStatus(ctx, userID, targetLang, nativeLang, "completed")
+	_ = s.updatePlacementStatus(ctx, userID, targetLang, nativeLang, models.PlacementStatusCompleted)
 	_, _ = s.db.ExecContext(ctx, `UPDATE placement_attempts SET status = 'completed', estimated_cefr = $2, readiness_score = $3, completed_at = CURRENT_TIMESTAMP WHERE id = $1`,
 		attemptID, level, readiness)
 
@@ -339,6 +380,41 @@ func levelFromAbility(ability int) string {
 		return "A2"
 	default:
 		return "A1"
+	}
+}
+
+// cefrFromSelfSelection maps an onboarding self-selected level bucket to a
+// starting CEFR band. Beginner lands at A1, Intermediate at B1, and Advanced at
+// B2 (the top band the launch curriculum covers; C1/C2 are post-launch). It is
+// intentionally coarse: the placement test remains the fine-grained path, while
+// self-selection is the quick "I know my level" signal.
+func cefrFromSelfSelection(level string) string {
+	switch strings.ToLower(strings.TrimSpace(level)) {
+	case "beginner":
+		return "A1"
+	case "intermediate":
+		return "B1"
+	case "advanced":
+		return "B2"
+	default:
+		return ""
+	}
+}
+
+// readinessSeedForSelfSelection returns the starting readiness score for a
+// self-selected CEFR band: the lower bound of that band, so a learner who
+// self-assesses into A2/B1/B2 isn't shown a 0% fluency while the score has not
+// yet been recomputed from their learning activity.
+func readinessSeedForSelfSelection(cefr string) int {
+	switch cefr {
+	case "A2":
+		return 250
+	case "B1":
+		return 550
+	case "B2":
+		return 800
+	default:
+		return 0
 	}
 }
 

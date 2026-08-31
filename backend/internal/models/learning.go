@@ -165,6 +165,12 @@ type DailyActivityPoint struct {
 	ItemsCompleted int    `json:"itemsCompleted"`
 }
 
+type MonthlyActivityPoint struct {
+	Month               string `json:"month"`
+	WordsLearned        int    `json:"wordsLearned"`
+	SentencesUnderstood int    `json:"sentencesUnderstood"`
+}
+
 type LearningDashboard struct {
 	Capability            LearningPairCapability `json:"capability"`
 	Profile               UserLanguageProfile    `json:"profile"`
@@ -176,8 +182,9 @@ type LearningDashboard struct {
 	Vocabulary            VocabularySummary      `json:"vocabulary"`
 	Grammar               GrammarSummary         `json:"grammar"`
 	Scenario              ScenarioSummary        `json:"scenario"`
-	RecommendedActivities []RecommendedActivity `json:"recommendedActivities"`
+	RecommendedActivities []RecommendedActivity  `json:"recommendedActivities"`
 	WeeklyActivity        []DailyActivityPoint   `json:"weeklyActivity"`
+	MonthlyActivity       []MonthlyActivityPoint `json:"monthlyActivity"`
 }
 
 type LearningProfileUpdateRequest struct {
@@ -190,53 +197,73 @@ type LearningProfileUpdateRequest struct {
 	ScenarioHintsEnabled *bool  `json:"scenarioHintsEnabled"`
 }
 
+// LevelSelectionRequest captures an onboarding self-selected starting level
+// (beginner | intermediate | advanced). It is the "I know my level" alternative
+// to the placement test: the backend seeds the profile's CEFR band, readiness,
+// and starting unit from the bucket without running an adaptive assessment.
+type LevelSelectionRequest struct {
+	Level          string `json:"level" binding:"required,oneof=beginner intermediate advanced"`
+	NativeLanguage string `json:"nativeLanguage"`
+	TargetLanguage string `json:"targetLanguage" binding:"required"`
+}
+
+// Placement state constants for user_language_profiles.placement_status.
+// self_selected is set via onboarding level self-selection (task 2.3).
+const (
+	PlacementStatusNotStarted   = "not_started"
+	PlacementStatusInProgress   = "in_progress"
+	PlacementStatusCompleted    = "completed"
+	PlacementStatusSkipped      = "skipped"
+	PlacementStatusSelfSelected = "self_selected"
+)
+
 // ---------------------------------------------------------------------------
 // Extended vocabulary cards
 // ---------------------------------------------------------------------------
 
 type VocabularyCard struct {
-	ID                    string    `json:"id" db:"id"`
-	UserID                string    `json:"userId" db:"user_id"`
-	Term                  string    `json:"term" db:"term"`
-	Language              string    `json:"language" db:"language"`
-	Translation           string    `json:"translation" db:"translation"`
-	Definition            string    `json:"definition" db:"definition"`
-	Lemma                 string    `json:"lemma" db:"lemma"`
-	NormalizedTerm        string    `json:"normalizedTerm" db:"normalized_term"`
-	PartOfSpeech          string    `json:"partOfSpeech" db:"part_of_speech"`
-	IsChunk               bool      `json:"isChunk" db:"is_chunk"`
-	SourceType            string    `json:"sourceType" db:"source_type"`
-	SourceMessageID       string    `json:"sourceMessageId,omitempty" db:"source_message_id"`
-	CEFRLevel             string    `json:"cefrLevel,omitempty" db:"cefr_level"`
-	CurriculumUnitID      string    `json:"curriculumUnitId,omitempty" db:"curriculum_unit_id"`
-	RouteStatus           string    `json:"routeStatus" db:"route_status"`
-	MasteryStage          int       `json:"masteryStage" db:"mastery_stage"`
-	MasteryState          string    `json:"masteryState" db:"mastery_state"`
-	EaseFactor            float64   `json:"easeFactor" db:"ease_factor"`
-	Lapses                int       `json:"lapses" db:"lapses"`
-	StageSuccessCount     int       `json:"stageSuccessCount" db:"stage_success_count"`
-	ProductionSuccessCount int      `json:"productionSuccessCount" db:"production_success_count"`
-	SpontaneousUseCount   int       `json:"spontaneousUseCount" db:"spontaneous_use_count"`
-	TeachabilityScore     float64   `json:"teachabilityScore" db:"teachability_score"`
-	Confidence            float64   `json:"confidence" db:"confidence"`
-	ReviewCount           int       `json:"reviewCount" db:"review_count"`
-	CorrectCount          int       `json:"correctCount" db:"correct_count"`
-	IntervalDays          float64   `json:"intervalDays" db:"interval_days"`
-	NextReview            time.Time `json:"nextReview" db:"next_review"`
-	ContextSentence       string    `json:"contextSentence,omitempty" db:"context_sentence"`
-	ContextMessageID      string    `json:"contextMessageId,omitempty" db:"context_message_id"`
-	ContextChatID         string    `json:"contextChatId,omitempty" db:"context_chat_id"`
-	CreatedAt             time.Time `json:"createdAt" db:"created_at"`
-	FirstSeenAt           time.Time `json:"firstSeenAt" db:"first_seen_at"`
-	LastSeenAt            time.Time `json:"lastSeenAt" db:"last_seen_at"`
+	ID                     string    `json:"id" db:"id"`
+	UserID                 string    `json:"userId" db:"user_id"`
+	Term                   string    `json:"term" db:"term"`
+	Language               string    `json:"language" db:"language"`
+	Translation            string    `json:"translation" db:"translation"`
+	Definition             string    `json:"definition" db:"definition"`
+	Lemma                  string    `json:"lemma" db:"lemma"`
+	NormalizedTerm         string    `json:"normalizedTerm" db:"normalized_term"`
+	PartOfSpeech           string    `json:"partOfSpeech" db:"part_of_speech"`
+	IsChunk                bool      `json:"isChunk" db:"is_chunk"`
+	SourceType             string    `json:"sourceType" db:"source_type"`
+	SourceMessageID        string    `json:"sourceMessageId,omitempty" db:"source_message_id"`
+	CEFRLevel              string    `json:"cefrLevel,omitempty" db:"cefr_level"`
+	CurriculumUnitID       string    `json:"curriculumUnitId,omitempty" db:"curriculum_unit_id"`
+	RouteStatus            string    `json:"routeStatus" db:"route_status"`
+	MasteryStage           int       `json:"masteryStage" db:"mastery_stage"`
+	MasteryState           string    `json:"masteryState" db:"mastery_state"`
+	EaseFactor             float64   `json:"easeFactor" db:"ease_factor"`
+	Lapses                 int       `json:"lapses" db:"lapses"`
+	StageSuccessCount      int       `json:"stageSuccessCount" db:"stage_success_count"`
+	ProductionSuccessCount int       `json:"productionSuccessCount" db:"production_success_count"`
+	SpontaneousUseCount    int       `json:"spontaneousUseCount" db:"spontaneous_use_count"`
+	TeachabilityScore      float64   `json:"teachabilityScore" db:"teachability_score"`
+	Confidence             float64   `json:"confidence" db:"confidence"`
+	ReviewCount            int       `json:"reviewCount" db:"review_count"`
+	CorrectCount           int       `json:"correctCount" db:"correct_count"`
+	IntervalDays           float64   `json:"intervalDays" db:"interval_days"`
+	NextReview             time.Time `json:"nextReview" db:"next_review"`
+	ContextSentence        string    `json:"contextSentence,omitempty" db:"context_sentence"`
+	ContextMessageID       string    `json:"contextMessageId,omitempty" db:"context_message_id"`
+	ContextChatID          string    `json:"contextChatId,omitempty" db:"context_chat_id"`
+	CreatedAt              time.Time `json:"createdAt" db:"created_at"`
+	FirstSeenAt            time.Time `json:"firstSeenAt" db:"first_seen_at"`
+	LastSeenAt             time.Time `json:"lastSeenAt" db:"last_seen_at"`
 }
 
 // Stage constants (depth-of-processing: recognition -> production).
 const (
-	StageRecognition  = 1
-	StageCuedRecall   = 2
-	StageFreeRecall   = 3
-	StageProduction   = 4
+	StageRecognition = 1
+	StageCuedRecall  = 2
+	StageFreeRecall  = 3
+	StageProduction  = 4
 	StageSpontaneous = 5
 )
 
@@ -254,34 +281,34 @@ const (
 // ---------------------------------------------------------------------------
 
 type MinedItem struct {
-	ID                   string    `json:"id" db:"id"`
-	UserID               string    `json:"userId" db:"user_id"`
-	JobID                string    `json:"jobId,omitempty" db:"job_id"`
-	ChatID               string    `json:"chatId,omitempty" db:"chat_id"`
-	MessageID            string    `json:"messageId,omitempty" db:"message_id"`
-	SourceType           string    `json:"sourceType" db:"source_type"`
-	SurfaceText          string    `json:"surfaceText" db:"surface_text"`
-	Lemma                string    `json:"lemma" db:"lemma"`
-	NormalizedText       string    `json:"normalizedText" db:"normalized_text"`
-	Language             string    `json:"language" db:"language"`
-	PartOfSpeech         string    `json:"partOfSpeech" db:"part_of_speech"`
-	Translation          string    `json:"translation" db:"translation"`
-	Definition           string    `json:"definition" db:"definition"`
-	ContextSentence      string    `json:"contextSentence" db:"context_sentence"`
-	TextSpan             any       `json:"textSpan,omitempty" db:"text_span"`
-	CEFRLevel            string    `json:"cefrLevel,omitempty" db:"cefr_level"`
-	Confidence           float64   `json:"confidence" db:"confidence"`
-	TeachabilityScore    float64   `json:"teachabilityScore" db:"teachability_score"`
-	IsChunk              bool      `json:"isChunk" db:"is_chunk"`
-	IsProperNoun         bool      `json:"isProperNoun" db:"is_proper_noun"`
-	GrammarTags          []string  `json:"grammarTags,omitempty" db:"grammar_tags"`
-	CurriculumLexicalID  string    `json:"curriculumLexicalItemId,omitempty" db:"curriculum_lexical_item_id"`
-	CurriculumUnitID     string    `json:"curriculumUnitId,omitempty" db:"curriculum_unit_id"`
-	RouteStatus          string    `json:"routeStatus" db:"route_status"`
-	Status               string    `json:"status" db:"status"`
-	RouteReason          string    `json:"routeReason" db:"route_reason"`
-	CreatedAt            time.Time `json:"createdAt" db:"created_at"`
-	UpdatedAt            time.Time `json:"updatedAt" db:"updated_at"`
+	ID                  string    `json:"id" db:"id"`
+	UserID              string    `json:"userId" db:"user_id"`
+	JobID               string    `json:"jobId,omitempty" db:"job_id"`
+	ChatID              string    `json:"chatId,omitempty" db:"chat_id"`
+	MessageID           string    `json:"messageId,omitempty" db:"message_id"`
+	SourceType          string    `json:"sourceType" db:"source_type"`
+	SurfaceText         string    `json:"surfaceText" db:"surface_text"`
+	Lemma               string    `json:"lemma" db:"lemma"`
+	NormalizedText      string    `json:"normalizedText" db:"normalized_text"`
+	Language            string    `json:"language" db:"language"`
+	PartOfSpeech        string    `json:"partOfSpeech" db:"part_of_speech"`
+	Translation         string    `json:"translation" db:"translation"`
+	Definition          string    `json:"definition" db:"definition"`
+	ContextSentence     string    `json:"contextSentence" db:"context_sentence"`
+	TextSpan            any       `json:"textSpan,omitempty" db:"text_span"`
+	CEFRLevel           string    `json:"cefrLevel,omitempty" db:"cefr_level"`
+	Confidence          float64   `json:"confidence" db:"confidence"`
+	TeachabilityScore   float64   `json:"teachabilityScore" db:"teachability_score"`
+	IsChunk             bool      `json:"isChunk" db:"is_chunk"`
+	IsProperNoun        bool      `json:"isProperNoun" db:"is_proper_noun"`
+	GrammarTags         []string  `json:"grammarTags,omitempty" db:"grammar_tags"`
+	CurriculumLexicalID string    `json:"curriculumLexicalItemId,omitempty" db:"curriculum_lexical_item_id"`
+	CurriculumUnitID    string    `json:"curriculumUnitId,omitempty" db:"curriculum_unit_id"`
+	RouteStatus         string    `json:"routeStatus" db:"route_status"`
+	Status              string    `json:"status" db:"status"`
+	RouteReason         string    `json:"routeReason" db:"route_reason"`
+	CreatedAt           time.Time `json:"createdAt" db:"created_at"`
+	UpdatedAt           time.Time `json:"updatedAt" db:"updated_at"`
 }
 
 // ---------------------------------------------------------------------------
@@ -289,21 +316,21 @@ type MinedItem struct {
 // ---------------------------------------------------------------------------
 
 type LearningSession struct {
-	ID                string    `json:"id" db:"id"`
-	UserID            string    `json:"userId" db:"user_id"`
-	TargetLanguage    string    `json:"targetLanguage" db:"target_language"`
-	Mode              string    `json:"mode" db:"mode"`
-	Status            string    `json:"status" db:"status"`
-	SourceUnitID      string    `json:"sourceUnitId,omitempty" db:"source_unit_id"`
-	SourceLessonID    string    `json:"sourceLessonId,omitempty" db:"source_lesson_id"`
-	PlannedItemCount  int       `json:"plannedItemCount" db:"planned_item_count"`
-	CompletedItemCount int      `json:"completedItemCount" db:"completed_item_count"`
-	Score             int       `json:"score" db:"score"`
-	XPAwarded         int       `json:"xpAwarded" db:"xp_awarded"`
-	StartedAt         time.Time `json:"startedAt" db:"started_at"`
-	CompletedAt       time.Time `json:"completedAt,omitempty" db:"completed_at"`
-	ProgressPct       int       `json:"progressPct"`
-	Items             []LearningSessionItem `json:"items,omitempty"`
+	ID                 string                `json:"id" db:"id"`
+	UserID             string                `json:"userId" db:"user_id"`
+	TargetLanguage     string                `json:"targetLanguage" db:"target_language"`
+	Mode               string                `json:"mode" db:"mode"`
+	Status             string                `json:"status" db:"status"`
+	SourceUnitID       string                `json:"sourceUnitId,omitempty" db:"source_unit_id"`
+	SourceLessonID     string                `json:"sourceLessonId,omitempty" db:"source_lesson_id"`
+	PlannedItemCount   int                   `json:"plannedItemCount" db:"planned_item_count"`
+	CompletedItemCount int                   `json:"completedItemCount" db:"completed_item_count"`
+	Score              int                   `json:"score" db:"score"`
+	XPAwarded          int                   `json:"xpAwarded" db:"xp_awarded"`
+	StartedAt          time.Time             `json:"startedAt" db:"started_at"`
+	CompletedAt        time.Time             `json:"completedAt,omitempty" db:"completed_at"`
+	ProgressPct        int                   `json:"progressPct"`
+	Items              []LearningSessionItem `json:"items,omitempty"`
 }
 
 type LearningSessionItem struct {
@@ -335,21 +362,21 @@ type StartSessionResponse struct {
 
 // SessionQuestion is the client-facing shape of a single practice item.
 type SessionQuestion struct {
-	ID           string      `json:"id"`
-	ItemType     string      `json:"itemType"`
-	ActivityType string      `json:"activityType"`
-	PromptType   string      `json:"promptType"`
+	ID           string        `json:"id"`
+	ItemType     string        `json:"itemType"`
+	ActivityType string        `json:"activityType"`
+	PromptType   string        `json:"promptType"`
 	Prompt       SessionPrompt `json:"prompt"`
 }
 
 type SessionPrompt struct {
-	Text            string   `json:"text,omitempty"`
-	Source          string   `json:"source,omitempty"`
-	Translation     string   `json:"translation,omitempty"`
-	Choices         []string `json:"choices,omitempty"`
-	Term            string   `json:"term,omitempty"`
-	Tone            string   `json:"tone,omitempty"`
-	GrammarHint     string   `json:"grammarHint,omitempty"`
+	Text        string   `json:"text,omitempty"`
+	Source      string   `json:"source,omitempty"`
+	Translation string   `json:"translation,omitempty"`
+	Choices     []string `json:"choices,omitempty"`
+	Term        string   `json:"term,omitempty"`
+	Tone        string   `json:"tone,omitempty"`
+	GrammarHint string   `json:"grammarHint,omitempty"`
 }
 
 type AnswerSessionItemRequest struct {
@@ -358,22 +385,22 @@ type AnswerSessionItemRequest struct {
 }
 
 type SessionAnswerRequest struct {
-	Text    string `json:"text"`
-	Choice  string `json:"choice"`
+	Text   string `json:"text"`
+	Choice string `json:"choice"`
 }
 
 type AnswerSessionItemResponse struct {
-	Correct       bool           `json:"correct"`
-	Quality       int            `json:"quality"`
-	Feedback      SessionFeedback `json:"feedback"`
-	NextItem      *SessionQuestion `json:"nextItem,omitempty"`
+	Correct  bool             `json:"correct"`
+	Quality  int              `json:"quality"`
+	Feedback SessionFeedback  `json:"feedback"`
+	NextItem *SessionQuestion `json:"nextItem,omitempty"`
 }
 
 type SessionFeedback struct {
-	Message       string `json:"message"`
-	CorrectAnswer string `json:"correctAnswer,omitempty"`
+	Message        string `json:"message"`
+	CorrectAnswer  string `json:"correctAnswer,omitempty"`
 	GrammarPointID string `json:"grammarPointId,omitempty"`
-	MasteryState  string `json:"masteryState,omitempty"`
+	MasteryState   string `json:"masteryState,omitempty"`
 }
 
 // ---------------------------------------------------------------------------
@@ -381,48 +408,48 @@ type SessionFeedback struct {
 // ---------------------------------------------------------------------------
 
 type CurriculumLesson struct {
-	ID               string          `json:"id" db:"id"`
-	UnitID           string          `json:"unitId" db:"unit_id"`
-	Ordinal          int             `json:"ordinal" db:"ordinal"`
-	Slug             string          `json:"slug" db:"slug"`
-	Type             string          `json:"type" db:"type"`
-	Title            string          `json:"title" db:"title"`
-	Objective        string          `json:"objective" db:"objective"`
-	EstimatedMinutes int             `json:"estimatedMinutes" db:"estimated_minutes"`
+	ID               string           `json:"id" db:"id"`
+	UnitID           string           `json:"unitId" db:"unit_id"`
+	Ordinal          int              `json:"ordinal" db:"ordinal"`
+	Slug             string           `json:"slug" db:"slug"`
+	Type             string           `json:"type" db:"type"`
+	Title            string           `json:"title" db:"title"`
+	Objective        string           `json:"objective" db:"objective"`
+	EstimatedMinutes int              `json:"estimatedMinutes" db:"estimated_minutes"`
 	Steps            []CurriculumStep `json:"steps,omitempty"`
 }
 
 type CurriculumStep struct {
-	ID          string    `json:"id" db:"id"`
-	LessonID    string    `json:"lessonId" db:"lesson_id"`
-	Ordinal     int       `json:"ordinal" db:"ordinal"`
-	Type        string    `json:"type" db:"type"`
-	Prompt      any       `json:"prompt" db:"prompt"`
-	AnswerKey   any       `json:"answerKey,omitempty" db:"answer_key"`
-	ContentRefs any       `json:"contentRefs,omitempty" db:"content_refs"`
+	ID          string `json:"id" db:"id"`
+	LessonID    string `json:"lessonId" db:"lesson_id"`
+	Ordinal     int    `json:"ordinal" db:"ordinal"`
+	Type        string `json:"type" db:"type"`
+	Prompt      any    `json:"prompt" db:"prompt"`
+	AnswerKey   any    `json:"answerKey,omitempty" db:"answer_key"`
+	ContentRefs any    `json:"contentRefs,omitempty" db:"content_refs"`
 }
 
 type LessonAttempt struct {
-	ID             string    `json:"id" db:"id"`
-	UserID         string    `json:"userId" db:"user_id"`
-	LessonID       string    `json:"lessonId" db:"lesson_id"`
-	TargetLanguage string    `json:"targetLanguage" db:"target_language"`
-	Status         string    `json:"status" db:"status"`
-	Score          int       `json:"score" db:"score"`
-	CorrectCount   int       `json:"correctCount" db:"correct_count"`
-	TotalCount     int       `json:"totalCount" db:"total_count"`
-	StartedAt      time.Time `json:"startedAt" db:"started_at"`
-	CompletedAt    time.Time `json:"completedAt,omitempty" db:"completed_at"`
+	ID             string             `json:"id" db:"id"`
+	UserID         string             `json:"userId" db:"user_id"`
+	LessonID       string             `json:"lessonId" db:"lesson_id"`
+	TargetLanguage string             `json:"targetLanguage" db:"target_language"`
+	Status         string             `json:"status" db:"status"`
+	Score          int                `json:"score" db:"score"`
+	CorrectCount   int                `json:"correctCount" db:"correct_count"`
+	TotalCount     int                `json:"totalCount" db:"total_count"`
+	StartedAt      time.Time          `json:"startedAt" db:"started_at"`
+	CompletedAt    time.Time          `json:"completedAt,omitempty" db:"completed_at"`
 	Steps          []LessonStepResult `json:"steps,omitempty"`
 }
 
 type LessonStepResult struct {
-	ID        string `json:"id" db:"id"`
-	StepID    string `json:"stepId" db:"step_id"`
-	UserAnswer any   `json:"userAnswer" db:"user_answer"`
-	Correct   bool   `json:"correct" db:"correct"`
-	Score     int    `json:"score" db:"score"`
-	Feedback  any    `json:"feedback" db:"feedback"`
+	ID         string `json:"id" db:"id"`
+	StepID     string `json:"stepId" db:"step_id"`
+	UserAnswer any    `json:"userAnswer" db:"user_answer"`
+	Correct    bool   `json:"correct" db:"correct"`
+	Score      int    `json:"score" db:"score"`
+	Feedback   any    `json:"feedback" db:"feedback"`
 }
 
 type AnswerLessonStepRequest struct {
@@ -430,8 +457,8 @@ type AnswerLessonStepRequest struct {
 }
 
 type LessonStartResponse struct {
-	Attempt *LessonAttempt    `json:"attempt"`
-	Steps   []CurriculumStep  `json:"steps"`
+	Attempt *LessonAttempt   `json:"attempt"`
+	Steps   []CurriculumStep `json:"steps"`
 }
 
 // ---------------------------------------------------------------------------
@@ -439,19 +466,19 @@ type LessonStartResponse struct {
 // ---------------------------------------------------------------------------
 
 type PlacementQuestion struct {
-	ID        string      `json:"id"`
-	Ref       string      `json:"ref"`
-	ItemType  string      `json:"itemType"`
-	CEFRLevel string      `json:"cefrLevel"`
-	Prompt    any         `json:"prompt"`
-	Choices   []string    `json:"choices,omitempty"`
+	ID        string   `json:"id"`
+	Ref       string   `json:"ref"`
+	ItemType  string   `json:"itemType"`
+	CEFRLevel string   `json:"cefrLevel"`
+	Prompt    any      `json:"prompt"`
+	Choices   []string `json:"choices,omitempty"`
 }
 
 type PlacementStartResponse struct {
-	AttemptID string             `json:"attemptId"`
-	Status    string             `json:"status"`
-	Question  PlacementQuestion  `json:"question"`
-	TotalQuestions int           `json:"totalQuestions"`
+	AttemptID      string            `json:"attemptId"`
+	Status         string            `json:"status"`
+	Question       PlacementQuestion `json:"question"`
+	TotalQuestions int               `json:"totalQuestions"`
 }
 
 type PlacementAnswerRequest struct {
@@ -459,10 +486,10 @@ type PlacementAnswerRequest struct {
 }
 
 type PlacementResult struct {
-	AttemptID      string `json:"attemptId"`
-	EstimatedCEFR  string `json:"estimatedCefr"`
-	ReadinessScore int    `json:"readinessScore"`
-	ActiveUnitID   string `json:"activeUnitId"`
+	AttemptID      string   `json:"attemptId"`
+	EstimatedCEFR  string   `json:"estimatedCefr"`
+	ReadinessScore int      `json:"readinessScore"`
+	ActiveUnitID   string   `json:"activeUnitId"`
 	UnitsSkipped   []string `json:"skippedUnits,omitempty"`
 }
 
@@ -471,32 +498,32 @@ type PlacementResult struct {
 // ---------------------------------------------------------------------------
 
 type ScenarioScript struct {
-	ID                string          `json:"id" db:"id"`
-	CourseID          string          `json:"courseId" db:"course_id"`
-	UnitID            string          `json:"unitId,omitempty" db:"unit_id"`
-	Slug              string          `json:"slug" db:"slug"`
-	Title             string          `json:"title" db:"title"`
-	Domain            string          `json:"domain" db:"domain"`
-	CEFRLevel         string          `json:"cefrLevel" db:"cefr_level"`
-	CanDoStatement    string          `json:"canDoStatement" db:"can_do_statement"`
-	AIRoleName        string          `json:"aiRoleName" db:"ai_role_name"`
-	AIRoleDescription string          `json:"aiRoleDescription" db:"ai_role_description"`
-	OpeningLine       string          `json:"openingLine" db:"opening_line"`
-	MaxTurns          int             `json:"maxTurns" db:"max_turns"`
-	EstimatedMinutes  int             `json:"estimatedMinutes" db:"estimated_minutes"`
+	ID                 string          `json:"id" db:"id"`
+	CourseID           string          `json:"courseId" db:"course_id"`
+	UnitID             string          `json:"unitId,omitempty" db:"unit_id"`
+	Slug               string          `json:"slug" db:"slug"`
+	Title              string          `json:"title" db:"title"`
+	Domain             string          `json:"domain" db:"domain"`
+	CEFRLevel          string          `json:"cefrLevel" db:"cefr_level"`
+	CanDoStatement     string          `json:"canDoStatement" db:"can_do_statement"`
+	AIRoleName         string          `json:"aiRoleName" db:"ai_role_name"`
+	AIRoleDescription  string          `json:"aiRoleDescription" db:"ai_role_description"`
+	OpeningLine        string          `json:"openingLine" db:"opening_line"`
+	MaxTurns           int             `json:"maxTurns" db:"max_turns"`
+	EstimatedMinutes   int             `json:"estimatedMinutes" db:"estimated_minutes"`
 	CompletionCriteria any             `json:"completionCriteria,omitempty" db:"completion_criteria"`
-	Phases            []ScenarioPhase `json:"phases,omitempty"`
-	Metadata          any             `json:"metadata,omitempty" db:"-"`
+	Phases             []ScenarioPhase `json:"phases,omitempty"`
+	Metadata           any             `json:"metadata,omitempty" db:"-"`
 }
 
 type ScenarioPhase struct {
-	ID             string     `json:"id" db:"id"`
-	ScenarioID     string     `json:"scenarioId" db:"scenario_id"`
-	Ordinal        int        `json:"ordinal" db:"ordinal"`
-	Title          string     `json:"title" db:"title"`
-	LearnerGoal    string     `json:"learnerGoal" db:"learner_goal"`
-	RequiredIntents []string  `json:"requiredIntents" db:"required_intents"`
-	ChunkBank      []Chunk    `json:"chunkBank" db:"chunk_bank"`
+	ID              string   `json:"id" db:"id"`
+	ScenarioID      string   `json:"scenarioId" db:"scenario_id"`
+	Ordinal         int      `json:"ordinal" db:"ordinal"`
+	Title           string   `json:"title" db:"title"`
+	LearnerGoal     string   `json:"learnerGoal" db:"learner_goal"`
+	RequiredIntents []string `json:"requiredIntents" db:"required_intents"`
+	ChunkBank       []Chunk  `json:"chunkBank" db:"chunk_bank"`
 }
 
 type Chunk struct {
@@ -505,39 +532,39 @@ type Chunk struct {
 }
 
 type ScenarioRun struct {
-	ID                 string    `json:"id" db:"id"`
-	UserID             string    `json:"userId" db:"user_id"`
-	ScenarioID         string    `json:"scenarioId" db:"scenario_id"`
-	TargetLanguage     string    `json:"targetLanguage" db:"target_language"`
-	NativeLanguage     string    `json:"nativeLanguage" db:"native_language"`
-	Status             string    `json:"status" db:"status"`
-	ScaffoldLevel      string    `json:"scaffoldLevel" db:"scaffold_level"`
-	CurrentPhaseOrdinal int      `json:"currentPhaseOrdinal" db:"current_phase_ordinal"`
-	PhaseScores        any       `json:"phaseScores" db:"phase_scores"`
-	CoveredIntents     []string  `json:"coveredIntents" db:"covered_intents"`
-	Score              int       `json:"score" db:"score"`
-	XPAwarded          int       `json:"xpAwarded" db:"xp_awarded"`
-	StartedAt          time.Time `json:"startedAt" db:"started_at"`
-	CompletedAt        time.Time `json:"completedAt,omitempty" db:"completed_at"`
-	Turns              []ScenarioTurn `json:"turns,omitempty"`
-	CurrentPhase       *ScenarioPhase `json:"currentPhase,omitempty"`
-	SuggestedChunks    []Chunk        `json:"suggestedChunks,omitempty"`
+	ID                  string         `json:"id" db:"id"`
+	UserID              string         `json:"userId" db:"user_id"`
+	ScenarioID          string         `json:"scenarioId" db:"scenario_id"`
+	TargetLanguage      string         `json:"targetLanguage" db:"target_language"`
+	NativeLanguage      string         `json:"nativeLanguage" db:"native_language"`
+	Status              string         `json:"status" db:"status"`
+	ScaffoldLevel       string         `json:"scaffoldLevel" db:"scaffold_level"`
+	CurrentPhaseOrdinal int            `json:"currentPhaseOrdinal" db:"current_phase_ordinal"`
+	PhaseScores         any            `json:"phaseScores" db:"phase_scores"`
+	CoveredIntents      []string       `json:"coveredIntents" db:"covered_intents"`
+	Score               int            `json:"score" db:"score"`
+	XPAwarded           int            `json:"xpAwarded" db:"xp_awarded"`
+	StartedAt           time.Time      `json:"startedAt" db:"started_at"`
+	CompletedAt         time.Time      `json:"completedAt,omitempty" db:"completed_at"`
+	Turns               []ScenarioTurn `json:"turns,omitempty"`
+	CurrentPhase        *ScenarioPhase `json:"currentPhase,omitempty"`
+	SuggestedChunks     []Chunk        `json:"suggestedChunks,omitempty"`
 }
 
 type ScenarioTurn struct {
-	ID          string   `json:"id" db:"id"`
-	RunID       string   `json:"runId" db:"run_id"`
-	Ordinal     int      `json:"ordinal" db:"ordinal"`
-	Speaker     string   `json:"speaker" db:"speaker"`
-	Text        string   `json:"text" db:"text"`
-	Translation string   `json:"translation" db:"translation"`
-	PhaseOrdinal int     `json:"phaseOrdinal" db:"phase_ordinal"`
-	Evaluation  any      `json:"evaluation,omitempty" db:"evaluation"`
-	CreatedAt   time.Time `json:"createdAt" db:"created_at"`
+	ID           string    `json:"id" db:"id"`
+	RunID        string    `json:"runId" db:"run_id"`
+	Ordinal      int       `json:"ordinal" db:"ordinal"`
+	Speaker      string    `json:"speaker" db:"speaker"`
+	Text         string    `json:"text" db:"text"`
+	Translation  string    `json:"translation" db:"translation"`
+	PhaseOrdinal int       `json:"phaseOrdinal" db:"phase_ordinal"`
+	Evaluation   any       `json:"evaluation,omitempty" db:"evaluation"`
+	CreatedAt    time.Time `json:"createdAt" db:"created_at"`
 }
 
 type ScenarioStartResponse struct {
-	Run        *ScenarioRun  `json:"run"`
+	Run        *ScenarioRun    `json:"run"`
 	AIResponse ScenarioAIReply `json:"aiResponse"`
 }
 
@@ -546,18 +573,18 @@ type SendScenarioMessageRequest struct {
 }
 
 type ScenarioAIReply struct {
-	AIMessage       string        `json:"aiMessage"`
-	Translation     string        `json:"translation"`
-	PhaseComplete   bool          `json:"phaseComplete"`
-	NextPhaseOrdinal int          `json:"nextPhaseOrdinal,omitempty"`
-	CoveredIntents  []string      `json:"coveredIntents,omitempty"`
-	Errors          []ScenarioError `json:"errors,omitempty"`
-	Score           int           `json:"score"`
-	RunCompleted    bool          `json:"runCompleted"`
-	Summary         *ScenarioSummaryResult `json:"summary,omitempty"`
-	SuggestedChunks []Chunk        `json:"suggestedChunks,omitempty"`
-	ShouldSelfCorrect bool         `json:"shouldSelfCorrect,omitempty"`
-	FirstPassDone    bool          `json:"firstPassDone,omitempty"`
+	AIMessage         string                 `json:"aiMessage"`
+	Translation       string                 `json:"translation"`
+	PhaseComplete     bool                   `json:"phaseComplete"`
+	NextPhaseOrdinal  int                    `json:"nextPhaseOrdinal,omitempty"`
+	CoveredIntents    []string               `json:"coveredIntents,omitempty"`
+	Errors            []ScenarioError        `json:"errors,omitempty"`
+	Score             int                    `json:"score"`
+	RunCompleted      bool                   `json:"runCompleted"`
+	Summary           *ScenarioSummaryResult `json:"summary,omitempty"`
+	SuggestedChunks   []Chunk                `json:"suggestedChunks,omitempty"`
+	ShouldSelfCorrect bool                   `json:"shouldSelfCorrect,omitempty"`
+	FirstPassDone     bool                   `json:"firstPassDone,omitempty"`
 }
 
 type ScenarioError struct {
@@ -568,9 +595,9 @@ type ScenarioError struct {
 }
 
 type ScenarioSummaryResult struct {
-	Score          int `json:"score"`
-	XPAwarded      int `json:"xpAwarded"`
-	Mins           int `json:"minutes"`
+	Score           int `json:"score"`
+	XPAwarded       int `json:"xpAwarded"`
+	Mins            int `json:"minutes"`
 	VocabularyAdded int `json:"vocabularyAdded"`
 }
 
@@ -579,13 +606,49 @@ type ScenarioSummaryResult struct {
 // ---------------------------------------------------------------------------
 
 type RealTalkPrompt struct {
-	ID        string `json:"id"`
-	Category  string `json:"category"`
-	Text      string `json:"text"`
-	SourcePrompt bool `json:"sourcePrompt,omitempty"`
+	ID           string `json:"id"`
+	Category     string `json:"category"`
+	Text         string `json:"text"`
+	SourcePrompt bool   `json:"sourcePrompt,omitempty"`
 }
 
 type StreakRecoverResult struct {
-	NewStreak int `json:"newStreak"`
+	NewStreak int  `json:"newStreak"`
 	Recovered bool `json:"recovered"`
+}
+
+// ---------------------------------------------------------------------------
+// Unified SRS queue (FR-32 — seed + personal + grammar, interleaved with SM-2)
+// ---------------------------------------------------------------------------
+
+// Queue origin tags so a client can render seed vs personal vs grammar items
+// (seed = curated curriculum lexical items, personal = chat/scenario-mined
+// cards, grammar = grammar-point cloze/review items).
+const (
+	QueueOriginSeed     = "seed"
+	QueueOriginPersonal = "personal"
+	QueueOriginGrammar  = "grammar"
+)
+
+// SRSQueueItem is a single due/new review item in the unified queue. ID is the
+// vocabulary-card id (vocabulary items) or grammar-point id (grammar items).
+// Answer carries the expected term/blank so a client can grade a standalone
+// queue item before routing it into a practice session.
+type SRSQueueItem struct {
+	ID         string          `json:"id"`
+	Origin     string          `json:"origin"`
+	ItemType   string          `json:"itemType"`
+	Due        bool            `json:"due"`
+	NextReview time.Time       `json:"nextReview,omitempty"`
+	Answer     string          `json:"answer,omitempty"`
+	Question   SessionQuestion `json:"question"`
+}
+
+// SRSQueue is the interleaved, SM-2-scheduled review queue for a user/pair.
+type SRSQueue struct {
+	TargetLanguage string         `json:"targetLanguage"`
+	TotalDue       int            `json:"totalDue"`
+	TotalNew       int            `json:"totalNew"`
+	Seeded         int            `json:"seeded"`
+	Items          []SRSQueueItem `json:"items"`
 }

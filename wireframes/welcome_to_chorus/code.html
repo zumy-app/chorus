@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus - Welcome Home</title>
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788158188199&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YTUyNzA0ZjNkYjEwMjJkNGZhOTIyMGQ4YWVhEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&amp;family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-primary-fixed-variant": "#003ea8",
+                      "tertiary-container": "#007d55",
+                      "background": "#f8f9ff",
+                      "on-secondary-fixed": "#23005c",
+                      "surface-container-high": "#dce9ff",
+                      "on-surface-variant": "#434655",
+                      "secondary": "#6b38d4",
+                      "on-error-container": "#93000a",
+                      "inverse-surface": "#213145",
+                      "on-secondary": "#ffffff",
+                      "secondary-container": "#8455ef",
+                      "surface-variant": "#d3e4fe",
+                      "surface-container-highest": "#d3e4fe",
+                      "on-primary-container": "#eeefff",
+                      "primary-fixed": "#dbe1ff",
+                      "on-background": "#0b1c30",
+                      "on-tertiary-fixed-variant": "#005236",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "primary-container": "#2563eb",
+                      "outline": "#737686",
+                      "on-secondary-fixed-variant": "#5516be",
+                      "on-surface": "#0b1c30",
+                      "surface-container-lowest": "#ffffff",
+                      "on-secondary-container": "#fffbff",
+                      "on-tertiary-fixed": "#002113",
+                      "surface-dim": "#cbdbf5",
+                      "surface-tint": "#0053db",
+                      "error-container": "#ffdad6",
+                      "surface": "#f8f9ff",
+                      "surface-container": "#e5eeff",
+                      "secondary-fixed-dim": "#d0bcff",
+                      "on-tertiary-container": "#bdffdb",
+                      "on-tertiary": "#ffffff",
+                      "tertiary-fixed": "#6ffbbe",
+                      "on-primary-fixed": "#00174b",
+                      "secondary-fixed": "#e9ddff",
+                      "outline-variant": "#c3c6d7",
+                      "primary-fixed-dim": "#b4c5ff",
+                      "tertiary": "#006242",
+                      "surface-container-low": "#eff4ff",
+                      "inverse-on-surface": "#eaf1ff",
+                      "primary": "#004ac6",
+                      "error": "#ba1a1a",
+                      "on-primary": "#ffffff",
+                      "surface-bright": "#f8f9ff",
+                      "on-error": "#ffffff",
+                      "inverse-primary": "#b4c5ff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "margin-mobile": "16px",
+                      "stack-lg": "24px",
+                      "gutter-mobile": "12px",
+                      "stack-md": "16px",
+                      "stack-sm": "8px",
+                      "unit": "4px"
+              },
+              "fontFamily": {
+                      "body-lg": [
+                              "Be Vietnam Pro"
+                      ],
+                      "headline-sm": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "headline-md": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "headline-lg": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "translation-text": [
+                              "Be Vietnam Pro"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "label-sm": [
+                              "Inter"
+                      ],
+                      "body-sm": [
+                              "Be Vietnam Pro"
+                      ],
+                      "body-md": [
+                              "Be Vietnam Pro"
+                      ]
+              },
+              "fontSize": {
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-sm": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-lg": [
+                              "30px",
+                              {
+                                      "lineHeight": "38px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "translation-text": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "label-md": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "letterSpacing": "0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-sm": [
+                              "11px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.03em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined[data-weight="fill"] {
+          font-variation-settings: 'FILL' 1;
+        }
+      </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col font-body-md text-body-md pb-24 md:pb-0">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-surface-container-low shadow-sm docked full-width top-0 z-40 hidden md:flex">
+<div class="flex justify-between items-center px-margin-mobile py-stack-sm w-full">
+<div class="flex items-center gap-4">
+<img alt="User Profile" class="w-10 h-10 rounded-full object-cover shadow-sm" data-alt="A small, circular avatar portrait of a friendly young adult, smiling warmly, rendered in a modern, clean light-mode aesthetic with soft lighting, set against a pristine white background. The style is approachable and high-quality, fitting for a modern educational app profile picture." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgtxliUme0UqKc33HsFRHyERxH_5w8U6Et2a24WH-gbpkGFk3LzjlOU_BgjWEvDJ7X2uCttRDRY-CUdQ3B4kDOqjeuzcpXFlss1zekqBFyT2r79WyAZQdqcjvNszFlXl4tb7kQBSiDNuAxwnlr9k47a0BsDisU22wpcCkbWJQwbxOBrPV_xy3gRarZFdLvMRqXexjImOrqN4bBfgikNGHZg24Qx_AcuzFyieJ6XRQ2LR9d312vTk5G"/>
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim">Chorus</span>
+</div>
+<nav class="flex gap-8 hidden md:flex">
+<a class="text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors active:scale-95 duration-150 px-3 py-2 rounded-lg font-label-md text-label-md flex items-center gap-2" href="#">
+<span class="material-symbols-outlined" data-icon="school">school</span>
+                    Learn
+                </a>
+<a class="text-primary dark:text-primary-fixed-dim hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors active:scale-95 duration-150 px-3 py-2 rounded-lg font-label-md text-label-md flex items-center gap-2" href="#">
+<span class="material-symbols-outlined" data-icon="chat_bubble" data-weight="fill">chat_bubble</span>
+                    Chats
+                </a>
+<a class="text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors active:scale-95 duration-150 px-3 py-2 rounded-lg font-label-md text-label-md flex items-center gap-2" href="#">
+<span class="material-symbols-outlined" data-icon="explore">explore</span>
+                    Hub
+                </a>
+<a class="text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors active:scale-95 duration-150 px-3 py-2 rounded-lg font-label-md text-label-md flex items-center gap-2" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+                    Profile
+                </a>
+</nav>
+<button class="text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors active:scale-95 duration-150 p-2 rounded-full">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</div>
+</header>
+<!-- Mobile Header (Visible only on mobile) -->
+<header class="bg-surface dark:bg-surface-container-low shadow-sm w-full top-0 z-40 md:hidden flex justify-between items-center px-margin-mobile py-stack-sm sticky">
+<div class="flex items-center gap-3">
+<img alt="User Profile" class="w-8 h-8 rounded-full object-cover shadow-sm" data-alt="A small, circular avatar portrait of a friendly young adult, smiling warmly, rendered in a modern, clean light-mode aesthetic with soft lighting, set against a pristine white background. The style is approachable and high-quality, fitting for a modern educational app profile picture." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxY5SyAin6uepaDnQUbIJMJRPw_szsGn1PQ4332InB_Le0D-GBfkiXg-svjWVcMTJXQ4NxUS9iXtz-ipTR_tY0xW6CYdV2onVYqLbNjU0DmBhGSjeu22tPLIKrPr2oWH5H1dgq1I_KHcsCSU2LoyGgFbdJ-eQnEZiMmDT4eyPf4GXXIKH50-q7dCtdPW5jQc3MVGldVFqQYRVbNiG97SehAXYwbx3dhUcP3_Y1WJqJbKL0ptlb5PgY"/>
+<span class="font-headline-sm text-headline-sm font-bold text-primary dark:text-primary-fixed-dim">Chorus</span>
+</div>
+<button class="text-on-surface-variant dark:text-outline-variant p-2 rounded-full">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</header>
+<main class="flex-1 w-full max-w-4xl mx-auto px-margin-mobile py-stack-lg md:py-8 flex flex-col gap-8">
+<!-- Welcome Section -->
+<section class="flex flex-col gap-2">
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Welcome Home, Alex! 👋</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Let's get your language learning journey started.</p>
+</section>
+<!-- Your First Steps Card -->
+<section class="bg-surface-container-lowest rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] p-6 flex flex-col gap-6 relative overflow-hidden">
+<!-- Decorative background element -->
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary-container opacity-5 rounded-bl-full pointer-events-none"></div>
+<div class="flex justify-between items-center z-10">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Your First Steps</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">1 of 3 tasks completed</p>
+</div>
+<div class="w-12 h-12 rounded-full bg-secondary-container/10 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined" data-icon="flag">flag</span>
+</div>
+</div>
+<!-- Progress Bar -->
+<div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden z-10">
+<div class="bg-tertiary-container h-full rounded-full w-1/3 transition-all duration-500 ease-out"></div>
+</div>
+<!-- Task List -->
+<div class="flex flex-col gap-4 z-10">
+<!-- Task 1: Completed -->
+<div class="flex items-start gap-4 p-4 rounded-lg bg-surface-container border border-surface-variant opacity-70">
+<div class="text-tertiary-container mt-0.5">
+<span class="material-symbols-outlined" data-icon="check_circle" data-weight="fill">check_circle</span>
+</div>
+<div class="flex-1">
+<h3 class="font-label-md text-label-md text-on-surface line-through">Create your Profile</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Tell us about your language goals.</p>
+</div>
+</div>
+<!-- Task 2: Primary CTA -->
+<div class="flex items-start gap-4 p-4 rounded-lg bg-primary-fixed border border-primary-fixed-dim relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+<div class="text-primary mt-0.5 z-10">
+<span class="material-symbols-outlined" data-icon="radio_button_unchecked">radio_button_unchecked</span>
+</div>
+<div class="flex-1 z-10">
+<h3 class="font-label-md text-label-md text-on-surface font-bold">Complete Placement Test</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-3">Find your starting level in Spanish.</p>
+<button class="bg-primary text-on-primary font-label-md text-label-md px-4 py-2 rounded-lg hover:bg-surface-tint transition-colors shadow-sm w-fit">
+                            Start Test (5 min)
+                        </button>
+</div>
+</div>
+<!-- Task 3 -->
+<div class="flex items-start gap-4 p-4 rounded-lg bg-surface-container-lowest border border-outline-variant hover:border-primary-fixed-dim transition-colors cursor-pointer">
+<div class="text-outline mt-0.5">
+<span class="material-symbols-outlined" data-icon="radio_button_unchecked">radio_button_unchecked</span>
+</div>
+<div class="flex-1">
+<h3 class="font-label-md text-label-md text-on-surface">Find your first Partner</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">We found 3 native speakers based on your interests.</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant self-center" data-icon="chevron_right">chevron_right</span>
+</div>
+<!-- Task 4 -->
+<div class="flex items-start gap-4 p-4 rounded-lg bg-surface-container-lowest border border-outline-variant hover:border-primary-fixed-dim transition-colors cursor-pointer">
+<div class="text-outline mt-0.5">
+<span class="material-symbols-outlined" data-icon="radio_button_unchecked">radio_button_unchecked</span>
+</div>
+<div class="flex-1">
+<h3 class="font-label-md text-label-md text-on-surface">Say Hello in the Community Hub</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Introduce yourself to the Chorus community.</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant self-center" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+</section>
+<!-- Trending Section -->
+<section class="flex flex-col gap-4 mt-4">
+<div class="flex justify-between items-end">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Trending in the Community</h2>
+<a class="font-label-md text-label-md text-primary hover:underline flex items-center" href="#">See all <span class="material-symbols-outlined text-[16px] ml-1" data-icon="arrow_forward">arrow_forward</span></a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Post 1 -->
+<article class="bg-surface-container-lowest p-5 rounded-xl border border-surface-variant shadow-[0_4px_12px_rgba(0,0,0,0.02)] flex flex-col gap-3 hover:shadow-md transition-shadow cursor-pointer">
+<div class="flex items-center gap-3">
+<img alt="Author avatar" class="w-8 h-8 rounded-full object-cover" data-alt="A small avatar of a person wearing a bright yellow sweater against a soft blue background, modern light-mode style, clean and approachable." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCltqXAJCTsAtLxidwFvEwZVoRw2U-eP2QJzm8yLp4VARxGvA1kyC4pbqcW3V137DzpLjbcZr9OQ7SwIsaUiDdr1jXvB1Ahf0Ek-EC-nAgmk1BZPkldJI9zphAjV6zEym87v4IG03QzDC8G-YNZWjUKJvG9dnXOeFwa2-tP4wRX_q1O7AdzND-EYnkJ1mJNnzDhf5A0uSYOiTaMAxwBt3feaAbECpV9IKSyQ_4vCCbQG4hpnGjy6dSn"/>
+<div>
+<p class="font-label-md text-label-md text-on-surface">Maria S.</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Learning English • 2h ago</p>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface line-clamp-2">What's the difference between "affect" and "effect"? I keep making this mistake in my writing!</p>
+<div class="flex gap-4 mt-2">
+<div class="flex items-center gap-1 text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px]" data-icon="chat_bubble">chat_bubble</span>
+                            12 Replies
+                        </div>
+<div class="flex items-center gap-1 text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px]" data-icon="favorite">favorite</span>
+                            34 Likes
+                        </div>
+</div>
+</article>
+<!-- Post 2 -->
+<article class="bg-surface-container-lowest p-5 rounded-xl border border-surface-variant shadow-[0_4px_12px_rgba(0,0,0,0.02)] flex flex-col gap-3 hover:shadow-md transition-shadow cursor-pointer">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container font-bold text-sm">
+                            D
+                        </div>
+<div>
+<p class="font-label-md text-label-md text-on-surface">David Chen</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Native Spanish • 5h ago</p>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface line-clamp-2">Sharing my top 5 podcasts for intermediate Spanish learners. These really helped my listening comprehension.</p>
+<div class="flex gap-4 mt-2">
+<div class="flex items-center gap-1 text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px]" data-icon="chat_bubble">chat_bubble</span>
+                            45 Replies
+                        </div>
+<div class="flex items-center gap-1 text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px]" data-icon="favorite">favorite</span>
+                            89 Likes
+                        </div>
+</div>
+</article>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed full-width bottom-0 z-50 md:hidden bg-surface dark:bg-surface-container-low shadow-[0_-4px_16px_rgba(0,0,0,0.1)] w-full flex justify-around items-center px-4 py-2">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-5 py-1 hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all active:scale-90 duration-200 rounded-xl" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="school">school</span>
+<span class="font-label-sm text-label-sm">Learn</span>
+</a>
+<!-- Active State: Chats -->
+<a class="flex flex-col items-center justify-center bg-secondary-container dark:bg-secondary-fixed-dim text-on-secondary-container dark:text-on-secondary-fixed-variant rounded-full px-5 py-1 hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="chat_bubble" data-weight="fill">chat_bubble</span>
+<span class="font-label-sm text-label-sm">Chats</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-5 py-1 hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all active:scale-90 duration-200 rounded-xl" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="explore">explore</span>
+<span class="font-label-sm text-label-sm">Hub</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-5 py-1 hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all active:scale-90 duration-200 rounded-xl" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="person">person</span>
+<span class="font-label-sm text-label-sm">Profile</span>
+</a>
+</nav>
+</body></html>

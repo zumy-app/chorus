@@ -3,11 +3,23 @@ package models
 import "time"
 
 type User struct {
-	ID              string    `json:"id" db:"id"`
-	Username        string    `json:"username" db:"username"`
-	Email           string    `json:"email" db:"email"`
-	PasswordHash    string    `json:"-" db:"password_hash"`
-	DisplayName     string    `json:"displayName" db:"display_name"`
+	ID           string `json:"id" db:"id"`
+	Username     string `json:"username" db:"username"`
+	Email        string `json:"email" db:"email"`
+	PasswordHash string `json:"-" db:"password_hash"`
+	// FirstName and LastName are the onboarding-provided structured name;
+	// DisplayName is the composed (and still overridable) display name.
+	FirstName   string `json:"firstName" db:"first_name"`
+	LastName    string `json:"lastName" db:"last_name"`
+	DisplayName string `json:"displayName" db:"display_name"`
+	// AvatarColor is the deterministic hex color backing the initials avatar
+	// (REQ 2.2 / FR-20). Derived from the user's stable ID so it is identical
+	// on every client and session. Not persisted — computed on read.
+	AvatarColor string `json:"avatarColor" db:"-"`
+	// AvatarURL is the reserved upload path for a custom avatar image. It stays
+	// NULL until attachment infrastructure exists; clients fall back to the
+	// initials + AvatarColor rendering when it is unset.
+	AvatarURL       *string   `json:"avatarUrl,omitempty" db:"avatar_url"`
 	NativeLanguage  string    `json:"nativeLanguage" db:"native_language"`
 	TargetLanguages []string  `json:"targetLanguages" db:"target_languages"`
 	Role            string    `json:"role" db:"role"` // member, moderator, admin
@@ -53,6 +65,43 @@ type LearningSettings struct {
 type PrivacySettings struct {
 	TranscriptRecording  bool `json:"transcriptRecording" db:"transcript_recording"`
 	MessageRetentionDays int  `json:"messageRetentionDays" db:"message_retention_days"`
+}
+
+// UserSettings is the full, persisted per-account settings row (the
+// user_settings table). It carries both the Phase 2 settings and the FR-25
+// feature toggles. Set is returned by GET /users/me/settings and updated via
+// PUT /users/me/settings.
+type UserSettings struct {
+	UserID               string    `json:"userId" db:"user_id"`
+	GrammarEnabled       bool      `json:"grammarEnabled" db:"grammar_enabled"`
+	VocabularyEnabled    bool      `json:"vocabularyEnabled" db:"vocabulary_enabled"`
+	DifficultyLevel      string    `json:"difficultyLevel" db:"difficulty_level"`
+	TranscriptRecording  bool      `json:"transcriptRecording" db:"transcript_recording"`
+	MessageRetentionDays int       `json:"messageRetentionDays" db:"message_retention_days"`
+	TranslationEnabled   bool      `json:"translationEnabled" db:"translation_enabled"`
+	GrammarAuto          bool      `json:"grammarAuto" db:"grammar_auto"`
+	HighlightsEnabled    bool      `json:"highlightsEnabled" db:"highlights_enabled"`
+	UpdatedAt            time.Time `json:"updatedAt" db:"updated_at"`
+}
+
+// FeatureSettings are the FR-25 per-account feature toggles. They gate
+// server-side behaviour: auto-translation, auto-grammar, and learning
+// highlights. Toggles default to enabled; turning one off prevents the
+// corresponding server-side job from being enqueued (translation jobs are
+// never enqueued when translation_enabled is off).
+type FeatureSettings struct {
+	TranslationEnabled bool `json:"translationEnabled"`
+	GrammarAuto        bool `json:"grammarAuto"`
+	HighlightsEnabled  bool `json:"highlightsEnabled"`
+}
+
+// UpdateFeatureSettingsRequest is the partial-update payload for the FR-25
+// toggles. Omitted (nil) pointers are left unchanged, so a client can toggle a
+// single feature without re-sending the others.
+type UpdateFeatureSettingsRequest struct {
+	TranslationEnabled *bool `json:"translationEnabled"`
+	GrammarAuto        *bool `json:"grammarAuto"`
+	HighlightsEnabled  *bool `json:"highlightsEnabled"`
 }
 
 // Phase 2: Client model for multi-device support
@@ -242,6 +291,8 @@ type RegisterRequest struct {
 	Username        string   `json:"username" binding:"omitempty,min=3,max=255"`
 	Email           string   `json:"email" binding:"required,email"`
 	Password        string   `json:"password" binding:"required,min=8"`
+	FirstName       string   `json:"firstName" binding:"omitempty,min=1,max=100"`
+	LastName        string   `json:"lastName" binding:"omitempty,min=1,max=100"`
 	DisplayName     string   `json:"displayName" binding:"omitempty,min=1,max=100"`
 	NativeLanguage  string   `json:"nativeLanguage" binding:"omitempty"`
 	TargetLanguages []string `json:"targetLanguages"`
@@ -267,6 +318,58 @@ type WaitlistEntry struct {
 	QueuePosition   int        `json:"queuePosition"`
 	CreatedAt       time.Time  `json:"createdAt"`
 	ApprovedAt      *time.Time `json:"approvedAt,omitempty"`
+}
+
+// ContactMatch is a discovered on-platform user from a permission-gated contact
+// scan. Raw contacts never leave the client: the client uploads only SHA-256
+// hashes of normalized identifiers, and the server echoes back the matching
+// hash so the client can correlate the result with its own address-book entry.
+type ContactMatch struct {
+	UserID          string   `json:"userId"`
+	Username        string   `json:"username"`
+	DisplayName     string   `json:"displayName"`
+	Email           string   `json:"email"`
+	EmailHash       string   `json:"emailHash"`
+	NativeLanguage  string   `json:"nativeLanguage"`
+	TargetLanguages []string `json:"targetLanguages"`
+}
+
+// ContactScanRequest is the privacy-preserving contact upload. Only hashed
+// identifiers are transmitted; the server never sees raw contact data.
+type ContactScanRequest struct {
+	// Hashes are SHA-256 (lower) of each contact's normalized email, matching
+	// the server's HashIdentifier scheme. Max 1000 per call to bound work.
+	Hashes []string `json:"hashes" binding:"required"`
+}
+
+// ContactInviteRequest asks the backend to create a single-use invite for an
+// off-platform contact and dispatch it (email) or return a shareable link
+// (SMS/WhatsApp).
+type ContactInviteRequest struct {
+	Channel string `json:"channel" binding:"required,oneof=email sms whatsapp"`
+	Contact struct {
+		Name  string `json:"name"`
+		Email string `json:"email"`
+		Phone string `json:"phone"`
+	} `json:"contact"`
+}
+
+// ContactInvite is a single-use, expiring invite created by an existing user
+// for a contact who is not yet on Chorus. Status is one of pending, sent,
+// redeemed, or expired. Token and Link are only populated on creation (listed
+// invites are status-only; tokens are stored hashed and never re-exposed).
+type ContactInvite struct {
+	ID         string     `json:"id"`
+	InviterID  string     `json:"inviterId"`
+	Channel    string     `json:"channel"`
+	Recipient  string     `json:"recipient"`
+	Name       string     `json:"name,omitempty"`
+	Token      string     `json:"token,omitempty"`
+	Link       string     `json:"link,omitempty"`
+	Status     string     `json:"status"`
+	ExpiresAt  time.Time  `json:"expiresAt"`
+	CreatedAt  time.Time  `json:"createdAt"`
+	RedeemedAt *time.Time `json:"redeemedAt,omitempty"`
 }
 
 // EmailOutboxEntry is a row in the durable email outbox. Status is one of
@@ -318,6 +421,78 @@ type TranslationJob struct {
 	CreatedAt   time.Time  `json:"createdAt"`
 	NextAttempt time.Time  `json:"nextAttempt"`
 	CompletedAt *time.Time `json:"completedAt,omitempty"`
+	// FR-30 lineage: which provider/model produced the result, how long it took,
+	// how many tokens were used, whether it hit the Redis cache, and which
+	// prompt version was active. These feed the quality KPIs.
+	Provider      string `json:"provider,omitempty"`
+	Model         string `json:"model,omitempty"`
+	PromptVersion string `json:"promptVersion,omitempty"`
+	LatencyMS     int    `json:"latencyMs,omitempty"`
+	Tokens        int    `json:"tokens,omitempty"`
+	CacheHit      bool   `json:"cacheHit,omitempty"`
+}
+
+// TranslationEval is one cross-model evaluation of a produced translation
+// (FR-30). The evaluator is a *different* model than the producer; it scores
+// accuracy and fluency and emits a critique and CEFR estimate.
+type TranslationEval struct {
+	ID                string     `json:"id"`
+	TranslationJobID  string     `json:"translationJobId"`
+	MessageID         string     `json:"messageId"`
+	ChatID            string     `json:"chatId"`
+	SourceLang        string     `json:"sourceLang,omitempty"`
+	TargetLang        string     `json:"targetLang"`
+	SourceText        string     `json:"sourceText"`
+	TranslatedText    string     `json:"translatedText"`
+	ProducerProvider  string     `json:"producerProvider,omitempty"`
+	EvaluatorProvider string     `json:"evaluatorProvider,omitempty"`
+	AccuracyScore     float64    `json:"accuracyScore,omitempty"`
+	FluencyScore      float64    `json:"fluencyScore,omitempty"`
+	CEFRLevel         string     `json:"cefrLevel,omitempty"`
+	Critique          string     `json:"critique,omitempty"`
+	Status            string     `json:"status"`
+	Attempts          int        `json:"attempts"`
+	LastError         string     `json:"lastError,omitempty"`
+	CreatedAt         time.Time  `json:"createdAt"`
+	CompletedAt       *time.Time `json:"completedAt,omitempty"`
+}
+
+// GrammarEval is one cross-model evaluation of a produced grammar analysis
+// (FR-30). criterion_scores holds per-pattern scores (grammar accuracy,
+// structure clarity, helpfulness).
+type GrammarEval struct {
+	ID                string         `json:"id"`
+	GrammarJobID      string         `json:"grammarJobId"`
+	UserID            string         `json:"userId"`
+	Text              string         `json:"text"`
+	Language          string         `json:"language"`
+	NativeLanguage    string         `json:"nativeLanguage"`
+	ProducerProvider  string         `json:"producerProvider,omitempty"`
+	EvaluatorProvider string         `json:"evaluatorProvider,omitempty"`
+	AccuracyScore     float64        `json:"accuracyScore,omitempty"`
+	CEFRLevel         string         `json:"cefrLevel,omitempty"`
+	CriterionScores   map[string]any `json:"criterionScores,omitempty"`
+	Critique          string         `json:"critique,omitempty"`
+	Status            string         `json:"status"`
+	Attempts          int            `json:"attempts"`
+	LastError         string         `json:"lastError,omitempty"`
+	CreatedAt         time.Time      `json:"createdAt"`
+	CompletedAt       *time.Time     `json:"completedAt,omitempty"`
+}
+
+// QualityKPIs aggregates the FR-30 quality metrics so the admin console can
+// surface accuracy, p95 latency, cost/1k tokens, and cache hit rate at a glance.
+type QualityKPIs struct {
+	Evaluations           float64 `json:"evaluations"`
+	AvgAccuracy           float64 `json:"avgAccuracy"`
+	AvgFluency            float64 `json:"avgFluency"`
+	P95LatencyMS          float64 `json:"p95LatencyMs"`
+	CacheHitRate          float64 `json:"cacheHitRate"`
+	TotalTranslations     int     `json:"totalTranslations"`
+	EvaluatedTranslations int     `json:"evaluatedTranslations"`
+	AvgTokens             float64 `json:"avgTokens"`
+	CostPer1KTokens       float64 `json:"costPer1kTokens"`
+	EstCostUSD            float64 `json:"estCostUsd"`
 }
 
 type LoginRequest struct {
@@ -346,9 +521,20 @@ type SendMessageRequest struct {
 }
 
 type UpdateUserRequest struct {
+	FirstName       string   `json:"firstName"`
+	LastName        string   `json:"lastName"`
 	DisplayName     string   `json:"displayName"`
 	NativeLanguage  string   `json:"nativeLanguage"`
 	TargetLanguages []string `json:"targetLanguages"`
+}
+
+// OnboardRequest captures the post-registration name capture step: the user
+// provides a first and last name, and the backend composes the displayName
+// (first + last) unless an explicit override is supplied.
+type OnboardRequest struct {
+	FirstName   string `json:"firstName" binding:"required,min=1,max=100"`
+	LastName    string `json:"lastName" binding:"required,min=1,max=100"`
+	DisplayName string `json:"displayName" binding:"omitempty,min=1,max=100"`
 }
 
 type WebSocketMessage struct {

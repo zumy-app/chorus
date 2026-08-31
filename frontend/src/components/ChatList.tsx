@@ -11,7 +11,7 @@ interface ChatListProps {
 export default function ChatList({ searchQuery = '' }: ChatListProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { chats, activeChat, user, setActiveChat } = useStore()
+  const { chats, activeChat, user, setActiveChat, presence } = useStore()
 
   const filteredChats = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
@@ -58,6 +58,12 @@ export default function ChatList({ searchQuery = '' }: ChatListProps) {
           || otherParticipant?.nativeLanguage
           || user?.targetLanguages?.[0]
 
+        const otherPresence = chat.type === 'direct' && otherParticipant
+          ? presence[otherParticipant.id]
+          : null
+        const isOnline = otherPresence?.status === 'online'
+        const isAway = otherPresence?.status === 'away'
+
         const isUnread = Boolean(chat.unreadCount && chat.unreadCount > 0)
 
         return (
@@ -81,6 +87,14 @@ export default function ChatList({ searchQuery = '' }: ChatListProps) {
                       </span>
                     </div>
                   </div>
+                )}
+                {chat.type === 'direct' && (
+                  <span
+                    className={`absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-surface ${
+                      isOnline ? 'bg-tertiary-container' : isAway ? 'bg-secondary' : 'bg-on-surface-variant/40'
+                    }`}
+                    aria-label={isOnline ? t('chat.online') : isAway ? t('chat.away') : t('chat.offline')}
+                  />
                 )}
               </div>
 

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus - Video Call</title>
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788156392938&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YTUxOTlmNzIwMWMwNTIyYWEzNTY5MzE1MWU1EgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "background": "#f8f9ff",
+                        "on-surface-variant": "#434655",
+                        "on-secondary": "#ffffff",
+                        "outline-variant": "#c3c6d7",
+                        "error": "#ba1a1a",
+                        "surface-container-high": "#dce9ff",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed": "#23005c",
+                        "on-primary-container": "#eeefff",
+                        "surface-container-low": "#eff4ff",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "surface": "#f8f9ff",
+                        "primary-container": "#2563eb",
+                        "on-surface": "#0b1c30",
+                        "tertiary": "#006242",
+                        "inverse-primary": "#b4c5ff",
+                        "secondary-fixed": "#e9ddff",
+                        "on-primary-fixed": "#00174b",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "on-secondary-container": "#fffbff",
+                        "surface-container-highest": "#d3e4fe",
+                        "secondary": "#6b38d4",
+                        "surface-bright": "#f8f9ff",
+                        "surface-variant": "#d3e4fe",
+                        "error-container": "#ffdad6",
+                        "secondary-fixed-dim": "#d0bcff",
+                        "on-secondary-fixed-variant": "#5516be",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "inverse-on-surface": "#eaf1ff",
+                        "primary-fixed": "#dbe1ff",
+                        "inverse-surface": "#213145",
+                        "surface-dim": "#cbdbf5",
+                        "on-error": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-container": "#8455ef",
+                        "on-tertiary-container": "#bdffdb",
+                        "surface-tint": "#0053db",
+                        "tertiary-fixed": "#6ffbbe",
+                        "on-primary": "#ffffff",
+                        "primary": "#004ac6",
+                        "on-tertiary-fixed": "#002113",
+                        "surface-container": "#e5eeff",
+                        "on-background": "#0b1c30",
+                        "outline": "#737686",
+                        "on-error-container": "#93000a",
+                        "tertiary-container": "#007d55",
+                        "tertiary-fixed-dim": "#4edea3"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "4px",
+                        "gutter-mobile": "12px",
+                        "margin-mobile": "16px",
+                        "stack-md": "16px",
+                        "stack-lg": "24px",
+                        "stack-sm": "8px"
+                    },
+                    "fontFamily": {
+                        "headline-sm": ["Plus Jakarta Sans", "sans-serif"],
+                        "translation-text": ["Be Vietnam Pro", "sans-serif"],
+                        "body-sm": ["Be Vietnam Pro", "sans-serif"],
+                        "headline-lg": ["Plus Jakarta Sans", "sans-serif"],
+                        "body-lg": ["Be Vietnam Pro", "sans-serif"],
+                        "label-sm": ["Inter", "sans-serif"],
+                        "headline-md": ["Plus Jakarta Sans", "sans-serif"],
+                        "label-md": ["Inter", "sans-serif"],
+                        "body-md": ["Be Vietnam Pro", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700&amp;family=Inter:wght@500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+        
+        /* Custom scrollbar for transcript */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: theme('colors.outline-variant');
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="h-full bg-background text-on-surface overflow-hidden flex flex-col font-body-md">
+<!-- Top Navigation Shell (Hidden on standard transactional screens, but kept here for app context if needed, structurally suppressed per instructions for focused journey, replacing with custom in-call header) -->
+<!-- Main Call Canvas -->
+<main class="flex-1 relative w-full h-full flex flex-col md:flex-row overflow-hidden bg-black">
+<!-- Video Container -->
+<div class="relative flex-1 h-full w-full">
+<!-- Full Screen Teacher Video -->
+<img alt="Teacher Video Feed" class="absolute inset-0 w-full h-full object-cover" data-alt="A high-quality, full-screen video still of a friendly female language teacher looking directly at the camera with a warm, encouraging smile. The lighting is bright and modern, creating a safe and approachable atmosphere. She is in a tidy, brightly lit home office with subtle plants and books in the background. The aesthetic is clean, professional, yet casual and inviting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqFeBQJKpeppH8a5L6PHR-wfioMotMtRakRSK5jmSaWygabFDJaPq0bgNCeh9r5T7Ykn2HOq9oi441-SbjXWd1ARqddxWbga0xsovnsaRsU3UXXRUpsrIBG9Gl_IkVIJikFikWOwQ-7wBCCGAH6E9xaa3oEUvd9PdY3HGTXgJq2SEkeJwxpiWqM-isIWljb8bsSzx95YOY-6Fx1vDPwsW2-RvUdWclDXdwvZxl_4rxEL2odMZbBI52"/>
+<!-- In-Call Header Overlay -->
+<div class="absolute top-0 left-0 w-full p-4 flex justify-between items-start z-20 bg-gradient-to-b from-black/60 to-transparent">
+<div class="flex items-center gap-3">
+<button class="w-10 h-10 rounded-full bg-surface/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-surface/30 transition-colors">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<div>
+<h1 class="font-headline-sm text-white">Conversation with Sofia</h1>
+<p class="font-label-sm text-white/80">04:23</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="w-10 h-10 rounded-full bg-surface/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-surface/30 transition-colors">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Picture-in-Picture User Video -->
+<div class="absolute top-20 right-4 w-28 h-40 md:w-48 md:h-64 rounded-xl overflow-hidden border-2 border-surface/20 shadow-lg z-20">
+<img alt="User Video Feed" class="w-full h-full object-cover" data-alt="A small, picture-in-picture video still of a user participating in a video call. The user looks attentive and engaged, slightly smiling. Soft, natural lighting from a nearby window illuminates their face. The background is slightly out of focus, showing a modern living room setting. The overall mood is focused and positive." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUYByDH5JoLTLFmU7PbRhw3J-EavU9e6h-IlDSfO-s9jet9cPVdTaTbvFQxDDTZJA7hMUNXIhBqT1nZM0PyDN6sCsNfDO4Hvqt24l6EImlj1mb372HFPxRaeNsVyR2CmnNdPZfmVJoxHdCp1q6HuOC7VuFz3ylPNFBhtB9S9Ag-T78DysHRH6uVyu5ov97fIYvp4rtod_eKDjUxXYROtDQLjTrtaF7_c_On-AuNfx7ZrFDnrbJTEyt"/>
+</div>
+<!-- Floating Subtitles -->
+<div class="absolute bottom-28 md:bottom-32 left-0 w-full px-4 flex flex-col items-center z-20 pointer-events-none">
+<div class="bg-black/60 backdrop-blur-sm rounded-lg px-6 py-3 max-w-2xl text-center mb-2">
+<p class="font-headline-sm text-white">¡Hola! ¿Cómo estuvo tu fin de semana?</p>
+</div>
+<div class="bg-primary-container/80 backdrop-blur-sm rounded-lg px-4 py-1.5 max-w-xl text-center">
+<p class="font-translation-text text-on-primary-container">Hello! How was your weekend?</p>
+</div>
+</div>
+<!-- Call Controls (Bottom Center) -->
+<div class="absolute bottom-6 left-0 w-full flex justify-center items-center gap-4 md:gap-6 z-20">
+<button class="w-12 h-12 rounded-full bg-surface/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-surface/30 transition-colors">
+<span class="material-symbols-outlined" data-icon="flip_camera_ios">flip_camera_ios</span>
+</button>
+<button class="w-14 h-14 rounded-full bg-surface/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-surface/30 transition-colors">
+<span class="material-symbols-outlined" data-icon="mic">mic</span>
+</button>
+<!-- Sparky Insight Button -->
+<button class="w-14 h-14 rounded-full bg-secondary text-white shadow-[0_0_15px_rgba(107,56,212,0.5)] flex items-center justify-center hover:scale-105 transition-transform">
+<span class="material-symbols-outlined" data-icon="lightbulb">lightbulb</span>
+</button>
+<button class="w-14 h-14 rounded-full bg-error text-white flex items-center justify-center hover:bg-error/90 transition-colors shadow-lg">
+<span class="material-symbols-outlined" data-icon="call_end">call_end</span>
+</button>
+<button class="w-12 h-12 md:hidden rounded-full bg-surface/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-surface/30 transition-colors" id="toggle-transcript-btn">
+<span class="material-symbols-outlined" data-icon="chat">chat</span>
+</button>
+</div>
+<!-- Insight Overlay Popover (Example of Sparky Insight triggered) -->
+<div class="absolute bottom-24 right-4 md:right-[340px] max-w-xs bg-surface rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.1)] p-4 z-30 border border-secondary/20 hidden">
+<div class="flex items-start gap-3">
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center text-secondary flex-shrink-0">
+<span class="material-symbols-outlined text-sm" data-icon="tips_and_updates">tips_and_updates</span>
+</div>
+<div>
+<h4 class="font-label-md text-secondary font-bold mb-1">Grammar Spark</h4>
+<p class="font-body-sm text-on-surface">Notice how Sofia used <strong>estuvo</strong> (preterite) instead of <strong>estaba</strong> (imperfect) for a completed event!</p>
+</div>
+<button class="text-outline hover:text-on-surface ml-auto">
+<span class="material-symbols-outlined text-sm" data-icon="close">close</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Call Transcript Side Panel (Visible on Desktop, Toggleable on Mobile) -->
+<aside class="hidden md:flex flex-col w-full md:w-80 lg:w-96 h-1/2 md:h-full bg-surface border-l border-outline-variant/30 absolute md:relative bottom-0 md:bottom-auto z-40 transition-transform transform translate-y-full md:translate-y-0 rounded-t-2xl md:rounded-none" id="transcript-panel">
+<!-- Panel Header -->
+<div class="flex justify-between items-center p-4 border-b border-outline-variant/30 bg-surface z-10 rounded-t-2xl md:rounded-none">
+<h2 class="font-headline-sm text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="forum">forum</span>
+                    Transcript
+                </h2>
+<button class="md:hidden text-on-surface-variant hover:text-on-surface p-2" id="close-transcript-btn">
+<span class="material-symbols-outlined" data-icon="expand_more">expand_more</span>
+</button>
+</div>
+<!-- Scrollable Messages -->
+<div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
+<!-- System Message -->
+<div class="text-center">
+<span class="font-label-sm text-outline px-3 py-1 bg-surface-container-low rounded-full">Call started at 10:00 AM</span>
+</div>
+<!-- Teacher Message -->
+<div class="flex flex-col gap-1 items-start">
+<div class="flex items-center gap-2 mb-1">
+<div class="w-6 h-6 rounded-full bg-surface-container-high overflow-hidden">
+<img alt="Sofia" class="w-full h-full object-cover" data-alt="Small avatar of the friendly female language teacher." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDF4ZfeM0Zumu8fhv5O3EjM0Km41G9GzEUjkxrjjuqRN50ZlK13y7R1gnyR98VjhUTFAevbqthcJqJLyG7554fr1BXE5dhvY7POmRjw-WanGYQRHzut1ROL3Ki9yak6wf6ubcjlO8O-rJRh5qXSPzTOlu814Unf9rEkMVBxBZmyodb6dpjg9bmSTIi_8Hdf9bAWX4V5a1Q37l8-GHHhUReK9XjmF3Tnepb2A8yt86BxP3fm7hAVpwAA"/>
+</div>
+<span class="font-label-sm text-on-surface-variant">Sofia</span>
+</div>
+<div class="bg-white px-4 py-3 rounded-2xl rounded-tl-sm shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-outline-variant/20 max-w-[90%]">
+<p class="font-body-md text-on-surface">¡Hola! ¿Cómo estuvo tu fin de semana?</p>
+<p class="font-translation-text text-outline mt-1 border-t border-outline-variant/20 pt-1">Hello! How was your weekend?</p>
+</div>
+</div>
+<!-- User Message -->
+<div class="flex flex-col gap-1 items-end">
+<div class="flex items-center gap-2 mb-1 justify-end">
+<span class="font-label-sm text-on-surface-variant">You</span>
+</div>
+<div class="bg-primary px-4 py-3 rounded-2xl rounded-tr-sm shadow-[0_4px_12px_rgba(0,0,0,0.05)] max-w-[90%]">
+<p class="font-body-md text-white">¡Hola! Muy bien, gracias. Fui al parque con mi perro.</p>
+</div>
+</div>
+<!-- Teacher Message with Correction/Insight -->
+<div class="flex flex-col gap-1 items-start">
+<div class="flex items-center gap-2 mb-1">
+<div class="w-6 h-6 rounded-full bg-surface-container-high overflow-hidden">
+<img alt="Sofia" class="w-full h-full object-cover" data-alt="Small avatar of the friendly female language teacher." src="https://lh3.googleusercontent.com/aida-public/AB6AXuByw8NXPwS2PSlq0wrst4mCuAC1fnBaegKWc955UfZbX-7dJjJjZJM-lLRXtFp6MBCGnoQ82PLqvCLOxAZHByeyZ3xVQaBzTJdOJndroVhfmw8_gMYuupSq--PFzonA8wrDp-3Z5BG5VBdCNivB_LjRlnxRPH_3aRH3DYniReSmUwXYw__3bk70Ft-eF3RSJDFlCS0HJIrZ6UkCQG7MUTl-Bv-HozYQ6oSuAaxyaOAfl-dKJN8d-1g7"/>
+</div>
+<span class="font-label-sm text-on-surface-variant">Sofia</span>
+</div>
+<!-- AI Enhanced Bubble -->
+<div class="bg-secondary-fixed/30 px-4 py-3 rounded-2xl rounded-tl-sm shadow-[0_4px_12px_rgba(0,0,0,0.05)] border-l-4 border-secondary max-w-[90%] relative">
+<div class="absolute -top-2 -right-2 w-6 h-6 bg-secondary rounded-full flex items-center justify-center shadow-md">
+<span class="material-symbols-outlined text-[14px] text-white" data-icon="auto_awesome">auto_awesome</span>
+</div>
+<p class="font-body-md text-on-surface">¡Qué divertido! ¿Qué <span class="bg-error-container text-on-error-container px-1 rounded">hizo</span> en el parque?</p>
+<div class="mt-2 bg-white/60 p-2 rounded-lg border border-secondary/20">
+<p class="font-label-sm text-secondary font-bold">Correction Tip</p>
+<p class="font-body-sm text-on-surface-variant mt-1">She meant: ¿Qué <strong>hicieron</strong> en el parque? (What did you guys do?)</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Transcript Input area (disabled for video call focus) -->
+<div class="p-4 border-t border-outline-variant/30 bg-surface-container-low">
+<p class="font-label-sm text-center text-outline">Transcript auto-scrolls during conversation</p>
+</div>
+</aside>
+</main>
+<script>
+        // Simple toggle for mobile transcript panel
+        const toggleBtn = document.getElementById('toggle-transcript-btn');
+        const closeBtn = document.getElementById('close-transcript-btn');
+        const transcriptPanel = document.getElementById('transcript-panel');
+
+        function toggleTranscript() {
+            transcriptPanel.classList.toggle('hidden');
+            transcriptPanel.classList.toggle('flex');
+            // Small delay for transition to apply if it were un-hidden
+            setTimeout(() => {
+                transcriptPanel.classList.toggle('translate-y-full');
+            }, 10);
+        }
+
+        toggleBtn.addEventListener('click', toggleTranscript);
+        closeBtn.addEventListener('click', () => {
+             transcriptPanel.classList.add('translate-y-full');
+             setTimeout(() => {
+                transcriptPanel.classList.add('hidden');
+                transcriptPanel.classList.remove('flex');
+             }, 300); // match transition duration roughly
+        });
+    </script>
+</body></html>

@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/chorus/messenger/internal/middleware"
 	"github.com/chorus/messenger/internal/models"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/gin-gonic/gin"
@@ -28,19 +29,19 @@ func NewGrammarHandler(gs *services.GrammarService, gq *services.GrammarQueueSer
 func (h *GrammarHandler) AnalyzeMessageGrammar(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
 	var req models.GrammarAnalysisRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		WriteError(c, middleware.ErrValidation("Invalid request body"))
 		return
 	}
 
 	message, err := h.messageService.GetMessageByID(c.Request.Context(), req.MessageID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Message not found"})
+		WriteError(c, middleware.ErrNotFound("Message not found"))
 		return
 	}
 
@@ -59,7 +60,7 @@ func (h *GrammarHandler) AnalyzeMessageGrammar(c *gin.Context) {
 	}
 	analysis, err := h.grammarService.AnalyzeGrammar(text, language, nativeLang)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Grammar analysis failed"})
+		WriteError(c, middleware.ErrInternal("Grammar analysis failed"))
 		return
 	}
 
@@ -71,7 +72,7 @@ func (h *GrammarHandler) AnalyzeMessageGrammar(c *gin.Context) {
 func (h *GrammarHandler) AnalyzeText(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
@@ -81,7 +82,7 @@ func (h *GrammarHandler) AnalyzeText(c *gin.Context) {
 		NativeLanguage string `json:"nativeLanguage"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		WriteError(c, middleware.ErrValidation("Invalid request body"))
 		return
 	}
 	if req.NativeLanguage == "" {
@@ -91,7 +92,7 @@ func (h *GrammarHandler) AnalyzeText(c *gin.Context) {
 	// Perform grammar analysis
 	analysis, err := h.grammarService.AnalyzeGrammar(req.Text, req.Language, req.NativeLanguage)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Grammar analysis failed"})
+		WriteError(c, middleware.ErrInternal("Grammar analysis failed"))
 		return
 	}
 
@@ -109,7 +110,7 @@ func (h *GrammarHandler) AnalyzeText(c *gin.Context) {
 func (h *GrammarHandler) GetDifficultyLevel(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
@@ -119,7 +120,7 @@ func (h *GrammarHandler) GetDifficultyLevel(c *gin.Context) {
 		NativeLanguage string `json:"nativeLanguage"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		WriteError(c, middleware.ErrValidation("Invalid request body"))
 		return
 	}
 
@@ -129,7 +130,7 @@ func (h *GrammarHandler) GetDifficultyLevel(c *gin.Context) {
 	}
 	analysis, err := h.grammarService.AnalyzeGrammar(req.Text, req.Language, nativeLang)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Analysis failed"})
+		WriteError(c, middleware.ErrInternal("Analysis failed"))
 		return
 	}
 
@@ -146,20 +147,20 @@ func (h *GrammarHandler) GetDifficultyLevel(c *gin.Context) {
 func (h *GrammarHandler) GetGrammarSuggestions(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
 	level := c.DefaultQuery("level", "B1")
 	language := c.Query("language")
 	if language == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Language parameter required"})
+		WriteError(c, middleware.ErrValidation("Language parameter required"))
 		return
 	}
 
 	suggestions, err := h.grammarService.GetGrammarSuggestions(level, language)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get suggestions"})
+		WriteError(c, middleware.ErrInternal("Failed to get suggestions"))
 		return
 	}
 
@@ -171,19 +172,19 @@ func (h *GrammarHandler) GetGrammarSuggestions(c *gin.Context) {
 func (h *GrammarHandler) GetGrammarReport(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
 	language := c.Query("language")
 	if language == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Language parameter required"})
+		WriteError(c, middleware.ErrValidation("Language parameter required"))
 		return
 	}
 
 	report, err := h.grammarService.GenerateGrammarReport(userID, language)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate report"})
+		WriteError(c, middleware.ErrInternal("Failed to generate report"))
 		return
 	}
 
@@ -199,7 +200,7 @@ func (h *GrammarHandler) GetGrammarReport(c *gin.Context) {
 func (h *GrammarHandler) AnalyzeTextWithAI(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
@@ -211,7 +212,7 @@ func (h *GrammarHandler) AnalyzeTextWithAI(c *gin.Context) {
 		ChatID         string `json:"chatId"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		WriteError(c, middleware.ErrValidation("Invalid request body"))
 		return
 	}
 
@@ -221,7 +222,7 @@ func (h *GrammarHandler) AnalyzeTextWithAI(c *gin.Context) {
 	}
 
 	if h.grammarQueue == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Grammar queue not available"})
+		WriteError(c, middleware.ErrUnavailable("Grammar queue not available"))
 		return
 	}
 
@@ -238,7 +239,7 @@ func (h *GrammarHandler) AnalyzeTextWithAI(c *gin.Context) {
 
 	jobID, err := h.grammarQueue.EnqueueForAnalysis(userID, req.ChatID, req.MessageID, req.Text, req.Language, nativeLang)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "AI grammar analysis failed"})
+		WriteError(c, middleware.ErrInternal("AI grammar analysis failed"))
 		return
 	}
 
@@ -255,20 +256,20 @@ func (h *GrammarHandler) AnalyzeTextWithAI(c *gin.Context) {
 func (h *GrammarHandler) GetGrammarJob(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
 	jobID := c.Param("jobId")
 	if jobID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "jobId is required"})
+		WriteError(c, middleware.ErrValidation("jobId is required"))
 		return
 	}
 
 	job, err := h.grammarQueue.GetJob(jobID, userID)
 	if err != nil {
 		log.Printf("[Grammar] get job %s for user %s: %v", jobID, userID, err)
-		c.JSON(http.StatusNotFound, gin.H{"error": "Grammar job not found"})
+		WriteError(c, middleware.ErrNotFound("Grammar job not found"))
 		return
 	}
 
@@ -280,19 +281,19 @@ func (h *GrammarHandler) GetGrammarJob(c *gin.Context) {
 func (h *GrammarHandler) LearnGrammar(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
 	var req models.LearnRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		WriteError(c, middleware.ErrValidation("Invalid request body"))
 		return
 	}
 
 	content, err := h.grammarService.GenerateLearningContent(req.Text, req.Language, req.NativeLanguage, req.Action, req.CustomQuery)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate learning content"})
+		WriteError(c, middleware.ErrInternal("Failed to generate learning content"))
 		return
 	}
 

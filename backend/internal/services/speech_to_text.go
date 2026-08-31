@@ -19,7 +19,7 @@ func NewSpeechToTextService(ctx context.Context) (*SpeechToTextService, error) {
 		// It will use mock transcription
 		return &SpeechToTextService{client: nil}, nil
 	}
-	
+
 	return &SpeechToTextService{
 		client: client,
 	}, nil
@@ -31,18 +31,18 @@ func (s *SpeechToTextService) TranscribeAudio(ctx context.Context, audioData []b
 		// Mock transcription for development/testing
 		return s.mockTranscription(audioData)
 	}
-	
+
 	// Real Google Speech-to-Text API call
 	req := &speechpb.RecognizeRequest{
 		Config: &speechpb.RecognitionConfig{
-			Encoding:        speechpb.RecognitionConfig_LINEAR16,
-			SampleRateHertz: 16000,
-			LanguageCode:    "en-US",
+			Encoding:                   speechpb.RecognitionConfig_LINEAR16,
+			SampleRateHertz:            16000,
+			LanguageCode:               "en-US",
 			EnableAutomaticPunctuation: true,
-			Model: "default",
-			EnableWordTimeOffsets: true,
+			Model:                      "default",
+			EnableWordTimeOffsets:      true,
 			AlternativeLanguageCodes: []string{
-				"es-ES", "fr-FR", "de-DE", "it-IT", 
+				"es-ES", "fr-FR", "de-DE", "it-IT",
 				"pt-PT", "ja-JP", "ko-KR", "zh-CN",
 			},
 		},
@@ -52,29 +52,29 @@ func (s *SpeechToTextService) TranscribeAudio(ctx context.Context, audioData []b
 			},
 		},
 	}
-	
+
 	resp, err := s.client.Recognize(ctx, req)
 	if err != nil {
 		return "", "", 0, fmt.Errorf("failed to recognize speech: %w", err)
 	}
-	
+
 	if len(resp.Results) == 0 {
 		return "", "", 0, fmt.Errorf("no speech detected")
 	}
-	
+
 	result := resp.Results[0]
 	if len(result.Alternatives) == 0 {
 		return "", "", 0, fmt.Errorf("no alternatives found")
 	}
-	
+
 	alternative := result.Alternatives[0]
-	
+
 	// Detect language from the result
 	detectedLanguage := result.LanguageCode
 	if detectedLanguage == "" {
 		detectedLanguage = "en"
 	}
-	
+
 	return alternative.Transcript, detectedLanguage, float64(alternative.Confidence), nil
 }
 
@@ -83,20 +83,20 @@ func (s *SpeechToTextService) StreamTranscribe(ctx context.Context) (*StreamTran
 	if s.client == nil {
 		return nil, fmt.Errorf("speech client not initialized")
 	}
-	
+
 	stream, err := s.client.StreamingRecognize(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create streaming client: %w", err)
 	}
-	
+
 	// Send the initial configuration
 	if err := stream.Send(&speechpb.StreamingRecognizeRequest{
 		StreamingRequest: &speechpb.StreamingRecognizeRequest_StreamingConfig{
 			StreamingConfig: &speechpb.StreamingRecognitionConfig{
 				Config: &speechpb.RecognitionConfig{
-					Encoding:        speechpb.RecognitionConfig_LINEAR16,
-					SampleRateHertz: 16000,
-					LanguageCode:    "en-US",
+					Encoding:                   speechpb.RecognitionConfig_LINEAR16,
+					SampleRateHertz:            16000,
+					LanguageCode:               "en-US",
 					EnableAutomaticPunctuation: true,
 					AlternativeLanguageCodes: []string{
 						"es-ES", "fr-FR", "de-DE", "it-IT",
@@ -109,7 +109,7 @@ func (s *SpeechToTextService) StreamTranscribe(ctx context.Context) (*StreamTran
 	}); err != nil {
 		return nil, fmt.Errorf("failed to send config: %w", err)
 	}
-	
+
 	return &StreamTranscriber{
 		stream: stream,
 	}, nil
@@ -134,18 +134,18 @@ func (st *StreamTranscriber) ReceiveTranscription() (text string, isFinal bool, 
 	if err != nil {
 		return "", false, 0, err
 	}
-	
+
 	if len(resp.Results) == 0 {
 		return "", false, 0, nil
 	}
-	
+
 	result := resp.Results[0]
 	if len(result.Alternatives) == 0 {
 		return "", false, 0, nil
 	}
-	
+
 	alternative := result.Alternatives[0]
-	
+
 	return alternative.Transcript, result.IsFinal, float64(alternative.Confidence), nil
 }
 
@@ -164,18 +164,18 @@ func (s *SpeechToTextService) mockTranscription(audioData []byte) (text string, 
 		"Can you help me with this?",
 		"Thank you very much!",
 	}
-	
+
 	// Use audio data length as pseudo-random index
 	index := len(audioData) % len(mockTexts)
-	
+
 	return mockTexts[index], "en", 0.95, nil
 }
 
 // TranscribeWithTimestamps provides word-level timestamps
 type TimestampedWord struct {
-	Word      string  `json:"word"`
-	StartTime float64 `json:"startTime"`
-	EndTime   float64 `json:"endTime"`
+	Word       string  `json:"word"`
+	StartTime  float64 `json:"startTime"`
+	EndTime    float64 `json:"endTime"`
 	Confidence float64 `json:"confidence"`
 }
 
@@ -183,13 +183,13 @@ func (s *SpeechToTextService) TranscribeWithTimestamps(ctx context.Context, audi
 	if s.client == nil {
 		return nil, fmt.Errorf("speech client not initialized")
 	}
-	
+
 	req := &speechpb.RecognizeRequest{
 		Config: &speechpb.RecognitionConfig{
-			Encoding:        speechpb.RecognitionConfig_LINEAR16,
-			SampleRateHertz: 16000,
-			LanguageCode:    "en-US",
-			EnableWordTimeOffsets: true,
+			Encoding:                   speechpb.RecognitionConfig_LINEAR16,
+			SampleRateHertz:            16000,
+			LanguageCode:               "en-US",
+			EnableWordTimeOffsets:      true,
 			EnableAutomaticPunctuation: true,
 		},
 		Audio: &speechpb.RecognitionAudio{
@@ -198,35 +198,35 @@ func (s *SpeechToTextService) TranscribeWithTimestamps(ctx context.Context, audi
 			},
 		},
 	}
-	
+
 	resp, err := s.client.Recognize(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to recognize speech: %w", err)
 	}
-	
+
 	if len(resp.Results) == 0 {
 		return nil, fmt.Errorf("no speech detected")
 	}
-	
+
 	words := []TimestampedWord{}
-	
+
 	for _, result := range resp.Results {
 		if len(result.Alternatives) == 0 {
 			continue
 		}
-		
+
 		alternative := result.Alternatives[0]
-		
+
 		for _, wordInfo := range alternative.Words {
 			words = append(words, TimestampedWord{
-				Word:      wordInfo.Word,
-				StartTime: float64(wordInfo.StartTime.Seconds) + float64(wordInfo.StartTime.Nanos)/1e9,
-				EndTime:   float64(wordInfo.EndTime.Seconds) + float64(wordInfo.EndTime.Nanos)/1e9,
+				Word:       wordInfo.Word,
+				StartTime:  float64(wordInfo.StartTime.Seconds) + float64(wordInfo.StartTime.Nanos)/1e9,
+				EndTime:    float64(wordInfo.EndTime.Seconds) + float64(wordInfo.EndTime.Nanos)/1e9,
 				Confidence: float64(alternative.Confidence),
 			})
 		}
 	}
-	
+
 	return words, nil
 }
 
@@ -235,7 +235,7 @@ func (s *SpeechToTextService) DetectLanguageFromAudio(ctx context.Context, audio
 	if s.client == nil {
 		return "en", 0.95, nil
 	}
-	
+
 	// Use multiple language codes to detect
 	req := &speechpb.RecognizeRequest{
 		Config: &speechpb.RecognitionConfig{
@@ -253,32 +253,32 @@ func (s *SpeechToTextService) DetectLanguageFromAudio(ctx context.Context, audio
 			},
 		},
 	}
-	
+
 	resp, err := s.client.Recognize(ctx, req)
 	if err != nil {
 		return "", 0, fmt.Errorf("failed to detect language: %w", err)
 	}
-	
+
 	if len(resp.Results) == 0 {
 		return "", 0, fmt.Errorf("no speech detected")
 	}
-	
+
 	result := resp.Results[0]
 	detectedLanguage := result.LanguageCode
 	if detectedLanguage == "" {
 		detectedLanguage = "en-US"
 	}
-	
+
 	// Extract language code (e.g., "en" from "en-US")
 	if len(detectedLanguage) >= 2 {
 		detectedLanguage = detectedLanguage[:2]
 	}
-	
+
 	confidence := 0.0
 	if len(result.Alternatives) > 0 {
 		confidence = float64(result.Alternatives[0].Confidence)
 	}
-	
+
 	return detectedLanguage, confidence, nil
 }
 

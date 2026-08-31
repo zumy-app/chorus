@@ -61,8 +61,9 @@ func (s *PracticeService) GradeAnswer(correctAnswer string, answerText string, p
 	correct := normalizeAnswer(correctAnswer)
 
 	// Prompt types accept different answer forms. For MCQ the answer is already
-	// one of the choices; for cloze/free recall we do a loose match.
-	match := ans == correct || strings.Contains(ans, correct) || strings.Contains(correct, ans)
+	// one of the choices; for cloze/free recall we do a loose match. An empty
+	// answer must never score as correct (strings.Contains(x, "") is true).
+	match := ans != "" && (ans == correct || strings.Contains(ans, correct) || strings.Contains(correct, ans))
 
 	switch promptType {
 	case "cued_recall", "cloze", "recognition":

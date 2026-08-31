@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Progress Tracker - Language Journey</title>
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788156392938&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YTUxYmM1ZjI2YTIwNzNhYzU5MDBkMDI5YThlEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;900&amp;family=Inter:wght@400;500;600&amp;family=Be+Vietnam+Pro:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "secondary-container": "#8455ef",
+                      "surface-container": "#e5eeff",
+                      "inverse-on-surface": "#eaf1ff",
+                      "secondary": "#6b38d4",
+                      "outline": "#737686",
+                      "secondary-fixed": "#e9ddff",
+                      "outline-variant": "#c3c6d7",
+                      "primary-fixed-dim": "#b4c5ff",
+                      "primary": "#004ac6",
+                      "on-secondary": "#ffffff",
+                      "primary-container": "#2563eb",
+                      "on-primary-fixed": "#00174b",
+                      "tertiary-container": "#007d55",
+                      "on-error": "#ffffff",
+                      "primary-fixed": "#dbe1ff",
+                      "surface-tint": "#0053db",
+                      "tertiary-fixed": "#6ffbbe",
+                      "surface": "#f8f9ff",
+                      "on-secondary-fixed-variant": "#5516be",
+                      "surface-container-high": "#dce9ff",
+                      "surface-container-highest": "#d3e4fe",
+                      "on-error-container": "#93000a",
+                      "on-surface": "#0b1c30",
+                      "surface-variant": "#d3e4fe",
+                      "tertiary": "#006242",
+                      "background": "#f8f9ff",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "secondary-fixed-dim": "#d0bcff",
+                      "surface-container-low": "#eff4ff",
+                      "surface-container-lowest": "#ffffff",
+                      "on-secondary-container": "#fffbff",
+                      "on-primary": "#ffffff",
+                      "on-tertiary-fixed": "#002113",
+                      "on-tertiary-container": "#bdffdb",
+                      "inverse-primary": "#b4c5ff",
+                      "inverse-surface": "#213145",
+                      "error-container": "#ffdad6",
+                      "on-primary-fixed-variant": "#003ea8",
+                      "on-secondary-fixed": "#23005c",
+                      "surface-dim": "#cbdbf5",
+                      "surface-bright": "#f8f9ff",
+                      "on-tertiary-fixed-variant": "#005236",
+                      "on-surface-variant": "#434655",
+                      "on-tertiary": "#ffffff",
+                      "error": "#ba1a1a",
+                      "on-primary-container": "#eeefff",
+                      "on-background": "#0b1c30"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "stack-md": "16px",
+                      "margin-mobile": "16px",
+                      "stack-sm": "8px",
+                      "unit": "4px",
+                      "stack-lg": "24px",
+                      "gutter-mobile": "12px"
+              },
+              "fontFamily": {
+                      "headline-md": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "label-sm": [
+                              "Inter"
+                      ],
+                      "translation-text": [
+                              "Be Vietnam Pro"
+                      ],
+                      "headline-lg": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "body-md": [
+                              "Be Vietnam Pro"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "headline-sm": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "body-sm": [
+                              "Be Vietnam Pro"
+                      ],
+                      "body-lg": [
+                              "Be Vietnam Pro"
+                      ]
+              },
+              "fontSize": {
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "label-sm": [
+                              "11px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.03em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "translation-text": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-lg": [
+                              "30px",
+                              {
+                                      "lineHeight": "38px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-md": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "letterSpacing": "0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-sm": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        .circular-chart {
+            display: block;
+            margin: 10px auto;
+            max-width: 80%;
+            max-height: 250px;
+        }
+        .circle-bg {
+            fill: none;
+            stroke: #eff4ff; /* surface-container-low */
+            stroke-width: 3.8;
+        }
+        .circle {
+            fill: none;
+            stroke-width: 2.8;
+            stroke-linecap: round;
+            animation: progress 1s ease-out forwards;
+        }
+        @keyframes progress {
+            0% {
+                stroke-dasharray: 0 100;
+            }
+        }
+        
+        .progress-bar-fill {
+            transition: width 1s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col md:flex-row">
+<!-- NavigationDrawer (Web) -->
+<nav class="hidden md:flex flex-col h-full w-64 fixed left-0 top-0 bg-surface shadow-md py-stack-lg z-40">
+<div class="px-6 mb-8 flex items-center gap-4">
+<div class="w-12 h-12 rounded-full overflow-hidden border-2 border-primary-container shrink-0">
+<img alt="Teacher profile photo" class="w-full h-full object-cover" data-alt="Close-up portrait of a friendly language teacher in a modern, well-lit classroom environment. The lighting is soft and natural, conveying a welcoming and professional atmosphere. A subtle blue tint reflects the modern ed-tech brand identity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEd1Yk3bu2zS6C-HDKFp3n_fT9t3KBFwP96SP_CNxjHb5WxiTb1GQG5rKlqWY5Dy1xysUaUIJZrzbcwsJCN1Bn42NnKi6P28NnVqfH7QpRkQfnN4xR_03F6X-ZwulJDp00UsT3g6oiZ_Sk5qb_ie5eEVwyHTuCqIr6HThqEGqX8EScNmFDctDvvOkVchQkhNwJ9tVQ-ZuCuRGTYfVeugpFPPTSNcRI-01yycFyVDpll70VL1Xlgmzm"/>
+</div>
+<div>
+<h2 class="font-label-md text-label-md text-on-surface">Chorus Educator</h2>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Professional Tier</p>
+</div>
+</div>
+<div class="flex-1 px-2 space-y-1">
+<a class="text-on-surface-variant flex items-center px-4 py-3 my-1 mx-2 hover:bg-surface-container-high rounded-xl transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined mr-3">dashboard</span>
+                Dashboard
+            </a>
+<a class="text-on-surface-variant flex items-center px-4 py-3 my-1 mx-2 hover:bg-surface-container-high rounded-xl transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined mr-3">payments</span>
+                Earnings
+            </a>
+<a class="bg-primary-container text-on-primary-container rounded-xl flex items-center px-4 py-3 my-1 mx-2 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined mr-3">group</span>
+                Students
+            </a>
+<a class="text-on-surface-variant flex items-center px-4 py-3 my-1 mx-2 hover:bg-surface-container-high rounded-xl transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined mr-3">calendar_month</span>
+                Schedule
+            </a>
+<a class="text-on-surface-variant flex items-center px-4 py-3 my-1 mx-2 hover:bg-surface-container-high rounded-xl transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined mr-3">settings</span>
+                Settings
+            </a>
+</div>
+</nav>
+<!-- TopAppBar (Web/Mobile) -->
+<header class="md:hidden flex items-center justify-between px-margin-mobile w-full h-16 bg-surface-container-lowest shadow-sm docked full-width top-0 z-30">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden">
+<img alt="Teacher profile picture" class="w-full h-full object-cover" data-alt="Close-up portrait of a friendly language teacher in a modern, well-lit classroom environment. The lighting is soft and natural, conveying a welcoming and professional atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCEzxT5pZ3O05oL0pXJ4qI0wqFYmIparLbEce1I_tZPtoE3gQ2Raz91R6kkhZ20nYJ859h8iDUj-fSl7ULmRbH2FWMPKpn2wxPIyUeoT-dq-lKvQVHTQ4nOba8dVeVntKAatpBx4Ei7Cj635S8A2ddBgFsBl5INYlIlfnaDJg_qYwyc2L4zZCp8UlZFilrmtfBDR6Wja4qwjtNGQBmFMGl-6yrNbresCHMstYVvmbCjl1Qt4n5l2wOG"/>
+</div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">Chorus Teacher Partner</h1>
+</div>
+<button class="text-primary cursor-pointer active:opacity-80 p-2 hover:bg-surface-container rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 md:ml-64 p-margin-mobile md:p-stack-lg pb-24 md:pb-stack-lg max-w-6xl mx-auto w-full">
+<header class="mb-stack-lg">
+<h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">Student Progress</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Tracking journey towards B1 Fluency</p>
+</header>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-stack-md lg:gap-stack-lg">
+<!-- Hero: Fluency Score -->
+<div class="lg:col-span-1 bg-surface-container-lowest rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] p-stack-lg flex flex-col items-center justify-center relative overflow-hidden">
+<!-- Decorative background elements -->
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary-fixed rounded-bl-full opacity-50 blur-2xl"></div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface w-full text-left mb-4">Fluency Score</h2>
+<div class="relative w-full max-w-[200px] aspect-square flex items-center justify-center mb-4">
+<svg class="circular-chart w-full h-full transform -rotate-90" viewbox="0 0 36 36">
+<path class="circle-bg" d="M18 2.0845
+                            a 15.9155 15.9155 0 0 1 0 31.831
+                            a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+<path class="circle stroke-primary" d="M18 2.0845
+                            a 15.9155 15.9155 0 0 1 0 31.831
+                            a 15.9155 15.9155 0 0 1 0 -31.831" stroke-dasharray="74, 100"></path>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+<span class="font-headline-lg text-headline-lg text-primary">740</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mt-1">/ 1000</span>
+</div>
+</div>
+<div class="flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-full mt-2">
+<span class="material-symbols-outlined text-tertiary-container text-sm" data-weight="fill">trending_up</span>
+<span class="font-label-md text-label-md text-tertiary-container">+45 this week</span>
+</div>
+</div>
+<!-- Skills Breakdown -->
+<div class="lg:col-span-2 bg-surface-container-lowest rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] p-stack-lg">
+<div class="flex justify-between items-center mb-6">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Skill Breakdown</h2>
+<span class="font-label-sm text-label-sm bg-surface-container px-3 py-1 rounded-full text-on-surface-variant">A2 Level Overall</span>
+</div>
+<div class="space-y-6">
+<!-- Speaking -->
+<div>
+<div class="flex justify-between items-end mb-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container p-1.5 bg-primary-fixed rounded-lg">mic</span>
+<span class="font-label-md text-label-md text-on-surface">Speaking</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">72%</span>
+</div>
+<div class="h-2 w-full bg-surface-container-low rounded-full overflow-hidden">
+<div class="h-full bg-primary-container rounded-full progress-bar-fill" style="width: 72%"></div>
+</div>
+</div>
+<!-- Listening -->
+<div>
+<div class="flex justify-between items-end mb-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary p-1.5 bg-secondary-fixed rounded-lg">headphones</span>
+<span class="font-label-md text-label-md text-on-surface">Listening</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">85%</span>
+</div>
+<div class="h-2 w-full bg-surface-container-low rounded-full overflow-hidden">
+<div class="h-full bg-secondary rounded-full progress-bar-fill" style="width: 85%"></div>
+</div>
+</div>
+<!-- Reading -->
+<div>
+<div class="flex justify-between items-end mb-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary p-1.5 bg-tertiary-fixed rounded-lg">menu_book</span>
+<span class="font-label-md text-label-md text-on-surface">Reading</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">90%</span>
+</div>
+<div class="h-2 w-full bg-surface-container-low rounded-full overflow-hidden">
+<div class="h-full bg-tertiary rounded-full progress-bar-fill" style="width: 90%"></div>
+</div>
+</div>
+<!-- Writing -->
+<div>
+<div class="flex justify-between items-end mb-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary p-1.5 bg-surface-container-high rounded-lg">edit</span>
+<span class="font-label-md text-label-md text-on-surface">Writing</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">64%</span>
+</div>
+<div class="h-2 w-full bg-surface-container-low rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full progress-bar-fill" style="width: 64%"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- CEFR Journey & Badges -->
+<div class="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-stack-md lg:gap-stack-lg">
+<!-- CEFR Progress -->
+<div class="bg-surface-container-lowest rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] p-stack-lg border border-surface-variant">
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-6">CEFR Pathway</h2>
+<div class="relative flex justify-between items-center px-4">
+<!-- Connecting Line -->
+<div class="absolute top-1/2 left-8 right-8 h-1 bg-surface-container-low -translate-y-1/2 z-0 rounded-full"></div>
+<div class="absolute top-1/2 left-8 w-[60%] h-1 bg-primary -translate-y-1/2 z-0 rounded-full"></div>
+<!-- A1 Node -->
+<div class="relative z-10 flex flex-col items-center gap-2">
+<div class="w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center font-label-md shadow-sm">
+<span class="material-symbols-outlined text-sm" data-weight="fill">check</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">A1</span>
+</div>
+<!-- A2 Node (Current) -->
+<div class="relative z-10 flex flex-col items-center gap-2">
+<div class="w-12 h-12 rounded-full bg-surface-container-lowest border-4 border-primary text-primary flex items-center justify-center font-headline-sm shadow-md animate-pulse">
+                                A2
+                            </div>
+<span class="font-label-sm text-label-sm text-primary font-bold">Current</span>
+</div>
+<!-- B1 Node -->
+<div class="relative z-10 flex flex-col items-center gap-2">
+<div class="w-10 h-10 rounded-full bg-surface-container text-on-surface-variant flex items-center justify-center font-label-md border-2 border-dashed border-outline-variant">
+                                B1
+                            </div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Target</span>
+</div>
+</div>
+<div class="mt-8 bg-surface-container-low p-4 rounded-lg flex items-start gap-3">
+<span class="material-symbols-outlined text-primary mt-0.5">lightbulb</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                            Focus on complex past tenses and vocabulary expansion to bridge the gap to B1 over the next 4 weeks.
+                        </p>
+</div>
+</div>
+<!-- Recent Achievements -->
+<div class="bg-surface-container-lowest rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] p-stack-lg">
+<div class="flex justify-between items-center mb-6">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Recent Achievements</h2>
+<button class="font-label-md text-label-md text-primary hover:bg-surface-container px-3 py-1 rounded-full transition-colors">View All</button>
+</div>
+<ul class="space-y-4">
+<li class="flex items-center gap-4 p-3 bg-surface rounded-lg hover:shadow-sm transition-shadow">
+<div class="w-12 h-12 rounded-full bg-secondary-fixed flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-secondary" data-weight="fill">local_fire_department</span>
+</div>
+<div class="flex-1">
+<h3 class="font-label-md text-label-md text-on-surface">14-Day Streak</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Consistent daily practice</p>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-low px-2 py-1 rounded">2d ago</span>
+</li>
+<li class="flex items-center gap-4 p-3 bg-surface rounded-lg hover:shadow-sm transition-shadow">
+<div class="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary" data-weight="fill">forum</span>
+</div>
+<div class="flex-1">
+<h3 class="font-label-md text-label-md text-on-surface">Chatterbox</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Completed 50 speaking exercises</p>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-low px-2 py-1 rounded">5d ago</span>
+</li>
+<li class="flex items-center gap-4 p-3 bg-surface rounded-lg hover:shadow-sm transition-shadow">
+<div class="w-12 h-12 rounded-full bg-tertiary-fixed flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-tertiary" data-weight="fill">school</span>
+</div>
+<div class="flex-1">
+<h3 class="font-label-md text-label-md text-on-surface">Grammar Guru</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Mastered A2 Past Simple</p>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-low px-2 py-1 rounded">1w ago</span>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile) -->
+<nav class="lg:hidden fixed bottom-0 w-full z-50 flex justify-around items-center px-margin-mobile pb-safe bg-surface-container-lowest shadow-[0_-4px_12px_rgba(0,0,0,0.05)] h-20">
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:bg-surface-variant rounded-xl transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">home</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:bg-surface-variant rounded-xl transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">account_balance_wallet</span>
+<span class="font-label-sm text-label-sm">Earnings</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-5 py-1" href="#">
+<span class="material-symbols-outlined mb-1" data-weight="fill">school</span>
+<span class="font-label-sm text-label-sm">Students</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:bg-surface-variant rounded-xl transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">settings</span>
+<span class="font-label-sm text-label-sm">Settings</span>
+</a>
+</nav>
+<script>
+        // Simple entry animations
+        document.addEventListener("DOMContentLoaded", () => {
+            const progressBars = document.querySelectorAll('.progress-bar-fill');
+            progressBars.forEach(bar => {
+                const targetWidth = bar.style.width;
+                bar.style.width = '0%';
+                setTimeout(() => {
+                    bar.style.width = targetWidth;
+                }, 100);
+            });
+        });
+    </script>
+</body></html>

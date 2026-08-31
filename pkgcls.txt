@@ -1,2 +1,0 @@
-﻿C:\dev\chorus\mobile\node_modules\react-native-screens\android\src\main\java\com\swmansion\rnscreens\RNScreensPackage.kt :: // public class RNScreensPackage implements TurboReactPackage {
-C:\dev\chorus\mobile\node_modules\react-native-screens\android\src\main\java\com\swmansion\rnscreens\RNScreensPackage.kt :: class RNScreensPackage : BaseReactPackage() {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { adminAPI } from '../services/api'
 import { getLanguageName } from '../services/language'
@@ -269,7 +269,17 @@ export default function AdminWaitlist({ defaultTab }: { defaultTab?: Tab }) {
     <main className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-5xl p-6">
         <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-3xl font-bold">{t('admin.console')}</h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              to="/chat"
+              aria-label={t('admin.back')}
+              className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-indigo-50"
+            >
+              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+              <span>{t('admin.back')}</span>
+            </Link>
+            <h1 className="text-3xl font-bold">{t('admin.console')}</h1>
+          </div>
           <nav className="flex gap-2">
             {tabs.map(name => (
               <button
