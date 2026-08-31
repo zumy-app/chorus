@@ -66,3 +66,27 @@ mobile/android/app/src/main/res/values/google_maps_api.xml
 screenshot*.png
 *.pdf
 generate_jd_pdf*.py
+
+# Dead artifacts / stray secrets (P0-6) — never commit tokens or throwaway debug output
+/token*.txt
+/token*.json
+/tmp_*
+/nllb_req.json
+/tmp_msg.json
+/pid.txt
+/launch.txt
+/diag.txt
+/metro-tail.txt
+/adb-install.txt
+/pkgfiles.txt
+/pkgcls.txt
+/screens-*.txt
+/get_ips.py
+/WHATSAPP_PLAIN.txt
+
+# Autonomous build pipeline (local orchestrator + handoff state)
+agent_jobs/
+.venv-agents/
+__pycache__/
+*.pyc
+crew/ESCALATION.md
