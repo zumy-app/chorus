@@ -17,7 +17,7 @@ export default function VocabularyReview() {
   const load = useCallback(() => {
     setLoading(true)
     learningAPI
-      .getMinedItems(targetLanguage, 'auto_added')
+      .getMinedItems(targetLanguage, 'candidate')
       .then(setCandidates)
       .catch(() => setCandidates([]))
       .finally(() => setLoading(false))

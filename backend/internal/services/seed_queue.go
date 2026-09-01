@@ -234,7 +234,7 @@ func (s *SeedQueueService) insertSeedCard(ctx context.Context, userID, targetLan
 		ON CONFLICT (user_id, term, language) DO NOTHING
 		RETURNING id::text`,
 		userID, display, targetLang, translation, lemma, norm,
-		pos, translation, seedSourceType, lexicalID, unitID,
+		pos, isChunk, seedSourceType, cefr, lexicalID, unitID,
 		seedTeachScore, nextReview).Scan(&id)
 	if err == sql.ErrNoRows {
 		return false, nil // conflict -> already seeded

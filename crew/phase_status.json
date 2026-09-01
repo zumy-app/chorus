@@ -520,6 +520,27 @@
           "status": "DONE",
           "updated_at": 1788294045.8825297,
           "note": "Fixing marketplace parity — mapping wireframes to code.\nChecking what's left — ConfirmBooking looks like the last missing piece.\nBuilding the trial booking flow to complete parity.\nMKT-3 done — ConfirmBooking + marketplace polish + Learn hub wiring.\n\n**Frontend:** `pages/ConfirmBooking.tsx` (new wireframe `confirm_trial_booking`), `App.tsx:/tutors/:id/confirm`, `TutorProfile.tsx` now navigates to confirm, `TrialCredits.tsx` adds How-Trials + Recommended tutors + Find Tutor CTA, `TeacherDashboard"
+        },
+        {
+          "id": "QA-FUNC",
+          "name": "QA functional suite: Spanish scenarios + daily drills + marketplace + learn hub (test-first)",
+          "status": "DONE",
+          "updated_at": 1788295388.5145724,
+          "note": "Proving Spanish scenarios, drills and navigation — building your extensive QA suite now.\nCore design mapped — now generating the remaining test coverage.\nWeb tests need fixes — refining the last routing checks.\nFrontend secured — validating the mobile test suite.\nBackend suite flagged conflicts — patching them up.\nMost backend checks passing — now finalizing the E2E layer.\nBackend logic validated — now crafting the E2E scenarios.\nMock server hiccup — trying a different launch approach.\nFrontend "
+        },
+        {
+          "id": "FIX-ES",
+          "name": "Fix Spanish real-world scenarios: ScenariosScreen must list es cafes/market with opening line+translation+chunks for targetLanguage es",
+          "status": "DONE",
+          "updated_at": 1788295742.1937578,
+          "note": "Fixing Spanish cafe + market scenarios.\nImplementing Spanish cafes/market details on ScenariosScreen.\nFixed `ScenariosScreen` to list Spanish cafe/market scenarios with opening line, translation and chunk banks for `targetLanguage es` — fallback injection + UI enriched when API data incomplete; 43 mobile tests pass."
+        },
+        {
+          "id": "FIX-DRILL",
+          "name": "Fix daily drills: LearnScreen Quick Drills + LessonSession + vocab due must work for Spanish target",
+          "status": "DONE",
+          "updated_at": 1788295998.3424783,
+          "note": "Fixing Spanish daily drills.\nScanning drills wiring for Spanish target.\nFixed `FIX-DRILL` (Spanish daily drills):\n\n- `backend/internal/handlers/learning.go:119` `GetDashboard` now seeds `es` vocab (`EnsureSeeded`) before aggregating, so `vocabulary.dueToday/total` non-zero for fresh Spanish learners.\n- `backend/internal/services/seed_queue.go:236` corrected `INSERT` param mapping (`isChunk`/`cefr`/`lexicalID`/`unitID` misaligned) — seed cards now persist with correct `is_chunk`, `cefr_level`, `c"
         }
       ],
       "gate": "marketplace + payouts + auto-promotion + Go/No-Go"

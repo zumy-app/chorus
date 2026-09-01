@@ -117,6 +117,9 @@ func (h *LearningHandler) UpdateProfile(c *gin.Context) {
 }
 
 func (h *LearningHandler) GetDashboard(c *gin.Context) {
+	if h.seed != nil {
+		_, _ = h.seed.EnsureSeeded(c.Request.Context(), c.GetString("userID"), c.Query("nativeLanguage"), c.Query("targetLanguage"))
+	}
 	dash, err := h.dashboard.GetDashboard(c.Request.Context(), c.GetString("userID"), c.Query("targetLanguage"), c.Query("nativeLanguage"))
 	if err != nil {
 		WriteError(c, middleware.ErrInternal("Failed to load dashboard"))
