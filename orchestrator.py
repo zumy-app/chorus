@@ -22,6 +22,7 @@ import json
 import os
 import subprocess
 import sys
+import threading
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -52,8 +53,35 @@ def log(msg: str) -> None:
 
 
 def run_bridge(prompt: str, suffix: str = "general", job: str = "") -> dict:
-    """Call opencode via the bridge; returns the structured result dict."""
-    raw = OpencodeRunnerTool()._run(prompt, agent_suffix=suffix, job_id=job)
+    """Call opencode via the bridge; returns the structured result dict.
+
+    Emits a heartbeat every 45s so long-running delegations are visible
+    instead of showing only 'thinking'. The heartbeat also appends to
+    agent_jobs/progress.log which you can tail live.
+    """
+    job_label = job or suffix
+    stop = threading.Event()
+    progress_path = os.path.join(REPO_ROOT, "agent_jobs", "progress.log")
+
+    def _heartbeat():
+        start = time.time()
+        while not stop.wait(45):
+            elapsed = int(time.time() - start)
+            msg = f"... still working: {job_label} ({elapsed}s elapsed, {time.strftime('%H:%M:%S')})"
+            print(msg, flush=True)
+            try:
+                with open(progress_path, "a", encoding="utf-8") as pf:
+                    pf.write(f"[{time.strftime('%H:%M:%S')}] {msg}\n")
+            except OSError:
+                pass
+
+    hb = threading.Thread(target=_heartbeat, daemon=True)
+    hb.start()
+    try:
+        raw = OpencodeRunnerTool()._run(prompt, agent_suffix=suffix, job_id=job)
+    finally:
+        stop.set()
+        hb.join(timeout=1)
     try:
         return json.loads(raw)
     except json.JSONDecodeError:

@@ -30,6 +30,8 @@ for gate in $GATES; do
     e2e)          script="e2e.sh" ;;
     phoenix-eval) script="phoenix-eval.sh" ;;
     load-smoke)   script="load-smoke.sh" ;;
+    load-soak)    script="load-soak.sh" ;;
+    verify-drain) script="verify-drain.sh" ;;
     *)            warn "unknown gate '$gate' skipped" ; continue ;;
   esac
   log "===== GATE: $gate ====="

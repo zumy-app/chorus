@@ -1,8 +1,12 @@
 package services
 
 import (
+	"context"
+	"fmt"
 	"sync"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 type rateLimitEntry struct {
@@ -67,4 +71,43 @@ func (l *FixedWindowLimiter) pruneExpired(now time.Time) {
 			delete(l.entries, k)
 		}
 	}
+}
+
+type RateLimiter interface {
+	Allow(key string) bool
+}
+
+type RedisRateLimiter struct {
+	redis  *redis.Client
+	limit  int
+	window time.Duration
+	prefix string
+	local  *FixedWindowLimiter
+}
+
+func NewRedisRateLimiter(redisClient *redis.Client, limit int, window time.Duration, prefix string) *RedisRateLimiter {
+	if prefix == "" {
+		prefix = "ratelimit:"
+	}
+	fallback := NewFixedWindowLimiter(limit, window, 10000)
+	return &RedisRateLimiter{redis: redisClient, limit: limit, window: window, prefix: prefix, local: fallback}
+}
+
+func (r *RedisRateLimiter) Allow(key string) bool {
+	if r.redis == nil {
+		return r.local.Allow(key)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+	redisKey := r.prefix + key
+	script := redis.NewScript(`
+local c = redis.call('INCR', KEYS[1])
+if c == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]) end
+return c
+`)
+	val, err := script.Run(ctx, r.redis, []string{redisKey}, fmt.Sprintf("%d", r.window.Milliseconds())).Int()
+	if err != nil {
+		return r.local.Allow(key)
+	}
+	return val <= r.limit
 }

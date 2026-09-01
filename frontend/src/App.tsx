@@ -17,6 +17,7 @@ import VocabularyReview from './pages/VocabularyReview'
 import Scenarios from './pages/Scenarios'
 import ScenarioRoleplay from './pages/ScenarioRoleplay'
 import LearningRoadmap from './pages/LearningRoadmap'
+import RealTalkHub from './pages/RealTalkHub'
 import Profile from './pages/Profile'
 import { authAPI, presenceAPI } from './services/api'
 import { wsService } from './services/websocket'
@@ -212,6 +213,12 @@ function App() {
           path="/learn/roadmap"
           element={
             isAuthenticated ? <LearningRoadmap /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/learn/real-talk"
+          element={
+            isAuthenticated ? <RealTalkHub /> : <Navigate to="/login" />
           }
         />
         <Route

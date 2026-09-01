@@ -1,6 +1,6 @@
 {
   "$comment": "Machine-readable mirror of REQUIREMENTS_MASTER.md. The supervisor loop reads/writes this to persist progress across runs. Do not hand-edit; use crew/state.py.",
-  "current_phase": 3,
+  "current_phase": 4,
   "phases": [
     {
       "id": 0,
@@ -322,62 +322,84 @@
     {
       "id": 3,
       "name": "Video Call + Advanced Learning + Scaled Arch",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "tasks": [
         {
           "id": "9.1",
           "name": "WebRTC video call + screen share",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788235619.667142,
+          "note": "Fixing WebRTC video + screen share.\nVideo base exists — enhancing for PiP + screen share.\n9.1 done. Backend `call.go` now relays `screen-share-start/stop`+`video-toggle` via `HandleSignal` (hub+pubsub). Web `CallScreen` dual-view/PiP toggle, camera on/off, `getDisplayMedia` screen share with `replaceTrack` + signal, immersive caption overlay + scrollable panel. `ChatArea` adds video call button + type-aware `CallScreen`. Mobile `CallScreen` + `ChatScreen` parity: PiP/dual, screen share indicator"
         },
         {
           "id": "10.1",
           "name": "Layer 4 LB leastconn",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788235788.8246937,
+          "note": "Layer 4 leastconn coming up — wiring it in.\nDesign clear — putting the leastconn front-end together.\nSwitching backend routing to run through the new load balancer.\n10.1 Layer 4 LB leastconn done.\n\n**New:** `deploy/lb/haproxy.cfg` (TCP `balance leastconn`, `maxconn 1000`, `httpchk GET /health`, `server-template` with docker DNS, no stickiness, stats :8404), `nginx.conf` (stream `least_conn` alternative), `deploy/lb/README.md`\n\n**Edited:** `docker-compose.prod.yml` — backend stateless/scalable (`"
         },
         {
           "id": "10.2",
           "name": "Redis connection registry",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788235947.1257653,
+          "note": "Fixing your Redis registry — tracking connections now.\nRegistry spec — wiring up heartbeats next.\n- **New** `backend/internal/services/registry.go`: `ConnectionRegistry` with `ws:registry:{userId}` → `{serverId,connId}` JSON, `RegistryTTL=45s`, `HeartbeatInterval=15s`, `Register` (SET EX TTL), `Refresh`/`Unregister` via Lua (atomic `cjson.decode` check `connId==ARGV[1]` then `EXPIRE`/`DEL`), `Lookup`/`IsOnline`.\n- **Edited** `backend/internal/services/websocket.go`: `WebSocketHub` now holds `ser"
         },
         {
           "id": "10.3",
           "name": "Cross-server routing round-trip",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788236185.4209042,
+          "note": "Routing cross-server hops — wiring the round-trip.\nSwitching to cross-server routing — mapping delivery paths.\nCore routing done — integrating into handlers.\nTests passed — validating the cross-server delivery.\n10.3 done: `DeliveryRouter` persists then registry-lookup → `PUBLISH server:{S2}`; S2 subscribes to `server:{ownID}`, delivers via `hub.SendToUser` + `MarkDelivered`. Wired into `main.go`, `message/attachment/location` handlers. Round-trip test `TestCrossServerRoutingRoundTrip` green."
         },
         {
           "id": "10.4",
           "name": "Horizontally scalable chat servers",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788236394.7773356,
+          "note": "Scaling chat servers to multiple instances.\nVerifying statelessness of chat servers before marking them horizontally scalable.\n10.4 done: stateless chat servers verified. Redis rate-limiter (`ratelimit:` INCR+PEXPIRE Lua) with in-memory fallback, typing fan-out via `chat:{id}` pub/sub, `wsHub.SetPubSub` wiring, LB leastconn without stickiness. `go vet`/`go test` green.\n"
         },
         {
           "id": "10.5",
           "name": "Durable per-recipient delivery wired",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788236580.7670527,
+          "note": "Wiring durable delivery now.\nGap analysis points to durability wiring — finalizing the solution.\nCore durability pieces ready — now connecting the final integrations.\n10.5 wired: Postgres (`message_receipts` received_at IS NULL) is source of truth, Redis registry never truth.\n\n**Files:**\n- `backend/internal/services/inbox.go` + pending query `GetPendingMessagesForUser/MarkPendingDelivered` (durable inbox via receipts)\n- `backend/internal/services/websocket.go` + `SetInboxService/SetMessageServic"
         },
         {
           "id": "10.6",
           "name": "Load/soak test zero loss",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788236977.042599,
+          "note": "Wiring zero-loss soak test — scanning spec for targets.\nDurable pipeline confirmed — building zero-loss soak harness.\nCore checks passed — finalizing verification.\n10.6 done: `artillery.soak.yml` (1k WS/50 msg/s/24h drain, `errors.rate==0`), `load-soak.sh`+`verify-drain.sh` (Artillery + Postgres inbox drain + `/metrics` zero-drop gate), `soak-processor.js`, `soak_test.go` (4 zero-loss tests), `gate-on-dev.sh` load-soak gate, `alerts-soak.yml`, `docs/SOAK_TEST.md` — all green (`go vet`/`go test`/"
         },
         {
           "id": "11.1",
           "name": "Word-mining pipeline",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788237188.7853632,
+          "note": "Starting your word-mining pipeline build.\nYour vocabulary pipeline is staging — verifying extraction and routing.\n11.1 done — metrics `word_mining_jobs/duration/items/pending`, Grafana panels 13-16, alerts `alerts-word-mining.yml`, `verify-word-mining.sh` + `WORD_MINING_PIPELINE.md`. `go vet`/`go test` green.\n"
         },
         {
           "id": "11.2",
           "name": "Depth-of-processing practice ladder",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788287471.315201,
+          "note": "Implementing depth-of-processing practice ladder.\nFixing depth-of-processing ladder logic.\nDepth-of-processing ladder implemented: production-count-gated mastery (2× production or 1× production+1× spontaneous), leech detection, stage 5 spontaneous promotion, review endpoint, SRS intervals fixed."
         },
         {
           "id": "11.3",
           "name": "Scenario/real-talk hub + sandbox",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788287909.202053,
+          "note": "Hub and sandbox next — wiring up your Real Talk workspace.\nMapping the current Real Talk setup before building the hub.\nHub plan locked — building the Real Talk interface now.\n**11.3 done — frontend build + 99 vitest + 13 jest green**\n\n- Web: `RealTalkHub.tsx` (tabs, current-goal card, Use-in-Chat via `markRealTalkUsed`+`realTalkDraft`→`/chat`), `chat/RealTalkNudge.tsx` (floating Sparky nudge with shuffle/dismiss), `StudySandbox.tsx` + `useStudySandbox.ts` group-study sandbox hooks\n- Web wiring:"
         },
         {
           "id": "11.4",
           "name": "Teacher vetting process note",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788288118.0332298,
+          "note": "Vetting your teacher process next.\nDrafting the vetting rubric and assessment harness.\n`docs/TEACHER_VETTING.md` (rubric, recording prompts, cert checklist, video-call flow, Daniella ES roster, AI plan) + `backend/internal/services/teacher_vetting.go` harness (`ValidateApplication/Recording/Certificates`, `ScoreRubric`, `Decide`) + tests + `deploy/ci/verify-teacher-vetting.sh` — `go vet`/`go test ./...` green."
         }
       ],
       "gate": "video call + L4 LB + Redis registry + zero-loss soak"
@@ -385,7 +407,7 @@
     {
       "id": 4,
       "name": "Teacher Marketplace + Monetization + Release",
-      "status": "NOT_STARTED",
+      "status": "IN_PROGRESS",
       "tasks": [
         {
           "id": "12.1",

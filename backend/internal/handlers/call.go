@@ -284,7 +284,7 @@ func (h *CallHandler) HandleWebRTCSignaling(c *gin.Context) {
 	err := h.callService.HandleSignal(c.Request.Context(), callID, userID, signal.Type, signal.SDP, signal.Candidate, extra)
 	if err != nil {
 		if errors.Is(err, services.ErrInvalidSignal) {
-			WriteError(c, middleware.ErrValidation("Invalid signal type: must be offer, answer, or ice-candidate"))
+			WriteError(c, middleware.ErrValidation("Invalid signal type: must be offer, answer, ice-candidate, screen-share-start, screen-share-stop, or video-toggle"))
 			return
 		}
 		if errors.Is(err, services.ErrCallNotFound) {

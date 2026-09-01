@@ -23,10 +23,13 @@ var (
 )
 
 var validSignalTypes = map[string]bool{
-	"offer":        true,
-	"answer":       true,
-	"ice-candidate": true,
-	"ice_candidate": true,
+	"offer":             true,
+	"answer":            true,
+	"ice-candidate":     true,
+	"ice_candidate":     true,
+	"screen-share-start": true,
+	"screen-share-stop": true,
+	"video-toggle":      true,
 }
 
 type CallService struct {
@@ -437,6 +440,12 @@ func (s *CallService) HandleSignal(ctx context.Context, callID string, senderID 
 	signalType = strings.ToLower(strings.TrimSpace(signalType))
 	if signalType == "ice_candidate" {
 		signalType = "ice-candidate"
+	}
+	if signalType == "screen_share_start" {
+		signalType = "screen-share-start"
+	}
+	if signalType == "screen_share_stop" {
+		signalType = "screen-share-stop"
 	}
 	if !validSignalTypes[signalType] {
 		return ErrInvalidSignal

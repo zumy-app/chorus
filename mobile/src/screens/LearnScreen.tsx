@@ -185,7 +185,7 @@ export default function LearnScreen() {
           { label: 'Drills', glyph: '⚡', onPress: () => startSession('quick_drill') },
           { label: 'Vocabulary', glyph: '📖', onPress: () => navigation.navigate('VocabularyReview' as never) },
           { label: 'Scenarios', glyph: '🎭', onPress: () => navigation.navigate('Scenarios' as never) },
-          { label: 'Roadmap', glyph: '🗺️', onPress: () => navigation.navigate('LearningRoadmap' as never) },
+          { label: 'Real Talk', glyph: '💬', onPress: () => navigation.navigate('RealTalkHub' as never) },
         ].map((a) => (
           <Pressable key={a.label} style={styles.actionCard} onPress={a.onPress}>
             <Text style={styles.quickGlyph}>{a.glyph}</Text>

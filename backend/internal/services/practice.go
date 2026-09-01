@@ -33,6 +33,7 @@ const (
 	stateLearning  = models.StateLearning
 	stateReviewing = models.StateReviewing
 	stateMastered  = models.StateMastered
+	stateLeech     = models.StateLeech
 )
 
 // PracticeService grades depth-of-processing SRS answers and mutates the
@@ -282,17 +283,88 @@ func scanCards(rows *sql.Rows) ([]VocabularyCard, error) {
 	return cards, rows.Err()
 }
 
-// TouchSpontaneousUse records an unprompted correct use (chat or scenario) for a
-// card. Production-level mastery can be reached via spontaneous use.
+func isMastered(card *VocabularyCard) bool {
+	if card.MasteryStage < 4 {
+		return false
+	}
+	if card.ProductionSuccessCount >= 2 {
+		return true
+	}
+	if card.ProductionSuccessCount >= 1 && card.SpontaneousUseCount >= 1 {
+		return true
+	}
+	return false
+}
+
 func (s *PracticeService) TouchSpontaneousUse(ctx context.Context, userID, normalizedTerm, targetLanguage string) error {
-	_, err := s.db.ExecContext(ctx, `
+	card, err := s.loadCardByNormalized(ctx, userID, normalizedTerm, targetLanguage)
+	if err != nil {
+		return nil
+	}
+	card.SpontaneousUseCount++
+	if card.MasteryStage == 4 && card.ProductionSuccessCount >= 1 {
+		card.MasteryStage = 5
+	}
+	if isMastered(card) {
+		card.MasteryState = stateMastered
+		card.IntervalDays = 14
+		card.NextReview = time.Now().AddDate(0, 0, 14)
+	} else if card.MasteryState == stateNew {
+		card.MasteryState = stateLearning
+	}
+	_, err = s.db.ExecContext(ctx, `
 		UPDATE vocabulary SET
-			spontaneous_use_count = spontaneous_use_count + 1,
-			mastery_state = CASE WHEN mastery_stage >= 4 THEN 'mastered' ELSE mastery_state END,
+			spontaneous_use_count = $1,
+			mastery_stage = $2,
+			mastery_state = $3,
+			interval_days = $4,
+			next_review = $5,
 			last_seen_at = CURRENT_TIMESTAMP
-		WHERE user_id = $1 AND language = $2 AND normalized_term = $3`,
-		userID, targetLanguage, normalizedTerm)
+		WHERE id = $6 AND user_id = $7`,
+		card.SpontaneousUseCount, card.MasteryStage, card.MasteryState,
+		card.IntervalDays, card.NextReview, card.ID, card.UserID)
 	return err
+}
+
+func (s *PracticeService) loadCardByNormalized(ctx context.Context, userID, normalizedTerm, lang string) (*VocabularyCard, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id::text, user_id, term, language, COALESCE(translation,''), COALESCE(definition,''),
+		       COALESCE(lemma,''), COALESCE(normalized_term,''), COALESCE(part_of_speech,'unknown'),
+		       is_chunk, source_type, COALESCE(source_message_id::text,''),
+		       COALESCE(cefr_level,''), COALESCE(curriculum_unit_id::text,''),
+		       route_status, mastery_stage, mastery_state, COALESCE(ease_factor, 2.5),
+		       lapses, stage_success_count, production_success_count, spontaneous_use_count,
+		       teachability_score, confidence, review_count, correct_count,
+		       COALESCE(interval_days,1), next_review, COALESCE(context_sentence,''),
+		       COALESCE(context_message_id::text,''), COALESCE(context_chat_id::text,''),
+		       created_at, first_seen_at, last_seen_at
+		FROM vocabulary
+		WHERE user_id = $1 AND language = $2 AND normalized_term = $3 LIMIT 1`, userID, lang, normalizedTerm)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	cards, err := scanCards(rows)
+	if err != nil || len(cards) == 0 {
+		return nil, fmt.Errorf("vocabulary card not found")
+	}
+	return &cards[0], nil
+}
+
+func (s *PracticeService) ReviewCard(ctx context.Context, userID, cardID, answerText string, latencyMs int) (*VocabularyCard, bool, int, error) {
+	card, err := s.GetCardByID(ctx, userID, cardID)
+	if err != nil {
+		return nil, false, 0, err
+	}
+	stage := nextStageForCard(card)
+	promptType := promptTypeForStage(stage)
+	correct, quality := s.GradeAnswer(card.Term, answerText, promptType)
+	activityType := s.stageTemplate(card, stage)
+	if err := s.UpdateVocabAfterAttempt(ctx, card, stage, quality, activityType); err != nil {
+		return nil, correct, quality, err
+	}
+	_ = s.RecordAttempt(ctx, card, stage, activityType, map[string]any{"text": card.Term}, answerText, correct, quality, latencyMs, "")
+	return card, correct, quality, nil
 }
 
 // BuildVocabQuestion turns a card and an activity/stage into a client
@@ -420,6 +492,8 @@ func requiredSuccesses(stage int) int {
 		return 2
 	case 4:
 		return 2
+	case 5:
+		return 1
 	default:
 		return 2
 	}
@@ -454,6 +528,11 @@ func nextInterval(current float64, ease float64, stage int) float64 {
 			return 7
 		}
 		return math.Ceil(current * ease)
+	case 5:
+		if current < 14 {
+			return 14
+		}
+		return math.Ceil(current * ease)
 	default:
 		return math.Ceil(current * ease)
 	}
@@ -477,7 +556,10 @@ func learningOrNew(card *VocabularyCard) string {
 }
 
 func masteryStateOf(card *VocabularyCard) string {
-	if card.MasteryStage >= 4 {
+	if card.Lapses >= 3 && card.MasteryStage <= 2 {
+		return stateLeech
+	}
+	if isMastered(card) {
 		return stateMastered
 	}
 	if card.MasteryStage >= 3 {

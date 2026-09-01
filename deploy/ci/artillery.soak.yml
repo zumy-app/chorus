@@ -1,0 +1,59 @@
+# Chorus soak — zero-loss load/soak (id 10.6).
+# Profile: 1k concurrent WS, ~50 msg/s, configurable duration with 24h default.
+# Gate: errors.rate == 0 and websocket messages delivered == sent (message loss = 0).
+config:
+  target: "{{ $processEnvironment.WS_URL }}"
+  phases:
+    - duration: "{{ $processEnvironment.SOAK_DURATION }}"
+      arrivalRate: 50
+      maxVusers: 1000
+      rampTo: 50
+      name: "1k WS / 50 msg/s / {{ $processEnvironment.SOAK_DURATION }}s soak"
+  engines:
+    ws: {}
+  processor: "./soak-processor.js"
+  ensure:
+    thresholds:
+      - "errors.rate == 0"
+      - "http.request_rate >= 0"
+  plugins:
+    metrics-by-endpoint: {}
+scenarios:
+  - name: "holder + sender (persist-before-ack drain)"
+    engine: ws
+    flow:
+      - connect:
+          headers:
+            Authorization: "Bearer {{ $processEnvironment.WS_TOKEN }}"
+      - think: 1
+      - loop:
+          - function: "nextMessage"
+          - send: '{"type":"typing_start","data":{"chatId":"{{ $processEnvironment.SOAK_CHAT_ID }}"}}'
+          - think: 0.5
+          - send: '{"type":"typing_stop","data":{"chatId":"{{ $processEnvironment.SOAK_CHAT_ID }}"}}'
+          - think: 0.5
+          - function: "trackSend"
+        count: "{{ $processEnvironment.SOAK_LOOPS }}"
+      - think: 2
+      - loop:
+          - function: "trackRecv"
+          - think: 1
+        count: 5
+      - disconnect
+
+  - name: "http message persist path (zero-loss provenance)"
+    engine: http
+    flow:
+      - loop:
+          - post:
+              url: "/api/v1/chats/{{ $processEnvironment.SOAK_CHAT_ID }}/messages"
+              headers:
+                Authorization: "Bearer {{ $processEnvironment.WS_TOKEN }}"
+                Content-Type: "application/json"
+              json:
+                text: "soak-{{ $processEnvironment.SOAK_RUN_ID }}-{{ $loopCount }}"
+              capture:
+                - json: "$.id"
+                  as: "msgId"
+          - think: 0.02
+        count: "{{ $processEnvironment.SOAK_HTTP_MSGS }}"

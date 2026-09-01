@@ -49,7 +49,14 @@ type WebSocketHub struct {
 	Unregister chan *Client
 	Broadcast  chan *BroadcastMessage
 	redis      *redis.Client
+	registry   *ConnectionRegistry
+	pubsub     *PubSubService
+	serverID   string
+	heartbeats map[string]context.CancelFunc
+	hbMu       sync.Mutex
 	mu         sync.RWMutex
+	inbox      *InboxService
+	msgService *MessageService
 }
 
 type BroadcastMessage struct {
@@ -59,15 +66,60 @@ type BroadcastMessage struct {
 	ChatID     string // For chat-specific broadcasts
 }
 
-func NewWebSocketHub(redis *redis.Client) *WebSocketHub {
-	return &WebSocketHub{
+func NewWebSocketHub(redis *redis.Client, serverID ...string) *WebSocketHub {
+	h := &WebSocketHub{
 		clients:    make(map[string]*Client),
 		userConns:  make(map[string]map[string]*Client),
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 		Broadcast:  make(chan *BroadcastMessage, 256),
 		redis:      redis,
+		heartbeats: make(map[string]context.CancelFunc),
 	}
+	if len(serverID) > 0 && serverID[0] != "" && redis != nil {
+		h.serverID = serverID[0]
+		h.registry = NewConnectionRegistry(redis, serverID[0])
+	}
+	return h
+}
+
+func (h *WebSocketHub) SetRegistry(r *ConnectionRegistry) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.registry = r
+	if r != nil {
+		h.serverID = r.serverID
+	}
+}
+
+func (h *WebSocketHub) SetPubSub(ps *PubSubService) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.pubsub = ps
+}
+
+func (h *WebSocketHub) SetInboxService(s *InboxService) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.inbox = s
+}
+
+func (h *WebSocketHub) SetMessageService(s *MessageService) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.msgService = s
+}
+
+func (h *WebSocketHub) Registry() *ConnectionRegistry {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.registry
+}
+
+func (h *WebSocketHub) ServerID() string {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.serverID
 }
 
 func (h *WebSocketHub) Run() {
@@ -96,12 +148,19 @@ func (h *WebSocketHub) registerClient(client *Client) {
 	}
 	h.userConns[client.UserID][client.ID] = client
 
-	// NFR-18: connection metrics — gauge the current sockets + distinct online
-	// users and count total accepted connections.
 	observability.IncWSConnections()
 	observability.SetWSConnections(len(h.clients), len(h.userConns))
 
 	log.Printf("Client registered: %s (user: %s)", client.ID, client.UserID)
+
+	if h.registry != nil && h.redis != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		_ = h.registry.Register(ctx, client.UserID, client.ID)
+		cancel()
+		h.startHeartbeat(client.UserID, client.ID)
+	}
+	uid := client.UserID
+	go h.deliverPending(uid)
 }
 
 func (h *WebSocketHub) unregisterClient(client *Client) {
@@ -119,10 +178,82 @@ func (h *WebSocketHub) unregisterClient(client *Client) {
 			}
 		}
 
-		// NFR-18: keep the connection gauges in sync after a disconnect.
 		observability.SetWSConnections(len(h.clients), len(h.userConns))
 
 		log.Printf("Client unregistered: %s (user: %s)", client.ID, client.UserID)
+
+		if h.registry != nil && h.redis != nil {
+			h.stopHeartbeat(client.ID)
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			_ = h.registry.Unregister(ctx, client.UserID, client.ID)
+			cancel()
+		}
+	}
+}
+
+func (h *WebSocketHub) startHeartbeat(userID, connID string) {
+	h.hbMu.Lock()
+	defer h.hbMu.Unlock()
+	if _, exists := h.heartbeats[connID]; exists {
+		return
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	h.heartbeats[connID] = cancel
+	registry := h.registry
+	go func() {
+		ticker := time.NewTicker(RegistryHeartbeatInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				c, ccancel := context.WithTimeout(context.Background(), 2*time.Second)
+				_ = registry.Refresh(c, userID, connID)
+				ccancel()
+			}
+		}
+	}()
+}
+
+func (h *WebSocketHub) stopHeartbeat(connID string) {
+	h.hbMu.Lock()
+	defer h.hbMu.Unlock()
+	if cancel, ok := h.heartbeats[connID]; ok {
+		cancel()
+		delete(h.heartbeats, connID)
+	}
+}
+
+func (h *WebSocketHub) deliverPending(userID string) {
+	if h.inbox == nil || userID == "" {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	msgs, err := h.inbox.GetPendingMessagesForUser(ctx, userID, 100)
+	if err != nil || len(msgs) == 0 {
+		return
+	}
+	if h.msgService != nil {
+		byChat := map[string][]models.Message{}
+		idx := map[string][]int{}
+		for i, m := range msgs {
+			byChat[m.ChatID] = append(byChat[m.ChatID], m)
+			idx[m.ChatID] = append(idx[m.ChatID], i)
+		}
+		for chatID, batch := range byChat {
+			_ = h.msgService.AttachMedia(ctx, chatID, batch)
+			for j, pos := range idx[chatID] {
+				msgs[pos].Media = batch[j].Media
+			}
+		}
+	}
+	for _, m := range msgs {
+		h.SendToUser(userID, "new_message", m)
+		if h.msgService != nil {
+			_, _ = h.msgService.MarkDelivered(m.ChatID, m.ID, userID)
+		}
 	}
 }
 
@@ -141,7 +272,6 @@ func (h *WebSocketHub) broadcastMessage(msg *BroadcastMessage) {
 	defer h.mu.RUnlock()
 
 	if msg.TargetUser != "" {
-		// Send to specific user's all connections
 		if userConns, ok := h.userConns[msg.TargetUser]; ok {
 			for _, client := range userConns {
 				select {
@@ -155,7 +285,6 @@ func (h *WebSocketHub) broadcastMessage(msg *BroadcastMessage) {
 			}
 		}
 	} else {
-		// Broadcast to all clients
 		for _, client := range h.clients {
 			select {
 			case client.Send <- data:
@@ -368,14 +497,17 @@ func (c *Client) handleTypingEvent(msg models.WebSocketMessage) {
 	chatID, _ := data["chatId"].(string)
 	isTyping := msg.Type == "typing_start"
 
-	// Broadcast typing event to other users in the chat
+	evt := models.TypingEvent{
+		ChatID:   chatID,
+		UserID:   c.UserID,
+		IsTyping: isTyping,
+	}
 	c.Hub.Broadcast <- &BroadcastMessage{
 		Type: "user_typing",
-		Data: models.TypingEvent{
-			ChatID:   chatID,
-			UserID:   c.UserID,
-			IsTyping: isTyping,
-		},
+		Data: evt,
 		ChatID: chatID,
+	}
+	if c.Hub.pubsub != nil && chatID != "" {
+		_ = c.Hub.pubsub.PublishTypingEvent(chatID, c.UserID, isTyping)
 	}
 }

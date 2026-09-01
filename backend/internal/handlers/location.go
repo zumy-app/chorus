@@ -23,6 +23,7 @@ type LocationHandler struct {
 	messageService  *services.MessageService
 	inboxService    *services.InboxService
 	wsHub           *services.WebSocketHub
+	router          *services.DeliveryRouter
 }
 
 // NewLocationHandler creates a LocationHandler.
@@ -40,6 +41,10 @@ func NewLocationHandler(
 		inboxService:    inboxService,
 		wsHub:           wsHub,
 	}
+}
+
+func (h *LocationHandler) SetRouter(r *services.DeliveryRouter) {
+	h.router = r
 }
 
 // SendLocation shares a location pin into a chat (task 6.7).
@@ -113,5 +118,9 @@ func (h *LocationHandler) broadcastLocationMessage(ctx context.Context, message 
 	if h.inboxService != nil {
 		_ = h.inboxService.QueueMessageForOfflineClients(message, userIDs)
 	}
-	h.wsHub.SendToChat(chatID, userIDs, "new_message", message)
+	if h.router != nil {
+		h.router.RouteMessage(ctx, message, userIDs)
+	} else {
+		h.wsHub.SendToChat(chatID, userIDs, "new_message", message)
+	}
 }

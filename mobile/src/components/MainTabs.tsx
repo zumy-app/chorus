@@ -13,6 +13,7 @@ import VocabularyReviewScreen from '../screens/VocabularyReviewScreen';
 import ScenariosScreen from '../screens/ScenariosScreen';
 import ScenarioRoleplayScreen from '../screens/ScenarioRoleplayScreen';
 import LearningRoadmapScreen from '../screens/LearningRoadmapScreen';
+import RealTalkHubScreen from '../screens/RealTalkHubScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import CallScreen from '../screens/CallScreen';
 import { COLOR, TYPOGRAPHY } from '../theme';
@@ -38,6 +39,7 @@ export type LearnStackParamList = {
   Scenarios: undefined;
   ScenarioRoleplay: { scenarioId: string };
   LearningRoadmap: undefined;
+  RealTalkHub: undefined;
 };
 
 export type ProfileStackParamList = {
@@ -117,6 +119,11 @@ const LearnTab = () => (
       name="LearningRoadmap"
       component={LearningRoadmapScreen}
       options={{ title: 'Roadmap' }}
+    />
+    <LearnStack.Screen
+      name="RealTalkHub"
+      component={RealTalkHubScreen}
+      options={{ title: 'Real Talk' }}
     />
   </LearnStack.Navigator>
 );

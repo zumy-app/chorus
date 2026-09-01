@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/chorus/messenger/internal/observability"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -106,6 +107,7 @@ func (q *WordMiningQueueService) EnqueueForMessage(userID, chatID, messageID, so
 		return "", err
 	}
 	q.trigger(id)
+	observability.ObserveWordMiningJob("enqueued", 0)
 	return id, nil
 }
 
@@ -172,12 +174,15 @@ func (q *WordMiningQueueService) processJob(id string) {
 		q.notify(j.UserID, &WordMiningJobResult{JobID: j.ID, MessageID: j.MessageID, ChatID: j.ChatID, Status: "processing"})
 	}
 
+	start := time.Now()
 	accepted, err := q.mining.ProcessJob(q.ctx, j.ID)
 	if err != nil {
 		q.markFailed(j.ID, j.Attempts, err)
+		observability.ObserveWordMiningJob("failed", time.Since(start))
 		q.notify(j.UserID, &WordMiningJobResult{JobID: j.ID, MessageID: j.MessageID, ChatID: j.ChatID, Status: "failed", Error: err.Error()})
 		return
 	}
+	observability.ObserveWordMiningJob("done", time.Since(start))
 	q.notify(j.UserID, &WordMiningJobResult{JobID: j.ID, MessageID: j.MessageID, ChatID: j.ChatID, Status: "done", Accepted: accepted})
 }
 
@@ -264,6 +269,9 @@ func (q *WordMiningQueueService) sweep() {
 		int(wordMiningStaleTTL.Minutes())); err != nil {
 		log.Printf("[WordMining] reclaim stale processing: %v", err)
 	}
+	var pending int
+	_ = q.db.QueryRow(`SELECT count(*) FROM word_mining_jobs WHERE status IN ('pending','processing','failed')`).Scan(&pending)
+	observability.SetWordMiningPending(pending)
 	rows, err := q.db.Query(`
 		SELECT id FROM word_mining_jobs
 		WHERE status IN ('pending','failed') AND next_attempt_at <= CURRENT_TIMESTAMP

@@ -1,0 +1,28 @@
+groups:
+  - name: soak-zero-loss
+    interval: 30s
+    rules:
+      - alert: SoakMessageLoss
+        expr: increase(chorus_backend_ws_fast_dropped_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "WS fast-dropped > 0 — message loss during soak"
+          description: "Broadcast buffer drops detected (loss > 0). Hub is shedding messages under load."
+
+      - alert: SoakWsErrors
+        expr: increase(chorus_backend_ws_connections_total[5m]) > 0 and (chorus_backend_ws_active_connections < 900)
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "WS active connections below soak target"
+
+      - alert: SoakInboxDrainStalled
+        expr: pg_inbox_pending_messages > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Inbox drain stalled — pending receipts not clearing"

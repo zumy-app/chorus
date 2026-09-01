@@ -1,0 +1,39 @@
+groups:
+  - name: word-mining
+    interval: 30s
+    rules:
+      - alert: WordMiningHighFailureRate
+        expr: sum(rate(chorus_backend_word_mining_jobs_total{status="failed"}[5m])) / clamp_min(sum(rate(chorus_backend_word_mining_jobs_total[5m])),0.001) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Word-mining failure rate > 5%"
+          description: "Mining jobs failing above threshold — check provider / DB."
+
+      - alert: WordMiningStuckPending
+        expr: chorus_backend_word_mining_pending_jobs > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Word-mining pending jobs > 100 for 5m"
+          description: "Sweeper or workers stalled — check queue and DB."
+
+      - alert: WordMiningNoProgress
+        expr: increase(chorus_backend_word_mining_jobs_total{status="done"}[10m]) == 0 and chorus_backend_word_mining_pending_jobs > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Word-mining done rate 0 while pending > 0"
+          description: "Jobs enqueued but not completing — workers may be down."
+
+      - alert: WordMiningDurationHigh
+        expr: histogram_quantile(0.95, sum by (le) (rate(chorus_backend_word_mining_duration_seconds_bucket{status="done"}[5m]))) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Word-mining p95 > 10s"
+          description: "Extraction/classification latency elevated — provider slow."

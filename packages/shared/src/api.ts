@@ -853,6 +853,10 @@ export function createApiClient(options: ApiClientOptions) {
       const response = await client.post<{ data: { ok: boolean } }>(`/learning/vocabulary/mined/${id}/ignore`)
       return response.data.data
     },
+    reviewVocabulary: async (id: string, answer: string, latencyMs?: number) => {
+      const response = await client.post<{ data: { card: VocabularyCard; correct: boolean; quality: number } }>(`/learning/vocabulary/${id}/review`, { answer, latencyMs })
+      return response.data.data
+    },
 
     // Scenarios
     getScenarios: async (targetLanguage: string, nativeLanguage?: string) => {

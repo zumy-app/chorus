@@ -36,8 +36,8 @@ AGENT_ROUTE = {
     "teacher": "teacher",
 }
 
-# Zen free tier — no billing required. Override via env OPENCODE_MODEL.
-DEFAULT_MODEL = os.environ.get("OPENCODE_MODEL", "opencode/muse-spark-1.2-contributor-free")
+# Go subscription — higher limits. Override via env OPENCODE_MODEL.
+DEFAULT_MODEL = os.environ.get("OPENCODE_MODEL", "opencode-go/muse-spark-1.2-contributor")
 
 
 class OpencodeRunSchema(BaseModel):

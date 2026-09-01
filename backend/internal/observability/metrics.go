@@ -48,6 +48,11 @@ var (
 	translationLatency  *prometheus.HistogramVec
 	translationTokens   *prometheus.CounterVec
 
+	wordMiningJobs     *prometheus.CounterVec
+	wordMiningDuration *prometheus.HistogramVec
+	wordMiningItems    *prometheus.CounterVec
+	wordMiningPending  prometheus.Gauge
+
 	startedAt = time.Now()
 )
 
@@ -173,6 +178,39 @@ func SetupMetrics() *prometheus.Registry {
 		}, []string{"provider"})
 		registry.MustRegister(translationTokens)
 
+		wordMiningJobs = prometheus.NewCounterVec(prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      "word_mining_jobs_total",
+			Help:      "Word-mining jobs by outcome (enqueued, done, failed, ignored).",
+		}, []string{"status"})
+		registry.MustRegister(wordMiningJobs)
+
+		wordMiningDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      "word_mining_duration_seconds",
+			Help:      "Time to process a word-mining job, by outcome.",
+			Buckets:   []float64{0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30},
+		}, []string{"status"})
+		registry.MustRegister(wordMiningDuration)
+
+		wordMiningItems = prometheus.NewCounterVec(prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      "word_mining_items_total",
+			Help:      "Mined vocabulary items by status and route (candidate, auto_added, route).",
+		}, []string{"status", "route"})
+		registry.MustRegister(wordMiningItems)
+
+		wordMiningPending = prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      "word_mining_pending_jobs",
+			Help:      "Current pending/processing word-mining jobs (DB polled).",
+		})
+		registry.MustRegister(wordMiningPending)
+
 		// Standard runtime/process collectors so the Grafana dashboard can show
 		// goroutines, memory, CPU, and open file descriptors alongside app data.
 		registry.MustRegister(prometheus.NewGoCollector())
@@ -269,6 +307,30 @@ func ObserveTranslation(provider string, cacheHit bool, status string, elapsed t
 	if tokens > 0 {
 		translationTokens.WithLabelValues(provider).Add(float64(tokens))
 	}
+}
+
+func ObserveWordMiningJob(status string, elapsed time.Duration) {
+	if wordMiningJobs == nil {
+		return
+	}
+	wordMiningJobs.WithLabelValues(status).Inc()
+	if elapsed > 0 && wordMiningDuration != nil {
+		wordMiningDuration.WithLabelValues(status).Observe(elapsed.Seconds())
+	}
+}
+
+func ObserveWordMiningItem(status, route string) {
+	if wordMiningItems == nil {
+		return
+	}
+	wordMiningItems.WithLabelValues(status, route).Inc()
+}
+
+func SetWordMiningPending(n int) {
+	if wordMiningPending == nil {
+		return
+	}
+	wordMiningPending.Set(float64(n))
 }
 
 // envOr reads an env var returning def when it is unset or empty.

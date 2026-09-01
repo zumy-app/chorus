@@ -12,6 +12,7 @@ import (
 	"unicode"
 
 	"github.com/chorus/messenger/internal/models"
+	"github.com/chorus/messenger/internal/observability"
 	"github.com/lib/pq"
 )
 
@@ -97,6 +98,7 @@ func (s *WordMiningService) ProcessJob(ctx context.Context, jobID string) (int, 
 			if err := s.upsertMinedItem(ctx, candidate, jobID, "merged"); err != nil {
 				continue
 			}
+			observability.ObserveWordMiningItem("merged", candidate.RouteStatus)
 			if err := s.touchExistingCard(ctx, userID, existing, sourceType, sourceText, candidate); err != nil {
 				continue
 			}
@@ -114,6 +116,7 @@ func (s *WordMiningService) ProcessJob(ctx context.Context, jobID string) (int, 
 			continue
 		}
 		log.Printf("[Mining] inserted item %q as %s (teach=%v route=%s)", candidate.SurfaceText, status, candidate.TeachabilityScore, candidate.RouteStatus)
+		observability.ObserveWordMiningItem(status, candidate.RouteStatus)
 		if status == "auto_added" {
 			if _, err := s.addCardFromMinedItem(ctx, candidate, minedID); err == nil {
 				accepted++

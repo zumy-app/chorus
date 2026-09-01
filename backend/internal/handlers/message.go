@@ -28,6 +28,7 @@ type MessageHandler struct {
 	learningProfile    *services.LearningProfileService
 	receiptService     *services.ReceiptService
 	inboxService       *services.InboxService
+	router             *services.DeliveryRouter
 }
 
 func NewMessageHandler(
@@ -71,6 +72,10 @@ func (h *MessageHandler) SetReceiptService(rs *services.ReceiptService) {
 // for recipients whose devices are offline (task 6.1).
 func (h *MessageHandler) SetInboxService(is *services.InboxService) {
 	h.inboxService = is
+}
+
+func (h *MessageHandler) SetRouter(r *services.DeliveryRouter) {
+	h.router = r
 }
 
 func (h *MessageHandler) GetMessages(c *gin.Context) {
@@ -201,7 +206,11 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 		_ = h.inboxService.QueueMessageForOfflineClients(message, userIDs)
 	}
 
-	h.wsHub.SendToChat(chatID, userIDs, "new_message", message)
+	if h.router != nil {
+		h.router.RouteMessage(c.Request.Context(), message, userIDs)
+	} else {
+		h.wsHub.SendToChat(chatID, userIDs, "new_message", message)
+	}
 
 	c.JSON(201, message)
 
@@ -869,5 +878,9 @@ func (h *MessageHandler) broadcastNewMessage(ctx context.Context, message *model
 	if h.inboxService != nil {
 		_ = h.inboxService.QueueMessageForOfflineClients(message, userIDs)
 	}
-	h.wsHub.SendToChat(chatID, userIDs, "new_message", message)
+	if h.router != nil {
+		h.router.RouteMessage(ctx, message, userIDs)
+	} else {
+		h.wsHub.SendToChat(chatID, userIDs, "new_message", message)
+	}
 }

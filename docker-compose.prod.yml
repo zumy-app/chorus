@@ -57,14 +57,27 @@ services:
     networks:
       - chorus-network
 
-  # Go Backend API
+  # Go Backend API — stateless, horizontally scalable behind the L4 LB
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: chorus-backend
-    # No host port — Dokploy routes internally
+    # container_name removed so --scale backend=N can create multiple replicas
+    expose:
+      - "8080"
+    # No host port — LB fronts it; scale with: docker compose up --scale backend=3 -d
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health | grep -q healthy || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
     environment:
+      - SERVER_ID=${HOSTNAME:-backend}
       - ENVIRONMENT=production
       - DATABASE_URL=postgres://messenger:ChorusProd2026@postgres:5432/messenger_prod?sslmode=disable
       - REDIS_URL=redis:6379
@@ -122,7 +135,34 @@ services:
     networks:
       - chorus-network
 
-  # React Frontend (served via Nginx)
+  # Layer 4 load balancer (TCP, leastconn) fronting the stateless backends
+  lb:
+    image: haproxy:2.8-alpine
+    container_name: chorus-lb
+    volumes:
+      - ./deploy/lb/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    expose:
+      - "8080"
+      - "8404"
+    ports:
+      - "127.0.0.1:8404:8404"
+    environment:
+      - LB_ALGORITHM=${LB_ALGORITHM:-leastconn}
+      - LB_MAXCONN_PER_SERVER=${LB_MAXCONN_PER_SERVER:-1000}
+      - LB_HEALTHCHECK_INTERVAL=${LB_HEALTHCHECK_INTERVAL:-5s}
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg && echo ok | nc 127.0.0.1 8404 | grep -q stats || wget -qO- http://127.0.0.1:8404/stats | grep -q stats"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: always
+    networks:
+      - chorus-network
+
+  # React Frontend (served via Nginx) — proxies /api,/ws,/media via the L4 LB
   frontend:
     build:
       context: ./frontend
@@ -142,7 +182,8 @@ services:
       - "3000"
     # Dokploy/Traefik handles external access
     depends_on:
-      - backend
+      lb:
+        condition: service_healthy
     restart: always
     networks:
       - chorus-network
