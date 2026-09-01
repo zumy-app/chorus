@@ -158,7 +158,19 @@ else
   fi
 fi
 
-# --- 9. Go vet (fast, no DB) -------------------------------------------------
+# --- 9. Wireframe parity (MKT-QA) -----------------------------------------------
+if [[ -f "$ROOT/deploy/ci/verify-wireframe-parity.sh" ]]; then
+  if bash "$ROOT/deploy/ci/verify-wireframe-parity.sh" >/tmp/vwp.log 2>&1; then
+    pass "wireframe parity PASS (verify-wireframe-parity.sh)"
+  else
+    cat /tmp/vwp.log >&2 || true
+    failc "wireframe parity FAIL — see verify-wireframe-parity.sh log above"
+  fi
+else
+  warn "verify-wireframe-parity.sh not found — skipping wireframe parity gate"
+fi
+
+# --- 10. Go vet (fast, no DB) -------------------------------------------------
 if command -v go >/dev/null 2>&1; then
   if (cd "$ROOT/backend" && go vet ./... 2>&1 | tee /tmp/govet.log); then
     pass "go vet ./... pass"

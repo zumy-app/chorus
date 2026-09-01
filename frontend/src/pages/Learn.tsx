@@ -123,6 +123,13 @@ export default function Learn() {
           </div>
         )}
 
+        {!loading && !error && dashboard && dashboard.streak && (dashboard.streak.atRisk || dashboard.streak.canRecover) && (
+          <div data-testid="streak-at-risk-banner" className="mt-6 bg-error-container rounded-xl p-4 flex items-center justify-between">
+            <div className="flex items-center gap-2"><span className="material-symbols-outlined text-on-error-container">local_fire_department</span><span className="font-label-md text-label-md text-on-error-container">{t('learn.streakAtRisk', { defaultValue: 'Streak at risk — recover now' })}</span></div>
+            <button onClick={() => navigate('/learn/streak-recovery')} className="bg-on-error-container text-error-container font-label-md text-label-md px-4 py-1.5 rounded-full">{t('learn.recover', { defaultValue: 'Recover' })}</button>
+          </div>
+        )}
+
         {!loading && !error && dashboard && (
           <>
             {/* Daily goal + streak ring */}
@@ -228,6 +235,12 @@ export default function Learn() {
 
             {/* Monthly activity (FR-31): words learned / sentences understood per month */}
             <MonthlyActivityCard activity={dashboard.monthlyActivity ?? []} />
+
+            <div data-testid="learn-find-tutors" onClick={() => navigate('/tutors')} className="mt-6 bg-surface-container-lowest rounded-xl p-4 flex items-center gap-3 cursor-pointer shadow-[0px_4px_12px_rgba(0,0,0,0.05)] border border-outline-variant">
+              <div className="w-10 h-10 rounded-full bg-secondary-fixed flex items-center justify-center"><span className="material-symbols-outlined text-secondary">cast_for_education</span></div>
+              <div className="flex-1"><div className="font-label-md text-label-md text-on-surface">Find a Tutor</div><div className="font-body-sm text-body-sm text-on-surface-variant">Book a trial session from the marketplace</div></div>
+              <span className="material-symbols-outlined text-outline-variant">chevron_right</span>
+            </div>
 
             {/* Recommended activities */}
             {dashboard.recommendedActivities.length > 0 && (

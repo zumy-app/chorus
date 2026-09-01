@@ -20,6 +20,13 @@ import LearningRoadmap from './pages/LearningRoadmap'
 import RealTalkHub from './pages/RealTalkHub'
 import Profile from './pages/Profile'
 import BecomeTeacher from './pages/BecomeTeacher'
+import BrowseTutors from './pages/BrowseTutors'
+import TutorProfile from './pages/TutorProfile'
+import TrialCredits from './pages/TrialCredits'
+import TeacherDashboard from './pages/TeacherDashboard'
+import Payouts from './pages/Payouts'
+import ConfirmBooking from './pages/ConfirmBooking'
+import StreakRecovery from './pages/StreakRecovery'
 import { authAPI, presenceAPI } from './services/api'
 import { wsService } from './services/websocket'
 import { useStore } from './store'
@@ -234,6 +241,13 @@ function App() {
             isAuthenticated ? <BecomeTeacher /> : <Navigate to="/login" />
           }
         />
+        <Route path="/tutors" element={isAuthenticated ? <BrowseTutors /> : <Navigate to="/login" />} />
+        <Route path="/tutors/:id" element={isAuthenticated ? <TutorProfile /> : <Navigate to="/login" />} />
+        <Route path="/tutors/:id/confirm" element={isAuthenticated ? <ConfirmBooking /> : <Navigate to="/login" />} />
+        <Route path="/trial-credits" element={isAuthenticated ? <TrialCredits /> : <Navigate to="/login" />} />
+        <Route path="/teacher/dashboard" element={isAuthenticated ? <TeacherDashboard /> : <Navigate to="/login" />} />
+        <Route path="/teacher/payouts" element={isAuthenticated ? <Payouts /> : <Navigate to="/login" />} />
+        <Route path="/learn/streak-recovery" element={isAuthenticated ? <StreakRecovery /> : <Navigate to="/login" />} />
       </Routes>
     </>
   )

@@ -52,6 +52,7 @@ export default function LearnScreen() {
   const startSession = (mode: string) =>
     navigation.navigate('LessonSession', { sessionId: undefined, mode });
   const openPlacement = () => navigation.navigate('Placement' as never);
+  const openTutors = () => (navigation as any).getParent?.()?.navigate('MarketplaceTab' as never);
 
   if (loading) {
     return (
@@ -97,6 +98,13 @@ export default function LearnScreen() {
             </Pressable>
           </View>
         </View>
+      )}
+
+      {(d?.streak.atRisk || d?.streak.canRecover) && (
+        <Pressable testID="streak-at-risk-banner" style={styles.streakBanner} onPress={() => navigation.navigate('StreakRecovery' as never)}>
+          <Text style={styles.streakBannerText}>🔥 Streak at risk — recover now</Text>
+          <Text style={styles.streakBannerCta}>Recover ›</Text>
+        </Pressable>
       )}
 
       {/* Quick Drills (full width) */}
@@ -193,6 +201,15 @@ export default function LearnScreen() {
           </Pressable>
         ))}
       </View>
+
+      <Pressable style={styles.marketplaceCard} onPress={openTutors} testID="learn-find-tutors">
+        <View style={styles.marketplaceIcon}><Text style={styles.roundIconText}>🏫</Text></View>
+        <View style={styles.marketplaceBody}>
+          <Text style={styles.cardTitle}>Find a Tutor</Text>
+          <Text style={styles.cardSubtitle}>Book a trial session from the marketplace</Text>
+        </View>
+        <Text style={styles.marketplaceChevron}>›</Text>
+      </Pressable>
 
       {/* Weekly Goal chart */}
       <View style={[styles.card, styles.weeklyCard]}>
@@ -407,4 +424,11 @@ const styles = StyleSheet.create({
   monthlyStatValue: { ...TYPOGRAPHY.headlineLg, color: COLOR.onSurface, fontFamily: FONTS.headline },
   monthlyStatLabel: { ...TYPOGRAPHY.labelSm, color: COLOR.onSurfaceVariant, fontFamily: FONTS.label, marginTop: 2 },
   monthlyEmpty: { ...TYPOGRAPHY.bodySm, color: COLOR.onSurfaceVariant, fontFamily: FONTS.body, marginTop: 4 },
+  marketplaceCard: { flexDirection: 'row', alignItems: 'center', gap: SPACING.stackMd, backgroundColor: COLOR.surfaceContainerLowest, borderRadius: RADIUS.xl, padding: SPACING.stackMd, borderWidth: 1, borderColor: COLOR.outlineVariant, ...SHADOWS.elevation1 },
+  marketplaceIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLOR.secondaryFixed, alignItems: 'center', justifyContent: 'center' },
+  marketplaceBody: { flex: 1 },
+  marketplaceChevron: { fontSize: 24, color: COLOR.outlineVariant },
+  streakBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: COLOR.errorContainer, borderRadius: RADIUS.lg, padding: SPACING.stackMd },
+  streakBannerText: { ...TYPOGRAPHY.labelMd, color: COLOR.onErrorContainer, fontFamily: FONTS.label },
+  streakBannerCta: { ...TYPOGRAPHY.labelMd, color: COLOR.error, fontFamily: FONTS.label },
 });
