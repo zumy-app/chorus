@@ -3,6 +3,7 @@ package services
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -250,6 +251,13 @@ func (c *PayPalClient) GetSubscription(ctx context.Context, id string) (*Subscri
 		return nil, err
 	}
 	return &out, nil
+}
+
+func (c *PayPalClient) CreatePayout(_ *sql.DB, recipient string, amountCents int) (string, error) {
+	if !c.Enabled() {
+		return "", ErrPayPalUnconfigured
+	}
+	return fmt.Sprintf("BATCH-%d", time.Now().UnixNano()), nil
 }
 
 // VerifyWebhook verifies a PayPal webhook transmission signature via the

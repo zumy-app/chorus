@@ -106,6 +106,16 @@ export default function Profile({ onLogout }: ProfileProps) {
           <PrivacySettings />
         </section>
 
+        <section className="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/40 overflow-hidden">
+          <a href="/become-teacher" className="flex items-center justify-between px-stack-md py-stack-md hover:bg-surface-container-low transition-colors cursor-pointer">
+            <div className="flex items-center gap-stack-md">
+              <span className="material-symbols-outlined text-outline">school</span>
+              <span className="font-body-md text-body-md text-on-surface">Become a teacher</span>
+            </div>
+            <span className="material-symbols-outlined text-outline-variant">chevron_right</span>
+          </a>
+        </section>
+
         {/* Preferences Section */}
         <section className="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/40 overflow-hidden">
           <h3 className="font-label-sm text-label-sm text-primary uppercase tracking-wider px-stack-md py-stack-sm bg-surface-container-low border-b border-outline-variant/40">{t('profile.preferences')}</h3>

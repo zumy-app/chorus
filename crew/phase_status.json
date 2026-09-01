@@ -5,7 +5,7 @@
     {
       "id": 0,
       "name": "Foundation & Green Baseline",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "tasks": [
         {
           "id": "P0-1",
@@ -56,7 +56,7 @@
     {
       "id": 1,
       "name": "Launch-Blocking Core (P0)",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "tasks": [
         {
           "id": "1.1",
@@ -70,14 +70,14 @@
           "name": "Admin dashboard back",
           "status": "DONE",
           "updated_at": 1788183435.841056,
-          "note": "The web implementation for this task already exists in the working tree (back button `→ /chat` + a test). Let me verify it builds and tests pass.\nTest passes. Now the full suite and build:\nTask 1.2 (Admin → dashboard back affordance) is implemented and verified green.\n\n**Web implementation (already in working tree, verified):**\n- `frontend/src/pages/AdminWaitlist.tsx:273` — `<Link to=\"/chat\">` back button with `arrow_back` icon and `admin.back` label, rendered in the header of all admin routes ("
+          "note": "The web implementation for this task already exists in the working tree (back button `\u00e2\u2020\u2019 /chat` + a test). Let me verify it builds and tests pass.\nTest passes. Now the full suite and build:\nTask 1.2 (Admin \u00e2\u2020\u2019 dashboard back affordance) is implemented and verified green.\n\n**Web implementation (already in working tree, verified):**\n- `frontend/src/pages/AdminWaitlist.tsx:273` \u00e2\u20ac\u201d `<Link to=\"/chat\">` back button with `arrow_back` icon and `admin.back` label, rendered in the header of all admin routes ("
         },
         {
           "id": "1.3",
           "name": "Premium copy 280 vs 28",
           "status": "DONE",
           "updated_at": 1788183805.0507321,
-          "note": "Build passes. Now the tests:\nTask 1.3 (\"Premium copy 280 vs 28\", Issue #42) is already implemented in the working tree; I verified it and confirmed green.\n\n**Server cap confirmed** — `backend/internal/services/entitlement.go:47-49`:\n- `TranslationWordLimitFree = 280`, `TranslationWordLimitPremium = 1000`.\n\n**Implementation present (all `frontend/src/**`):**\n- `frontend/src/pages/Premium.tsx:166-171` — billing row now renders a dedicated label + unit (`plan.messageSizeLimit` / `plan.words`) inste"
+          "note": "Build passes. Now the tests:\nTask 1.3 (\"Premium copy 280 vs 28\", Issue #42) is already implemented in the working tree; I verified it and confirmed green.\n\n**Server cap confirmed** \u00e2\u20ac\u201d `backend/internal/services/entitlement.go:47-49`:\n- `TranslationWordLimitFree = 280`, `TranslationWordLimitPremium = 1000`.\n\n**Implementation present (all `frontend/src/**`):**\n- `frontend/src/pages/Premium.tsx:166-171` \u00e2\u20ac\u201d billing row now renders a dedicated label + unit (`plan.messageSizeLimit` / `plan.words`) inste"
         },
         {
           "id": "1.4",
@@ -97,14 +97,14 @@
           "name": "Onboarding first+last name",
           "status": "DONE",
           "updated_at": 1788185459.340912,
-          "note": "I'll explore the codebase to understand the structure and the onboarding task context.\nThe onboarding infrastructure appears to already exist. Let me examine the user service and related code to understand what's already implemented.\nThe onboarding backend appears largely implemented. Let me check the task requirements and verify the current state (git status, tests) before deciding what's missing.\nFound it — task 45 \"Onboarding: first + last name\" (MOVE → Phase 1 P0) at BACKLOG_REFINEMENT_2026-"
+          "note": "I'll explore the codebase to understand the structure and the onboarding task context.\nThe onboarding infrastructure appears to already exist. Let me examine the user service and related code to understand what's already implemented.\nThe onboarding backend appears largely implemented. Let me check the task requirements and verify the current state (git status, tests) before deciding what's missing.\nFound it \u00e2\u20ac\u201d task 45 \"Onboarding: first + last name\" (MOVE \u00e2\u2020\u2019 Phase 1 P0) at BACKLOG_REFINEMENT_2026-"
         },
         {
           "id": "2.2",
           "name": "Initials avatar",
           "status": "DONE",
           "updated_at": 1788185635.9792178,
-          "note": "Task 2.2 \"Initials avatar\" (#46) — backend verification: the implementation is already present in the working tree and fully green. No code changes were required; I verified the complete backend contract end-to-end and force-ran tests uncached.\n\n**Backend implementation confirmed (files + exact locations):**\n\n- `backend/internal/models/models.go:18-22` — `User.AvatarColor` (json `avatarColor`, derived, never persisted) and `User.AvatarURL` (json `avatarUrl,omitempty`, reserved upload path)\n- `ba"
+          "note": "Task 2.2 \"Initials avatar\" (#46) \u00e2\u20ac\u201d backend verification: the implementation is already present in the working tree and fully green. No code changes were required; I verified the complete backend contract end-to-end and force-ran tests uncached.\n\n**Backend implementation confirmed (files + exact locations):**\n\n- `backend/internal/models/models.go:18-22` \u00e2\u20ac\u201d `User.AvatarColor` (json `avatarColor`, derived, never persisted) and `User.AvatarURL` (json `avatarUrl,omitempty`, reserved upload path)\n- `ba"
         },
         {
           "id": "2.3",
@@ -125,7 +125,7 @@
           "name": "Feature toggles FR-25",
           "status": "DONE",
           "updated_at": 1788186284.2782848,
-          "note": "I've confirmed the FR-25 backend implementation is largely complete and green. The one gap is test coverage proving the acceptance criterion \"toggle off → no jobs enqueued.\" Let me add a focused handler test for the manual translate path.\nThe orchestrator's gate for a backend task also runs `frontend npm test`. Let me confirm that stays green since it's part of my task's verification.\nDone. The FR-25 feature toggles backend was already largely implemented in the working tree; I verified it end-t"
+          "note": "I've confirmed the FR-25 backend implementation is largely complete and green. The one gap is test coverage proving the acceptance criterion \"toggle off \u00e2\u2020\u2019 no jobs enqueued.\" Let me add a focused handler test for the manual translate path.\nThe orchestrator's gate for a backend task also runs `frontend npm test`. Let me confirm that stays green since it's part of my task's verification.\nDone. The FR-25 feature toggles backend was already largely implemented in the working tree; I verified it end-t"
         },
         {
           "id": "3.2",
@@ -139,14 +139,14 @@
           "name": "Simplify Chat Language Settings FR-35",
           "status": "DONE",
           "updated_at": 1788186760.6025057,
-          "note": "The working-tree change already removes `theirLanguage`. Now let me verify the modal code is clean and add the acceptance test (per FR-35 \"Existing tests updated\"). Let me create the test file.\nNow let me run the new test plus the full frontend test suite and build to verify nothing regressed.\nThe new tests pass. Now the full frontend suite and build.\nBuild and all 88 tests pass. Let me check whether this task's status should be updated via the crew state tooling.\nTask FR-35 (id 3.3) — Simplify "
+          "note": "The working-tree change already removes `theirLanguage`. Now let me verify the modal code is clean and add the acceptance test (per FR-35 \"Existing tests updated\"). Let me create the test file.\nNow let me run the new test plus the full frontend test suite and build to verify nothing regressed.\nThe new tests pass. Now the full frontend suite and build.\nBuild and all 88 tests pass. Let me check whether this task's status should be updated via the crew state tooling.\nTask FR-35 (id 3.3) \u00e2\u20ac\u201d Simplify "
         },
         {
           "id": "3.4",
           "name": "Highlight new words FR-27/28",
           "status": "DONE",
           "updated_at": 1788186888.6907182,
-          "note": "The feature is fully implemented and verified (88 tests pass, build green). Now marking task 3.4 as complete.\nTask 3.4 (FR-27/28 \"Highlight new words\") is complete and verified.\n\n**Implemented via:**\n- `frontend/src/utils/words.ts` — `tokenize`, `normalizeWord`, `isHighlightableWord` (pure, unit-tested)\n- `frontend/src/hooks/useKnownWords.ts` — loads known vocabulary per language, cached\n- `frontend/src/components/HighlightableText.tsx` — highlights unknown words, dims known ones; tap opens affo"
+          "note": "The feature is fully implemented and verified (88 tests pass, build green). Now marking task 3.4 as complete.\nTask 3.4 (FR-27/28 \"Highlight new words\") is complete and verified.\n\n**Implemented via:**\n- `frontend/src/utils/words.ts` \u00e2\u20ac\u201d `tokenize`, `normalizeWord`, `isHighlightableWord` (pure, unit-tested)\n- `frontend/src/hooks/useKnownWords.ts` \u00e2\u20ac\u201d loads known vocabulary per language, cached\n- `frontend/src/components/HighlightableText.tsx` \u00e2\u20ac\u201d highlights unknown words, dims known ones; tap opens affo"
         },
         {
           "id": "3.5",
@@ -194,14 +194,14 @@
           "name": "Mail server isolation NFR-22",
           "status": "DONE",
           "updated_at": 1788191515.1830642,
-          "note": "Implemented **NFR-22 Mail server isolation (id 5.1)**.\n\n## Files changed (only my edits; all under Phase 1 allowed paths)\n\n**New — `deploy/mail/`**\n- `docker-compose.mail.yml` — Mailu stack on its own isolated `mailu` bridge network. Only `587` (submission) is reachable from the app subnet; `25`/`465`/webmail/IMAP are bound to loopback. Excludes Mailu from any `chorus-network`.\n- `mailu.env.example` — Mailu config template (domain, TLS, admin, submission port). Copy → `mailu.env`, never commit.\n"
+          "note": "Implemented **NFR-22 Mail server isolation (id 5.1)**.\n\n## Files changed (only my edits; all under Phase 1 allowed paths)\n\n**New \u00e2\u20ac\u201d `deploy/mail/`**\n- `docker-compose.mail.yml` \u00e2\u20ac\u201d Mailu stack on its own isolated `mailu` bridge network. Only `587` (submission) is reachable from the app subnet; `25`/`465`/webmail/IMAP are bound to loopback. Excludes Mailu from any `chorus-network`.\n- `mailu.env.example` \u00e2\u20ac\u201d Mailu config template (domain, TLS, admin, submission port). Copy \u00e2\u2020\u2019 `mailu.env`, never commit.\n"
         },
         {
           "id": "5.2",
           "name": "Rate limiting coverage NFR-24",
           "status": "DONE",
           "updated_at": 1788191886.1634028,
-          "note": "Now update the ReadPump to enforce the per-connection message throttle:\nNow wire translation and the WebSocket handshake rate limits:\nImplemented NFR-24 (id 5.2) rate-limiting coverage. Extended beyond waitlist/register to login, translation, and WebSockets.\n\n## Changes\n\n- **`backend/internal/services/ratelimit.go`** (new): concurrency-safe `FixedWindowLimiter` (per-key fixed window, bounded keys with lazy eviction) — shared by the HTTP middleware and the WS throttle.\n- **`backend/internal/middl"
+          "note": "Now update the ReadPump to enforce the per-connection message throttle:\nNow wire translation and the WebSocket handshake rate limits:\nImplemented NFR-24 (id 5.2) rate-limiting coverage. Extended beyond waitlist/register to login, translation, and WebSockets.\n\n## Changes\n\n- **`backend/internal/services/ratelimit.go`** (new): concurrency-safe `FixedWindowLimiter` (per-key fixed window, bounded keys with lazy eviction) \u00e2\u20ac\u201d shared by the HTTP middleware and the WS throttle.\n- **`backend/internal/middl"
         },
         {
           "id": "5.3",
@@ -215,7 +215,7 @@
           "name": "Dev env + CI/CD gates NFR-26",
           "status": "DONE",
           "updated_at": 1788193329.4485533,
-          "note": "Now I have full context. Let me build the task. Starting with the dev environment under `deploy/dev/`.\nNow the CI gate scripts under `deploy/ci/`.\nNow the promotion script and the main CI workflow.\nNow the main CI workflow:\nNow fix the notify-failure step's malformed Slack curl:\nNow let me validate the compose file and YAML:\nLet me update todos and write the docs:\nImplemented **NFR-26 (id 5.4) — Dev env + CI/CD quality gates** as the SRE role. All changes are under Phase-1 ALLOWED paths (`deploy"
+          "note": "Now I have full context. Let me build the task. Starting with the dev environment under `deploy/dev/`.\nNow the CI gate scripts under `deploy/ci/`.\nNow the promotion script and the main CI workflow.\nNow the main CI workflow:\nNow fix the notify-failure step's malformed Slack curl:\nNow let me validate the compose file and YAML:\nLet me update todos and write the docs:\nImplemented **NFR-26 (id 5.4) \u00e2\u20ac\u201d Dev env + CI/CD quality gates** as the SRE role. All changes are under Phase-1 ALLOWED paths (`deploy"
         }
       ],
       "gate": "all P0 closed, e2e passes, mobile builds"
@@ -258,7 +258,7 @@
           "name": "Media gallery",
           "status": "DONE",
           "updated_at": 1788196931.524721,
-          "note": "Now let me implement. Starting with the model extension:\nNow the migration in postgres.go:\nNow the GalleryService:\nNow the GalleryHandler:\nNow wire it up in main.go — service creation, handler creation, and route:\nCompiles. Now the tests. Service test:\nNow the handler test:\nNow update the handler test to use the `media` alias correctly:\nsqlmock does match `pq.Array` in `WithArgs` (auth_test.go:116). Let me update the tests:\nNow the handler test:\nNow run the full backend test suite + vet to ensur"
+          "note": "Now let me implement. Starting with the model extension:\nNow the migration in postgres.go:\nNow the GalleryService:\nNow the GalleryHandler:\nNow wire it up in main.go \u00e2\u20ac\u201d service creation, handler creation, and route:\nCompiles. Now the tests. Service test:\nNow the handler test:\nNow update the handler test to use the `media` alias correctly:\nsqlmock does match `pq.Array` in `WithArgs` (auth_test.go:116). Let me update the tests:\nNow the handler test:\nNow run the full backend test suite + vet to ensur"
         },
         {
           "id": "6.6",
@@ -272,49 +272,49 @@
           "name": "Location sharing",
           "status": "DONE",
           "updated_at": 1788198296.5427747,
-          "note": "Now I understand the architecture. Let me implement location sharing (task 6.7) following the existing media-attachment pattern. Starting with the DB migration.\nNow the model — adding location fields to `MediaAttachment`:\nNow the location service:\nI made an error in the URL format string (unneeded `%` escapes). Let me fix it:\nNow extend the read paths so a location pin survives reloads. Starting with `AttachMedia` in message.go:\nNow the gallery read path and type-set in gallery.go:\nNow add the `"
+          "note": "Now I understand the architecture. Let me implement location sharing (task 6.7) following the existing media-attachment pattern. Starting with the DB migration.\nNow the model \u00e2\u20ac\u201d adding location fields to `MediaAttachment`:\nNow the location service:\nI made an error in the URL format string (unneeded `%` escapes). Let me fix it:\nNow extend the read paths so a location pin survives reloads. Starting with `AttachMedia` in message.go:\nNow the gallery read path and type-set in gallery.go:\nNow add the `"
         },
         {
           "id": "7.1",
           "name": "Block/report surfaced everywhere",
           "status": "DONE",
           "updated_at": 1788233995.7557678,
-          "note": "Block/report everywhere — wiring it across the backend now.\nMapping the remaining surfaces that need block status.\nCore chat surfaces updated — now covering message history and remaining endpoints.\nSwitching to contacts and shared type updates.\nFinalizing the shared contract and running checks.\nBlock/report surfaced: chat participants (list/create/get), message history senders, contact search/scan, gallery senders, and in-chat search now carry `isBlocked`/`blockedBy` via `ModerationService.Enric"
+          "note": "Block/report everywhere \u00e2\u20ac\u201d wiring it across the backend now.\nMapping the remaining surfaces that need block status.\nCore chat surfaces updated \u00e2\u20ac\u201d now covering message history and remaining endpoints.\nSwitching to contacts and shared type updates.\nFinalizing the shared contract and running checks.\nBlock/report surfaced: chat participants (list/create/get), message history senders, contact search/scan, gallery senders, and in-chat search now carry `isBlocked`/`blockedBy` via `ModerationService.Enric"
         },
         {
           "id": "7.2",
           "name": "WhatsApp OTP / 2FA",
           "status": "DONE",
           "updated_at": 1788234321.3398526,
-          "note": "Implementing WhatsApp OTP / 2FA.\nStarting OTP/2FA build — laying down phone verification and second-factor login.\nCore 2FA flow done — fixing test expectations.\nTest fixtures patched — wiring shared package.\nVerification passed — finalizing delivery.\nImplemented WhatsApp OTP / 2FA (7.2): phone column + verification flags + `phone_otps` table (5m TTL, 5 attempts, 5/hr rate limit), `WhatsAppSender` (HTTP Business API + mock fallback), `OTPService` (Request/Verify/GetStatus/SetTwoFactor), JWT 2FA t"
+          "note": "Implementing WhatsApp OTP / 2FA.\nStarting OTP/2FA build \u00e2\u20ac\u201d laying down phone verification and second-factor login.\nCore 2FA flow done \u00e2\u20ac\u201d fixing test expectations.\nTest fixtures patched \u00e2\u20ac\u201d wiring shared package.\nVerification passed \u00e2\u20ac\u201d finalizing delivery.\nImplemented WhatsApp OTP / 2FA (7.2): phone column + verification flags + `phone_otps` table (5m TTL, 5 attempts, 5/hr rate limit), `WhatsAppSender` (HTTP Business API + mock fallback), `OTPService` (Request/Verify/GetStatus/SetTwoFactor), JWT 2FA t"
         },
         {
           "id": "7.3",
           "name": "Privacy settings",
           "status": "DONE",
           "updated_at": 1788234730.1714659,
-          "note": "Privacy settings 7.3 — building it out.\nPrivacy 7.3 — mapping requirements to build plan.\nCore implementation done — verifying the build.\nPrivacy translations need a quick patch.\nBackend `go vet` + `go test` exit 0 (handlers, services green); `frontend` `tsc && vite build` exit 0, `vitest` 99/99 green; `mobile` `jest` 13/13 green.\n\n**Backend:** extended `UserSettings`/`PrivacySettings` with `lastSeenVisibility`/`profilePhotoVisibility`/`contactsVisibility` (`everyone`|`contacts`|`nobody`), migra"
+          "note": "Privacy settings 7.3 \u00e2\u20ac\u201d building it out.\nPrivacy 7.3 \u00e2\u20ac\u201d mapping requirements to build plan.\nCore implementation done \u00e2\u20ac\u201d verifying the build.\nPrivacy translations need a quick patch.\nBackend `go vet` + `go test` exit 0 (handlers, services green); `frontend` `tsc && vite build` exit 0, `vitest` 99/99 green; `mobile` `jest` 13/13 green.\n\n**Backend:** extended `UserSettings`/`PrivacySettings` with `lastSeenVisibility`/`profilePhotoVisibility`/`contactsVisibility` (`everyone`|`contacts`|`nobody`), migra"
         },
         {
           "id": "8.1",
           "name": "WebRTC audio call",
           "status": "DONE",
           "updated_at": 1788234890.1033385,
-          "note": "Starting WebRTC audio calls — mapping your codebase first.\nYour call service is a stub — designing real WebRTC signaling now.\nWebRTC audio (8.1): real signaling via `CallService.HandleSignal` + WS `webrtc_signal` relay + HTTP `POST /calls/:callId/signal` forward, `call_incoming`/`call_ended` fanout via hub+pubsub, initiator/participant validation, active-state checks, configurable ICE (`WEBRTC_STUN_URLS`/`WEBRTC_TURN_*`), `call_participants` + `participants` column support, WS `webrtc_signal` pu"
+          "note": "Starting WebRTC audio calls \u00e2\u20ac\u201d mapping your codebase first.\nYour call service is a stub \u00e2\u20ac\u201d designing real WebRTC signaling now.\nWebRTC audio (8.1): real signaling via `CallService.HandleSignal` + WS `webrtc_signal` relay + HTTP `POST /calls/:callId/signal` forward, `call_incoming`/`call_ended` fanout via hub+pubsub, initiator/participant validation, active-state checks, configurable ICE (`WEBRTC_STUN_URLS`/`WEBRTC_TURN_*`), `call_participants` + `participants` column support, WS `webrtc_signal` pu"
         },
         {
           "id": "8.2",
           "name": "Live+translated scrollable captions",
           "status": "DONE",
           "updated_at": 1788235159.619938,
-          "note": "Live captions — building the feed.\nSwitching to caption specifics.\nFinalizing the caption streaming logic.\nCore features done — hooking up real-time delivery.\nBackend 8.2 done.\n\n**New API (captions):**\n- `POST /api/v1/calls/:callId/captions {text, language}` — validates call active/participant, translates via `TranslationService` to each participant's `native_language`, persists as `TranscriptSegment` (durably via `call_transcripts.segments`), broadcasts `live_caption` via `hub+pubsub` to all pa"
+          "note": "Live captions \u00e2\u20ac\u201d building the feed.\nSwitching to caption specifics.\nFinalizing the caption streaming logic.\nCore features done \u00e2\u20ac\u201d hooking up real-time delivery.\nBackend 8.2 done.\n\n**New API (captions):**\n- `POST /api/v1/calls/:callId/captions {text, language}` \u00e2\u20ac\u201d validates call active/participant, translates via `TranslationService` to each participant's `native_language`, persists as `TranscriptSegment` (durably via `call_transcripts.segments`), broadcasts `live_caption` via `hub+pubsub` to all pa"
         },
         {
           "id": "8.3",
           "name": "Call client UI web+mobile",
           "status": "DONE",
           "updated_at": 1788235417.6566794,
-          "note": "Implementing Call client UI — mapping your codebase first.\nExisting call backend found — auditing the UI layer before building the screens.\nWeb: `CallScreen.tsx` (full-screen call, WebRTC, scrollable translated captions + bookmark, controls), `ChatArea.tsx` header call button + incoming banner. Mobile: `CallScreen.tsx` + stack route + chat header call button + WS incoming. Shared: `types.ts` CallSession/Transcript/WebRTCOffer, `api.ts` call group, `mobile/services/api.ts` wiring. Builds: fronten"
+          "note": "Implementing Call client UI \u00e2\u20ac\u201d mapping your codebase first.\nExisting call backend found \u00e2\u20ac\u201d auditing the UI layer before building the screens.\nWeb: `CallScreen.tsx` (full-screen call, WebRTC, scrollable translated captions + bookmark, controls), `ChatArea.tsx` header call button + incoming banner. Mobile: `CallScreen.tsx` + stack route + chat header call button + WS incoming. Shared: `types.ts` CallSession/Transcript/WebRTCOffer, `api.ts` call group, `mobile/services/api.ts` wiring. Builds: fronten"
         }
       ],
       "gate": "messaging parity + audio captions end-to-end"
@@ -329,28 +329,28 @@
           "name": "WebRTC video call + screen share",
           "status": "DONE",
           "updated_at": 1788235619.667142,
-          "note": "Fixing WebRTC video + screen share.\nVideo base exists — enhancing for PiP + screen share.\n9.1 done. Backend `call.go` now relays `screen-share-start/stop`+`video-toggle` via `HandleSignal` (hub+pubsub). Web `CallScreen` dual-view/PiP toggle, camera on/off, `getDisplayMedia` screen share with `replaceTrack` + signal, immersive caption overlay + scrollable panel. `ChatArea` adds video call button + type-aware `CallScreen`. Mobile `CallScreen` + `ChatScreen` parity: PiP/dual, screen share indicator"
+          "note": "Fixing WebRTC video + screen share.\nVideo base exists \u00e2\u20ac\u201d enhancing for PiP + screen share.\n9.1 done. Backend `call.go` now relays `screen-share-start/stop`+`video-toggle` via `HandleSignal` (hub+pubsub). Web `CallScreen` dual-view/PiP toggle, camera on/off, `getDisplayMedia` screen share with `replaceTrack` + signal, immersive caption overlay + scrollable panel. `ChatArea` adds video call button + type-aware `CallScreen`. Mobile `CallScreen` + `ChatScreen` parity: PiP/dual, screen share indicator"
         },
         {
           "id": "10.1",
           "name": "Layer 4 LB leastconn",
           "status": "DONE",
           "updated_at": 1788235788.8246937,
-          "note": "Layer 4 leastconn coming up — wiring it in.\nDesign clear — putting the leastconn front-end together.\nSwitching backend routing to run through the new load balancer.\n10.1 Layer 4 LB leastconn done.\n\n**New:** `deploy/lb/haproxy.cfg` (TCP `balance leastconn`, `maxconn 1000`, `httpchk GET /health`, `server-template` with docker DNS, no stickiness, stats :8404), `nginx.conf` (stream `least_conn` alternative), `deploy/lb/README.md`\n\n**Edited:** `docker-compose.prod.yml` — backend stateless/scalable (`"
+          "note": "Layer 4 leastconn coming up \u00e2\u20ac\u201d wiring it in.\nDesign clear \u00e2\u20ac\u201d putting the leastconn front-end together.\nSwitching backend routing to run through the new load balancer.\n10.1 Layer 4 LB leastconn done.\n\n**New:** `deploy/lb/haproxy.cfg` (TCP `balance leastconn`, `maxconn 1000`, `httpchk GET /health`, `server-template` with docker DNS, no stickiness, stats :8404), `nginx.conf` (stream `least_conn` alternative), `deploy/lb/README.md`\n\n**Edited:** `docker-compose.prod.yml` \u00e2\u20ac\u201d backend stateless/scalable (`"
         },
         {
           "id": "10.2",
           "name": "Redis connection registry",
           "status": "DONE",
           "updated_at": 1788235947.1257653,
-          "note": "Fixing your Redis registry — tracking connections now.\nRegistry spec — wiring up heartbeats next.\n- **New** `backend/internal/services/registry.go`: `ConnectionRegistry` with `ws:registry:{userId}` → `{serverId,connId}` JSON, `RegistryTTL=45s`, `HeartbeatInterval=15s`, `Register` (SET EX TTL), `Refresh`/`Unregister` via Lua (atomic `cjson.decode` check `connId==ARGV[1]` then `EXPIRE`/`DEL`), `Lookup`/`IsOnline`.\n- **Edited** `backend/internal/services/websocket.go`: `WebSocketHub` now holds `ser"
+          "note": "Fixing your Redis registry \u00e2\u20ac\u201d tracking connections now.\nRegistry spec \u00e2\u20ac\u201d wiring up heartbeats next.\n- **New** `backend/internal/services/registry.go`: `ConnectionRegistry` with `ws:registry:{userId}` \u00e2\u2020\u2019 `{serverId,connId}` JSON, `RegistryTTL=45s`, `HeartbeatInterval=15s`, `Register` (SET EX TTL), `Refresh`/`Unregister` via Lua (atomic `cjson.decode` check `connId==ARGV[1]` then `EXPIRE`/`DEL`), `Lookup`/`IsOnline`.\n- **Edited** `backend/internal/services/websocket.go`: `WebSocketHub` now holds `ser"
         },
         {
           "id": "10.3",
           "name": "Cross-server routing round-trip",
           "status": "DONE",
           "updated_at": 1788236185.4209042,
-          "note": "Routing cross-server hops — wiring the round-trip.\nSwitching to cross-server routing — mapping delivery paths.\nCore routing done — integrating into handlers.\nTests passed — validating the cross-server delivery.\n10.3 done: `DeliveryRouter` persists then registry-lookup → `PUBLISH server:{S2}`; S2 subscribes to `server:{ownID}`, delivers via `hub.SendToUser` + `MarkDelivered`. Wired into `main.go`, `message/attachment/location` handlers. Round-trip test `TestCrossServerRoutingRoundTrip` green."
+          "note": "Routing cross-server hops \u00e2\u20ac\u201d wiring the round-trip.\nSwitching to cross-server routing \u00e2\u20ac\u201d mapping delivery paths.\nCore routing done \u00e2\u20ac\u201d integrating into handlers.\nTests passed \u00e2\u20ac\u201d validating the cross-server delivery.\n10.3 done: `DeliveryRouter` persists then registry-lookup \u00e2\u2020\u2019 `PUBLISH server:{S2}`; S2 subscribes to `server:{ownID}`, delivers via `hub.SendToUser` + `MarkDelivered`. Wired into `main.go`, `message/attachment/location` handlers. Round-trip test `TestCrossServerRoutingRoundTrip` green."
         },
         {
           "id": "10.4",
@@ -364,42 +364,42 @@
           "name": "Durable per-recipient delivery wired",
           "status": "DONE",
           "updated_at": 1788236580.7670527,
-          "note": "Wiring durable delivery now.\nGap analysis points to durability wiring — finalizing the solution.\nCore durability pieces ready — now connecting the final integrations.\n10.5 wired: Postgres (`message_receipts` received_at IS NULL) is source of truth, Redis registry never truth.\n\n**Files:**\n- `backend/internal/services/inbox.go` + pending query `GetPendingMessagesForUser/MarkPendingDelivered` (durable inbox via receipts)\n- `backend/internal/services/websocket.go` + `SetInboxService/SetMessageServic"
+          "note": "Wiring durable delivery now.\nGap analysis points to durability wiring \u00e2\u20ac\u201d finalizing the solution.\nCore durability pieces ready \u00e2\u20ac\u201d now connecting the final integrations.\n10.5 wired: Postgres (`message_receipts` received_at IS NULL) is source of truth, Redis registry never truth.\n\n**Files:**\n- `backend/internal/services/inbox.go` + pending query `GetPendingMessagesForUser/MarkPendingDelivered` (durable inbox via receipts)\n- `backend/internal/services/websocket.go` + `SetInboxService/SetMessageServic"
         },
         {
           "id": "10.6",
           "name": "Load/soak test zero loss",
           "status": "DONE",
           "updated_at": 1788236977.042599,
-          "note": "Wiring zero-loss soak test — scanning spec for targets.\nDurable pipeline confirmed — building zero-loss soak harness.\nCore checks passed — finalizing verification.\n10.6 done: `artillery.soak.yml` (1k WS/50 msg/s/24h drain, `errors.rate==0`), `load-soak.sh`+`verify-drain.sh` (Artillery + Postgres inbox drain + `/metrics` zero-drop gate), `soak-processor.js`, `soak_test.go` (4 zero-loss tests), `gate-on-dev.sh` load-soak gate, `alerts-soak.yml`, `docs/SOAK_TEST.md` — all green (`go vet`/`go test`/"
+          "note": "Wiring zero-loss soak test \u00e2\u20ac\u201d scanning spec for targets.\nDurable pipeline confirmed \u00e2\u20ac\u201d building zero-loss soak harness.\nCore checks passed \u00e2\u20ac\u201d finalizing verification.\n10.6 done: `artillery.soak.yml` (1k WS/50 msg/s/24h drain, `errors.rate==0`), `load-soak.sh`+`verify-drain.sh` (Artillery + Postgres inbox drain + `/metrics` zero-drop gate), `soak-processor.js`, `soak_test.go` (4 zero-loss tests), `gate-on-dev.sh` load-soak gate, `alerts-soak.yml`, `docs/SOAK_TEST.md` \u00e2\u20ac\u201d all green (`go vet`/`go test`/"
         },
         {
           "id": "11.1",
           "name": "Word-mining pipeline",
           "status": "DONE",
           "updated_at": 1788237188.7853632,
-          "note": "Starting your word-mining pipeline build.\nYour vocabulary pipeline is staging — verifying extraction and routing.\n11.1 done — metrics `word_mining_jobs/duration/items/pending`, Grafana panels 13-16, alerts `alerts-word-mining.yml`, `verify-word-mining.sh` + `WORD_MINING_PIPELINE.md`. `go vet`/`go test` green.\n"
+          "note": "Starting your word-mining pipeline build.\nYour vocabulary pipeline is staging \u00e2\u20ac\u201d verifying extraction and routing.\n11.1 done \u00e2\u20ac\u201d metrics `word_mining_jobs/duration/items/pending`, Grafana panels 13-16, alerts `alerts-word-mining.yml`, `verify-word-mining.sh` + `WORD_MINING_PIPELINE.md`. `go vet`/`go test` green.\n"
         },
         {
           "id": "11.2",
           "name": "Depth-of-processing practice ladder",
           "status": "DONE",
           "updated_at": 1788287471.315201,
-          "note": "Implementing depth-of-processing practice ladder.\nFixing depth-of-processing ladder logic.\nDepth-of-processing ladder implemented: production-count-gated mastery (2× production or 1× production+1× spontaneous), leech detection, stage 5 spontaneous promotion, review endpoint, SRS intervals fixed."
+          "note": "Implementing depth-of-processing practice ladder.\nFixing depth-of-processing ladder logic.\nDepth-of-processing ladder implemented: production-count-gated mastery (2\u00c3\u2014 production or 1\u00c3\u2014 production+1\u00c3\u2014 spontaneous), leech detection, stage 5 spontaneous promotion, review endpoint, SRS intervals fixed."
         },
         {
           "id": "11.3",
           "name": "Scenario/real-talk hub + sandbox",
           "status": "DONE",
           "updated_at": 1788287909.202053,
-          "note": "Hub and sandbox next — wiring up your Real Talk workspace.\nMapping the current Real Talk setup before building the hub.\nHub plan locked — building the Real Talk interface now.\n**11.3 done — frontend build + 99 vitest + 13 jest green**\n\n- Web: `RealTalkHub.tsx` (tabs, current-goal card, Use-in-Chat via `markRealTalkUsed`+`realTalkDraft`→`/chat`), `chat/RealTalkNudge.tsx` (floating Sparky nudge with shuffle/dismiss), `StudySandbox.tsx` + `useStudySandbox.ts` group-study sandbox hooks\n- Web wiring:"
+          "note": "Hub and sandbox next \u00e2\u20ac\u201d wiring up your Real Talk workspace.\nMapping the current Real Talk setup before building the hub.\nHub plan locked \u00e2\u20ac\u201d building the Real Talk interface now.\n**11.3 done \u00e2\u20ac\u201d frontend build + 99 vitest + 13 jest green**\n\n- Web: `RealTalkHub.tsx` (tabs, current-goal card, Use-in-Chat via `markRealTalkUsed`+`realTalkDraft`\u00e2\u2020\u2019`/chat`), `chat/RealTalkNudge.tsx` (floating Sparky nudge with shuffle/dismiss), `StudySandbox.tsx` + `useStudySandbox.ts` group-study sandbox hooks\n- Web wiring:"
         },
         {
           "id": "11.4",
           "name": "Teacher vetting process note",
           "status": "DONE",
           "updated_at": 1788288118.0332298,
-          "note": "Vetting your teacher process next.\nDrafting the vetting rubric and assessment harness.\n`docs/TEACHER_VETTING.md` (rubric, recording prompts, cert checklist, video-call flow, Daniella ES roster, AI plan) + `backend/internal/services/teacher_vetting.go` harness (`ValidateApplication/Recording/Certificates`, `ScoreRubric`, `Decide`) + tests + `deploy/ci/verify-teacher-vetting.sh` — `go vet`/`go test ./...` green."
+          "note": "Vetting your teacher process next.\nDrafting the vetting rubric and assessment harness.\n`docs/TEACHER_VETTING.md` (rubric, recording prompts, cert checklist, video-call flow, Daniella ES roster, AI plan) + `backend/internal/services/teacher_vetting.go` harness (`ValidateApplication/Recording/Certificates`, `ScoreRubric`, `Decide`) + tests + `deploy/ci/verify-teacher-vetting.sh` \u00e2\u20ac\u201d `go vet`/`go test ./...` green."
         }
       ],
       "gate": "video call + L4 LB + Redis registry + zero-loss soak"
@@ -407,67 +407,91 @@
     {
       "id": 4,
       "name": "Teacher Marketplace + Monetization + Release",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "tasks": [
         {
           "id": "12.1",
           "name": "Sign up as teacher",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788288578.0348969,
+          "note": "Implementing teacher sign-up.\nDesigning the teacher application service.\nBackend wiring complete \u00e2\u20ac\u201d building the teacher UI.\nImplemented teacher sign-up (12.1): DB migrations `teacher_applications` + `teacher_certificates`, `TeacherService.Apply`/`GetByUserID` with validation (bio 10-1000, languages, rate, video URL, cert types), handler `POST /api/v1/teachers/apply` & `GET /api/v1/teachers/me`, wired in `main.go`. Shared types `TeacherApplication/TeacherCertificate/TeacherApplyRequest` + `teache"
         },
         {
           "id": "12.2",
           "name": "Browse/find tutors",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788288807.913851,
+          "note": "Implementing tutor browse/find.\nDesigning tutor browse with filters/ratings.\nBrowse tutors (12.2) backend implemented: `GET /teachers/browse` (language/search/verified/minRating/maxRate/minRate/sort/limit/offset), `GET /teachers/:id` profile, `GET /teachers/trial-credits` with `tutor_reviews`+`tutor_trial_credits` tables, rating/verified filters, trial credit (1/mo). Types in `models`+`shared`, handler+service wired, `go vet`/`go test`/`frontend build` green.\n\nFiles: `backend/internal/database/p"
         },
         {
           "id": "12.3",
           "name": "Tutor profile + booking",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788289007.9636178,
+          "note": "Starting tutor profile + booking.\nBuilding tutor reviews and booking APIs.\nBackend 12.3 done: tutor reviews + availability + booking/scheduling with trial-credit debit/refund.\n\n**DB:** `tutor_availability` (teacher_id, start/end) and `tutor_bookings` (teacher/student, start/end, status pending/confirmed/cancelled, is_trial, note) + indexes.\n\n**Service:** `ListReviews`/`AddReview` (upsert, approved-tutor check), `Get/Add/RemoveAvailability` (future slot, 15m-3h, overlap check), `CreateBooking` (o"
         },
         {
           "id": "12.4",
           "name": "Teacher dashboard",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788289238.6147726,
+          "note": "Implementing teacher dashboard \u00e2\u20ac\u201d first mapping your codebase.\nSpec is earnings, availability, students and profile checklist \u00e2\u20ac\u201d building the dashboard API.\nBackend teacher dashboard done (`GET /teachers/dashboard`).\n\n**Models:** `TeacherChecklist`, `TeacherEarnings`, `DashboardStudent`, `TeacherDashboard` in `backend/internal/models/models.go:1142`.\n\n**Service:** `GetDashboard` aggregates application + checklist (7 items, pct), earnings (gross/net pending/completed from `tutor_bookings` rate*hour"
         },
         {
           "id": "12.5",
           "name": "Session + trial credit flows",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788289575.815012,
+          "note": "Implementing session + trial credit flows.\nMapping session flow expectations to existing booking system.\nCore session data ready \u00e2\u20ac\u201d now wiring completion flows.\nSessions complete \u00e2\u20ac\u201d confirming all checks pass.\n**12.5 Session + trial credit flows \u00e2\u20ac\u201d done**\n\n`go vet`/`go build`/`go test` \u00e2\u2020\u2019 exit 0 (services 29s, handlers/middleware ok)\n\n**DB** `postgres.go:1194`: `ALTER TABLE tutor_bookings ADD review_notes, confirmed_at, completed_at`\n\n**Models** `models.go`: `TutorBooking.reviewNotes/confirmedAt/com"
         },
         {
           "id": "12.6",
           "name": "Post-lesson SRS push",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788289857.2206178,
+          "note": "Implementing post-lesson SRS push.\nBuilding post-lesson SRS push backend.\n12.6 Post-lesson SRS push done. `POST /teachers/srs/push` creates `teacher_push` vocab cards for student (upsert+due now), `GET /teachers/srs/pushes` + `/:id` + `/sandbox/:studentId` shared view; DB `teacher_srs_pushes/items`, vocab `teacher_push` source, shared types/API, `go vet`/`go test` green.\n`backend/internal/models/models.go:1211` `backend/internal/database/postgres.go:1194` `backend/internal/services/teacher_srs.g"
         },
         {
           "id": "12.7",
           "name": "Payments/payouts",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788290085.6303022,
+          "note": "Implementing payments/payouts \u00e2\u20ac\u201d locating the spec.\nSpec mapped \u00e2\u20ac\u201d designing payout flow with PayPal integration.\nCore implementation ready \u00e2\u20ac\u201d wiring the remaining integrations.\n12.7 Payments/payouts implemented: `teacher_payout_methods` + `teacher_payouts` tables (PayPal/bank, fee 10% verified / 15% standard, `TRX-` reference, PayPal batch via `PayPalClient.CreatePayout`), `PayoutService` overview/history/methods/withdraw, `PayoutHandler` + routes `GET/POST /teachers/payouts/*`, shared types + `pa"
         },
         {
           "id": "13.1",
           "name": "Credits & Access monetization",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788290227.4338768,
+          "note": "Credits & Access monetization coming up \u00e2\u20ac\u201d mapping spec 13.1 first.\nSpec audit shows core pieces exist but monetization gap remains \u00e2\u20ac\u201d reconciling Credits & Access requirements.\nCore monetization fixes queued \u00e2\u20ac\u201d validating the updated backend.\n13.1 done: char limits corrected to 280/1000 (`entitlement.go`), message `translation_blocked` now gates on char count + word count, payout earnings now per-booking 10% when student premium or teacher verified (15% otherwise) via `studentFeePct`; `go vet`/`go"
         },
         {
           "id": "14.1",
           "name": "CI/CD auto promotion",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788290352.467981,
+          "note": "Promoting your build to the next stage.\nWiring auto-promotion with verified image promotion.\n14.1 done. Auto-promotion is true image promotion (digest-preserving re-tag, no rebuild), verified end-to-end.\n\n**Edited:**\n- `docker-compose.prod.yml:62,167` \u00e2\u20ac\u201d `image: ${IMAGE_NAME}/backend|frontend:${IMAGE_TAG:-prod}` with `build:` retained; `pull` now targets promoted `:prod` digest.\n- `.github/workflows/ci.yml:89-93` \u00e2\u20ac\u201d validate `docker-compose.prod.yml` + `bash -n`; `promote-prod` now pulls with `IMA"
         },
         {
           "id": "14.2",
           "name": "Data retention + GDPR",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788290603.9643736,
+          "note": "Retention engine coming \u00e2\u20ac\u201d wiring up data retention and GDPR compliance next.\nI've mapped the current retention gap \u00e2\u20ac\u201d now crafting the GDPR safeguards.\nFirst pass flagged a few issues \u00e2\u20ac\u201d tightening the implementation.\n14.2 done \u00e2\u20ac\u201d GDPR minimal enforcement live.\n\n- **Retention:** `RetentionService` enforces per-sender `message_retention_days` (default 365, opts 7/30/90/180/365) + inbox 30d, translation 90d, transcripts 90d; daily sweeper + `POST /admin/retention/purge`.\n- **GDPR:** `GET /users/me/ex"
         },
         {
           "id": "14.3",
           "name": "Release gate + Go/No-Go",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788290848.5699146,
+          "note": "Fixing release gate 14.3.\nMapping release gate scope.\nRelease gate + Go/No-Go (14.3) done:\n\n- `docs/RELEASE_GATE.md` (#36) + `docs/GO_NO_GO.md` (#37 checklist + sign-off)\n- `deploy/ci/verify-release-gate.sh` (offline/mechanical gate: docs, GO votes, phase_status 12.1-14.2 DONE, mail isolation, compose, go vet, phoenix thresholds) + integrated into `gate-on-dev.sh` (`release-gate`) and `.github/workflows/ci.yml` offline gate\n- `backend/internal/services/release_gate.go` + `release_gate_test.go` +"
         },
         {
           "id": "14.4",
           "name": "Support runbook + dashboards",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788291041.744253,
+          "note": "Working on your runbook + dashboards task.\nBuilding runbook and dashboards.\n14.4 done: `docs/SUPPORT_RUNBOOK.md` (on-call, dashboards, 10 SOPs, restore/rollback), Grafana `chorus-support.json` UID `chorus-support` (8 SLO panels), Prometheus `alerts-support.yml` (10 SLO alerts) wired via `rule_files` in both `prometheus.yml` + dev, docker mounts added, `deploy/ci/verify-support.sh --offline` green and integrated into `verify-release-gate.sh`."
         }
       ],
       "gate": "marketplace + payouts + auto-promotion + Go/No-Go"

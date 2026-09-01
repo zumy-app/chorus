@@ -1068,4 +1068,199 @@ export interface WebRTCOffer {
   iceServers: { urls: string[]; username?: string; credential?: string }[]
 }
 
+export interface TeacherCertificate {
+  id?: string
+  type: 'teaching_degree' | 'language_certificate' | 'other'
+  issuer: string
+  year: number
+  fileUrl: string
+  verified?: boolean
+}
+
+export interface TeacherApplication {
+  id: string
+  userId: string
+  bio: string
+  languages: string[]
+  expertise?: string
+  rateCents: number
+  videoUrl: string
+  status: string
+  createdAt: string
+  updatedAt: string
+  certificates?: TeacherCertificate[]
+}
+
+export interface TeacherApplyRequest {
+  bio: string
+  languages: string[]
+  expertise?: string
+  rateCents: number
+  videoUrl: string
+  certificates?: TeacherCertificate[]
+}
+
+export interface TutorProfile {
+  id: string
+  userId: string
+  displayName: string
+  bio: string
+  languages: string[]
+  expertise?: string
+  rateCents: number
+  videoUrl: string
+  status: string
+  verified: boolean
+  ratingAvg: number
+  ratingCount: number
+  avatarColor?: string
+  avatarUrl?: string | null
+  createdAt: string
+  updatedAt: string
+  certificates?: TeacherCertificate[]
+}
+
+export interface TutorBrowseResult {
+  tutors: TutorProfile[]
+  total: number
+  hasMore: boolean
+}
+
+export interface TutorReview {
+  id: string
+  teacherUserId: string
+  studentUserId: string
+  rating: number
+  comment: string
+  createdAt: string
+  studentName?: string
+}
+
+export interface TrialCredit {
+  userId: string
+  credits: number
+  updatedAt: string
+  grantedAt: string
+}
+
+export interface TutorAvailability {
+  id: string
+  teacherUserId: string
+  startTime: string
+  endTime: string
+  createdAt: string
+}
+
+export interface TutorBooking {
+  id: string
+  teacherUserId: string
+  studentUserId: string
+  startTime: string
+  endTime: string
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed'
+  isTrial: boolean
+  note?: string
+  reviewNotes?: string
+  confirmedAt?: string
+  completedAt?: string
+  createdAt: string
+  updatedAt: string
+  teacherName?: string
+  studentName?: string
+}
+
+export interface SrsPushCard {
+  term: string
+  translation?: string
+  definition?: string
+  contextSentence?: string
+  cefrLevel?: 'A1' | 'A2' | 'B1' | 'B2'
+}
+
+export interface TeacherSrsPushRequest {
+  studentId: string
+  bookingId?: string
+  language: string
+  note?: string
+  cards: SrsPushCard[]
+}
+
+export interface TeacherSrsPushItem {
+  id: string
+  pushId: string
+  vocabularyId: string
+  term: string
+  translation?: string
+  definition?: string
+  createdAt: string
+}
+
+export interface TeacherSrsPush {
+  id: string
+  teacherUserId: string
+  studentUserId: string
+  bookingId?: string
+  language: string
+  note?: string
+  itemCount: number
+  createdAt: string
+  teacherName?: string
+  studentName?: string
+  items?: TeacherSrsPushItem[]
+}
+
+export interface PayoutMethod {
+  id: string
+  teacherUserId: string
+  type: 'paypal' | 'bank'
+  label: string
+  details: string
+  isDefault: boolean
+  createdAt: string
+}
+
+export interface PayoutRecord {
+  id: string
+  teacherUserId: string
+  amountCents: number
+  feeCents: number
+  grossCents: number
+  methodId?: string
+  destination: string
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  reference: string
+  paypalBatchId?: string
+  createdAt: string
+  completedAt?: string
+}
+
+export interface PayoutOverview {
+  availableCents: number
+  pendingCents: number
+  pendingGrossCents: number
+  totalGrossCents: number
+  totalNetCents: number
+  lifetimeGross: number
+  lifetimeNet: number
+  totalPaidCents: number
+  platformFeePct: number
+  completedCount: number
+  pendingCount: number
+  cancelledCount: number
+  totalBookings: number
+  nextPayoutDate?: string
+  hoursTaught: number
+  activeStudents: number
+  recentTransactions: Array<{
+    studentName: string
+    initials: string
+    minutes: number
+    amountCents: number
+    grossCents: number
+    feeCents: number
+    date: string
+    status: string
+  }>
+}
+
 export type { PlacementMainStartResponse as StartPlacementResponse }

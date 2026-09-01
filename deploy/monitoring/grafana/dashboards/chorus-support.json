@@ -1,0 +1,118 @@
+{
+  "title": "Chorus Support SLO",
+  "uid": "chorus-support",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "timezone": "browser",
+  "editable": true,
+  "style": "dark",
+  "tags": ["chorus", "slo", "support", "oncall"],
+  "panels": [
+    {
+      "id": 101,
+      "title": "SLO error budget burn (5xx rate)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 0.01 }] } }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "sum(rate(chorus_backend_http_requests_total{status=~\"5..\"}[5m])) / clamp_min(sum(rate(chorus_backend_http_requests_total[5m])), 0.001)",
+          "legendFormat": "5xx ratio",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 102,
+      "title": "Availability — health/ready + up",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "expr": "up{job=~\"chorus-backend.*\"}", "legendFormat": "up {{job}}", "refId": "A" },
+        { "expr": "chorus_backend_ws_active_connections", "legendFormat": "ws conns", "refId": "B" }
+      ]
+    },
+    {
+      "id": 103,
+      "title": "HTTP status breakdown (4xx vs 5xx)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "targets": [
+        { "expr": "sum(rate(chorus_backend_http_requests_total{status=~\"5..\"}[5m]))", "legendFormat": "5xx", "refId": "A" },
+        { "expr": "sum(rate(chorus_backend_http_requests_total{status=~\"4..\"}[5m]))", "legendFormat": "4xx", "refId": "B" },
+        { "expr": "sum(rate(chorus_backend_http_requests_total[5m]))", "legendFormat": "total", "refId": "C" }
+      ]
+    },
+    {
+      "id": 104,
+      "title": "Inbox pending drain (durable delivery)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "expr": "chorus_backend_ws_fast_dropped_total", "legendFormat": "fast_dropped_total", "refId": "A" },
+        { "expr": "increase(chorus_backend_ws_fast_dropped_total[5m])", "legendFormat": "dropped 5m", "refId": "B" }
+      ]
+    },
+    {
+      "id": 105,
+      "title": "Translation failure ratio",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "steps": [{ "color": "green", "value": 0 }, { "color": "yellow", "value": 0.1 }, { "color": "red", "value": 0.2 }] } }, "overrides": [] },
+      "targets": [
+        { "expr": "sum(rate(chorus_backend_translation_requests_total{status=\"error\"}[5m])) / clamp_min(sum(rate(chorus_backend_translation_requests_total[5m])), 0.001)", "legendFormat": "error ratio", "refId": "A" }
+      ]
+    },
+    {
+      "id": 106,
+      "title": "Latency p95 — HTTP + translation",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(chorus_backend_http_request_duration_seconds_bucket[5m])))", "legendFormat": "http p95", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(chorus_backend_translation_duration_seconds_bucket[5m])))", "legendFormat": "translation p95", "refId": "B" }
+      ]
+    },
+    {
+      "id": 107,
+      "title": "DB / Redis / Phoenix up",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "steps": [{ "color": "red", "value": 0 }, { "color": "green", "value": 1 }] } }, "overrides": [] },
+      "targets": [
+        { "expr": "up{job=\"postgres\"}", "legendFormat": "postgres", "refId": "A" },
+        { "expr": "up{job=\"redis\"}", "legendFormat": "redis", "refId": "B" },
+        { "expr": "up{job=\"chorus-backend\"}", "legendFormat": "backend", "refId": "C" },
+        { "expr": "up{job=\"prometheus\"}", "legendFormat": "prometheus", "refId": "D" }
+      ]
+    },
+    {
+      "id": 108,
+      "title": "Word-mining backlog vs Support word-mine alerts",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "expr": "chorus_backend_word_mining_pending_jobs", "legendFormat": "pending", "refId": "A" },
+        { "expr": "sum(rate(chorus_backend_word_mining_jobs_total{status=\"failed\"}[5m]))", "legendFormat": "failed rate", "refId": "B" }
+      ]
+    }
+  ],
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "templating": { "list": [] },
+  "annotations": { "list": [] }
+}

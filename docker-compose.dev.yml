@@ -229,6 +229,9 @@ services:
       - "9092:9090"   # different host port to avoid clashing with main stack
     volumes:
       - ./deploy/monitoring/prometheus.dev.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/monitoring/alerts-soak.yml:/etc/prometheus/alerts-soak.yml:ro
+      - ./deploy/monitoring/alerts-word-mining.yml:/etc/prometheus/alerts-word-mining.yml:ro
+      - ./deploy/monitoring/alerts-support.yml:/etc/prometheus/alerts-support.yml:ro
       - chorus_dev_prometheus_data:/prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"

@@ -867,7 +867,7 @@ func Migrate(db *sql.DB) error {
 		`ALTER TABLE vocabulary ADD COLUMN IF NOT EXISTS is_chunk BOOLEAN NOT NULL DEFAULT false`,
 		`ALTER TABLE vocabulary ADD COLUMN IF NOT EXISTS source_type VARCHAR(30) NOT NULL DEFAULT 'chat'`,
 		`ALTER TABLE vocabulary DROP CONSTRAINT IF EXISTS vocabulary_source_type_check`,
-		`ALTER TABLE vocabulary ADD CONSTRAINT vocabulary_source_type_check CHECK (source_type IN ('chat', 'manual', 'scenario', 'lesson', 'import')) NOT VALID`,
+		`ALTER TABLE vocabulary ADD CONSTRAINT vocabulary_source_type_check CHECK (source_type IN ('chat', 'manual', 'scenario', 'lesson', 'import', 'teacher_push')) NOT VALID`,
 		`ALTER TABLE vocabulary ADD COLUMN IF NOT EXISTS source_message_id UUID REFERENCES messages(id) ON DELETE SET NULL`,
 		`ALTER TABLE vocabulary ADD COLUMN IF NOT EXISTS source_scenario_run_id UUID`,
 		`ALTER TABLE vocabulary ADD COLUMN IF NOT EXISTS cefr_level VARCHAR(2)`,
@@ -1127,6 +1127,132 @@ func Migrate(db *sql.DB) error {
 			component_scores JSONB NOT NULL DEFAULT '{}',
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
+
+		`CREATE TABLE IF NOT EXISTS teacher_applications (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+			bio TEXT NOT NULL CHECK (char_length(bio) >= 10 AND char_length(bio) <= 1000),
+			languages TEXT[] NOT NULL,
+			expertise TEXT NOT NULL DEFAULT '',
+			rate_cents INTEGER NOT NULL CHECK (rate_cents > 0),
+			video_url TEXT NOT NULL,
+			status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','assessment_passed','recording_uploaded','certs_verified','review_scheduled','reviewed','approved','rejected','needs_work')),
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_teacher_applications_user ON teacher_applications(user_id)`,
+		`CREATE TABLE IF NOT EXISTS teacher_certificates (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			application_id UUID NOT NULL REFERENCES teacher_applications(id) ON DELETE CASCADE,
+			type VARCHAR(30) NOT NULL CHECK (type IN ('teaching_degree','language_certificate','other')),
+			issuer VARCHAR(255) NOT NULL,
+			year INTEGER NOT NULL CHECK (year >= 1900 AND year <= 2030),
+			file_url TEXT NOT NULL,
+			verified BOOLEAN NOT NULL DEFAULT false,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_teacher_certs_application ON teacher_certificates(application_id)`,
+		`CREATE TABLE IF NOT EXISTS tutor_reviews (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			teacher_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			student_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+			comment TEXT NOT NULL DEFAULT '',
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(teacher_user_id, student_user_id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_tutor_reviews_teacher ON tutor_reviews(teacher_user_id, rating)`,
+		`CREATE TABLE IF NOT EXISTS tutor_trial_credits (
+			user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+			credits INTEGER NOT NULL DEFAULT 1 CHECK (credits >= 0),
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			granted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS tutor_availability (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			teacher_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			start_time TIMESTAMP NOT NULL,
+			end_time TIMESTAMP NOT NULL CHECK (end_time > start_time),
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_tutor_availability_teacher ON tutor_availability(teacher_user_id, start_time)`,
+		`CREATE TABLE IF NOT EXISTS tutor_bookings (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			teacher_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			student_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			start_time TIMESTAMP NOT NULL,
+			end_time TIMESTAMP NOT NULL CHECK (end_time > start_time),
+			status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','confirmed','cancelled','completed')),
+			is_trial BOOLEAN NOT NULL DEFAULT false,
+			note TEXT NOT NULL DEFAULT '',
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_tutor_bookings_teacher ON tutor_bookings(teacher_user_id, start_time)`,
+		`CREATE INDEX IF NOT EXISTS idx_tutor_bookings_student ON tutor_bookings(student_user_id, start_time)`,
+		`CREATE INDEX IF NOT EXISTS idx_tutor_bookings_status ON tutor_bookings(status)`,
+		`ALTER TABLE tutor_bookings ADD COLUMN IF NOT EXISTS review_notes TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE tutor_bookings ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMP`,
+		`ALTER TABLE tutor_bookings ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP`,
+		`CREATE TABLE IF NOT EXISTS teacher_srs_pushes (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			teacher_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			student_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			booking_id UUID REFERENCES tutor_bookings(id) ON DELETE SET NULL,
+			language VARCHAR(10) NOT NULL,
+			note TEXT NOT NULL DEFAULT '',
+			item_count INTEGER NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_teacher_srs_pushes_teacher ON teacher_srs_pushes(teacher_user_id, created_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_teacher_srs_pushes_student ON teacher_srs_pushes(student_user_id, created_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_teacher_srs_pushes_booking ON teacher_srs_pushes(booking_id)`,
+		`CREATE TABLE IF NOT EXISTS teacher_srs_push_items (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			push_id UUID NOT NULL REFERENCES teacher_srs_pushes(id) ON DELETE CASCADE,
+			vocabulary_id UUID NOT NULL REFERENCES vocabulary(id) ON DELETE CASCADE,
+			term VARCHAR(255) NOT NULL,
+			translation VARCHAR(500) NOT NULL DEFAULT '',
+			definition TEXT NOT NULL DEFAULT '',
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_teacher_srs_push_items_push ON teacher_srs_push_items(push_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_teacher_srs_push_items_vocab ON teacher_srs_push_items(vocabulary_id)`,
+		`CREATE TABLE IF NOT EXISTS teacher_payout_methods (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			teacher_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			type VARCHAR(20) NOT NULL CHECK (type IN ('paypal','bank')),
+			label VARCHAR(100) NOT NULL,
+			details VARCHAR(255) NOT NULL,
+			is_default BOOLEAN NOT NULL DEFAULT false,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_payout_methods_teacher ON teacher_payout_methods(teacher_user_id, is_default)`,
+		`CREATE TABLE IF NOT EXISTS teacher_payouts (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			teacher_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			amount_cents INTEGER NOT NULL CHECK (amount_cents > 0),
+			fee_cents INTEGER NOT NULL DEFAULT 0,
+			gross_cents INTEGER NOT NULL DEFAULT 0,
+			method_id UUID REFERENCES teacher_payout_methods(id) ON DELETE SET NULL,
+			destination TEXT NOT NULL DEFAULT '',
+			status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','processing','completed','failed')),
+			reference VARCHAR(64) NOT NULL UNIQUE,
+			paypal_batch_id VARCHAR(255),
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			completed_at TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_payouts_teacher_created ON teacher_payouts(teacher_user_id, created_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_payouts_status ON teacher_payouts(status)`,
+
+		`CREATE TABLE IF NOT EXISTS data_deletion_requests (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','completed','failed')),
+			requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			completed_at TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_deletion_requests_user ON data_deletion_requests(user_id)`,
 	}
 
 	for _, migration := range migrations {

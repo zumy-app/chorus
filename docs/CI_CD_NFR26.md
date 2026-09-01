@@ -63,7 +63,9 @@ Demo/CI users (seeded by `deploy/ci/seed-dev.sh` through `/api/v1/auth/register`
 | `phoenix-eval.sh` | golden-set accuracy + p95 latency | `DATABASE_URL`/`PSQL`, `ACCURACY_THRESHOLD`, `P95_MS_MAX`, `MIN_EVALS` |
 | `load-smoke.sh` | Artillery WS (100 concurrent / 10 msg/s / 5m) | `E2E_BASE_URL`, `WS_TOKEN` |
 | `gate-on-dev.sh` | orchestrate the above on the dev host | `E2E_BASE_URL`, `DOCKER_COMPOSE_FILE`, `GATES` |
-| `promote.sh` | re-tag `:dev` snapshot → `:prod` (no rebuild) | registry creds |
+| `promote.sh` | re-tag `:dev` snapshot → `:prod` (no rebuild, digest-verified) | registry creds |
+| `verify-promotion.sh` | verify `:prod` digest + prod `/health` | `PROD_URL`, `IMAGE_NAME`, `DEV_TAG` |
+| `rollback.sh` | re-promote `PREV_TAG` → `:prod` + redeploy prod | registry creds, `PREV_TAG`, `PROD_HOST` |
 
 Throttle defaults: accuracy `>= 80`, p95 latency `< 500 ms` (cache-hit set, falls
 back to all jobs if the cache is cold), `>= 10` eval samples, max `2%` WS error.
@@ -106,7 +108,19 @@ python -c "import yaml; [yaml.safe_load(open(p)) for p in ('.github/workflows/ci
 ## Promotion semantics
 
 `promote.sh` uses `docker buildx imagetools create` to copy the manifest for the
-exact `:$run_number` digest to `:prod` — the production host then `pull`s `:prod`.
+exact `:$run_number` digest to `:prod` — the production host then `pull`s `:prod`
+with `IMAGE_NAME`/`IMAGE_TAG=prod` (see `docker-compose.prod.yml` — `image:` is
+`ghcr.io/zumy-app/chorus/*:${IMAGE_TAG:-prod}` so `pull` targets the promoted
+digest, not a local build). `promote.sh` digest-verifies source→dest after copy.
+`verify-promotion.sh` confirms the `:prod` ref exists and prod `/health` answers.
 No source rebuild, no fork between environments. If any dev gate fails, the
 `promote-prod` job never runs and `prod` stays on the last green digest; the
-failure is notified.
+failure is notified. Roll back with `PREV_TAG=<run_number> bash deploy/ci/rollback.sh`.
+
+## 14.1 handoff (auto-promotion)
+
+- Push to `main` auto-deploys dev, gates, then promotes **only** on green.
+- Prod compose uses **image promotion** (`IMAGE_TAG=prod` re-tag, no `build` on pull).
+- Post-promotion the workflow SSH-verifies prod `/health` (inside host + external
+  `https://chorus.talk/health`) and records the promoted digest.
+- Branch protection: `main` requires `test` + `security`; no direct pushes.

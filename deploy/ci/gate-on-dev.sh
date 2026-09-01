@@ -14,7 +14,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 BASE_URL="${E2E_BASE_URL:-https://dev.chorus.talk}"
 COMPOSE_FILE="${DOCKER_COMPOSE_FILE:-deploy/dev/docker-compose.yml}"
 CI_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-GATES="${GATES:-seed e2e phoenix-eval load-smoke}"
+GATES="${GATES:-seed e2e phoenix-eval load-smoke release-gate mail-isolation}"
 
 export E2E_BASE_URL="$BASE_URL"
 
@@ -32,6 +32,8 @@ for gate in $GATES; do
     load-smoke)   script="load-smoke.sh" ;;
     load-soak)    script="load-soak.sh" ;;
     verify-drain) script="verify-drain.sh" ;;
+    release-gate) script="verify-release-gate.sh" ;;
+    mail-isolation) script="../mail/verify-isolation.sh" ;;
     *)            warn "unknown gate '$gate' skipped" ; continue ;;
   esac
   log "===== GATE: $gate ====="

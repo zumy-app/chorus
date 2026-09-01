@@ -249,6 +249,10 @@ export default function ProfileScreen({ navigation }: any) {
         </View>
       </View>
 
+      <TouchableOpacity style={{backgroundColor: COLOR.primary, borderRadius: RADIUS.xl, padding: 16, alignItems:'center', marginTop: SPACING.stackSm}} onPress={()=>navigation.navigate('BecomeTeacher')}>
+        <Text style={styles.saveButtonText}>Become a Teacher</Text>
+      </TouchableOpacity>
+
       <TouchableOpacity
         style={[styles.saveButton, saving && styles.buttonDisabled]}
         onPress={handleSave}

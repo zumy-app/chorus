@@ -89,6 +89,9 @@ func main() {
 	// FR-25 Feature toggles: per-account settings row including
 	// translation_enabled / grammar_auto / highlights_enabled.
 	settingsService := services.NewSettingsService(db)
+	retentionService := services.NewRetentionService(db)
+	gdprService := services.NewGDPRService(db, retentionService)
+	retentionService.StartScheduler(24 * time.Hour)
 	entitlementService := services.NewEntitlementService(cfg.SelfHost)
 	waitlistService := services.NewWaitlistService(db)
 	invitationService := services.NewInvitationService(db, time.Duration(cfg.InviteTTLHours)*time.Hour)
@@ -377,6 +380,14 @@ func main() {
 	moderationHandler := handlers.NewModerationHandler(moderationService)
 	otpHandler := handlers.NewOTPHandler(otpService, authService, userService)
 	inboxHandler := handlers.NewInboxHandler(inboxService)
+	gdprHandler := handlers.NewGDPRHandler(gdprService, retentionService)
+	teacherService := services.NewTeacherService(db)
+	teacherSrsService := services.NewTeacherSrsService(db)
+	teacherHandler := handlers.NewTeacherHandlerWithSRS(teacherService, teacherSrsService)
+	payoutService := services.NewPayoutService(db, paypalClient)
+	payoutHandler := handlers.NewPayoutHandler(payoutService)
+	releaseGateService := services.NewReleaseGateService(db)
+	releaseGateHandler := handlers.NewReleaseGateHandler(releaseGateService)
 
 	// Setup Gin router
 	if cfg.Environment == "production" {
@@ -425,6 +436,7 @@ func main() {
 	// Prometheus scrape endpoint (NFR-18): consumes the custom registry.
 	r.GET("/metrics", gin.WrapH(observability.MetricsHandler()))
 
+
 	loginRateLimit := middleware.RateLimiterRedis(redisClient, envIntOr("RATE_LIMIT_LOGIN_MAX", 10), envMinutesOr("RATE_LIMIT_LOGIN_WINDOW", 15), middleware.IPKey, "ratelimit:login:")
 	translationRateLimit := middleware.RateLimiterRedis(redisClient, envIntOr("RATE_LIMIT_TRANSLATION_MAX", 60), envMinutesOr("RATE_LIMIT_TRANSLATION_WINDOW", 1), middleware.UserKey, "ratelimit:translation:")
 	wsRateLimit := middleware.RateLimiterRedis(redisClient, envIntOr("RATE_LIMIT_WS_CONNECT_MAX", 100), envMinutesOr("RATE_LIMIT_WS_CONNECT_WINDOW", 15), middleware.IPKey, "ratelimit:ws:")
@@ -460,6 +472,10 @@ func main() {
 		// (auto-translation, auto-grammar, learning highlights).
 		protected.GET("/users/me/settings", settingsHandler.GetSettings)
 		protected.PUT("/users/me/settings", settingsHandler.UpdateSettings)
+
+		protected.GET("/users/me/export", gdprHandler.ExportMyData)
+		protected.DELETE("/users/me", gdprHandler.DeleteMyAccount)
+		protected.GET("/privacy/retention-policy", gdprHandler.GetRetentionPolicy)
 
 		// Subscription routes (Phase 1.5).
 		protected.GET("/users/me/subscription", billingHandler.GetMySubscription)
@@ -513,12 +529,14 @@ func main() {
 			moderator.GET("/translations", adminTranslationsHandler.List)
 			moderator.POST("/translations/:id/retry", adminTranslationsHandler.Retry)
 			moderator.GET("/translations/health", adminTranslationsHandler.Health)
+			moderator.POST("/retention/purge", gdprHandler.PurgeExpired)
 
 			// Moderation console: reports
 			moderator.GET("/reports", moderationHandler.ListReports)
 			moderator.GET("/reports/stats", moderationHandler.ReportStats)
 			moderator.POST("/reports/:id/resolve", moderationHandler.ResolveReport)
 			moderator.POST("/reports/:id/dismiss", moderationHandler.DismissReport)
+			moderator.GET("/release-readiness", releaseGateHandler.GetReadiness)
 		}
 
 		// Chat routes
@@ -582,6 +600,38 @@ func main() {
 		protected.GET("/presence/:userId", presenceHandler.GetPresence)
 		protected.PUT("/presence", presenceHandler.UpdatePresence)
 		protected.POST("/presence/activity", presenceHandler.UpdateActivity)
+
+		protected.GET("/teachers/payouts/overview", payoutHandler.GetOverview)
+		protected.GET("/teachers/payouts/history", payoutHandler.ListHistory)
+		protected.POST("/teachers/payouts/withdraw", payoutHandler.RequestPayout)
+		protected.GET("/teachers/payouts/methods", payoutHandler.ListMethods)
+		protected.POST("/teachers/payouts/methods", payoutHandler.AddMethod)
+		protected.DELETE("/teachers/payouts/methods/:methodId", payoutHandler.RemoveMethod)
+		protected.PUT("/teachers/payouts/methods/:methodId/default", payoutHandler.SetDefaultMethod)
+
+		protected.POST("/teachers/apply", teacherHandler.Apply)
+		protected.GET("/teachers/me", teacherHandler.GetMe)
+		protected.GET("/teachers/browse", teacherHandler.Browse)
+		protected.GET("/teachers/dashboard", teacherHandler.GetDashboard)
+		protected.GET("/teachers/trial-credits", teacherHandler.GetTrialCredits)
+		protected.GET("/teachers/trial-credits/dashboard", teacherHandler.GetTrialCreditDashboard)
+		protected.GET("/teachers/bookings", teacherHandler.ListBookings)
+		protected.GET("/teachers/bookings/:id", teacherHandler.GetBooking)
+		protected.POST("/teachers/availability", teacherHandler.AddAvailability)
+		protected.DELETE("/teachers/availability/:id", teacherHandler.RemoveAvailability)
+		protected.POST("/teachers/bookings/:id/cancel", teacherHandler.CancelBooking)
+		protected.POST("/teachers/bookings/:id/confirm", teacherHandler.ConfirmBooking)
+		protected.POST("/teachers/bookings/:id/complete", teacherHandler.CompleteBooking)
+		protected.PUT("/teachers/bookings/:id/review-notes", teacherHandler.UpdateReviewNotes)
+		protected.POST("/teachers/srs/push", teacherHandler.PushSRS)
+		protected.GET("/teachers/srs/pushes", teacherHandler.ListSrsPushes)
+		protected.GET("/teachers/srs/pushes/:id", teacherHandler.GetSrsPush)
+		protected.GET("/teachers/srs/sandbox/:studentId", teacherHandler.GetSrsSandbox)
+		protected.GET("/teachers/:id", teacherHandler.GetProfile)
+		protected.GET("/teachers/:id/reviews", teacherHandler.GetReviews)
+		protected.POST("/teachers/:id/reviews", teacherHandler.AddReview)
+		protected.GET("/teachers/:id/availability", teacherHandler.GetAvailability)
+		protected.POST("/teachers/:id/book", teacherHandler.CreateBooking)
 
 		// Phase 3: Grammar analysis routes
 		protected.POST("/grammar/analyze", grammarHandler.AnalyzeMessageGrammar)

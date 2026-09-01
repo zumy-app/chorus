@@ -59,6 +59,7 @@ services:
 
   # Go Backend API — stateless, horizontally scalable behind the L4 LB
   backend:
+    image: ${IMAGE_NAME:-ghcr.io/zumy-app/chorus}/backend:${IMAGE_TAG:-prod}
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -164,6 +165,7 @@ services:
 
   # React Frontend (served via Nginx) — proxies /api,/ws,/media via the L4 LB
   frontend:
+    image: ${IMAGE_NAME:-ghcr.io/zumy-app/chorus}/frontend:${IMAGE_TAG:-prod}
     build:
       context: ./frontend
       dockerfile: Dockerfile
