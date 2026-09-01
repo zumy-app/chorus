@@ -231,8 +231,10 @@ def route_role(task: dict, phase_id: int) -> str:
     Fall back to the phase's default DEV_ROLE when the task is ambiguous.
     """
     name = task["name"].lower()
-    if any(k in name for k in ("qa parity", "wireframe", "gap audit", "traceability")):
+    if any(k in name for k in ("qa ", "qa-", "functional", "wireframe", "gap audit", "traceability")):
         return "qa_engineer" if "qa" in name else "analyst"
+    if "analyst" in name:
+        return "analyst"
     if any(k in name for k in ("docker", "compose", "load balancer", "lb", "deploy",
                                "infra", "ci", "observability", "prometheus", "grafana")):
         return "sre"
@@ -251,8 +253,22 @@ def run_task(state: dict, task_id: str, dry_run: bool) -> None:
     task = next(t for t in st.current_phase(state)["tasks"] if t["id"] == task_id)
     dev_role = route_role(task, phase_id)
 
+    # QA functional tasks need the full wireframe+requirements context — not just the short name
+    extra_qa = ""
+    if dev_role == "qa_engineer":
+        extra_qa = (
+            " You MUST: 1) read wireframes/ (94 entries, see docs/WIREFRAME_TRACE.md), "
+            "REQUIREMENTS_MASTER.md, REQUIREMENTS.md, chorus_lesson_design_and_vocabulary_engine.md, "
+            "2) write EXTENSIVE functional tests that prove Spanish real-world scenarios exist and are runnable "
+            "( scenarios list for es, opening line + translation, chunk, hint, send Spanish + AI reply ), "
+            "3) prove daily drills work (vocab due, SRS, session start/answer, streak), "
+            "4) prove marketplace + learn hub navigation reachable on BOTH mobile (MainTabs.tsx) and web (App.tsx). "
+            "Write tests to mobile/src/screens/__tests__/qa-functional.test.tsx, "
+            "frontend/src/__tests__/qa-functional.test.tsx, backend/internal/services/qa_spanish_test.go, "
+            "and e2e/tests/qa-scenarios-drills.spec.ts. Run each suite and report PASS/FAIL per file. "
+        )
     prompt = (
-        f"You are the {dev_role} role. Implement this task: {task['name']} (id {task_id}).\n"
+        f"You are the {dev_role} role. Implement this task: {task['name']} (id {task_id}).{extra_qa}\n"
         "Read REQUIREMENTS_MASTER.md for the exact requirement, then the relevant code, then "
         "make minimal focused changes under WORKING_SET.md's ALLOWED paths. After editing, run "
         "that layer's build/test and report exit code. Give a short summary of what changed."
