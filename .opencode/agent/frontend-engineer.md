@@ -1,7 +1,7 @@
 ---
 mode: subagent
 description: Senior React/Vite front-end engineer (TypeScript, Zustand, WebSocket). Mobile-first, web parity.
-model: opencode-go/deepseek-v4-flash-vision-exp
+model: opencode/muse-spark-1.2-contributor-free
 permission:
   read: allow
   edit: allow

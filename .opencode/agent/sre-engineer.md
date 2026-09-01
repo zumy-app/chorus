@@ -1,7 +1,7 @@
 ---
 mode: subagent
 description: SRE / infrastructure engineer. Docker Compose, Dokploy, Layer-4 load balancer, Redis registry, scaling, observability, CI/CD quality gates.
-model: opencode-go/deepseek-v4-flash-vision-exp
+model: opencode/muse-spark-1.2-contributor-free
 permission:
   read: allow
   edit: allow

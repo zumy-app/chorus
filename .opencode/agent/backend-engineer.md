@@ -1,7 +1,7 @@
 ---
 mode: subagent
 description: Go backend engineer for the Chorus realtime messenger (Gin, Postgres, Redis, WebSockets). Handlers, services, migrations.
-model: opencode-go/deepseek-v4-flash-vision-exp
+model: opencode/muse-spark-1.2-contributor-free
 permission:
   read: allow
   edit: allow

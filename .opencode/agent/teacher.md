@@ -1,7 +1,7 @@
 ---
 mode: subagent
 description: Bilingual ES/EN language teacher and learning-content reviewer. Judges translations, grammar feedback, CEFR level, lessons/vocab, scenario scripts.
-model: opencode-go/deepseek-v4-flash-vision-exp
+model: opencode/muse-spark-1.2-contributor-free
 permission:
   read: allow
   grep: allow
