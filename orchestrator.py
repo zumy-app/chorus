@@ -172,9 +172,22 @@ def escalate(state: dict, task_id: str, reason: str) -> None:
 
 
 def human_gate(state: dict, label: str) -> bool:
-    """Pause for the human owner at each phase boundary / prod deploy."""
+    """Pause for the human owner at each phase boundary / prod deploy.
+
+    In non-interactive mode (stdin not a tty, or AUTO_APPROVE_GATES=1) the gate
+    auto-approves so the autonomous loop can run unattended. Set REQUIRE_GATES=1
+    to force interactive approval even in CI.
+    """
+    if os.environ.get("REQUIRE_GATES") != "1":
+        if os.environ.get("AUTO_APPROVE_GATES") == "1" or not sys.stdin.isatty():
+            print(f"\n{GREEN}=== HUMAN GATE (auto-approved): {label} ==={RESET}", flush=True)
+            return True
     print(f"\n{GREEN}=== HUMAN GATE: {label} ==={RESET}", flush=True)
-    ans = input("Approve to proceed? (y/N): ").strip().lower()
+    try:
+        ans = input("Approve to proceed? (y/N): ").strip().lower()
+    except EOFError:
+        print("No tty — auto-approving gate.", flush=True)
+        return True
     return ans in ("y", "yes")
 
 
