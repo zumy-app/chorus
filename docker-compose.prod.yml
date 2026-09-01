@@ -105,6 +105,12 @@ services:
       - MAILU_SMTP_USERNAME=${MAILU_SMTP_USERNAME:-}
       - MAILU_SMTP_PASSWORD=${MAILU_SMTP_PASSWORD:-}
       - MAILU_SMTP_FROM=${MAILU_SMTP_FROM:-}
+      # Task 6.6 file/document sharing: where uploads are stored + served from.
+      - UPLOAD_DIR=/root/uploads
+      - MEDIA_BASE_URL=/media
+      - MAX_UPLOAD_MB=${MAX_UPLOAD_MB:-50}
+    volumes:
+      - uploads_data:/root/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -183,6 +189,8 @@ volumes:
   redis_data:
     driver: local
   libretranslate_data:
+    driver: local
+  uploads_data:
     driver: local
 
 networks:

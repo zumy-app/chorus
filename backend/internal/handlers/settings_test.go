@@ -14,7 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const settingsTestColumns = "user_id, grammar_enabled, vocabulary_enabled, difficulty_level, transcript_recording, message_retention_days, translation_enabled, grammar_auto, highlights_enabled, updated_at"
+const settingsTestColumns = "user_id, grammar_enabled, vocabulary_enabled, difficulty_level, transcript_recording, message_retention_days, translation_enabled, grammar_auto, highlights_enabled, last_seen_visibility, profile_photo_visibility, contacts_visibility, updated_at"
 
 func TestSettingsHandler_GetSettings(t *testing.T) {
 	router := setupTestRouter()
@@ -32,8 +32,8 @@ func TestSettingsHandler_GetSettings(t *testing.T) {
 		WithArgs("user-1").WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT ` + settingsTestColumns + ` FROM user_settings WHERE user_id = $1`)).
 		WithArgs("user-1").
-		WillReturnRows(sqlmock.NewRows([]string{"user_id", "grammar_enabled", "vocabulary_enabled", "difficulty_level", "transcript_recording", "message_retention_days", "translation_enabled", "grammar_auto", "highlights_enabled", "updated_at"}).
-			AddRow("user-1", true, true, "intermediate", true, 365, true, true, true, time.Now()))
+		WillReturnRows(sqlmock.NewRows([]string{"user_id", "grammar_enabled", "vocabulary_enabled", "difficulty_level", "transcript_recording", "message_retention_days", "translation_enabled", "grammar_auto", "highlights_enabled", "last_seen_visibility", "profile_photo_visibility", "contacts_visibility", "updated_at"}).
+			AddRow("user-1", true, true, "intermediate", true, 365, true, true, true, "everyone", "everyone", "everyone", time.Now()))
 
 	router.GET("/users/me/settings", func(c *gin.Context) {
 		c.Set("userID", "user-1")
@@ -81,12 +81,12 @@ func TestSettingsHandler_UpdateSettings(t *testing.T) {
 
 	mock.ExpectExec(`INSERT INTO user_settings \(user_id\) VALUES \(\$1\) ON CONFLICT \(user_id\) DO NOTHING`).
 		WithArgs("user-1").WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectExec(`UPDATE user_settings\s*SET translation_enabled = COALESCE\(\$2, translation_enabled\),\s*grammar_auto = COALESCE\(\$3, grammar_auto\),\s*highlights_enabled = COALESCE\(\$4, highlights_enabled\),\s*updated_at = CURRENT_TIMESTAMP\s*WHERE user_id = \$1`).
-		WithArgs("user-1", false, sqlmock.AnyArg(), sqlmock.AnyArg()).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec(`UPDATE user_settings\s*SET translation_enabled = COALESCE\(\$2, translation_enabled\),\s*grammar_auto = COALESCE\(\$3, grammar_auto\),\s*highlights_enabled = COALESCE\(\$4, highlights_enabled\),\s*last_seen_visibility = COALESCE\(\$5, last_seen_visibility\),\s*profile_photo_visibility = COALESCE\(\$6, profile_photo_visibility\),\s*contacts_visibility = COALESCE\(\$7, contacts_visibility\),\s*updated_at = CURRENT_TIMESTAMP\s*WHERE user_id = \$1`).
+		WithArgs("user-1", false, sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT ` + settingsTestColumns + ` FROM user_settings WHERE user_id = $1`)).
 		WithArgs("user-1").
-		WillReturnRows(sqlmock.NewRows([]string{"user_id", "grammar_enabled", "vocabulary_enabled", "difficulty_level", "transcript_recording", "message_retention_days", "translation_enabled", "grammar_auto", "highlights_enabled", "updated_at"}).
-			AddRow("user-1", true, true, "intermediate", true, 365, false, true, true, time.Now()))
+		WillReturnRows(sqlmock.NewRows([]string{"user_id", "grammar_enabled", "vocabulary_enabled", "difficulty_level", "transcript_recording", "message_retention_days", "translation_enabled", "grammar_auto", "highlights_enabled", "last_seen_visibility", "profile_photo_visibility", "contacts_visibility", "updated_at"}).
+			AddRow("user-1", true, true, "intermediate", true, 365, false, true, true, "everyone", "everyone", "everyone", time.Now()))
 
 	router.PUT("/users/me/settings", func(c *gin.Context) {
 		c.Set("userID", "user-1")

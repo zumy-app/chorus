@@ -193,7 +193,7 @@ func TestRegisterHandler_DuplicateEmail(t *testing.T) {
 
 func TestRegisterHandler_InvalidInput(t *testing.T) {
 	router := setupTestRouter()
-	h := NewAuthHandler(nil, nil, nil, nil, nil, "")
+	h := NewAuthHandler(nil, nil, nil, nil, nil, nil, "")
 	router.POST("/api/v1/auth/register", h.Register)
 
 	// Missing email and password
@@ -408,13 +408,13 @@ func TestGetMyEntitlements_Success(t *testing.T) {
 	defer db.Close()
 
 	userService := services.NewUserService(db)
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url FROM users WHERE id = $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url, phone, phone_verified, phone_verified_at, two_factor_enabled FROM users WHERE id = $1`)).
 		WithArgs("user-1").
-		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "display_name", "first_name", "last_name", "native_language", "target_languages", "role", "created_at", "last_active_at", "suspended_at", "deleted_at", "plan", "plan_grace_until", "premium_since", "subscription_id", "subscription_provider", "subscription_plan_id", "subscription_status", "next_billing_date", "last_payment_at", "avatar_url"}).
-			AddRow("user-1", "testuser", "test@example.com", "Test User", "", "", "en", pq.Array([]string{"es"}), "member", time.Now(), time.Now(), nil, nil, "free", nil, nil, nil, "paypal", nil, nil, nil, nil, nil))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "display_name", "first_name", "last_name", "native_language", "target_languages", "role", "created_at", "last_active_at", "suspended_at", "deleted_at", "plan", "plan_grace_until", "premium_since", "subscription_id", "subscription_provider", "subscription_plan_id", "subscription_status", "next_billing_date", "last_payment_at", "avatar_url", "phone", "phone_verified", "phone_verified_at", "two_factor_enabled"}).
+			AddRow("user-1", "testuser", "test@example.com", "Test User", "", "", "en", pq.Array([]string{"es"}), "member", time.Now(), time.Now(), nil, nil, "free", nil, nil, nil, "paypal", nil, nil, nil, nil, nil, nil, false, nil, false))
 
 	entitlementService := services.NewEntitlementService(false)
-	h := NewAuthHandler(nil, userService, nil, nil, entitlementService, "")
+	h := NewAuthHandler(nil, userService, nil, nil, entitlementService, nil, "")
 
 	router.GET("/users/me/entitlements", func(c *gin.Context) {
 		c.Set("userID", "user-1")
@@ -457,14 +457,14 @@ func TestOnboardMe_Success(t *testing.T) {
 	defer db.Close()
 
 	userService := services.NewUserService(db)
-	userColumns := `id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url`
+	userColumns := `id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url, phone, phone_verified, phone_verified_at, two_factor_enabled`
 	onboardSQL := `UPDATE users SET first_name = $2, last_name = $3, display_name = $4 WHERE id = $1 RETURNING ` + userColumns
 	mock.ExpectQuery(regexp.QuoteMeta(onboardSQL)).
 		WithArgs("user-1", "John", "Smith", "John Smith").
-		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "display_name", "first_name", "last_name", "native_language", "target_languages", "role", "created_at", "last_active_at", "suspended_at", "deleted_at", "plan", "plan_grace_until", "premium_since", "subscription_id", "subscription_provider", "subscription_plan_id", "subscription_status", "next_billing_date", "last_payment_at", "avatar_url"}).
-			AddRow("user-1", "testuser", "test@example.com", "John Smith", "John", "Smith", "en", pq.Array([]string{"es"}), "member", time.Now(), time.Now(), nil, nil, "free", nil, nil, nil, "paypal", nil, nil, nil, nil, nil))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "display_name", "first_name", "last_name", "native_language", "target_languages", "role", "created_at", "last_active_at", "suspended_at", "deleted_at", "plan", "plan_grace_until", "premium_since", "subscription_id", "subscription_provider", "subscription_plan_id", "subscription_status", "next_billing_date", "last_payment_at", "avatar_url", "phone", "phone_verified", "phone_verified_at", "two_factor_enabled"}).
+			AddRow("user-1", "testuser", "test@example.com", "John Smith", "John", "Smith", "en", pq.Array([]string{"es"}), "member", time.Now(), time.Now(), nil, nil, "free", nil, nil, nil, "paypal", nil, nil, nil, nil, nil, nil, false, nil, false))
 
-	h := NewAuthHandler(nil, userService, nil, nil, services.NewEntitlementService(false), "")
+	h := NewAuthHandler(nil, userService, nil, nil, services.NewEntitlementService(false), nil, "")
 
 	router.PUT("/users/me/onboard", func(c *gin.Context) {
 		c.Set("userID", "user-1")
@@ -510,12 +510,12 @@ func TestGetMyEntitlements_NotFound(t *testing.T) {
 	defer db.Close()
 
 	userService := services.NewUserService(db)
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url FROM users WHERE id = $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url, phone, phone_verified, phone_verified_at, two_factor_enabled FROM users WHERE id = $1`)).
 		WithArgs("missing").
 		WillReturnError(sql.ErrNoRows)
 
 	entitlementService := services.NewEntitlementService(false)
-	h := NewAuthHandler(nil, userService, nil, nil, entitlementService, "")
+	h := NewAuthHandler(nil, userService, nil, nil, entitlementService, nil, "")
 
 	router.GET("/users/me/entitlements", func(c *gin.Context) {
 		c.Set("userID", "missing")
@@ -534,3 +534,4 @@ func TestGetMyEntitlements_NotFound(t *testing.T) {
 		t.Fatalf("unmet expectations: %v", err)
 	}
 }
+

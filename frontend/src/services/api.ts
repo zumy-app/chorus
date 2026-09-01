@@ -48,5 +48,6 @@ export const grammarAPI = client.grammar
 export const translationAPI = client.translation
 export const learningAPI = client.learning
 export const presenceAPI = client.presence
+export const settingsAPI = client.settings
 
 export default api

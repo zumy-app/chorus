@@ -4,6 +4,7 @@ import { useStore } from '../store'
 import { authAPI, moderationAPI } from '../services/api'
 import { SUPPORTED_LANGUAGES } from '../services/language'
 import PlanCard from '../components/PlanCard'
+import PrivacySettings from '../components/PrivacySettings'
 import type { Block } from '@chorus/shared'
 
 interface SettingsProps {
@@ -152,6 +153,11 @@ export default function Settings({ onClose }: SettingsProps) {
                 </label>
               ))}
             </div>
+          </div>
+
+          {/* Privacy */}
+          <div className="border border-gray-200 rounded-lg p-4">
+            <PrivacySettings />
           </div>
 
           {/* Blocked Users */}

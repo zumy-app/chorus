@@ -50,7 +50,9 @@ func (s *SearchService) SearchMessagesSimple(userID, chatID, query string, limit
 	return res.Messages, nil
 }
 
-// SearchMessages searches for messages matching the query
+// SearchMessages performs a universal search (task 6.3): it returns text
+// messages matching the query as well as any media attachments attached to
+// messages whose text, file name, mime type or media type matches.
 func (s *SearchService) SearchMessages(userID string, req models.SearchRequest) (*models.SearchResult, error) {
 	ctx := context.Background()
 
@@ -62,55 +64,49 @@ func (s *SearchService) SearchMessages(userID string, req models.SearchRequest) 
 		req.Offset = 0
 	}
 
-	// Build the query
-	query := `
-		SELECT m.id, m.chat_id, m.sender_id, m.text, 
-			   COALESCE(m.original_language, '') as original_language,
-			   COALESCE(m.translations::text, '{}') as translations,
-			   m.delivery_status, m.reply_to_id, m.created_at
+	// Build the WHERE clause with filters so the count query and the data query
+	// stay in lock-step (chat/language filters now apply to the count too).
+	base := `
 		FROM messages m
 		JOIN chat_participants cp ON m.chat_id = cp.chat_id
+		JOIN users su ON m.sender_id = su.id
 		WHERE cp.user_id = $1
+		AND m.deleted_at IS NULL
 		AND to_tsvector('english', m.text) @@ plainto_tsquery('english', $2)
 	`
-
 	args := []interface{}{userID, req.Query}
 	argNum := 3
 
-	// Filter by chat IDs if provided
 	if len(req.ChatIDs) > 0 {
-		query += fmt.Sprintf(" AND m.chat_id = ANY($%d)", argNum)
+		base += fmt.Sprintf(" AND m.chat_id = ANY($%d)", argNum)
 		args = append(args, pq.Array(req.ChatIDs))
 		argNum++
 	}
 
-	// Filter by language if provided
 	if req.Language != "" {
-		query += fmt.Sprintf(" AND m.original_language = $%d", argNum)
+		base += fmt.Sprintf(" AND m.original_language = $%d", argNum)
 		args = append(args, req.Language)
 		argNum++
 	}
 
 	// Get total count
-	countQuery := strings.Replace(query,
-		"SELECT m.id, m.chat_id, m.sender_id, m.text,",
-		"SELECT COUNT(*)", 1)
-	countQuery = strings.Split(countQuery, "COALESCE")[0]
-	countQuery = strings.TrimSuffix(countQuery, ", ")
-	countQuery += " FROM messages m JOIN chat_participants cp ON m.chat_id = cp.chat_id WHERE cp.user_id = $1 AND to_tsvector('english', m.text) @@ plainto_tsquery('english', $2)"
-
 	var total int
-	err := s.db.QueryRow(countQuery, args[:2]...).Scan(&total)
-	if err != nil {
+	if err := s.db.QueryRow("SELECT COUNT(*)"+base, args...).Scan(&total); err != nil {
 		return nil, fmt.Errorf("failed to count search results: %w", err)
 	}
 
-	// Add ordering and pagination
-	query += " ORDER BY m.created_at DESC"
-	query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argNum, argNum+1)
+	// Data query: select message + sender fields
+	query := `
+		SELECT m.id, m.chat_id, m.sender_id, m.text,
+			   COALESCE(m.original_language, '') as original_language,
+			   COALESCE(m.translations::text, '{}') as translations,
+			   m.delivery_status, m.reply_to_id, m.created_at,
+			   COALESCE(su.display_name, ''), COALESCE(su.username, '')
+	` + base +
+		fmt.Sprintf(" ORDER BY m.created_at DESC LIMIT $%d OFFSET $%d", argNum, argNum+1)
+
 	args = append(args, req.Limit, req.Offset)
 
-	// Execute search
 	rows, err := s.db.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search messages: %w", err)
@@ -122,17 +118,27 @@ func (s *SearchService) SearchMessages(userID string, req models.SearchRequest) 
 		var msg models.Message
 		var translationsJSON string
 		var replyToID sql.NullString
+		var displayName, username string
 
 		if err := rows.Scan(
 			&msg.ID, &msg.ChatID, &msg.SenderID, &msg.Text,
 			&msg.OriginalLanguage, &translationsJSON,
 			&msg.DeliveryStatus, &replyToID, &msg.CreatedAt,
+			&displayName, &username,
 		); err != nil {
 			return nil, err
 		}
 
 		if replyToID.Valid {
 			msg.ReplyToID = &replyToID.String
+		}
+
+		if displayName != "" || username != "" {
+			msg.Sender = &models.User{
+				ID:          msg.SenderID,
+				DisplayName: displayName,
+				Username:    username,
+			}
 		}
 
 		// Parse translations JSON
@@ -146,12 +152,137 @@ func (s *SearchService) SearchMessages(userID string, req models.SearchRequest) 
 
 	// Cache search result
 	cacheKey := fmt.Sprintf("search:%s:%s:%d:%d", userID, req.Query, req.Limit, req.Offset)
-	s.redis.Set(ctx, cacheKey, total, 5*time.Minute)
+	if s.redis != nil {
+		s.redis.Set(ctx, cacheKey, total, 5*time.Minute)
+	}
+
+	// Universal: also pull media attachments matching the query.
+	mediaRes, err := s.searchMedia(ctx, userID, req, true)
+	if err != nil {
+		return nil, err
+	}
 
 	return &models.SearchResult{
-		Messages: messages,
-		Total:    total,
-		HasMore:  req.Offset+len(messages) < total,
+		Messages:   messages,
+		Media:      mediaRes.Media,
+		Total:      total,
+		MediaTotal: mediaRes.Total,
+		HasMore:    req.Offset+len(messages) < total,
+	}, nil
+}
+
+// SearchMedia returns media attachments (images/videos/audio/documents) that
+// match the query. Since query text is orthogonal to the media metadata, the
+// match spans file name, media type, mime type and the caption/body of the
+// parent message (task 6.3).
+func (s *SearchService) SearchMedia(userID string, req models.SearchRequest) (*models.MediaSearchResult, error) {
+	ctx := context.Background()
+	return s.searchMedia(ctx, userID, req, false)
+}
+
+// searchMedia is the shared media query. When includeMessages is true it also
+// matches against the parent message text (used by the universal search);
+// otherwise it only matches media metadata, which is faster for the dedicated
+// media endpoint.
+func (s *SearchService) searchMedia(ctx context.Context, userID string, req models.SearchRequest, includeMessages bool) (*models.MediaSearchResult, error) {
+	if req.Limit <= 0 || req.Limit > 100 {
+		req.Limit = 20
+	}
+	if req.Offset < 0 {
+		req.Offset = 0
+	}
+
+	matchCols := `ma.file_name ILIKE $2 OR ma.type ILIKE $2 OR ma.mime_type ILIKE $2`
+	args := []interface{}{userID, "%" + req.Query + "%"}
+	argNum := 3
+	if includeMessages {
+		matchCols += ` OR to_tsvector('english', m.text) @@ plainto_tsquery('english', $3)`
+		args = append(args, req.Query)
+		argNum = 4
+	}
+
+	base := `
+		FROM media_attachments ma
+		JOIN messages m ON ma.message_id = m.id
+		JOIN chat_participants cp ON m.chat_id = cp.chat_id
+		WHERE cp.user_id = $1
+		AND m.deleted_at IS NULL
+		AND (` + matchCols + `)
+	`
+
+	if len(req.ChatIDs) > 0 {
+		base += fmt.Sprintf(" AND m.chat_id = ANY($%d)", argNum)
+		args = append(args, pq.Array(req.ChatIDs))
+		argNum++
+	}
+
+	if req.Language != "" {
+		base += fmt.Sprintf(" AND m.original_language = $%d", argNum)
+		args = append(args, req.Language)
+		argNum++
+	}
+
+	if req.MediaType != "" {
+		base += fmt.Sprintf(" AND ma.type = $%d", argNum)
+		args = append(args, req.MediaType)
+		argNum++
+	}
+
+	var total int
+	if err := s.db.QueryRow("SELECT COUNT(*)"+base, args...).Scan(&total); err != nil {
+		return nil, fmt.Errorf("failed to count media search results: %w", err)
+	}
+
+	if total == 0 {
+		return &models.MediaSearchResult{Media: []models.MediaAttachment{}, Total: 0, HasMore: false}, nil
+	}
+
+	query := `
+		SELECT ma.id, ma.message_id, ma.type, ma.file_name, ma.file_size,
+			   ma.mime_type, ma.url, COALESCE(ma.thumbnail_url, ''),
+			   ma.created_at, m.chat_id,
+			   ma.latitude, ma.longitude, COALESCE(ma.location_name, '')
+	` + base +
+		fmt.Sprintf(" ORDER BY ma.created_at DESC LIMIT $%d OFFSET $%d", argNum, argNum+1)
+	args = append(args, req.Limit, req.Offset)
+
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search media: %w", err)
+	}
+	defer rows.Close()
+
+	media := []models.MediaAttachment{}
+	for rows.Next() {
+		var att models.MediaAttachment
+		var thumbnail sql.NullString
+		var latitude, longitude sql.NullFloat64
+
+		if err := rows.Scan(
+			&att.ID, &att.MessageID, &att.Type, &att.FileName, &att.FileSize,
+			&att.MimeType, &att.URL, &thumbnail, &att.CreatedAt, &att.ChatID,
+			&latitude, &longitude, &att.LocationName,
+		); err != nil {
+			return nil, err
+		}
+
+		if thumbnail.Valid && thumbnail.String != "" {
+			att.ThumbnailURL = &thumbnail.String
+		}
+		if latitude.Valid {
+			att.Latitude = &latitude.Float64
+		}
+		if longitude.Valid {
+			att.Longitude = &longitude.Float64
+		}
+
+		media = append(media, att)
+	}
+
+	return &models.MediaSearchResult{
+		Media:   media,
+		Total:   total,
+		HasMore: req.Offset+len(media) < total,
 	}, nil
 }
 
@@ -165,6 +296,7 @@ func (s *SearchService) SearchByExactText(userID, text string, limit int) ([]mod
 		FROM messages m
 		JOIN chat_participants cp ON m.chat_id = cp.chat_id
 		WHERE cp.user_id = $1
+		AND m.deleted_at IS NULL
 		AND m.text ILIKE $2
 		ORDER BY m.created_at DESC
 		LIMIT $3
@@ -222,6 +354,7 @@ func (s *SearchService) SearchInChat(userID, chatID, query string, limit int) ([
 			   delivery_status, reply_to_id, created_at
 		FROM messages
 		WHERE chat_id = $1
+		AND deleted_at IS NULL
 		AND to_tsvector('english', text) @@ plainto_tsquery('english', $2)
 		ORDER BY created_at DESC
 		LIMIT $3

@@ -20,8 +20,10 @@ var upgrader = websocket.Upgrader{
 }
 
 type WebSocketHandler struct {
-	hub         *services.WebSocketHub
-	authService *services.AuthService
+	hub            *services.WebSocketHub
+	authService    *services.AuthService
+	receiptService *services.ReceiptService
+	callService    *services.CallService
 }
 
 func NewWebSocketHandler(hub *services.WebSocketHub, authService *services.AuthService) *WebSocketHandler {
@@ -29,6 +31,14 @@ func NewWebSocketHandler(hub *services.WebSocketHub, authService *services.AuthS
 		hub:         hub,
 		authService: authService,
 	}
+}
+
+func (h *WebSocketHandler) SetReceiptService(rs *services.ReceiptService) {
+	h.receiptService = rs
+}
+
+func (h *WebSocketHandler) SetCallService(cs *services.CallService) {
+	h.callService = cs
 }
 
 func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
@@ -60,11 +70,13 @@ func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
 	}
 
 	client := &services.Client{
-		ID:     uuid.New().String(),
-		UserID: userID,
-		Conn:   conn,
-		Send:   make(chan []byte, 256),
-		Hub:    h.hub,
+		ID:       uuid.New().String(),
+		UserID:   userID,
+		Conn:     conn,
+		Send:     make(chan []byte, 256),
+		Hub:      h.hub,
+		Receipts: h.receiptService,
+		Calls:    h.callService,
 	}
 
 	h.hub.Register <- client

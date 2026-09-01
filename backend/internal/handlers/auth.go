@@ -18,16 +18,21 @@ type AuthHandler struct {
 	invitationService  *services.InvitationService
 	emailSender        services.EmailSender
 	entitlementService *services.EntitlementService
+	moderation         *services.ModerationService
+	otpService         *services.OTPService
 	resetBaseURL       string
 }
 
-func NewAuthHandler(authService *services.AuthService, userService *services.UserService, invitationService *services.InvitationService, emailSender services.EmailSender, entitlementService *services.EntitlementService, resetBaseURL string) *AuthHandler {
+func (h *AuthHandler) SetOTPService(s *services.OTPService) { h.otpService = s }
+
+func NewAuthHandler(authService *services.AuthService, userService *services.UserService, invitationService *services.InvitationService, emailSender services.EmailSender, entitlementService *services.EntitlementService, moderation *services.ModerationService, resetBaseURL string) *AuthHandler {
 	return &AuthHandler{
 		authService:        authService,
 		userService:        userService,
 		invitationService:  invitationService,
 		emailSender:        emailSender,
 		entitlementService: entitlementService,
+		moderation:         moderation,
 		resetBaseURL:       strings.TrimRight(resetBaseURL, "?"),
 	}
 }
@@ -136,6 +141,20 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	user, err := h.authService.Login(req.Username, req.Password)
 	if err != nil {
 		WriteError(c, middleware.ErrAuth("Invalid credentials"))
+		return
+	}
+
+	if user.TwoFactorEnabled && user.PhoneVerified {
+		tempToken, err := h.authService.Generate2FATempToken(user.ID)
+		if err != nil {
+			WriteError(c, middleware.ErrInternal("Failed to generate 2FA token"))
+			return
+		}
+		masked := ""
+		if user.Phone != nil {
+			masked = services.MaskPhone(*user.Phone)
+		}
+		c.JSON(200, gin.H{"requires2FA": true, "tempToken": tempToken, "phoneMasked": masked})
 		return
 	}
 
@@ -325,6 +344,19 @@ func (h *AuthHandler) SearchUsers(c *gin.Context) {
 	if err != nil {
 		WriteError(c, middleware.ErrInternal("Search failed"))
 		return
+	}
+
+	// Surface block/report status (task 7.1): mark which results the caller has
+	// blocked so the directory can render Block/Unblock everywhere.
+	if h.moderation != nil && len(users) > 0 {
+		ptrs := make([]*models.User, len(users))
+		for i := range users {
+			ptrs[i] = &users[i]
+		}
+		if err := h.moderation.EnrichUsers(c.Request.Context(), c.GetString("userID"), ptrs); err != nil {
+			WriteError(c, middleware.ErrInternal("Search failed"))
+			return
+		}
 	}
 
 	c.JSON(200, gin.H{

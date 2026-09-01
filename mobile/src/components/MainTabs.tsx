@@ -14,6 +14,7 @@ import ScenariosScreen from '../screens/ScenariosScreen';
 import ScenarioRoleplayScreen from '../screens/ScenarioRoleplayScreen';
 import LearningRoadmapScreen from '../screens/LearningRoadmapScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import CallScreen from '../screens/CallScreen';
 import { COLOR, TYPOGRAPHY } from '../theme';
 
 export type MainTabsParamList = {
@@ -26,6 +27,7 @@ export type ChatsStackParamList = {
   ChatList: undefined;
   Chat: { chatId: string; chatName: string };
   NewChat: undefined;
+  Call: { callId: string; chatId: string; chatName: string };
 };
 
 export type LearnStackParamList = {
@@ -70,6 +72,11 @@ const ChatsTab = () => (
       name="NewChat"
       component={NewChatScreen}
       options={{ title: 'New Chat' }}
+    />
+    <ChatsStack.Screen
+      name="Call"
+      component={CallScreen}
+      options={{ title: 'Call', headerShown: false, presentation: 'fullScreenModal' }}
     />
   </ChatsStack.Navigator>
 );

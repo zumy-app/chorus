@@ -62,6 +62,20 @@ func (h *ModerationHandler) ListBlocked(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"blocks": blocks, "total": len(blocks)})
 }
 
+// GetBlockStatus returns the block relationship between the caller and another
+// user. It is the per-user probe the client uses to render Block/Unblock (and
+// the mutual/ghost state) on every surface the target user appears in.
+// GET /api/v1/blocks/:userId/status
+func (h *ModerationHandler) GetBlockStatus(c *gin.Context) {
+	userID := c.GetString("userID")
+	status, err := h.moderation.BlockStatus(c.Request.Context(), userID, c.Param("userId"))
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to load block status"))
+		return
+	}
+	c.JSON(http.StatusOK, status)
+}
+
 // Report files a moderation report against a user or message.
 func (h *ModerationHandler) Report(c *gin.Context) {
 	userID := c.GetString("userID")

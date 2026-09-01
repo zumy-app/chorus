@@ -1,9 +1,11 @@
 package services
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"time"
 
 	"github.com/chorus/messenger/internal/models"
 	"github.com/lib/pq"
@@ -133,9 +135,11 @@ func (s *ChatService) GetByID(chatID string) (*models.Chat, error) {
 
 func (s *ChatService) GetUserChats(userID string) ([]models.Chat, error) {
 	query := `
-		SELECT DISTINCT c.id, c.type, c.name, c.created_by, c.settings, c.created_at
+		SELECT DISTINCT c.id, c.type, c.name, c.created_by, c.settings, c.created_at,
+		       cp.archived_at IS NOT NULL, COALESCE(cp.is_muted, FALSE), cp.muted_until
 		FROM chats c
 		INNER JOIN chat_participants cp ON c.id = cp.chat_id
+		LEFT JOIN chat_preferences pref ON pref.chat_id = c.id AND pref.user_id = $1
 		WHERE cp.user_id = $1
 		ORDER BY c.created_at DESC
 	`
@@ -158,6 +162,9 @@ func (s *ChatService) GetUserChats(userID string) ([]models.Chat, error) {
 			&chat.CreatedBy,
 			&settingsBytes,
 			&chat.CreatedAt,
+			&chat.IsArchived,
+			&chat.IsMuted,
+			&chat.MutedUntil,
 		)
 
 		if err != nil {
@@ -252,6 +259,15 @@ func (s *ChatService) IsParticipant(chatID, userID string) (bool, error) {
 	return exists, err
 }
 
+// IsChatAdmin reports whether the user holds the 'admin' role in the chat
+// (used to authorize message deletion, which the sender OR a chat admin may do).
+func (s *ChatService) IsChatAdmin(chatID, userID string) (bool, error) {
+	var isAdmin bool
+	query := `SELECT EXISTS(SELECT 1 FROM chat_participants WHERE chat_id = $1 AND user_id = $2 AND role = 'admin')`
+	err := s.db.QueryRow(query, chatID, userID).Scan(&isAdmin)
+	return isAdmin, err
+}
+
 func (s *ChatService) GetParticipantLanguages(chatID string) (map[string][]string, error) {
 	query := `
 		SELECT u.id, u.native_language, u.target_languages
@@ -282,4 +298,116 @@ func (s *ChatService) GetParticipantLanguages(chatID string) (map[string][]strin
 	}
 
 	return languages, nil
+}
+
+// ---------------------------------------------------------------------------
+// Archive & mute (task 6.4): per-user, per-chat conversation preferences.
+// ---------------------------------------------------------------------------
+
+// ArchiveChat archives or unarchives a conversation for a user. It returns the
+// resulting preference row (a one-row upsert in chat_preferences). Because archive
+// state is strictly user-scoped, archiving never affects co-participants.
+func (s *ChatService) ArchiveChat(ctx context.Context, userID, chatID string, archived bool) (*models.ChatPreference, error) {
+	pref := &models.ChatPreference{}
+	query := `
+		INSERT INTO chat_preferences (user_id, chat_id, archived_at)
+		VALUES ($1, $2, CASE WHEN $3 THEN CURRENT_TIMESTAMP ELSE NULL END)
+		ON CONFLICT (user_id, chat_id) DO UPDATE SET
+			archived_at = EXCLUDED.archived_at,
+			updated_at = CURRENT_TIMESTAMP
+		RETURNING user_id, chat_id, archived_at, is_muted, muted_until, updated_at
+	`
+	err := s.db.QueryRowContext(ctx, query, userID, chatID, archived).Scan(
+		&pref.UserID,
+		&pref.ChatID,
+		&pref.ArchivedAt,
+		&pref.IsMuted,
+		&pref.MutedUntil,
+		&pref.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return pref, nil
+}
+
+// MuteChat mutes or unmutes a conversation for a user, optionally until a
+// timestamp. When muted is true with a nil until, the mute is indefinite; when
+// muted is false, any until is cleared. It returns the resulting preference row.
+func (s *ChatService) MuteChat(ctx context.Context, userID, chatID string, muted bool, until *time.Time) (*models.ChatPreference, error) {
+	pref := &models.ChatPreference{}
+	query := `
+		INSERT INTO chat_preferences (user_id, chat_id, is_muted, muted_until)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (user_id, chat_id) DO UPDATE SET
+			is_muted = EXCLUDED.is_muted,
+			muted_until = EXCLUDED.muted_until,
+			updated_at = CURRENT_TIMESTAMP
+		RETURNING user_id, chat_id, archived_at, is_muted, muted_until, updated_at
+	`
+	err := s.db.QueryRowContext(ctx, query, userID, chatID, muted, until).Scan(
+		&pref.UserID,
+		&pref.ChatID,
+		&pref.ArchivedAt,
+		&pref.IsMuted,
+		&pref.MutedUntil,
+		&pref.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return pref, nil
+}
+
+// GetChatPreference returns the per-user preference row for one chat. It returns
+// a zero-value preference (not an error) when the user has never archived/muted
+// the chat, so callers can always render the default (unarchived, unmuted) state.
+func (s *ChatService) GetChatPreference(ctx context.Context, userID, chatID string) (*models.ChatPreference, error) {
+	pref := &models.ChatPreference{}
+	query := `
+		SELECT user_id, chat_id, archived_at, is_muted, muted_until, updated_at
+		FROM chat_preferences
+		WHERE user_id = $1 AND chat_id = $2
+	`
+	err := s.db.QueryRowContext(ctx, query, userID, chatID).Scan(
+		&pref.UserID,
+		&pref.ChatID,
+		&pref.ArchivedAt,
+		&pref.IsMuted,
+		&pref.MutedUntil,
+		&pref.UpdatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return &models.ChatPreference{UserID: userID, ChatID: chatID}, nil
+		}
+		return nil, err
+	}
+	return pref, nil
+}
+
+// GetChatPreferences returns every per-user preference row across the user's
+// conversations, keyed by chat ID (task 6.4). Chats the user never touched are
+// simply absent, so readers fall back to the default state.
+func (s *ChatService) GetChatPreferences(ctx context.Context, userID string) (map[string]models.ChatPreference, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT user_id, chat_id, archived_at, is_muted, muted_until, updated_at
+		FROM chat_preferences
+		WHERE user_id = $1
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	prefs := map[string]models.ChatPreference{}
+	for rows.Next() {
+		var pref models.ChatPreference
+		if err := rows.Scan(&pref.UserID, &pref.ChatID, &pref.ArchivedAt, &pref.IsMuted, &pref.MutedUntil, &pref.UpdatedAt); err != nil {
+			continue
+		}
+		prefs[pref.ChatID] = pref
+	}
+
+	return prefs, rows.Err()
 }

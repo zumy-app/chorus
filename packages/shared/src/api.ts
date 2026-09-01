@@ -11,6 +11,7 @@ import type {
   AuthTokens,
   Block,
   Chat,
+  ChatPreference,
   CheckoutResponse,
   ContactInvite,
   ContactInviteRequest,
@@ -31,9 +32,11 @@ import type {
   LessonStartResponse,
   LessonStepResult,
   LoginRequest,
+  MediaAttachment,
   Message,
   MinedItem,
   OnboardRequest,
+  PinnedMessage,
   PlanChange,
   PlacementResult,
   PremiumAnalytics,
@@ -50,6 +53,7 @@ import type {
   ScenarioRun,
   ScenarioScript,
   ScenarioStartResponse,
+  SendLocationRequest,
   SendMessageRequest,
   SessionAnswerRequest,
   StartPlacementResponse,
@@ -474,6 +478,42 @@ export function createApiClient(options: ApiClientOptions) {
     leaveChat: async (chatId: string) => {
       await client.delete(`/chats/${chatId}/leave`)
     },
+
+    // Task 6.4 (archive & mute): per-user, per-chat conversation preferences.
+    archiveChat: async (chatId: string, archived = true) => {
+      const response = await client.post<ChatPreference>(`/chats/${chatId}/archive`, { archived })
+      return response.data
+    },
+
+    unarchiveChat: async (chatId: string) => {
+      const response = await client.delete<ChatPreference>(`/chats/${chatId}/archive`)
+      return response.data
+    },
+
+    muteChat: async (chatId: string, until?: string) => {
+      const response = await client.post<ChatPreference>(`/chats/${chatId}/mute`, {
+        muted: true,
+        until: until ?? null,
+      })
+      return response.data
+    },
+
+    unmuteChat: async (chatId: string) => {
+      const response = await client.delete<ChatPreference>(`/chats/${chatId}/mute`)
+      return response.data
+    },
+
+    getChatPreference: async (chatId: string) => {
+      const response = await client.get<ChatPreference>(`/chats/${chatId}/preferences`)
+      return response.data
+    },
+
+    getChatPreferences: async () => {
+      const response = await client.get<{ preferences: Record<string, ChatPreference> }>(
+        '/chats/preferences'
+      )
+      return response.data.preferences
+    },
   }
 
   const message = {
@@ -489,6 +529,27 @@ export function createApiClient(options: ApiClientOptions) {
       return response.data
     },
 
+    // Task 6.6: file/document sharing. Multipart upload that creates a media
+    // message; the returned message carries media[0] with the public URL.
+    sendAttachment: async (chatId: string, file: Blob, fileName: string, opts?: { caption?: string; type?: string }) => {
+      const form = new FormData()
+      form.append('file', file, fileName)
+      if (opts?.caption) form.append('caption', opts.caption)
+      if (opts?.type) form.append('type', opts.type)
+      const response = await client.post<Message>(`/chats/${chatId}/attachments`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      return response.data
+    },
+
+    // Task 6.7: location sharing. A validated lat/lng (plus optional label) that
+    // creates a location message; the returned message carries media[0] with the
+    // pin's coordinates + map URL.
+    sendLocation: async (chatId: string, data: SendLocationRequest) => {
+      const response = await client.post<Message>(`/chats/${chatId}/location`, data)
+      return response.data
+    },
+
     markAsRead: async (chatId: string, messageId: string) => {
       await client.put(`/chats/${chatId}/read`, { messageId })
     },
@@ -498,6 +559,42 @@ export function createApiClient(options: ApiClientOptions) {
         `/messages/search${qs({ q: query, chatId })}`
       )
       return response.data.messages
+    },
+
+    // Universal message+media search (task 6.3): returns matching media
+    // attachments alongside messages.
+    searchMedia: async (query: string, params?: { type?: string; chatId?: string; limit?: number; offset?: number }) => {
+      const response = await client.get<{ media: MediaAttachment[] }>(
+        `/media/search${qs({ q: query, ...params })}`
+      )
+      return response.data.media
+    },
+
+    // Message actions (task 6.2).
+    forwardMessage: async (chatId: string, messageId: string, targetChatId: string) => {
+      const response = await client.post<Message>(
+        `/chats/${chatId}/messages/${messageId}/forward`,
+        { targetChatId }
+      )
+      return response.data
+    },
+
+    deleteMessage: async (chatId: string, messageId: string) => {
+      await client.delete(`/chats/${chatId}/messages/${messageId}`)
+    },
+
+    pinMessage: async (chatId: string, messageId: string) => {
+      const response = await client.post(`/chats/${chatId}/pins`, { messageId })
+      return response.data
+    },
+
+    unpinMessage: async (chatId: string, messageId: string) => {
+      await client.delete(`/chats/${chatId}/pins/${messageId}`)
+    },
+
+    getPinnedMessages: async (chatId: string) => {
+      const response = await client.get<{ pins: PinnedMessage[] }>(`/chats/${chatId}/pins`)
+      return response.data.pins
     },
   }
 
@@ -820,6 +917,72 @@ export function createApiClient(options: ApiClientOptions) {
     return response.data
   }
 
+  const otp = {
+    getPhoneStatus: async () => {
+      const response = await client.get<import('./types').PhoneStatus>('/users/me/phone')
+      return response.data
+    },
+    requestOTP: async (phone: string) => {
+      const response = await client.post<{ phoneMasked: string }>('/users/me/phone/request-otp', { phone })
+      return response.data
+    },
+    verifyPhone: async (phone: string, code: string) => {
+      const response = await client.post<{ status: import('./types').PhoneStatus }>('/users/me/phone/verify', { phone, code })
+      return response.data
+    },
+    setTwoFactor: async (enabled: boolean) => {
+      const response = await client.put<import('./types').PhoneStatus>('/users/me/2fa', { enabled })
+      return response.data
+    },
+    verify2FA: async (tempToken: string, code: string) => {
+      const response = await client.post<{ user: User; tokens: AuthTokens }>('/auth/2fa/verify', { tempToken, code })
+      return response.data
+    },
+  }
+
+  const call = {
+    initiate: async (chatId: string, type: 'audio' | 'video' = 'audio') => {
+      const response = await client.post<{ session: import('./types').CallSession; offer: import('./types').WebRTCOffer }>('/calls/initiate', { chatId, type })
+      return response.data
+    },
+    getSession: async (callId: string) => {
+      const response = await client.get<import('./types').CallSession>(`/calls/${callId}`)
+      return response.data
+    },
+    end: async (callId: string) => {
+      const response = await client.post<{ message: string }>(`/calls/${callId}/end`)
+      return response.data
+    },
+    getCaptions: async (callId: string, params?: { limit?: number; offset?: number }) => {
+      const response = await client.get<{ segments: import('./types').TranscriptSegment[]; total: number; hasMore: boolean }>(`/calls/${callId}/captions${qs({ limit: params?.limit, offset: params?.offset })}`)
+      return response.data
+    },
+    postCaption: async (callId: string, data: { text: string; language?: string }) => {
+      const response = await client.post<import('./types').TranscriptSegment>(`/calls/${callId}/captions`, data)
+      return response.data
+    },
+    bookmarkCaption: async (callId: string, index: number) => {
+      const response = await client.post(`/calls/${callId}/captions/${index}/bookmark`)
+      return response.data
+    },
+    signal: async (callId: string, data: { type: string; sdp?: string; candidate?: string; data?: Record<string, unknown> }) => {
+      const response = await client.post(`/calls/${callId}/signal`, data)
+      return response.data
+    },
+    getTranscript: async (callId: string) => {
+      const response = await client.get<import('./types').CallTranscript>(`/calls/${callId}/transcript`)
+      return response.data
+    },
+    getHistory: async (params?: { limit?: number; offset?: number }) => {
+      const response = await client.get<import('./types').CallSession[]>(`/calls/history${qs({ limit: params?.limit, offset: params?.offset })}`)
+      return response.data
+    },
+    searchTranscripts: async (query: string, language?: string) => {
+      const response = await client.get<import('./types').CallTranscript[]>(`/calls/transcripts/search${qs({ q: query, language })}`)
+      return response.data
+    },
+  }
+
   const presence = {
     get: async (userId: string) => {
       const response = await client.get<{ data: PresenceStatus }>(`/presence/${userId}`)
@@ -847,6 +1010,17 @@ export function createApiClient(options: ApiClientOptions) {
     },
   }
 
+  const settings = {
+    getSettings: async () => {
+      const response = await client.get<import('./types').UserSettings>('/users/me/settings')
+      return response.data
+    },
+    updateSettings: async (data: Partial<Record<'translationEnabled' | 'grammarAuto' | 'highlightsEnabled', boolean>> & Partial<Record<'lastSeenVisibility' | 'profilePhotoVisibility' | 'contactsVisibility', import('./types').PrivacyVisibility>>) => {
+      const response = await client.put<import('./types').UserSettings>('/users/me/settings', data)
+      return response.data
+    },
+  }
+
   return {
     api: client,
     auth,
@@ -861,7 +1035,10 @@ export function createApiClient(options: ApiClientOptions) {
     translation,
     learning,
     contacts,
+    otp,
     presence,
+    settings,
+    call,
     health,
   }
 }

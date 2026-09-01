@@ -22,7 +22,8 @@ func NewSettingsService(db *sql.DB) *SettingsService {
 
 const settingsColumns = `user_id, grammar_enabled, vocabulary_enabled, difficulty_level,
 	transcript_recording, message_retention_days,
-	translation_enabled, grammar_auto, highlights_enabled, updated_at`
+	translation_enabled, grammar_auto, highlights_enabled,
+	last_seen_visibility, profile_photo_visibility, contacts_visibility, updated_at`
 
 // GetSettings returns the user's settings row, creating a default (all features
 // enabled) row on first access.
@@ -48,9 +49,10 @@ func (s *SettingsService) GetFeatureSettings(userID string) (*models.FeatureSett
 	}, nil
 }
 
-// UpdateFeatureSettings applies a partial update to the FR-25 toggles. Omitted
-// fields (nil pointers) are left unchanged. The full settings row is returned
-// so the client can re-render from the authoritative state.
+// UpdateFeatureSettings applies a partial update to the FR-25 toggles plus the
+// 7.3 privacy visibilities. Omitted fields (nil pointers) are left unchanged.
+// The full settings row is returned so the client can re-render from the
+// authoritative state.
 func (s *SettingsService) UpdateFeatureSettings(userID string, req models.UpdateFeatureSettingsRequest) (*models.UserSettings, error) {
 	if err := s.ensureRow(userID); err != nil {
 		return nil, err
@@ -60,8 +62,11 @@ func (s *SettingsService) UpdateFeatureSettings(userID string, req models.Update
 		SET translation_enabled = COALESCE($2, translation_enabled),
 		    grammar_auto = COALESCE($3, grammar_auto),
 		    highlights_enabled = COALESCE($4, highlights_enabled),
+		    last_seen_visibility = COALESCE($5, last_seen_visibility),
+		    profile_photo_visibility = COALESCE($6, profile_photo_visibility),
+		    contacts_visibility = COALESCE($7, contacts_visibility),
 		    updated_at = CURRENT_TIMESTAMP
-		WHERE user_id = $1`, userID, req.TranslationEnabled, req.GrammarAuto, req.HighlightsEnabled)
+		WHERE user_id = $1`, userID, req.TranslationEnabled, req.GrammarAuto, req.HighlightsEnabled, req.LastSeenVisibility, req.ProfilePhotoVisibility, req.ContactsVisibility)
 	if err != nil {
 		return nil, err
 	}
@@ -91,6 +96,9 @@ func (s *SettingsService) fetchSettings(userID string) (*models.UserSettings, er
 			&st.TranslationEnabled,
 			&st.GrammarAuto,
 			&st.HighlightsEnabled,
+			&st.LastSeenVisibility,
+			&st.ProfilePhotoVisibility,
+			&st.ContactsVisibility,
 			&st.UpdatedAt,
 		)
 	if err != nil {

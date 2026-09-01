@@ -274,6 +274,16 @@ export const ur = {
     blockedUsers: 'بلاک شدہ صارفین',
     noBlockedUsers: 'کوئی بلاک شدہ صارف نہیں۔',
     unblock: 'ان بلاک کریں',
+    privacy: 'Privacy',
+    privacyDesc: 'Control who can see your activity and information.',
+    lastSeen: 'Last seen',
+    profilePhoto: 'Profile photo',
+    contacts: 'Contacts',
+    everyone: 'Everyone',
+    myContacts: 'My contacts',
+    nobody: 'Nobody',
+    privacySaved: 'Privacy settings updated.',
+    privacyFailed: 'Could not save privacy settings.',
   },
 
   about: {

@@ -19,10 +19,10 @@ func TestUserGetByID_Success(t *testing.T) {
 
 	s := NewUserService(db)
 
-	mock.ExpectQuery(`SELECT id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url FROM users WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url, phone, phone_verified, phone_verified_at, two_factor_enabled FROM users WHERE id = \$1`).
 		WithArgs("user-1").
-		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "display_name", "first_name", "last_name", "native_language", "target_languages", "role", "created_at", "last_active_at", "suspended_at", "deleted_at", "plan", "plan_grace_until", "premium_since", "subscription_id", "subscription_provider", "subscription_plan_id", "subscription_status", "next_billing_date", "last_payment_at", "avatar_url"}).
-			AddRow("user-1", "testuser", "test@example.com", "Test User", "", "", "en", pq.Array([]string{"es"}), "member", time.Now(), time.Now(), nil, nil, "free", nil, nil, nil, "paypal", nil, nil, nil, nil, nil))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "display_name", "first_name", "last_name", "native_language", "target_languages", "role", "created_at", "last_active_at", "suspended_at", "deleted_at", "plan", "plan_grace_until", "premium_since", "subscription_id", "subscription_provider", "subscription_plan_id", "subscription_status", "next_billing_date", "last_payment_at", "avatar_url", "phone", "phone_verified", "phone_verified_at", "two_factor_enabled"}).
+			AddRow("user-1", "testuser", "test@example.com", "Test User", "", "", "en", pq.Array([]string{"es"}), "member", time.Now(), time.Now(), nil, nil, "free", nil, nil, nil, "paypal", nil, nil, nil, nil, nil, nil, false, nil, false))
 
 	user, err := s.GetByID("user-1")
 	if err != nil {
@@ -87,7 +87,7 @@ func TestUserGetByID_NotFound(t *testing.T) {
 
 	s := NewUserService(db)
 
-	mock.ExpectQuery(`SELECT id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url FROM users WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url, phone, phone_verified, phone_verified_at, two_factor_enabled FROM users WHERE id = \$1`).
 		WithArgs("nonexistent").
 		WillReturnError(sqlmock.ErrCancelled)
 
@@ -116,11 +116,11 @@ func TestUserUpdate_Success(t *testing.T) {
 		TargetLanguages: []string{"en", "de"},
 	}
 
-	updateSQL := `UPDATE users SET first_name = COALESCE(NULLIF($2, ''), first_name), last_name = COALESCE(NULLIF($3, ''), last_name), display_name = COALESCE(NULLIF($4, ''), TRIM(CONCAT_WS(' ', NULLIF(TRIM(COALESCE(NULLIF($2, ''), first_name)), ''), NULLIF(TRIM(COALESCE(NULLIF($3, ''), last_name)), ''))), display_name), native_language = COALESCE(NULLIF($5, ''), native_language), target_languages = COALESCE($6, target_languages) WHERE id = $1 RETURNING id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url`
+	updateSQL := `UPDATE users SET first_name = COALESCE(NULLIF($2, ''), first_name), last_name = COALESCE(NULLIF($3, ''), last_name), display_name = COALESCE(NULLIF($4, ''), TRIM(CONCAT_WS(' ', NULLIF(TRIM(COALESCE(NULLIF($2, ''), first_name)), ''), NULLIF(TRIM(COALESCE(NULLIF($3, ''), last_name)), ''))), display_name), native_language = COALESCE(NULLIF($5, ''), native_language), target_languages = COALESCE($6, target_languages) WHERE id = $1 RETURNING id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url, phone, phone_verified, phone_verified_at, two_factor_enabled`
 	mock.ExpectQuery(regexp.QuoteMeta(updateSQL)).
 		WithArgs("user-1", sqlmock.AnyArg(), sqlmock.AnyArg(), "Updated Name", sqlmock.AnyArg(), pq.Array(req.TargetLanguages)).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "display_name", "first_name", "last_name", "native_language", "target_languages", "role", "created_at", "last_active_at", "suspended_at", "deleted_at", "plan", "plan_grace_until", "premium_since", "subscription_id", "subscription_provider", "subscription_plan_id", "subscription_status", "next_billing_date", "last_payment_at", "avatar_url"}).
-			AddRow("user-1", "testuser", "test@example.com", "Updated Name", "", "", "fr", pq.Array([]string{"en", "de"}), "member", time.Now(), time.Now(), nil, nil, "free", nil, nil, nil, "paypal", nil, nil, nil, nil, nil))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "display_name", "first_name", "last_name", "native_language", "target_languages", "role", "created_at", "last_active_at", "suspended_at", "deleted_at", "plan", "plan_grace_until", "premium_since", "subscription_id", "subscription_provider", "subscription_plan_id", "subscription_status", "next_billing_date", "last_payment_at", "avatar_url", "phone", "phone_verified", "phone_verified_at", "two_factor_enabled"}).
+			AddRow("user-1", "testuser", "test@example.com", "Updated Name", "", "", "fr", pq.Array([]string{"en", "de"}), "member", time.Now(), time.Now(), nil, nil, "free", nil, nil, nil, "paypal", nil, nil, nil, nil, nil, nil, false, nil, false))
 
 	user, err := s.Update("user-1", req)
 	if err != nil {
@@ -147,11 +147,11 @@ func TestUserOnboard_ComposesDisplayName(t *testing.T) {
 
 	s := NewUserService(db)
 
-	onboardSQL := `UPDATE users SET first_name = $2, last_name = $3, display_name = $4 WHERE id = $1 RETURNING id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url`
+	onboardSQL := `UPDATE users SET first_name = $2, last_name = $3, display_name = $4 WHERE id = $1 RETURNING id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url, phone, phone_verified, phone_verified_at, two_factor_enabled`
 	mock.ExpectQuery(regexp.QuoteMeta(onboardSQL)).
 		WithArgs("user-1", "John", "Smith", "John Smith").
-		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "display_name", "first_name", "last_name", "native_language", "target_languages", "role", "created_at", "last_active_at", "suspended_at", "deleted_at", "plan", "plan_grace_until", "premium_since", "subscription_id", "subscription_provider", "subscription_plan_id", "subscription_status", "next_billing_date", "last_payment_at", "avatar_url"}).
-			AddRow("user-1", "testuser", "test@example.com", "John Smith", "John", "Smith", "en", pq.Array([]string{"es"}), "member", time.Now(), time.Now(), nil, nil, "free", nil, nil, nil, "paypal", nil, nil, nil, nil, nil))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "display_name", "first_name", "last_name", "native_language", "target_languages", "role", "created_at", "last_active_at", "suspended_at", "deleted_at", "plan", "plan_grace_until", "premium_since", "subscription_id", "subscription_provider", "subscription_plan_id", "subscription_status", "next_billing_date", "last_payment_at", "avatar_url", "phone", "phone_verified", "phone_verified_at", "two_factor_enabled"}).
+			AddRow("user-1", "testuser", "test@example.com", "John Smith", "John", "Smith", "en", pq.Array([]string{"es"}), "member", time.Now(), time.Now(), nil, nil, "free", nil, nil, nil, "paypal", nil, nil, nil, nil, nil, nil, false, nil, false))
 
 	user, err := s.Onboard("user-1", "John", "Smith", "")
 	if err != nil {
@@ -181,11 +181,11 @@ func TestUserOnboard_ExplicitDisplayName(t *testing.T) {
 
 	s := NewUserService(db)
 
-	onboardSQL := `UPDATE users SET first_name = $2, last_name = $3, display_name = $4 WHERE id = $1 RETURNING id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url`
+	onboardSQL := `UPDATE users SET first_name = $2, last_name = $3, display_name = $4 WHERE id = $1 RETURNING id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url, phone, phone_verified, phone_verified_at, two_factor_enabled`
 	mock.ExpectQuery(regexp.QuoteMeta(onboardSQL)).
 		WithArgs("user-1", "John", "Smith", "JD").
-		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "display_name", "first_name", "last_name", "native_language", "target_languages", "role", "created_at", "last_active_at", "suspended_at", "deleted_at", "plan", "plan_grace_until", "premium_since", "subscription_id", "subscription_provider", "subscription_plan_id", "subscription_status", "next_billing_date", "last_payment_at", "avatar_url"}).
-			AddRow("user-1", "testuser", "test@example.com", "JD", "John", "Smith", "en", pq.Array([]string{"es"}), "member", time.Now(), time.Now(), nil, nil, "free", nil, nil, nil, "paypal", nil, nil, nil, nil, nil))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "display_name", "first_name", "last_name", "native_language", "target_languages", "role", "created_at", "last_active_at", "suspended_at", "deleted_at", "plan", "plan_grace_until", "premium_since", "subscription_id", "subscription_provider", "subscription_plan_id", "subscription_status", "next_billing_date", "last_payment_at", "avatar_url", "phone", "phone_verified", "phone_verified_at", "two_factor_enabled"}).
+			AddRow("user-1", "testuser", "test@example.com", "JD", "John", "Smith", "en", pq.Array([]string{"es"}), "member", time.Now(), time.Now(), nil, nil, "free", nil, nil, nil, "paypal", nil, nil, nil, nil, nil, nil, false, nil, false))
 
 	user, err := s.Onboard("user-1", "John", "Smith", "JD")
 	if err != nil {
