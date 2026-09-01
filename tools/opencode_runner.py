@@ -32,6 +32,8 @@ AGENT_ROUTE = {
     "infra": "sre-engineer",
     "design": "general",
     "admin": "general",
+    "analyst": "analyst",
+    "qa": "qa-engineer",
     "review": "reviewer",
     "teacher": "teacher",
 }
