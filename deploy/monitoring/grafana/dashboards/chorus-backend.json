@@ -162,6 +162,51 @@
           "refId": "B"
         }
       ]
+    },
+    {
+      "id": 13,
+      "title": "Word-mining jobs (by status)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "expr": "sum by (status) (rate(chorus_backend_word_mining_jobs_total[5m]))", "legendFormat": "{{status}}", "refId": "A" },
+        { "expr": "chorus_backend_word_mining_pending_jobs", "legendFormat": "pending gauge", "refId": "B" }
+      ]
+    },
+    {
+      "id": 14,
+      "title": "Word-mining duration p95",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum by (le, status) (rate(chorus_backend_word_mining_duration_seconds_bucket[5m])))", "legendFormat": "{{status}}", "refId": "A" }
+      ]
+    },
+    {
+      "id": 15,
+      "title": "Mined items (by route)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 48 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "expr": "sum by (route) (rate(chorus_backend_word_mining_items_total[5m]))", "legendFormat": "{{route}}", "refId": "A" }
+      ]
+    },
+    {
+      "id": 16,
+      "title": "Word-mining failure rate",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 48 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 0.05 }] } }, "overrides": [] },
+      "targets": [
+        { "expr": "sum(rate(chorus_backend_word_mining_jobs_total{status=\"failed\"}[5m])) / clamp_min(sum(rate(chorus_backend_word_mining_jobs_total[5m])), 0.001)", "legendFormat": "failed ratio", "refId": "A" }
+      ]
     }
   ],
   "time": { "from": "now-6h", "to": "now" },

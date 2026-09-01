@@ -16,6 +16,7 @@ import apiService from '../services/api';
 import webSocketService from '../services/websocket';
 import { Message, WebSocketMessage, User } from '@chorus/shared';
 import { COLOR, FONTS } from '../theme';
+import RealTalkNudge from '../components/RealTalkNudge';
 
 export default function ChatScreen({ route, navigation }: any) {
   const { chatId, chatName } = route.params;
@@ -50,7 +51,8 @@ export default function ChatScreen({ route, navigation }: any) {
       setTyping(payload.isTyping === true);
     } else if (message.type === 'call_incoming' && payload.chatId === chatId) {
       const callId = (payload as Record<string, string>).callId || (payload as Record<string, string>).call_id;
-      if (callId) navigation.navigate('Call', { callId, chatId, chatName });
+      const t = (payload as Record<string, string>).type || 'audio';
+      if (callId) navigation.navigate('Call', { callId, chatId, chatName, initialType: t });
     }
   }, [chatId, chatName, navigation]);
 
@@ -80,10 +82,10 @@ export default function ChatScreen({ route, navigation }: any) {
     }
   }, [chatId]);
 
-  const startCall = async () => {
+  const startCall = async (type: 'audio' | 'video' = 'audio') => {
     try {
-      const res = await apiService.initiateCall(chatId, 'audio');
-      navigation.navigate('Call', { callId: res.session.id, chatId, chatName });
+      const res = await apiService.initiateCall(chatId, type);
+      navigation.navigate('Call', { callId: res.session.id, chatId, chatName, initialType: type });
     } catch {}
   };
 
@@ -93,9 +95,14 @@ export default function ChatScreen({ route, navigation }: any) {
       headerTintColor: COLOR.primary,
       headerTitleStyle: { fontSize: 18, fontWeight: '600', color: COLOR.primary },
       headerRight: () => (
-        <TouchableOpacity onPress={startCall} style={{ marginRight: 4, width: 36, height: 36, borderRadius: 18, backgroundColor: COLOR.primaryContainer, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: '#fff', fontSize: 16 }}>📞</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 6, marginRight: 4 }}>
+          <TouchableOpacity onPress={() => startCall('audio')} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: COLOR.primaryContainer, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: '#fff', fontSize: 16 }}>📞</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => startCall('video')} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: COLOR.primary, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: '#fff', fontSize: 14 }}>📹</Text>
+          </TouchableOpacity>
+        </View>
       ),
     });
   }, [navigation, chatName, chatId]);
@@ -111,6 +118,15 @@ export default function ChatScreen({ route, navigation }: any) {
       unsubscribe();
     };
   }, [chatId, handleWebSocket, loadMessages, loadCurrentUser]);
+
+  useEffect(() => {
+    storage.getItem('realTalkDraft').then((d) => {
+      if (d) {
+        setInputText(d);
+        storage.removeItem('realTalkDraft');
+      }
+    });
+  }, [chatId]);
 
   const handleSend = async () => {
     if (!inputText.trim()) return;
@@ -235,6 +251,7 @@ export default function ChatScreen({ route, navigation }: any) {
           <Text style={styles.typingText}>Someone is typing...</Text>
         </View>
       )}
+      <RealTalkNudge chatId={chatId} onSendToInput={setInputText} />
       <View style={styles.inputArea}>
         <View style={styles.toggleRow}>
           <TouchableOpacity

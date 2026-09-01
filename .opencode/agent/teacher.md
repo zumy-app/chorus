@@ -1,7 +1,7 @@
 ---
 mode: subagent
 description: Bilingual ES/EN language teacher and learning-content reviewer. Judges translations, grammar feedback, CEFR level, lessons/vocab, scenario scripts.
-model: opencode/muse-spark-1.2-contributor-free
+model: opencode-go/muse-spark-1.2-contributor
 permission:
   read: allow
   grep: allow

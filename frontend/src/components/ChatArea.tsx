@@ -11,6 +11,7 @@ import { moderationAPI, api } from '../services/api'
 import { wsService } from '../services/websocket'
 import { formatDistanceToNow } from 'date-fns'
 import CallScreen from './CallScreen'
+import RealTalkNudge from './chat/RealTalkNudge'
 
 export default function ChatArea() {
   const { t } = useTranslation()
@@ -29,7 +30,7 @@ export default function ChatArea() {
   )
   const [deepDiveMessage, setDeepDiveMessage] = useState<null | { id: string; text: string; sender?: any; analysis?: any }>(null)
   const [deepDiveOpen, setDeepDiveOpen] = useState(false)
-  const [activeCall, setActiveCall] = useState<null | { id: string; chatId: string }>(null)
+  const [activeCall, setActiveCall] = useState<null | { id: string; chatId: string; type: 'audio' | 'video' }>(null)
   const [callError, setCallError] = useState('')
   const [incomingCall, setIncomingCall] = useState<null | { callId: string; chatId: string; type: string }>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -87,6 +88,15 @@ export default function ChatArea() {
     const unsub = wsService.onMessage(handler as Parameters<typeof wsService.onMessage>[0])
     return () => unsub()
   }, [])
+
+  useEffect(() => {
+    const draft = localStorage.getItem('realTalkDraft')
+    if (draft) {
+      setInputText(draft)
+      localStorage.removeItem('realTalkDraft')
+      inputRef.current?.focus()
+    }
+  }, [activeChat?.id])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -275,7 +285,7 @@ export default function ChatArea() {
               setCallError('')
               try {
                 const res = await api.post<{ session: { id: string } }>('/calls/initiate', { chatId: activeChat.id, type: 'audio' })
-                setActiveCall({ id: res.data.session.id, chatId: activeChat.id })
+                setActiveCall({ id: res.data.session.id, chatId: activeChat.id, type: 'audio' })
               } catch (e: unknown) {
                 const msg = e instanceof Error ? e.message : 'Failed to start call'
                 setCallError(msg)
@@ -287,6 +297,25 @@ export default function ChatArea() {
             aria-label={t('chat.startCall', { defaultValue: 'Start audio call' })}
           >
             <span className="material-symbols-outlined">call</span>
+          </button>
+          <button
+            onClick={async () => {
+              if (!activeChat) return
+              setCallError('')
+              try {
+                const res = await api.post<{ session: { id: string } }>('/calls/initiate', { chatId: activeChat.id, type: 'video' })
+                setActiveCall({ id: res.data.session.id, chatId: activeChat.id, type: 'video' })
+              } catch (e: unknown) {
+                const msg = e instanceof Error ? e.message : 'Failed to start call'
+                setCallError(msg)
+                setTimeout(() => setCallError(''), 3000)
+              }
+            }}
+            className="w-10 h-10 flex items-center justify-center text-primary hover:bg-surface-variant/20 rounded-full transition active:scale-95"
+            title="Start video call"
+            aria-label="Start video call"
+          >
+            <span className="material-symbols-outlined">videocam</span>
           </button>
           <button
             onClick={() => setShowLangSettings(true)}
@@ -346,7 +375,7 @@ export default function ChatArea() {
           <span className="text-sm font-medium flex items-center gap-2"><span className="material-symbols-outlined text-[20px]">call</span> Incoming {incomingCall.type} call</span>
           <div className="flex gap-2">
             <button onClick={() => setIncomingCall(null)} className="px-3 py-1.5 rounded-full bg-white/20 text-sm">Decline</button>
-            <button onClick={() => { setActiveCall({ id: incomingCall.callId, chatId: incomingCall.chatId }); setIncomingCall(null) }} className="px-4 py-1.5 rounded-full bg-emerald-600 text-white text-sm font-semibold">Answer</button>
+            <button onClick={() => { setActiveCall({ id: incomingCall.callId, chatId: incomingCall.chatId, type: (incomingCall.type as 'audio' | 'video') || 'audio' }); setIncomingCall(null) }} className="px-4 py-1.5 rounded-full bg-emerald-600 text-white text-sm font-semibold">Answer</button>
           </div>
         </div>
       )}
@@ -393,6 +422,8 @@ export default function ChatArea() {
         )}
         <div ref={messagesEndRef} />
       </div>
+
+      <RealTalkNudge chatId={activeChat.id} onSendToInput={(text) => setInputText(text)} />
 
       {/* Input Area */}
       <div className="bg-surface border-t border-outline-variant px-4 pt-3 pb-4">
@@ -557,7 +588,7 @@ export default function ChatArea() {
       )}
 
       {activeCall && (
-        <CallScreen callId={activeCall.id} chatId={activeCall.chatId} chatName={chatName} onClose={() => setActiveCall(null)} />
+        <CallScreen callId={activeCall.id} chatId={activeCall.chatId} chatName={chatName} initialType={activeCall.type} onClose={() => setActiveCall(null)} />
       )}
     </>
   )

@@ -34,18 +34,20 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # Go Backend API
+  # Go Backend API — stateless, horizontally scalable behind the L4 LB
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: chorus-backend
     mem_limit: 512m
+    expose:
+      - "8080"
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     env_file:
       - ./backend/.env
     environment:
+      - SERVER_ID=${HOSTNAME:-backend}
       - ENVIRONMENT=development
       - DATABASE_URL=postgres://messenger:password@postgres:5432/messenger_dev?sslmode=disable
       - REDIS_URL=redis:6379
@@ -55,6 +57,12 @@ services:
       - PHOENIX_OTLP_ENDPOINT=phoenix:4317
     volumes:
       - uploads_data:/root/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health | grep -q healthy || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
     depends_on:
       postgres:
         condition: service_healthy
@@ -62,7 +70,22 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # React Frontend
+  # Layer 4 LB (TCP, leastconn) — mirrors prod; frontend proxies via this
+  lb:
+    image: haproxy:2.8-alpine
+    volumes:
+      - ./deploy/lb/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    expose:
+      - "8080"
+      - "8404"
+    ports:
+      - "127.0.0.1:8404:8404"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # React Frontend — proxies /api,/ws through the LB (see nginx.conf)
   frontend:
     build:
       context: ./frontend
@@ -74,7 +97,8 @@ services:
     environment:
       - NODE_ENV=production
     depends_on:
-      - backend
+      lb:
+        condition: service_started
     restart: unless-stopped
 
   # Ollama — offline LLM for grammar analysis / word-by-word breakdowns and

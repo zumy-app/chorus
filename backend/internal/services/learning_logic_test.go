@@ -113,8 +113,17 @@ func TestSRSHelpers(t *testing.T) {
 	if masteryStateOf(&models.VocabularyCard{MasteryStage: 3}) != stateReviewing {
 		t.Errorf("stage3 should be reviewing")
 	}
-	if masteryStateOf(&models.VocabularyCard{MasteryStage: 4}) != stateMastered {
-		t.Errorf("stage4 should be mastered")
+	if masteryStateOf(&models.VocabularyCard{MasteryStage: 4, ProductionSuccessCount: 0}) == stateMastered {
+		t.Errorf("stage4 without production successes should not be mastered")
+	}
+	if masteryStateOf(&models.VocabularyCard{MasteryStage: 4, ProductionSuccessCount: 2}) != stateMastered {
+		t.Errorf("stage4 with 2 production successes should be mastered")
+	}
+	if masteryStateOf(&models.VocabularyCard{MasteryStage: 4, ProductionSuccessCount: 1, SpontaneousUseCount: 1}) != stateMastered {
+		t.Errorf("stage4 with 1 production + 1 spontaneous should be mastered")
+	}
+	if masteryStateOf(&models.VocabularyCard{MasteryStage: 2, Lapses: 3}) != stateLeech {
+		t.Errorf("card with 3 lapses should be leech")
 	}
 }
 

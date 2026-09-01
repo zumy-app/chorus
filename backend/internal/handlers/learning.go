@@ -28,6 +28,7 @@ type LearningHandler struct {
 	vocab        *services.VocabularyService
 	seed         *services.SeedQueueService
 	queue        *services.SRSQueueService
+	practice     *services.PracticeService
 }
 
 func NewLearningHandler(
@@ -60,6 +61,27 @@ func NewLearningHandler(
 		seed:         seed,
 		queue:        queue,
 	}
+}
+
+func NewLearningHandlerWithPractice(
+	capabilities *services.LearningCapabilityService,
+	profiles *services.LearningProfileService,
+	dashboard *services.LearningDashboardService,
+	curriculum *services.CurriculumService,
+	placement *services.PlacementService,
+	lessons *services.LessonService,
+	sessions *services.SessionComposerService,
+	mining *services.WordMiningService,
+	scenario *services.ScenarioService,
+	fluency *services.FluencyScoreService,
+	vocab *services.VocabularyService,
+	seed *services.SeedQueueService,
+	queue *services.SRSQueueService,
+	practice *services.PracticeService,
+) *LearningHandler {
+	h := NewLearningHandler(capabilities, profiles, dashboard, curriculum, placement, lessons, sessions, mining, scenario, fluency, vocab, seed, queue)
+	h.practice = practice
+	return h
 }
 
 func (h *LearningHandler) GetCapabilities(c *gin.Context) {
@@ -311,9 +333,6 @@ func (h *LearningHandler) CompleteSession(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": sess})
 }
 
-// GetSRSQueue returns the interleaved, SM-2-scheduled review queue for the
-// learner's pair, mixing seed (curriculum) and personal (mined) vocabulary with
-// due grammar-cloze items (FR-32 unified queue).
 func (h *LearningHandler) GetSRSQueue(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "12"))
 	queue, err := h.queue.GetQueue(c.Request.Context(), c.GetString("userID"), c.Query("nativeLanguage"), c.Query("targetLanguage"), limit)
@@ -322,6 +341,47 @@ func (h *LearningHandler) GetSRSQueue(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": queue})
+}
+
+func (h *LearningHandler) ReviewVocabulary(c *gin.Context) {
+	if h.practice == nil {
+		WriteError(c, middleware.ErrInternal("Practice service unavailable"))
+		return
+	}
+	var req struct {
+		Answer    string `json:"answer"`
+		Text      string `json:"text"`
+		Choice    string `json:"choice"`
+		LatencyMs int    `json:"latencyMs"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		WriteError(c, middleware.ErrValidation("Invalid request"))
+		return
+	}
+	answer := req.Answer
+	if answer == "" {
+		answer = req.Text
+	}
+	if answer == "" {
+		answer = req.Choice
+	}
+	if answer == "" {
+		if m, ok := c.Get("jsonBody"); ok {
+			_ = m
+		}
+		WriteError(c, middleware.ErrValidation("Answer required"))
+		return
+	}
+	card, correct, quality, err := h.practice.ReviewCard(c.Request.Context(), c.GetString("userID"), c.Param("id"), answer, req.LatencyMs)
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to review vocabulary"))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{
+		"card":    card,
+		"correct": correct,
+		"quality": quality,
+	}})
 }
 
 // ---------------------------------------------------------------------------

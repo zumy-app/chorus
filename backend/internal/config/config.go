@@ -114,6 +114,8 @@ type Config struct {
 	WhatsAppToken   string
 	WhatsAppPhoneID string
 
+	ServerID string
+
 	// Provider chain — ordered list of aliases (e.g. ["openrouter", "ollama"]).
 	// Each alias maps into the Providers map.
 	TranslationProviderOrder []string
@@ -159,6 +161,7 @@ func Load() *Config {
 		WhatsAppAPIURL:  getEnv("WHATSAPP_API_URL", ""),
 		WhatsAppToken:   getEnv("WHATSAPP_API_TOKEN", ""),
 		WhatsAppPhoneID: getEnv("WHATSAPP_PHONE_ID", ""),
+		ServerID:        getEnv("SERVER_ID", getEnv("HOSTNAME", "chorus-1")),
 
 		PayPalClientID:          getEnv("PAYMENT_PROVIDER_PAYPAL_CLIENT_ID", ""),
 		PayPalClientSecret:      getEnv("PAYMENT_PROVIDER_PAYPAL_CLIENT_SECRET", ""),

@@ -6,6 +6,7 @@ import (
 
 	"github.com/chorus/messenger/internal/services"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 )
 
 // KeyProvider extracts a stable rate-limit key from a request (client IP or
@@ -36,6 +37,22 @@ func UserKey(c *gin.Context) string {
 // the base for the IP- and user-scoped limiters.
 func RateLimiter(limit int, window time.Duration, key KeyProvider, maxKeys int) gin.HandlerFunc {
 	limiter := services.NewFixedWindowLimiter(limit, window, maxKeys)
+	return func(c *gin.Context) {
+		if !limiter.Allow(key(c)) {
+			WriteError(c, ErrRateLimit("Too many requests. Please try again later."))
+			return
+		}
+		c.Next()
+	}
+}
+
+func RateLimiterRedis(redisClient *redis.Client, limit int, window time.Duration, key KeyProvider, prefix string) gin.HandlerFunc {
+	var limiter services.RateLimiter
+	if redisClient != nil {
+		limiter = services.NewRedisRateLimiter(redisClient, limit, window, prefix)
+	} else {
+		limiter = services.NewFixedWindowLimiter(limit, window, 0)
+	}
 	return func(c *gin.Context) {
 		if !limiter.Allow(key(c)) {
 			WriteError(c, ErrRateLimit("Too many requests. Please try again later."))

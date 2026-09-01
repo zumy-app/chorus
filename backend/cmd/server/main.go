@@ -104,18 +104,31 @@ func main() {
 		redisClient,
 		time.Duration(cfg.TranslationChainTimeout)*time.Second,
 	)
-	wsHub := services.NewWebSocketHub(redisClient)
+	wsHub := services.NewWebSocketHub(redisClient, cfg.ServerID)
 
 	var pubsubService *services.PubSubService
 	if redisClient != nil {
 		pubsubService = services.NewPubSubService(redisClient, wsHub)
 		pubsubService.Start()
 		defer pubsubService.Stop()
+		wsHub.SetPubSub(pubsubService)
+	}
+
+	var deliveryRouter *services.DeliveryRouter
+	if redisClient != nil {
+		deliveryRouter = services.NewDeliveryRouter(redisClient, wsHub, wsHub.Registry(), messageService, cfg.ServerID)
+		deliveryRouter.Start(context.Background())
+		defer deliveryRouter.Stop()
 	}
 
 	// Phase 2: Initialize Inbox service for offline message delivery
 	inboxService := services.NewInboxService(db, redisClient)
 	inboxService.StartCleanupScheduler()
+
+	// 10.5 durable per-recipient delivery: inbox backed by message_receipts
+	// is now wired into the hub for reconnect replay (persist before ack).
+	wsHub.SetInboxService(inboxService)
+	wsHub.SetMessageService(messageService)
 
 	// Task 6.1: per-recipient read + delivery receipts. Bridges the receipt
 	// persistence layer with real-time fan-out (local hub + Redis pub/sub).
@@ -307,11 +320,20 @@ func main() {
 	messageHandler.SetWordMining(wordMiningQueue, learningProfileService)
 	messageHandler.SetReceiptService(receiptService)
 	messageHandler.SetInboxService(inboxService)
+	if deliveryRouter != nil {
+		messageHandler.SetRouter(deliveryRouter)
+	}
 
 	// Task 6.6: file/document sharing handler.
 	attachmentHandler := handlers.NewAttachmentHandler(attachmentService, chatService, messageService, inboxService, wsHub)
+	if deliveryRouter != nil {
+		attachmentHandler.SetRouter(deliveryRouter)
+	}
 	// Task 6.7: location sharing handler.
 	locationHandler := handlers.NewLocationHandler(locationService, chatService, messageService, inboxService, wsHub)
+	if deliveryRouter != nil {
+		locationHandler.SetRouter(deliveryRouter)
+	}
 	wsHandler := handlers.NewWebSocketHandler(wsHub, authService)
 	wsHandler.SetReceiptService(receiptService)
 	wsHandler.SetCallService(callService)
@@ -350,10 +372,11 @@ func main() {
 	grammarHandler := handlers.NewGrammarHandler(grammarService, grammarQueue, messageService)
 	vocabularyHandler := handlers.NewVocabularyHandler(vocabularyService, messageService, translationService)
 	callHandler := handlers.NewCallHandler(callService)
-	learningHandler := handlers.NewLearningHandler(learningCapabilityService, learningProfileService, learningDashboardService, curriculumService, placementService, lessonService, sessionComposerService, wordMiningService, scenarioService, fluencyService, vocabularyService, seedQueueService, srsQueueService)
+	learningHandler := handlers.NewLearningHandlerWithPractice(learningCapabilityService, learningProfileService, learningDashboardService, curriculumService, placementService, lessonService, sessionComposerService, wordMiningService, scenarioService, fluencyService, vocabularyService, seedQueueService, srsQueueService, practiceService)
 
 	moderationHandler := handlers.NewModerationHandler(moderationService)
 	otpHandler := handlers.NewOTPHandler(otpService, authService, userService)
+	inboxHandler := handlers.NewInboxHandler(inboxService)
 
 	// Setup Gin router
 	if cfg.Environment == "production" {
@@ -402,21 +425,19 @@ func main() {
 	// Prometheus scrape endpoint (NFR-18): consumes the custom registry.
 	r.GET("/metrics", gin.WrapH(observability.MetricsHandler()))
 
-	// NFR-24 rate-limit settings. Env-driven so a deployment can tune them
-	// without a rebuild; sensible defaults guard against abuse/cost exhaustion.
-	loginRateLimit := middleware.IPRateLimiter(envIntOr("RATE_LIMIT_LOGIN_MAX", 10), envMinutesOr("RATE_LIMIT_LOGIN_WINDOW", 15))
-	translationRateLimit := middleware.UserRateLimiter(envIntOr("RATE_LIMIT_TRANSLATION_MAX", 60), envMinutesOr("RATE_LIMIT_TRANSLATION_WINDOW", 1))
-	wsRateLimit := middleware.IPRateLimiter(envIntOr("RATE_LIMIT_WS_CONNECT_MAX", 100), envMinutesOr("RATE_LIMIT_WS_CONNECT_WINDOW", 15))
+	loginRateLimit := middleware.RateLimiterRedis(redisClient, envIntOr("RATE_LIMIT_LOGIN_MAX", 10), envMinutesOr("RATE_LIMIT_LOGIN_WINDOW", 15), middleware.IPKey, "ratelimit:login:")
+	translationRateLimit := middleware.RateLimiterRedis(redisClient, envIntOr("RATE_LIMIT_TRANSLATION_MAX", 60), envMinutesOr("RATE_LIMIT_TRANSLATION_WINDOW", 1), middleware.UserKey, "ratelimit:translation:")
+	wsRateLimit := middleware.RateLimiterRedis(redisClient, envIntOr("RATE_LIMIT_WS_CONNECT_MAX", 100), envMinutesOr("RATE_LIMIT_WS_CONNECT_WINDOW", 15), middleware.IPKey, "ratelimit:ws:")
 
 	// Public routes
 	public := r.Group("/api/v1")
 	{
-		public.POST("/waitlist", middleware.IPRateLimiter(10, time.Hour), waitlistHandler.Submit)
-		public.POST("/auth/register", middleware.IPRateLimiter(10, time.Hour), authHandler.Register)
+		public.POST("/waitlist", middleware.RateLimiterRedis(redisClient, 10, time.Hour, middleware.IPKey, "ratelimit:waitlist:"), waitlistHandler.Submit)
+		public.POST("/auth/register", middleware.RateLimiterRedis(redisClient, 10, time.Hour, middleware.IPKey, "ratelimit:register:"), authHandler.Register)
 		public.GET("/auth/invite", authHandler.InviteInfo)
 		public.POST("/auth/login", loginRateLimit, authHandler.Login)
 		public.POST("/auth/refresh", authHandler.RefreshToken)
-		public.POST("/auth/forgot-password", middleware.IPRateLimiter(5, time.Hour), authHandler.ForgotPassword)
+		public.POST("/auth/forgot-password", middleware.RateLimiterRedis(redisClient, 5, time.Hour, middleware.IPKey, "ratelimit:forgot:"), authHandler.ForgotPassword)
 		public.POST("/auth/reset-password", authHandler.ResetPassword)
 		public.POST("/auth/2fa/verify", otpHandler.Verify2FA)
 		// PayPal webhooks must be reachable without auth; signature verification
@@ -517,6 +538,10 @@ func main() {
 		protected.GET("/chats/:chatId/preferences", chatHandler.GetChatPreference)
 		protected.GET("/chats/preferences", chatHandler.GetChatPreferences)
 
+		// 10.5 durable per-recipient delivery: pending sync + ack (Postgres is source of truth).
+		protected.GET("/inbox/pending", inboxHandler.GetPending)
+		protected.POST("/inbox/ack", inboxHandler.AckPending)
+
 		// Message routes
 		protected.GET("/chats/:chatId/messages", messageHandler.GetMessages)
 		protected.POST("/chats/:chatId/messages", messageHandler.SendMessage)
@@ -610,6 +635,7 @@ func main() {
 
 		// FR-32 unified SRS queue (seed + personal + grammar).
 		protected.GET("/learning/srs/queue", learningHandler.GetSRSQueue)
+		protected.POST("/learning/vocabulary/:id/review", learningHandler.ReviewVocabulary)
 
 		// Mined vocabulary
 		protected.GET("/learning/vocabulary/mined", learningHandler.GetMinedItems)

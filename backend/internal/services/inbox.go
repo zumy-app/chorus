@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/chorus/messenger/internal/models"
+	"github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -318,4 +319,56 @@ func (s *InboxService) GetInboxStats() (map[string]interface{}, error) {
 		"expiredEntries": expiredEntries,
 		"pendingEntries": totalEntries - expiredEntries,
 	}, nil
+}
+
+func (s *InboxService) GetPendingMessagesForUser(ctx context.Context, userID string, limit int) ([]models.Message, error) {
+	if limit <= 0 {
+		limit = 100
+	}
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT m.id, m.chat_id, m.sender_id, m.text, COALESCE(m.original_language, ''), COALESCE(m.translations, '{}'::jsonb), m.delivery_status, m.reply_to_id, m.created_at, m.deleted_at, m.forwarded_from_message_id, m.forwarded_from_chat_id, m.forwarded_from_sender_id
+		FROM message_receipts r
+		JOIN messages m ON m.id = r.message_id
+		WHERE r.user_id = $1 AND r.received_at IS NULL AND m.deleted_at IS NULL
+		ORDER BY m.created_at ASC
+		LIMIT $2
+	`, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	msgs := []models.Message{}
+	for rows.Next() {
+		var m models.Message
+		var transBytes []byte
+		if err := rows.Scan(&m.ID, &m.ChatID, &m.SenderID, &m.Text, &m.OriginalLanguage, &transBytes, &m.DeliveryStatus, &m.ReplyToID, &m.CreatedAt, &m.DeletedAt, &m.ForwardedFromMessageID, &m.ForwardedFromChatID, &m.ForwardedFromSenderID); err != nil {
+			continue
+		}
+		m.Forwarded = m.ForwardedFromMessageID != nil
+		if len(transBytes) > 0 {
+			json.Unmarshal(transBytes, &m.Translations)
+		}
+		msgs = append(msgs, m)
+	}
+	return msgs, rows.Err()
+}
+
+func (s *InboxService) GetPendingCount(ctx context.Context, userID string) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM message_receipts r JOIN messages m ON m.id=r.message_id WHERE r.user_id=$1 AND r.received_at IS NULL AND m.deleted_at IS NULL`, userID).Scan(&n)
+	if err != nil {
+		return 0, err
+	}
+	return n, nil
+}
+
+func (s *InboxService) MarkPendingDelivered(ctx context.Context, userID string, messageIDs []string) error {
+	if len(messageIDs) == 0 {
+		return nil
+	}
+	_, err := s.db.ExecContext(ctx, `
+		UPDATE message_receipts SET received_at = COALESCE(received_at, CURRENT_TIMESTAMP)
+		WHERE user_id = $1 AND message_id = ANY($2) AND received_at IS NULL
+	`, userID, pq.Array(messageIDs))
+	return err
 }

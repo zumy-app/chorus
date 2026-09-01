@@ -1,7 +1,7 @@
 ---
 mode: subagent
 description: SRE / infrastructure engineer. Docker Compose, Dokploy, Layer-4 load balancer, Redis registry, scaling, observability, CI/CD quality gates.
-model: opencode/muse-spark-1.2-contributor-free
+model: opencode-go/muse-spark-1.2-contributor
 permission:
   read: allow
   edit: allow

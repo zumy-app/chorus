@@ -218,15 +218,13 @@ func (p *PubSubService) handleMessage(msg *redis.Message) {
 		return
 	}
 
-	// Route message to appropriate WebSocket connections
 	if pubSubMsg.TargetUser != "" {
-		// Send to specific user
 		p.hub.SendToUser(pubSubMsg.TargetUser, pubSubMsg.Type, pubSubMsg.Data)
 	} else if pubSubMsg.ChatID != "" {
-		// Handle chat-specific events (typing, etc.)
-		// These are handled by individual user subscriptions
+		if pubSubMsg.Type == "user_typing" {
+			p.hub.BroadcastToAll(pubSubMsg.Type, pubSubMsg.Data)
+		}
 	} else {
-		// Broadcast to all
 		p.hub.BroadcastToAll(pubSubMsg.Type, pubSubMsg.Data)
 	}
 }

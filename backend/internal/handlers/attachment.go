@@ -23,6 +23,7 @@ type AttachmentHandler struct {
 	messageService    *services.MessageService
 	inboxService      *services.InboxService
 	wsHub             *services.WebSocketHub
+	router            *services.DeliveryRouter
 }
 
 // NewAttachmentHandler creates an AttachmentHandler.
@@ -40,6 +41,10 @@ func NewAttachmentHandler(
 		inboxService:      inboxService,
 		wsHub:             wsHub,
 	}
+}
+
+func (h *AttachmentHandler) SetRouter(r *services.DeliveryRouter) {
+	h.router = r
 }
 
 // SendAttachment accepts a multipart/file upload and creates a media message.
@@ -125,5 +130,9 @@ func (h *AttachmentHandler) broadcastMediaMessage(ctx context.Context, message *
 	if h.inboxService != nil {
 		_ = h.inboxService.QueueMessageForOfflineClients(message, userIDs)
 	}
-	h.wsHub.SendToChat(chatID, userIDs, "new_message", message)
+	if h.router != nil {
+		h.router.RouteMessage(ctx, message, userIDs)
+	} else {
+		h.wsHub.SendToChat(chatID, userIDs, "new_message", message)
+	}
 }
