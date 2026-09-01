@@ -167,6 +167,8 @@ type UpdateFeatureSettingsRequest struct {
 	LastSeenVisibility     *PrivacyVisibility `json:"lastSeenVisibility" binding:"omitempty,oneof=everyone contacts nobody"`
 	ProfilePhotoVisibility *PrivacyVisibility `json:"profilePhotoVisibility" binding:"omitempty,oneof=everyone contacts nobody"`
 	ContactsVisibility     *PrivacyVisibility `json:"contactsVisibility" binding:"omitempty,oneof=everyone contacts nobody"`
+	TranscriptRecording    *bool              `json:"transcriptRecording"`
+	MessageRetentionDays   *int               `json:"messageRetentionDays" binding:"omitempty,oneof=7 30 90 180 365"`
 }
 
 // Phase 2: Client model for multi-device support
@@ -1015,4 +1017,235 @@ type ReportStats struct {
 	UserReports    int `json:"userReports"`
 	MessageReports int `json:"messageReports"`
 	ResolvedToday  int `json:"resolvedToday"`
+}
+
+type TeacherCertificate struct {
+	ID        string `json:"id" db:"id"`
+	Type      string `json:"type" db:"type"`
+	Issuer    string `json:"issuer" db:"issuer"`
+	Year      int    `json:"year" db:"year"`
+	FileURL   string `json:"fileUrl" db:"file_url"`
+	Verified  bool   `json:"verified" db:"verified"`
+}
+
+type TeacherApplication struct {
+	ID           string               `json:"id" db:"id"`
+	UserID       string               `json:"userId" db:"user_id"`
+	Bio          string               `json:"bio" db:"bio"`
+	Languages    []string             `json:"languages" db:"languages"`
+	Expertise    string               `json:"expertise,omitempty" db:"expertise"`
+	RateCents    int                  `json:"rateCents" db:"rate_cents"`
+	VideoURL     string               `json:"videoUrl" db:"video_url"`
+	Status       string               `json:"status" db:"status"`
+	CreatedAt    time.Time            `json:"createdAt" db:"created_at"`
+	UpdatedAt    time.Time            `json:"updatedAt" db:"updated_at"`
+	Certificates []TeacherCertificate `json:"certificates,omitempty" db:"-"`
+}
+
+type TeacherApplyRequest struct {
+	Bio         string               `json:"bio" binding:"required,min=10,max=1000"`
+	Languages   []string             `json:"languages" binding:"required,min=1"`
+	Expertise   string               `json:"expertise" binding:"omitempty,max=500"`
+	RateCents   int                  `json:"rateCents" binding:"required,min=100"`
+	VideoURL    string               `json:"videoUrl" binding:"required,url"`
+	Certificates []TeacherCertificate `json:"certificates"`
+}
+
+type TutorProfile struct {
+	ID          string               `json:"id"`
+	UserID      string               `json:"userId"`
+	DisplayName string               `json:"displayName"`
+	Bio         string               `json:"bio"`
+	Languages   []string             `json:"languages"`
+	Expertise   string               `json:"expertise"`
+	RateCents   int                  `json:"rateCents"`
+	VideoURL    string               `json:"videoUrl"`
+	Status      string               `json:"status"`
+	Verified    bool                 `json:"verified"`
+	RatingAvg   float64              `json:"ratingAvg"`
+	RatingCount int                  `json:"ratingCount"`
+	AvatarColor string               `json:"avatarColor,omitempty"`
+	AvatarURL   *string              `json:"avatarUrl,omitempty"`
+	CreatedAt   time.Time            `json:"createdAt"`
+	UpdatedAt   time.Time            `json:"updatedAt"`
+	Certificates []TeacherCertificate `json:"certificates,omitempty"`
+}
+
+type TutorBrowseFilter struct {
+	Language     string
+	Search       string
+	VerifiedOnly bool
+	MinRating    float64
+	MaxRateCents *int
+	MinRateCents *int
+	Sort         string
+	Limit        int
+	Offset       int
+}
+
+type TutorBrowseResult struct {
+	Tutors  []TutorProfile `json:"tutors"`
+	Total   int            `json:"total"`
+	HasMore bool           `json:"hasMore"`
+}
+
+type TutorReview struct {
+	ID             string    `json:"id"`
+	TeacherUserID  string    `json:"teacherUserId"`
+	StudentUserID  string    `json:"studentUserId"`
+	Rating         int       `json:"rating"`
+	Comment        string    `json:"comment"`
+	CreatedAt      time.Time `json:"createdAt"`
+	StudentName    string    `json:"studentName,omitempty"`
+}
+
+type TrialCredit struct {
+	UserID    string    `json:"userId"`
+	Credits   int       `json:"credits"`
+	UpdatedAt time.Time `json:"updatedAt"`
+	GrantedAt time.Time `json:"grantedAt"`
+}
+
+type TrialCreditDashboard struct {
+	Credits      int            `json:"credits"`
+	GrantedAt    time.Time      `json:"grantedAt"`
+	UpdatedAt    time.Time      `json:"updatedAt"`
+	NextGrantAt  *time.Time     `json:"nextGrantAt,omitempty"`
+	History      []TutorBooking `json:"history"`
+	TotalUsed    int            `json:"totalUsed"`
+	TotalTrial   int            `json:"totalTrial"`
+}
+
+type UpdateReviewNotesRequest struct {
+	Notes string `json:"notes" binding:"required,min=1,max=5000"`
+}
+
+type TutorAvailability struct {
+	ID            string    `json:"id" db:"id"`
+	TeacherUserID string    `json:"teacherUserId" db:"teacher_user_id"`
+	StartTime     time.Time `json:"startTime" db:"start_time"`
+	EndTime       time.Time `json:"endTime" db:"end_time"`
+	CreatedAt     time.Time `json:"createdAt" db:"created_at"`
+}
+
+type TutorBooking struct {
+	ID            string     `json:"id" db:"id"`
+	TeacherUserID string     `json:"teacherUserId" db:"teacher_user_id"`
+	StudentUserID string     `json:"studentUserId" db:"student_user_id"`
+	StartTime     time.Time  `json:"startTime" db:"start_time"`
+	EndTime       time.Time  `json:"endTime" db:"end_time"`
+	Status        string     `json:"status" db:"status"`
+	IsTrial       bool       `json:"isTrial" db:"is_trial"`
+	Note          string     `json:"note,omitempty" db:"note"`
+	ReviewNotes   string     `json:"reviewNotes,omitempty" db:"review_notes"`
+	ConfirmedAt   *time.Time `json:"confirmedAt,omitempty" db:"confirmed_at"`
+	CompletedAt   *time.Time `json:"completedAt,omitempty" db:"completed_at"`
+	CreatedAt     time.Time  `json:"createdAt" db:"created_at"`
+	UpdatedAt     time.Time  `json:"updatedAt" db:"updated_at"`
+	TeacherName   string     `json:"teacherName,omitempty" db:"-"`
+	StudentName   string     `json:"studentName,omitempty" db:"-"`
+}
+
+type CreateBookingRequest struct {
+	StartTime time.Time `json:"startTime" binding:"required"`
+	EndTime   time.Time `json:"endTime" binding:"required"`
+	IsTrial   *bool     `json:"isTrial"`
+	Note      string    `json:"note" binding:"omitempty,max=500"`
+}
+
+type CreateAvailabilityRequest struct {
+	StartTime time.Time `json:"startTime" binding:"required"`
+	EndTime   time.Time `json:"endTime" binding:"required"`
+}
+
+type CreateReviewRequest struct {
+	Rating  int    `json:"rating" binding:"required,min=1,max=5"`
+	Comment string `json:"comment" binding:"omitempty,max=1000"`
+}
+
+type TeacherChecklist struct {
+	HasBio          bool `json:"hasBio"`
+	HasLanguages    bool `json:"hasLanguages"`
+	HasExpertise    bool `json:"hasExpertise"`
+	HasRate         bool `json:"hasRate"`
+	HasVideo        bool `json:"hasVideo"`
+	HasCertificate  bool `json:"hasCertificate"`
+	HasVerifiedCert bool `json:"hasVerifiedCert"`
+	IsApproved      bool `json:"isApproved"`
+	Complete        bool `json:"complete"`
+	CompletionPct   int  `json:"completionPct"`
+}
+
+type TeacherEarnings struct {
+	TotalGrossCents   int     `json:"totalGrossCents"`
+	TotalNetCents     int     `json:"totalNetCents"`
+	PendingGrossCents int     `json:"pendingGrossCents"`
+	PendingNetCents   int     `json:"pendingNetCents"`
+	CompletedCount    int     `json:"completedCount"`
+	PendingCount      int     `json:"pendingCount"`
+	CancelledCount    int     `json:"cancelledCount"`
+	TotalBookings     int     `json:"totalBookings"`
+	PlatformFeePct    int     `json:"platformFeePct"`
+	RatingAvg         float64 `json:"ratingAvg"`
+	RatingCount       int     `json:"ratingCount"`
+}
+
+type DashboardStudent struct {
+	StudentUserID string     `json:"studentUserId"`
+	DisplayName   string     `json:"displayName"`
+	AvatarURL     *string    `json:"avatarUrl,omitempty"`
+	AvatarColor   string     `json:"avatarColor,omitempty"`
+	BookingsCount int        `json:"bookingsCount"`
+	CompletedCount int       `json:"completedCount"`
+	LastBookingAt *time.Time `json:"lastBookingAt,omitempty"`
+}
+
+type TeacherSrsPushItem struct {
+	ID           string  `json:"id" db:"id"`
+	PushID       string  `json:"pushId" db:"push_id"`
+	VocabularyID string  `json:"vocabularyId" db:"vocabulary_id"`
+	Term         string  `json:"term" db:"term"`
+	Translation  string  `json:"translation,omitempty" db:"translation"`
+	Definition   string  `json:"definition,omitempty" db:"definition"`
+	CreatedAt    string  `json:"createdAt" db:"created_at"`
+}
+
+type TeacherSrsPush struct {
+	ID            string                `json:"id" db:"id"`
+	TeacherUserID string                `json:"teacherUserId" db:"teacher_user_id"`
+	StudentUserID string                `json:"studentUserId" db:"student_user_id"`
+	BookingID     *string               `json:"bookingId,omitempty" db:"booking_id"`
+	Language      string                `json:"language" db:"language"`
+	Note          string                `json:"note,omitempty" db:"note"`
+	ItemCount     int                   `json:"itemCount" db:"item_count"`
+	CreatedAt     string                `json:"createdAt" db:"created_at"`
+	TeacherName   string                `json:"teacherName,omitempty" db:"-"`
+	StudentName   string                `json:"studentName,omitempty" db:"-"`
+	Items         []TeacherSrsPushItem  `json:"items,omitempty" db:"-"`
+}
+
+type SrsPushCard struct {
+	Term            string `json:"term" binding:"required,min=1,max=100"`
+	Translation     string `json:"translation" binding:"omitempty,max=500"`
+	Definition      string `json:"definition" binding:"omitempty,max=1000"`
+	ContextSentence string `json:"contextSentence" binding:"omitempty,max=1000"`
+	CefrLevel       string `json:"cefrLevel" binding:"omitempty,oneof=A1 A2 B1 B2"`
+}
+
+type TeacherSrsPushRequest struct {
+	StudentID string        `json:"studentId" binding:"required"`
+	BookingID *string       `json:"bookingId"`
+	Language  string        `json:"language" binding:"required"`
+	Note      string        `json:"note" binding:"omitempty,max=1000"`
+	Cards     []SrsPushCard `json:"cards" binding:"required,min=1,max=20"`
+}
+
+type TeacherDashboard struct {
+	Application          *TeacherApplication  `json:"application"`
+	Checklist            TeacherChecklist     `json:"checklist"`
+	Earnings             TeacherEarnings      `json:"earnings"`
+	Students             []DashboardStudent   `json:"students"`
+	TotalStudents        int                  `json:"totalStudents"`
+	UpcomingBookings     []TutorBooking       `json:"upcomingBookings"`
+	UpcomingAvailability []TutorAvailability  `json:"upcomingAvailability"`
 }

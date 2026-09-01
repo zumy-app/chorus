@@ -91,6 +91,12 @@ jobs:
           docker compose -f docker-compose.yml config --quiet
           docker compose -f docker-compose.dev.yml config --quiet
           docker compose -f deploy/dev/docker-compose.yml config --quiet
+          docker compose -f docker-compose.prod.yml config --quiet
+          bash -n deploy/ci/*.sh
+          bash -n deploy/mail/*.sh
+
+      - name: Release gate (offline)
+        run: bash deploy/ci/verify-release-gate.sh --offline
 
   # ---------------------------------------------------------------------------
   # 2) Security scan: govulncheck + npm audit (PR + main)
@@ -243,11 +249,37 @@ jobs:
           PROD_HOST: ${{ secrets.PROD_SSH_HOST }}
           PROD_USER: ${{ secrets.PROD_SSH_USER }}
           PROD_SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
         run: |
           mkdir -p ~/.ssh && printf '%s' "$PROD_SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H "$PROD_HOST" >> ~/.ssh/known_hosts
-          ssh "$PROD_USER@$PROD_HOST" 'cd /opt/chorus && docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d'
+          ssh "$PROD_USER@$PROD_HOST" 'cd /opt/chorus && IMAGE_NAME='"$IMAGE_NAME"' IMAGE_TAG=prod docker compose -f docker-compose.prod.yml pull && IMAGE_NAME='"$IMAGE_NAME"' IMAGE_TAG=prod docker compose -f docker-compose.prod.yml up -d'
           echo "prod stack pulled :prod and redeployed"
+
+      - name: Verify prod health after promotion
+        env:
+          PROD_URL: https://chorus.talk
+          PROD_HOST: ${{ secrets.PROD_SSH_HOST }}
+          PROD_USER: ${{ secrets.PROD_SSH_USER }}
+          PROD_SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh && printf '%s' "$PROD_SSH_KEY" > ~/.ssh/id_ed25519 2>/dev/null; chmod 600 ~/.ssh/id_ed25519 2>/dev/null || true
+          ssh-keyscan -H "$PROD_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          if ssh "$PROD_USER@$PROD_HOST" "curl -fsS http://localhost:8080/health >/dev/null 2>&1 || curl -fsS http://lb:8080/health >/dev/null 2>&1 || curl -fsS https://chorus.talk/health >/dev/null 2>&1"; then
+            echo "prod health verified"
+          else
+            echo "::warning::prod health probe failed — check Dokploy logs; rollback with: PREV_TAG=<last-good> bash deploy/ci/rollback.sh"
+            exit 1
+          fi
+
+      - name: Record promotion digest
+        if: always()
+        env:
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          DEV_TAG: ${{ github.run_number }}
+        run: |
+          echo "promoted $IMAGE_NAME/*:$DEV_TAG -> :prod" | tee /tmp/promotion.txt
+          cat /tmp/promotion.txt
 
   # ---------------------------------------------------------------------------
   # 6) Notify on failure (Slack webhook, optional)

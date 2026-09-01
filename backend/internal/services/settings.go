@@ -65,8 +65,10 @@ func (s *SettingsService) UpdateFeatureSettings(userID string, req models.Update
 		    last_seen_visibility = COALESCE($5, last_seen_visibility),
 		    profile_photo_visibility = COALESCE($6, profile_photo_visibility),
 		    contacts_visibility = COALESCE($7, contacts_visibility),
+		    transcript_recording = COALESCE($8, transcript_recording),
+		    message_retention_days = COALESCE($9, message_retention_days),
 		    updated_at = CURRENT_TIMESTAMP
-		WHERE user_id = $1`, userID, req.TranslationEnabled, req.GrammarAuto, req.HighlightsEnabled, req.LastSeenVisibility, req.ProfilePhotoVisibility, req.ContactsVisibility)
+		WHERE user_id = $1`, userID, req.TranslationEnabled, req.GrammarAuto, req.HighlightsEnabled, req.LastSeenVisibility, req.ProfilePhotoVisibility, req.ContactsVisibility, req.TranscriptRecording, req.MessageRetentionDays)
 	if err != nil {
 		return nil, err
 	}

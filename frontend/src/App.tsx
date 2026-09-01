@@ -19,6 +19,7 @@ import ScenarioRoleplay from './pages/ScenarioRoleplay'
 import LearningRoadmap from './pages/LearningRoadmap'
 import RealTalkHub from './pages/RealTalkHub'
 import Profile from './pages/Profile'
+import BecomeTeacher from './pages/BecomeTeacher'
 import { authAPI, presenceAPI } from './services/api'
 import { wsService } from './services/websocket'
 import { useStore } from './store'
@@ -225,6 +226,12 @@ function App() {
           path="/profile"
           element={
             isAuthenticated ? <Profile onLogout={handleLogout} /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/become-teacher"
+          element={
+            isAuthenticated ? <BecomeTeacher /> : <Navigate to="/login" />
           }
         />
       </Routes>

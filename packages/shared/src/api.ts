@@ -914,6 +914,35 @@ export function createApiClient(options: ApiClientOptions) {
     },
   }
 
+  const payouts = {
+    overview: async () => {
+      const response = await client.get<{ overview: import('./types').PayoutOverview }>('/teachers/payouts/overview')
+      return response.data.overview
+    },
+    methods: async () => {
+      const response = await client.get<{ methods: import('./types').PayoutMethod[] }>('/teachers/payouts/methods')
+      return response.data.methods
+    },
+    addMethod: async (data: { type: 'paypal' | 'bank'; label: string; details: string; isDefault?: boolean }) => {
+      const response = await client.post<{ method: import('./types').PayoutMethod }>('/teachers/payouts/methods', data)
+      return response.data.method
+    },
+    removeMethod: async (id: string) => {
+      await client.delete(`/teachers/payouts/methods/${id}`)
+    },
+    setDefaultMethod: async (id: string) => {
+      await client.put(`/teachers/payouts/methods/${id}/default`)
+    },
+    history: async (params?: { limit?: number; offset?: number }) => {
+      const response = await client.get<{ payouts: import('./types').PayoutRecord[]; total: number; hasMore: boolean }>(`/teachers/payouts/history${qs({ limit: params?.limit, offset: params?.offset })}`)
+      return response.data
+    },
+    withdraw: async (data: { amountCents: number; methodId?: string }) => {
+      const response = await client.post<{ payout: import('./types').PayoutRecord }>('/teachers/payouts/withdraw', data)
+      return response.data.payout
+    },
+  }
+
   const health = async () => {
     // The health endpoint sits at <origin>/health, outside the /api/v1 prefix.
     const healthUrl = baseURL.replace('/api/v1', '/health')
@@ -1025,6 +1054,88 @@ export function createApiClient(options: ApiClientOptions) {
     },
   }
 
+  const teacher = {
+    getMyApplication: async () => {
+      const response = await client.get<{ application: import('./types').TeacherApplication | null }>('/teachers/me')
+      return response.data.application
+    },
+    apply: async (data: import('./types').TeacherApplyRequest) => {
+      const response = await client.post<{ application: import('./types').TeacherApplication }>('/teachers/apply', data)
+      return response.data.application
+    },
+    browse: async (params?: { language?: string; search?: string; verified?: boolean; minRating?: number; maxRate?: number; minRate?: number; sort?: string; limit?: number; offset?: number }) => {
+      const response = await client.get<{ tutors: import('./types').TutorProfile[]; total: number; hasMore: boolean }>(`/teachers/browse${qs({ language: params?.language, search: params?.search, verified: params?.verified, minRating: params?.minRating, maxRate: params?.maxRate, minRate: params?.minRate, sort: params?.sort, limit: params?.limit, offset: params?.offset })}`)
+      return response.data
+    },
+    getProfile: async (userId: string) => {
+      const response = await client.get<{ tutor: import('./types').TutorProfile }>(`/teachers/${userId}`)
+      return response.data.tutor
+    },
+    getTrialCredits: async () => {
+      const response = await client.get<{ trialCredits: import('./types').TrialCredit }>('/teachers/trial-credits')
+      return response.data.trialCredits
+    },
+    getReviews: async (userId: string, params?: { limit?: number; offset?: number }) => {
+      const response = await client.get<{ reviews: import('./types').TutorReview[]; total: number; hasMore: boolean }>(`/teachers/${userId}/reviews${qs({ limit: params?.limit, offset: params?.offset })}`)
+      return response.data
+    },
+    addReview: async (userId: string, data: { rating: number; comment?: string }) => {
+      const response = await client.post<{ review: import('./types').TutorReview }>(`/teachers/${userId}/reviews`, data)
+      return response.data.review
+    },
+    getAvailability: async (userId: string) => {
+      const response = await client.get<{ availability: import('./types').TutorAvailability[] }>(`/teachers/${userId}/availability`)
+      return response.data.availability
+    },
+    addAvailability: async (data: { startTime: string; endTime: string }) => {
+      const response = await client.post<{ availability: import('./types').TutorAvailability }>('/teachers/availability', data)
+      return response.data.availability
+    },
+    removeAvailability: async (id: string) => {
+      await client.delete(`/teachers/availability/${id}`)
+    },
+    book: async (userId: string, data: { startTime: string; endTime: string; isTrial?: boolean; note?: string }) => {
+      const response = await client.post<{ booking: import('./types').TutorBooking }>(`/teachers/${userId}/book`, data)
+      return response.data.booking
+    },
+    listBookings: async (params?: { role?: string; limit?: number; offset?: number }) => {
+      const response = await client.get<{ bookings: import('./types').TutorBooking[]; total: number; hasMore: boolean }>(`/teachers/bookings${qs({ role: params?.role, limit: params?.limit, offset: params?.offset })}`)
+      return response.data
+    },
+    cancelBooking: async (id: string) => {
+      const response = await client.post<{ booking: import('./types').TutorBooking }>(`/teachers/bookings/${id}/cancel`)
+      return response.data.booking
+    },
+    confirmBooking: async (id: string) => {
+      const response = await client.post<{ booking: import('./types').TutorBooking }>(`/teachers/bookings/${id}/confirm`)
+      return response.data.booking
+    },
+    completeBooking: async (id: string) => {
+      const response = await client.post<{ booking: import('./types').TutorBooking }>(`/teachers/bookings/${id}/complete`)
+      return response.data.booking
+    },
+    updateReviewNotes: async (id: string, notes: string) => {
+      const response = await client.put<{ booking: import('./types').TutorBooking }>(`/teachers/bookings/${id}/review-notes`, { notes })
+      return response.data.booking
+    },
+    pushSrs: async (data: import('./types').TeacherSrsPushRequest) => {
+      const response = await client.post<{ push: import('./types').TeacherSrsPush }>('/teachers/srs/push', data)
+      return response.data.push
+    },
+    listSrsPushes: async (params?: { role?: string; peerId?: string; limit?: number; offset?: number }) => {
+      const response = await client.get<{ pushes: import('./types').TeacherSrsPush[]; total: number; hasMore: boolean }>(`/teachers/srs/pushes${qs({ role: params?.role, peerId: params?.peerId, limit: params?.limit, offset: params?.offset })}`)
+      return response.data
+    },
+    getSrsPush: async (id: string) => {
+      const response = await client.get<{ push: import('./types').TeacherSrsPush }>(`/teachers/srs/pushes/${id}`)
+      return response.data.push
+    },
+    getSrsSandbox: async (studentId: string) => {
+      const response = await client.get<{ pushes: import('./types').TeacherSrsPush[] }>(`/teachers/srs/sandbox/${studentId}`)
+      return response.data.pushes
+    },
+  }
+
   return {
     api: client,
     auth,
@@ -1043,6 +1154,8 @@ export function createApiClient(options: ApiClientOptions) {
     presence,
     settings,
     call,
+    teacher,
+    payouts,
     health,
   }
 }

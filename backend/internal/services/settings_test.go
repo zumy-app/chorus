@@ -92,8 +92,8 @@ func TestSettingsService_UpdateFeatureSettings_Partial(t *testing.T) {
 		WithArgs("user-1").WillReturnResult(sqlmock.NewResult(1, 1))
 
 	toggle := false
-	mock.ExpectExec(`UPDATE user_settings\s*SET translation_enabled = COALESCE\(\$2, translation_enabled\),\s*grammar_auto = COALESCE\(\$3, grammar_auto\),\s*highlights_enabled = COALESCE\(\$4, highlights_enabled\),\s*last_seen_visibility = COALESCE\(\$5, last_seen_visibility\),\s*profile_photo_visibility = COALESCE\(\$6, profile_photo_visibility\),\s*contacts_visibility = COALESCE\(\$7, contacts_visibility\),\s*updated_at = CURRENT_TIMESTAMP\s*WHERE user_id = \$1`).
-		WithArgs("user-1", &toggle, nil, nil, nil, nil, nil).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec(`UPDATE user_settings\s*SET translation_enabled = COALESCE\(\$2, translation_enabled\),\s*grammar_auto = COALESCE\(\$3, grammar_auto\),\s*highlights_enabled = COALESCE\(\$4, highlights_enabled\),\s*last_seen_visibility = COALESCE\(\$5, last_seen_visibility\),\s*profile_photo_visibility = COALESCE\(\$6, profile_photo_visibility\),\s*contacts_visibility = COALESCE\(\$7, contacts_visibility\),\s*transcript_recording = COALESCE\(\$8, transcript_recording\),\s*message_retention_days = COALESCE\(\$9, message_retention_days\),\s*updated_at = CURRENT_TIMESTAMP\s*WHERE user_id = \$1`).
+		WithArgs("user-1", &toggle, nil, nil, nil, nil, nil, nil, nil).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectQuery(`SELECT ` + settingsTestColumns + ` FROM user_settings WHERE user_id = \$1`).
 		WithArgs("user-1").WillReturnRows(settingsRow("user-1", false, true, true))
 
@@ -128,8 +128,8 @@ func TestSettingsService_UpdateFeatureSettings_All(t *testing.T) {
 		WithArgs("user-1").WillReturnResult(sqlmock.NewResult(1, 1))
 
 	on, off := true, false
-	mock.ExpectExec(`UPDATE user_settings\s*SET translation_enabled = COALESCE\(\$2, translation_enabled\),\s*grammar_auto = COALESCE\(\$3, grammar_auto\),\s*highlights_enabled = COALESCE\(\$4, highlights_enabled\),\s*last_seen_visibility = COALESCE\(\$5, last_seen_visibility\),\s*profile_photo_visibility = COALESCE\(\$6, profile_photo_visibility\),\s*contacts_visibility = COALESCE\(\$7, contacts_visibility\),\s*updated_at = CURRENT_TIMESTAMP\s*WHERE user_id = \$1`).
-		WithArgs("user-1", &off, &on, &off, nil, nil, nil).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec(`UPDATE user_settings\s*SET translation_enabled = COALESCE\(\$2, translation_enabled\),\s*grammar_auto = COALESCE\(\$3, grammar_auto\),\s*highlights_enabled = COALESCE\(\$4, highlights_enabled\),\s*last_seen_visibility = COALESCE\(\$5, last_seen_visibility\),\s*profile_photo_visibility = COALESCE\(\$6, profile_photo_visibility\),\s*contacts_visibility = COALESCE\(\$7, contacts_visibility\),\s*transcript_recording = COALESCE\(\$8, transcript_recording\),\s*message_retention_days = COALESCE\(\$9, message_retention_days\),\s*updated_at = CURRENT_TIMESTAMP\s*WHERE user_id = \$1`).
+		WithArgs("user-1", &off, &on, &off, nil, nil, nil, nil, nil).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectQuery(`SELECT ` + settingsTestColumns + ` FROM user_settings WHERE user_id = \$1`).
 		WithArgs("user-1").WillReturnRows(settingsRow("user-1", false, true, false))
 

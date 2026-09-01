@@ -285,9 +285,18 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 				return
 			}
 		}
-		// Message-size gate (words): free = 280, premium = 1,000. Longer
-		// messages are stored but not translated. Notify participants so the
-		// UI can show the premium nudge. There are NO per-day usage quotas.
+		if ent.Features.TranslationCharLimit != nil && len([]rune(message.Text)) > *ent.Features.TranslationCharLimit {
+			log.Printf("[Translate] message %s blocked: %d chars > plan limit %d", message.ID, len([]rune(message.Text)), *ent.Features.TranslationCharLimit)
+			h.wsHub.SendToChat(chatID, userIDs, "translation_blocked", gin.H{
+				"messageId": message.ID,
+				"chatId":    chatID,
+				"charLimit": *ent.Features.TranslationCharLimit,
+				"charCount": len([]rune(message.Text)),
+				"wordLimit": ent.Features.TranslationWordLimit,
+				"reason":    "message_too_long",
+			})
+			return
+		}
 		if ent.Features.TranslationWordLimit != nil {
 			words := services.WordCount(message.Text)
 			if words > *ent.Features.TranslationWordLimit {

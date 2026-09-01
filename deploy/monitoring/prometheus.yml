@@ -9,10 +9,14 @@
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
-  # Use the service-name suffix to avoid collisions if the host is also exported.
   external_labels:
     monitor: chorus
     stack: dev
+
+rule_files:
+  - /etc/prometheus/alerts-soak.yml
+  - /etc/prometheus/alerts-word-mining.yml
+  - /etc/prometheus/alerts-support.yml
 
 scrape_configs:
   # The Go backend: HTTP metrics, WS connections, messages, translation latency.

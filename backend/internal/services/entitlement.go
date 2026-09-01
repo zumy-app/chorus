@@ -37,12 +37,8 @@ func ValidPlan(p string) bool {
 // until it migrates to the word-based limits (Phase 2); the server-side gate
 // is the word limit.
 const (
-	// TranslationCharLimitFree caps how long a message may be for it to be
-	// translated on the free plan (chars). Longer messages are stored but not
-	// translated. Deprecated in favor of the word limits.
-	TranslationCharLimitFree = 200
-	// TranslationCharLimitPremium is the premium char cap (legacy value).
-	TranslationCharLimitPremium = 2000
+	TranslationCharLimitFree    = 280
+	TranslationCharLimitPremium = 1000
 	// TranslationWordLimitFree caps free messages at 280 words.
 	TranslationWordLimitFree = 280
 	// TranslationWordLimitPremium caps premium messages at 1,000 words.

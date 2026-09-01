@@ -1,0 +1,93 @@
+groups:
+  - name: support-slo
+    interval: 30s
+    rules:
+      - alert: High5xxRate
+        expr: sum(rate(chorus_backend_http_requests_total{status=~"5.."}[5m])) / clamp_min(sum(rate(chorus_backend_http_requests_total[5m])), 0.001) > 0.01
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High 5xx rate >1% for 2m"
+          description: "SLO burn — check backend logs and consider rollback (rollback.sh)."
+
+      - alert: High4xxRate
+        expr: sum(rate(chorus_backend_http_requests_total{status=~"4.."}[5m])) / clamp_min(sum(rate(chorus_backend_http_requests_total[5m])), 0.001) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High 4xx rate >5% for 5m"
+          description: "Client errors — check rate limiter, auth, or bad deploy."
+
+      - alert: BackendDown
+        expr: up{job=~"chorus-backend.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend down — up==0"
+          description: "Backend scrape failed — check docker compose ps and /health/ready."
+
+      - alert: HighLatencyP95
+        expr: histogram_quantile(0.95, sum by (le) (rate(chorus_backend_http_request_duration_seconds_bucket[5m]))) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HTTP p95 >500ms for 5m"
+          description: "Latency SLO breach — check DB/Redis and translation chain."
+
+      - alert: TranslationHighFailure
+        expr: sum(rate(chorus_backend_translation_requests_total{status="error"}[5m])) / clamp_min(sum(rate(chorus_backend_translation_requests_total[5m])), 0.001) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Translation failure ratio >10% for 5m"
+          description: "Translation chain degraded — check provider keys and translation_jobs."
+
+      - alert: InboxPendingHigh
+        expr: increase(chorus_backend_ws_fast_dropped_total[5m]) > 0 or (chorus_backend_ws_fast_dropped_total > 0)
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "WS fast-dropped >0 — message loss"
+          description: "See runbook §7.3 — verify-drain.sh, scale backends."
+
+      - alert: InboxPendingStalled
+        expr: pg_inbox_pending_messages > 500
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Inbox pending >500 for 10m"
+          description: "Durable inbox not draining — check receipt ack and DB."
+
+      - alert: DBDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Postgres exporter down"
+          description: "DB unreachable — check docker compose ps postgres."
+
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis down"
+          description: "Registry/pub-sub down — WS cross-server routing degraded."
+
+      - alert: GrafanaDown
+        expr: up{job="grafana"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Grafana down"
+          description: "Dashboards unavailable — check grafana container."
