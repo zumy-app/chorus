@@ -49,5 +49,7 @@ export const translationAPI = client.translation
 export const learningAPI = client.learning
 export const presenceAPI = client.presence
 export const settingsAPI = client.settings
+export const teacherAPI = client.teacher
+export const payoutsAPI = client.payouts
 
 export default api

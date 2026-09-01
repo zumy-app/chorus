@@ -533,7 +533,7 @@ export function createApiClient(options: ApiClientOptions) {
     // message; the returned message carries media[0] with the public URL.
     sendAttachment: async (chatId: string, file: Blob, fileName: string, opts?: { caption?: string; type?: string }) => {
       const form = new FormData()
-      form.append('file', file, fileName)
+      ;(form as any).append('file', file, fileName)
       if (opts?.caption) form.append('caption', opts.caption)
       if (opts?.type) form.append('type', opts.type)
       const response = await client.post<Message>(`/chats/${chatId}/attachments`, form, {

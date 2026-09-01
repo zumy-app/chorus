@@ -15,12 +15,21 @@ import ScenarioRoleplayScreen from '../screens/ScenarioRoleplayScreen';
 import LearningRoadmapScreen from '../screens/LearningRoadmapScreen';
 import RealTalkHubScreen from '../screens/RealTalkHubScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import BecomeTeacherScreen from '../screens/BecomeTeacherScreen';
+import BrowseTutorsScreen from '../screens/BrowseTutorsScreen';
+import TutorProfileScreen from '../screens/TutorProfileScreen';
+import TrialCreditsScreen from '../screens/TrialCreditsScreen';
+import TeacherDashboardScreen from '../screens/TeacherDashboardScreen';
+import PayoutsScreen from '../screens/PayoutsScreen';
+import ConfirmBookingScreen from '../screens/ConfirmBookingScreen';
+import StreakRecoveryScreen from '../screens/StreakRecoveryScreen';
 import CallScreen from '../screens/CallScreen';
 import { COLOR, TYPOGRAPHY } from '../theme';
 
 export type MainTabsParamList = {
   ChatsTab: undefined;
   LearnTab: undefined;
+  MarketplaceTab: undefined;
   ProfileTab: undefined;
 };
 
@@ -40,16 +49,29 @@ export type LearnStackParamList = {
   ScenarioRoleplay: { scenarioId: string };
   LearningRoadmap: undefined;
   RealTalkHub: undefined;
+  StreakRecovery: undefined;
 };
 
 export type ProfileStackParamList = {
   Profile: undefined;
+  BecomeTeacher: undefined;
+};
+
+export type MarketplaceStackParamList = {
+  BrowseTutors: undefined;
+  TutorProfile: { userId: string };
+  ConfirmBooking: { userId: string };
+  BecomeTeacher: undefined;
+  TrialCredits: undefined;
+  TeacherDashboard: undefined;
+  Payouts: undefined;
 };
 
 const Tab = createBottomTabNavigator<MainTabsParamList>();
 const ChatsStack = createNativeStackNavigator<ChatsStackParamList>();
 const LearnStack = createNativeStackNavigator<LearnStackParamList>();
 const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
+const MarketplaceStack = createNativeStackNavigator<MarketplaceStackParamList>();
 
 const stackOptions = {
   headerStyle: { backgroundColor: COLOR.surface },
@@ -125,6 +147,11 @@ const LearnTab = () => (
       component={RealTalkHubScreen}
       options={{ title: 'Real Talk' }}
     />
+    <LearnStack.Screen
+      name="StreakRecovery"
+      component={StreakRecoveryScreen}
+      options={{ title: 'Recover Streak' }}
+    />
   </LearnStack.Navigator>
 );
 
@@ -135,12 +162,42 @@ const ProfileTab = () => (
       component={ProfileScreen}
       options={{ title: 'Profile' }}
     />
+    <ProfileStack.Screen
+      name="BecomeTeacher"
+      component={BecomeTeacherScreen}
+      options={{ title: 'Become a Teacher' }}
+    />
   </ProfileStack.Navigator>
+);
+
+const MarketplaceTab = () => (
+  <MarketplaceStack.Navigator screenOptions={stackOptions}>
+    <MarketplaceStack.Screen
+      name="BrowseTutors"
+      component={BrowseTutorsScreen}
+      options={{ title: 'Tutors' }}
+    />
+    <MarketplaceStack.Screen
+      name="TutorProfile"
+      component={TutorProfileScreen}
+      options={{ title: 'Tutor' }}
+    />
+    <MarketplaceStack.Screen name="ConfirmBooking" component={ConfirmBookingScreen} options={{ title: 'Confirm Booking' }} />
+    <MarketplaceStack.Screen
+      name="BecomeTeacher"
+      component={BecomeTeacherScreen}
+      options={{ title: 'Become a Teacher' }}
+    />
+    <MarketplaceStack.Screen name="TrialCredits" component={TrialCreditsScreen} options={{ title: 'Trial Credits' }} />
+    <MarketplaceStack.Screen name="TeacherDashboard" component={TeacherDashboardScreen} options={{ title: 'Dashboard' }} />
+    <MarketplaceStack.Screen name="Payouts" component={PayoutsScreen} options={{ title: 'Payouts' }} />
+  </MarketplaceStack.Navigator>
 );
 
 const TABS = [
   { name: 'ChatsTab' as const, component: ChatsTab, label: 'Chats' },
   { name: 'LearnTab' as const, component: LearnTab, label: 'Learn' },
+  { name: 'MarketplaceTab' as const, component: MarketplaceTab, label: 'Tutors' },
   { name: 'ProfileTab' as const, component: ProfileTab, label: 'Profile' },
 ];
 
@@ -150,11 +207,13 @@ function TabIcon({ focused, glyph }: { focused: boolean; glyph: string }) {
 
 const TabIconChats = (props: { focused: boolean }) => <TabIcon {...props} glyph="💬" />;
 const TabIconLearn = (props: { focused: boolean }) => <TabIcon {...props} glyph="🎓" />;
+const TabIconMarketplace = (props: { focused: boolean }) => <TabIcon {...props} glyph="🏫" />;
 const TabIconProfile = (props: { focused: boolean }) => <TabIcon {...props} glyph="👤" />;
 
 const TAB_ICONS: Record<(typeof TABS)[number]['name'], (props: { focused: boolean }) => React.JSX.Element> = {
   ChatsTab: TabIconChats,
   LearnTab: TabIconLearn,
+  MarketplaceTab: TabIconMarketplace,
   ProfileTab: TabIconProfile,
 };
 

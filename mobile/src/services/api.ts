@@ -25,7 +25,7 @@ const client = createApiClient({
   storage,
 });
 
-// Kept default-exported as an object to preserve the previous ApiService API.
+export const api = client.api;
 export const callAPI = client.call;
 const apiService = {
   register: client.auth.register,
@@ -86,6 +86,29 @@ const apiService = {
   getCaptions: client.call.getCaptions,
   postCaption: client.call.postCaption,
   bookmarkCaption: client.call.bookmarkCaption,
+  browseTutors: client.teacher.browse,
+  getTutorProfile: client.teacher.getProfile,
+  getTutorReviews: client.teacher.getReviews,
+  getTutorAvailability: client.teacher.getAvailability,
+  bookTutor: client.teacher.book,
+  listBookings: client.teacher.listBookings,
+  getTeacherApplication: client.teacher.getMyApplication,
+  applyTeacher: client.teacher.apply,
+  getTrialCredits: client.teacher.getTrialCredits,
+  getTrialCreditsDashboard: async () => {
+    const r = await (client.api as any).get('/teachers/trial-credits/dashboard');
+    return r.data;
+  },
+  getTeacherDashboard: async () => {
+    const r = await (client.api as any).get('/teachers/dashboard');
+    return r.data;
+  },
+  getPayoutOverview: client.payouts.overview,
+  getPayoutMethods: client.payouts.methods,
+  addPayoutMethod: client.payouts.addMethod,
+  removePayoutMethod: client.payouts.removeMethod,
+  getPayoutHistory: client.payouts.history,
+  requestPayout: client.payouts.withdraw,
 };
 
 export default apiService;

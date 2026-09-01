@@ -231,6 +231,8 @@ def route_role(task: dict, phase_id: int) -> str:
     Fall back to the phase's default DEV_ROLE when the task is ambiguous.
     """
     name = task["name"].lower()
+    if any(k in name for k in ("qa parity", "wireframe", "gap audit", "traceability")):
+        return "qa_engineer" if "qa" in name else "analyst"
     if any(k in name for k in ("docker", "compose", "load balancer", "lb", "deploy",
                                "infra", "ci", "observability", "prometheus", "grafana")):
         return "sre"
@@ -238,8 +240,9 @@ def route_role(task: dict, phase_id: int) -> str:
         return "mobile_engineer"
     if any(k in name for k in ("emoji", "home button", "back", "admin", "copy",
                                "settings", "chat language", "writing assistant",
-                               "highlight", "learning path", "scenario", "presence", "typing")):
-        return "frontend_engineer"
+                               "highlight", "learning path", "scenario", "presence", "typing",
+                               "marketplace", "tutor", "browse", "teacher", "payout", "trial credit")):
+        return "mobile_engineer" if phase_id in (4,) else "frontend_engineer"
     return DEV_ROLE.get(phase_id, "backend_engineer")
 
 
