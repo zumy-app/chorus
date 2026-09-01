@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"strings"
 	"time"
@@ -25,6 +26,8 @@ type MessageHandler struct {
 	translation        *services.TranslationService
 	wordMining         *services.WordMiningQueueService
 	learningProfile    *services.LearningProfileService
+	receiptService     *services.ReceiptService
+	inboxService       *services.InboxService
 }
 
 func NewMessageHandler(
@@ -58,6 +61,18 @@ func (h *MessageHandler) SetWordMining(q *services.WordMiningQueueService, lp *s
 	h.learningProfile = lp
 }
 
+// SetReceiptService attaches the read/delivery receipt service so delivered
+// and read ticks are recorded and fanned out (task 6.1).
+func (h *MessageHandler) SetReceiptService(rs *services.ReceiptService) {
+	h.receiptService = rs
+}
+
+// SetInboxService attaches the offline delivery service so messages are queued
+// for recipients whose devices are offline (task 6.1).
+func (h *MessageHandler) SetInboxService(is *services.InboxService) {
+	h.inboxService = is
+}
+
 func (h *MessageHandler) GetMessages(c *gin.Context) {
 	userID := c.GetString("userID")
 	chatID := c.Param("chatId")
@@ -83,6 +98,44 @@ func (h *MessageHandler) GetMessages(c *gin.Context) {
 	if err != nil {
 		WriteError(c, middleware.ErrInternal("Failed to fetch messages"))
 		return
+	}
+
+	if h.messageService != nil {
+		_ = h.messageService.AttachReceipts(c.Request.Context(), chatID, messages)
+	}
+	// Task 6.6: attach any file/document/media rows so a loaded history carries
+	// the attachment metadata alongside each message.
+	if h.messageService != nil {
+		_ = h.messageService.AttachMedia(c.Request.Context(), chatID, messages)
+	}
+	if h.moderation != nil && h.userService != nil && len(messages) > 0 {
+		ids := make([]string, 0, len(messages))
+		seen := map[string]struct{}{}
+		for _, m := range messages {
+			if m.SenderID == "" || m.SenderID == userID {
+				continue
+			}
+			if _, ok := seen[m.SenderID]; !ok {
+				seen[m.SenderID] = struct{}{}
+				ids = append(ids, m.SenderID)
+			}
+		}
+		if len(ids) > 0 {
+			if users, err := h.userService.GetMultiple(ids); err == nil {
+				senders := make([]*models.User, 0, len(users))
+				userByID := map[string]*models.User{}
+				for _, u := range users {
+					senders = append(senders, u)
+					userByID[u.ID] = u
+				}
+				_ = h.moderation.EnrichUsers(c.Request.Context(), userID, senders)
+				for i := range messages {
+					if u, ok := userByID[messages[i].SenderID]; ok {
+						messages[i].Sender = u
+					}
+				}
+			}
+		}
 	}
 
 	c.JSON(200, gin.H{
@@ -137,6 +190,15 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 	userIDs := make([]string, 0, len(participants))
 	for _, p := range participants {
 		userIDs = append(userIDs, p.UserID)
+	}
+
+	// Task 6.1: seed a per-recipient 'sent' receipt and queue the message for
+	// any offline recipients so delivery ticks can advance once they reconnect.
+	if h.messageService != nil {
+		_ = h.messageService.InitializeReceipts(c.Request.Context(), message, userIDs)
+	}
+	if h.inboxService != nil {
+		_ = h.inboxService.QueueMessageForOfflineClients(message, userIDs)
 	}
 
 	h.wsHub.SendToChat(chatID, userIDs, "new_message", message)
@@ -435,12 +497,74 @@ func (h *MessageHandler) MarkAsRead(c *gin.Context) {
 		return
 	}
 
-	if err := h.messageService.MarkAsRead(chatID, userID, req.MessageID); err != nil {
+	if h.receiptService != nil {
+		err = h.receiptService.AcknowledgeRead(c.Request.Context(), chatID, req.MessageID, userID)
+	} else if h.messageService != nil {
+		err = h.messageService.MarkAsRead(chatID, userID, req.MessageID)
+	}
+	if err != nil {
 		WriteError(c, middleware.ErrInternal("Failed to mark as read"))
 		return
 	}
 
 	c.JSON(204, nil)
+}
+
+// GetMessageReceipts returns the per-recipient sent/delivered/read tick state
+// for a single message (task 6.1).
+func (h *MessageHandler) GetMessageReceipts(c *gin.Context) {
+	userID := c.GetString("userID")
+	chatID := c.Param("chatId")
+	messageID := c.Param("messageId")
+
+	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
+	if err != nil || !isParticipant {
+		WriteError(c, middleware.ErrForbidden("Access denied"))
+		return
+	}
+
+	if h.messageService == nil {
+		WriteError(c, middleware.ErrInternal("Failed to fetch receipts"))
+		return
+	}
+
+	receipts, err := h.messageService.GetMessageReceipts(c.Request.Context(), messageID, chatID)
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to fetch receipts"))
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"receipts": receipts,
+	})
+}
+
+// GetUnreadCount returns the number of unread messages in a chat for the
+// calling user, driven by their last_read_message_id cursor.
+func (h *MessageHandler) GetUnreadCount(c *gin.Context) {
+	userID := c.GetString("userID")
+	chatID := c.Param("chatId")
+
+	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
+	if err != nil || !isParticipant {
+		WriteError(c, middleware.ErrForbidden("Access denied"))
+		return
+	}
+
+	if h.messageService == nil {
+		WriteError(c, middleware.ErrInternal("Failed to fetch unread count"))
+		return
+	}
+
+	count, err := h.messageService.GetUnreadCount(chatID, userID)
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to fetch unread count"))
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"unreadCount": count,
+	})
 }
 
 func (h *MessageHandler) SearchMessages(c *gin.Context) {
@@ -479,4 +603,271 @@ func (h *MessageHandler) SearchMessages(c *gin.Context) {
 		"total":    len(messages),
 		"hasMore":  len(messages) >= limit,
 	})
+}
+
+// ---------------------------------------------------------------------------
+// Message actions (task 6.2): forward, delete, pin, unpin, pins list.
+// ---------------------------------------------------------------------------
+
+// ForwardMessage copies an existing message into a target chat (task 6.2). The
+// caller must be a participant of both chats; the copy is authored by the caller
+// and marked forwarded, carrying the trail to the original author/chat. The new
+// message flows to the target chat exactly like a normal send (receipts, offline
+// inbox, real-time fan-out) but is not automatically re-translated: it carries
+// the original text verbatim.
+func (h *MessageHandler) ForwardMessage(c *gin.Context) {
+	userID := c.GetString("userID")
+	sourceChatID := c.Param("chatId")
+	messageID := c.Param("messageId")
+
+	if h.messageService == nil {
+		WriteError(c, middleware.ErrInternal("Failed to forward message"))
+		return
+	}
+
+	// The caller must be able to read the source message.
+	isParticipant, err := h.chatService.IsParticipant(sourceChatID, userID)
+	if err != nil || !isParticipant {
+		WriteError(c, middleware.ErrForbidden("Access denied"))
+		return
+	}
+
+	var req struct {
+		TargetChatID string `json:"targetChatId" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || req.TargetChatID == "" {
+		WriteError(c, middleware.ErrValidation("targetChatId is required"))
+		return
+	}
+	if req.TargetChatID == sourceChatID {
+		WriteError(c, middleware.ErrValidation("Cannot forward a message to the same chat"))
+		return
+	}
+
+	// The caller must be able to post into the target chat.
+	isParticipant, err = h.chatService.IsParticipant(req.TargetChatID, userID)
+	if err != nil || !isParticipant {
+		WriteError(c, middleware.ErrForbidden("Access denied"))
+		return
+	}
+
+	start := time.Now()
+	forwarded, err := h.messageService.ForwardMessage(c.Request.Context(), sourceChatID, messageID, req.TargetChatID, userID)
+	if err != nil {
+		observability.ObserveMessageSend("error", time.Since(start))
+		if err == sql.ErrNoRows {
+			WriteError(c, middleware.ErrNotFound("Message not found"))
+			return
+		}
+		WriteError(c, middleware.ErrInternal("Failed to forward message"))
+		return
+	}
+	observability.ObserveMessageSend("sent", time.Since(start))
+
+	h.broadcastNewMessage(c.Request.Context(), forwarded, req.TargetChatID)
+
+	c.JSON(201, forwarded)
+}
+
+// DeleteMessage soft-deletes a message (task 6.2). Only the author or a chat
+// admin may delete; everyone in the chat is notified so their UI removes the
+// message. The row is kept for recoverability and to keep replies/forwards valid.
+func (h *MessageHandler) DeleteMessage(c *gin.Context) {
+	userID := c.GetString("userID")
+	chatID := c.Param("chatId")
+	messageID := c.Param("messageId")
+
+	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
+	if err != nil || !isParticipant {
+		WriteError(c, middleware.ErrForbidden("Access denied"))
+		return
+	}
+
+	if h.messageService == nil {
+		WriteError(c, middleware.ErrInternal("Failed to delete message"))
+		return
+	}
+
+	message, err := h.messageService.GetMessageByID(c.Request.Context(), messageID)
+	if err != nil || message == nil || message.ChatID != chatID {
+		WriteError(c, middleware.ErrNotFound("Message not found"))
+		return
+	}
+
+	// Author or chat admin only.
+	if message.SenderID != userID {
+		isAdmin, aerr := h.chatService.IsChatAdmin(chatID, userID)
+		if aerr != nil {
+			WriteError(c, middleware.ErrInternal("Failed to check admin role"))
+			return
+		}
+		if !isAdmin {
+			WriteError(c, middleware.ErrForbidden("You can only delete your own messages"))
+			return
+		}
+	}
+
+	deleted, err := h.messageService.DeleteMessage(c.Request.Context(), chatID, messageID)
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to delete message"))
+		return
+	}
+	if !deleted {
+		WriteError(c, middleware.ErrNotFound("Message not found"))
+		return
+	}
+
+	participants, _ := h.chatService.GetParticipants(chatID)
+	userIDs := make([]string, 0, len(participants))
+	for _, p := range participants {
+		userIDs = append(userIDs, p.UserID)
+	}
+	h.wsHub.SendToChat(chatID, userIDs, "message_deleted", gin.H{
+		"chatId":    chatID,
+		"messageId": messageID,
+		"deletedBy": userID,
+		"deletedAt": time.Now().UTC(),
+	})
+
+	c.JSON(204, nil)
+}
+
+// PinMessage pins a message to a chat (task 6.2). Any participant may pin; the
+// whole chat is notified so the pin banner updates in real time.
+func (h *MessageHandler) PinMessage(c *gin.Context) {
+	userID := c.GetString("userID")
+	chatID := c.Param("chatId")
+
+	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
+	if err != nil || !isParticipant {
+		WriteError(c, middleware.ErrForbidden("Access denied"))
+		return
+	}
+
+	var req struct {
+		MessageID string `json:"messageId" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || req.MessageID == "" {
+		WriteError(c, middleware.ErrValidation("messageId is required"))
+		return
+	}
+
+	if h.messageService == nil {
+		WriteError(c, middleware.ErrInternal("Failed to pin message"))
+		return
+	}
+
+	message, err := h.messageService.GetMessageByID(c.Request.Context(), req.MessageID)
+	if err != nil || message == nil || message.ChatID != chatID {
+		WriteError(c, middleware.ErrNotFound("Message not found"))
+		return
+	}
+
+	if err := h.messageService.PinMessage(c.Request.Context(), chatID, req.MessageID, userID); err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to pin message"))
+		return
+	}
+
+	participants, _ := h.chatService.GetParticipants(chatID)
+	userIDs := make([]string, 0, len(participants))
+	for _, p := range participants {
+		userIDs = append(userIDs, p.UserID)
+	}
+	h.wsHub.SendToChat(chatID, userIDs, "message_pinned", gin.H{
+		"chatId":    chatID,
+		"messageId": req.MessageID,
+		"pinnedBy":  userID,
+		"pinnedAt":  time.Now().UTC(),
+	})
+
+	c.JSON(200, gin.H{
+		"messageId": req.MessageID,
+		"pinnedBy":  userID,
+		"pinnedAt":  time.Now().UTC(),
+		"pinned":    true,
+	})
+}
+
+// UnpinMessage removes a message from a chat's pin list (task 6.2).
+func (h *MessageHandler) UnpinMessage(c *gin.Context) {
+	userID := c.GetString("userID")
+	chatID := c.Param("chatId")
+	messageID := c.Param("messageId")
+
+	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
+	if err != nil || !isParticipant {
+		WriteError(c, middleware.ErrForbidden("Access denied"))
+		return
+	}
+
+	if h.messageService == nil {
+		WriteError(c, middleware.ErrInternal("Failed to unpin message"))
+		return
+	}
+
+	if err := h.messageService.UnpinMessage(c.Request.Context(), chatID, messageID); err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to unpin message"))
+		return
+	}
+
+	participants, _ := h.chatService.GetParticipants(chatID)
+	userIDs := make([]string, 0, len(participants))
+	for _, p := range participants {
+		userIDs = append(userIDs, p.UserID)
+	}
+	h.wsHub.SendToChat(chatID, userIDs, "message_unpinned", gin.H{
+		"chatId":    chatID,
+		"messageId": messageID,
+	})
+
+	c.JSON(204, nil)
+}
+
+// GetPinnedMessages returns the messages pinned to a chat (task 6.2), newest
+// pin first, with the "pinned by" attribution.
+func (h *MessageHandler) GetPinnedMessages(c *gin.Context) {
+	userID := c.GetString("userID")
+	chatID := c.Param("chatId")
+
+	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
+	if err != nil || !isParticipant {
+		WriteError(c, middleware.ErrForbidden("Access denied"))
+		return
+	}
+
+	if h.messageService == nil {
+		WriteError(c, middleware.ErrInternal("Failed to fetch pinned messages"))
+		return
+	}
+
+	pins, err := h.messageService.GetPinnedMessages(c.Request.Context(), chatID)
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to fetch pinned messages"))
+		return
+	}
+
+	c.JSON(200, gin.H{"pins": pins})
+}
+
+// broadcastNewMessage fans a freshly-created message out to a chat's
+// participants: per-recipient 'sent' receipts, offline-inbox queueing, and the
+// real-time new_message event (mirrors SendMessage, minus translation enqueue).
+func (h *MessageHandler) broadcastNewMessage(ctx context.Context, message *models.Message, chatID string) {
+	if message == nil {
+		return
+	}
+
+	participants, _ := h.chatService.GetParticipants(chatID)
+	userIDs := make([]string, 0, len(participants))
+	for _, p := range participants {
+		userIDs = append(userIDs, p.UserID)
+	}
+
+	if h.messageService != nil {
+		_ = h.messageService.InitializeReceipts(ctx, message, userIDs)
+	}
+	if h.inboxService != nil {
+		_ = h.inboxService.QueueMessageForOfflineClients(message, userIDs)
+	}
+	h.wsHub.SendToChat(chatID, userIDs, "new_message", message)
 }

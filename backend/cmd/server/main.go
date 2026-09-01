@@ -114,7 +114,12 @@ func main() {
 	}
 
 	// Phase 2: Initialize Inbox service for offline message delivery
-	_ = services.NewInboxService(db, redisClient)
+	inboxService := services.NewInboxService(db, redisClient)
+	inboxService.StartCleanupScheduler()
+
+	// Task 6.1: per-recipient read + delivery receipts. Bridges the receipt
+	// persistence layer with real-time fan-out (local hub + Redis pub/sub).
+	receiptService := services.NewReceiptService(wsHub, pubsubService, messageService, chatService)
 
 	// Durable, near-real-time translation queue: translation_jobs rows are the
 	// source of truth, Redis pub/sub is the trigger, a sweeper retries failures,
@@ -150,6 +155,22 @@ func main() {
 
 	// Phase 2: Initialize Search service
 	searchService := services.NewSearchService(db, redisClient)
+
+	// Phase 2: Initialize Gallery service (task 6.5 — per-chat media gallery).
+	galleryService := services.NewGalleryService(db)
+
+	// Task 6.6: file/document sharing. Persists uploaded bytes to disk and
+	// records a media_attachments row tied to a new message. Fails fast when the
+	// configured upload directory cannot be created/written.
+	attachmentService, err := services.NewAttachmentService(db, cfg.UploadDir, cfg.MediaBaseURL, cfg.MaxUploadBytes)
+	if err != nil {
+		log.Fatalf("Failed to initialize attachment service: %v", err)
+	}
+
+	// Task 6.7: location sharing. Persists a validated lat/lng pair as a message
+	// with a media_attachments row of type 'location' so the pin flows through
+	// the same read paths (history, gallery, search) as every other attachment.
+	locationService := services.NewLocationService(db)
 
 	// Contacts & Invites epic (REQ 2.4 / FR-22-23): hashed on-platform detection
 	// and single-use invites for off-platform contacts.
@@ -234,8 +255,12 @@ func main() {
 		log.Printf("Warning: Speech-to-Text service initialization failed: %v", err)
 	}
 
-	// Phase 3: Initialize Call service
+	// Phase 3: Initialize Call service (8.1 real WebRTC signaling)
 	callService := services.NewCallService(db, translationService, sttService)
+	callService.SetHub(wsHub)
+	if pubsubService != nil {
+		callService.SetPubSub(pubsubService)
+	}
 
 	// Start WebSocket hub
 	go wsHub.Run()
@@ -250,7 +275,21 @@ func main() {
 	notificationService.Start()
 	defer notificationService.Stop()
 
-	authHandler := handlers.NewAuthHandler(authService, userService, invitationService, notificationService, entitlementService, cfg.PasswordResetBaseURL)
+	// Report & Block (REQ §8.2): moderation service enforces blocks on chat
+	// creation and messaging; reports feed the moderator console. Built before
+	// the auth/directory handler so user search can surface block status.
+	moderationService := services.NewModerationService(db)
+
+	var whatsAppSender services.WhatsAppSender
+	if cfg.WhatsAppAPIURL != "" && cfg.WhatsAppToken != "" {
+		whatsAppSender = &services.HTTPWhatsAppSender{APIURL: cfg.WhatsAppAPIURL, Token: cfg.WhatsAppToken, PhoneID: cfg.WhatsAppPhoneID}
+	} else {
+		whatsAppSender = &services.LogWhatsAppSender{}
+	}
+	otpService := services.NewOTPService(db, whatsAppSender)
+
+	authHandler := handlers.NewAuthHandler(authService, userService, invitationService, notificationService, entitlementService, moderationService, cfg.PasswordResetBaseURL)
+	authHandler.SetOTPService(otpService)
 	settingsHandler := handlers.NewSettingsHandler(settingsService)
 	waitlistHandler := handlers.NewWaitlistHandler(waitlistService, notificationService)
 	adminWaitlistHandler := handlers.NewAdminWaitlistHandler(
@@ -263,13 +302,19 @@ func main() {
 	adminTranslationsHandler := handlers.NewAdminTranslationsHandler(translationQueue, translationService)
 	adminQualityHandler := handlers.NewAdminQualityHandler(qualityEvaluator)
 
-	// Report & Block (REQ §8.2): moderation service enforces blocks on chat
-	// creation and messaging; reports feed the moderator console.
-	moderationService := services.NewModerationService(db)
 	chatHandler := handlers.NewChatHandler(chatService, userService, moderationService, wsHub)
 	messageHandler := handlers.NewMessageHandler(messageService, chatService, userService, entitlementService, translationQueue, settingsService, moderationService, wsHub, translationService)
 	messageHandler.SetWordMining(wordMiningQueue, learningProfileService)
+	messageHandler.SetReceiptService(receiptService)
+	messageHandler.SetInboxService(inboxService)
+
+	// Task 6.6: file/document sharing handler.
+	attachmentHandler := handlers.NewAttachmentHandler(attachmentService, chatService, messageService, inboxService, wsHub)
+	// Task 6.7: location sharing handler.
+	locationHandler := handlers.NewLocationHandler(locationService, chatService, messageService, inboxService, wsHub)
 	wsHandler := handlers.NewWebSocketHandler(wsHub, authService)
+	wsHandler.SetReceiptService(receiptService)
+	wsHandler.SetCallService(callService)
 
 	// Monetization (Phase 1.5): PayPal client + billing service + handler.
 	paypalClient := services.NewPayPalClient(cfg)
@@ -298,8 +343,9 @@ func main() {
 	billingHandler := handlers.NewBillingHandler(billingService, paypalClient, entitlementService)
 
 	// Phase 2 & 3 handlers
-	searchHandler := handlers.NewSearchHandler(searchService)
-	contactsHandler := handlers.NewContactsHandler(contactService, invitationService, notificationService, cfg.InviteBaseURL)
+	searchHandler := handlers.NewSearchHandlerWithUsers(searchService, userService, moderationService)
+	galleryHandler := handlers.NewGalleryHandlerWithModeration(galleryService, moderationService)
+	contactsHandler := handlers.NewContactsHandlerWithModeration(contactService, invitationService, notificationService, moderationService, cfg.InviteBaseURL)
 	presenceHandler := handlers.NewPresenceHandler(presenceService)
 	grammarHandler := handlers.NewGrammarHandler(grammarService, grammarQueue, messageService)
 	vocabularyHandler := handlers.NewVocabularyHandler(vocabularyService, messageService, translationService)
@@ -307,6 +353,7 @@ func main() {
 	learningHandler := handlers.NewLearningHandler(learningCapabilityService, learningProfileService, learningDashboardService, curriculumService, placementService, lessonService, sessionComposerService, wordMiningService, scenarioService, fluencyService, vocabularyService, seedQueueService, srsQueueService)
 
 	moderationHandler := handlers.NewModerationHandler(moderationService)
+	otpHandler := handlers.NewOTPHandler(otpService, authService, userService)
 
 	// Setup Gin router
 	if cfg.Environment == "production" {
@@ -318,6 +365,10 @@ func main() {
 	r.Use(middleware.Recovery())
 	// NFR-18: per-route HTTP request count + latency, by method/route/status.
 	r.Use(observability.MetricsMiddleware())
+
+	// Task 6.6: bound the multipart upload so a single attachment request can
+	// carry at most MAX_UPLOAD_MB (default 50 MB) plus form fields.
+	r.MaxMultipartMemory = cfg.MaxUploadBytes
 
 	// CORS configuration
 	r.Use(cors.New(cors.Config{
@@ -367,6 +418,7 @@ func main() {
 		public.POST("/auth/refresh", authHandler.RefreshToken)
 		public.POST("/auth/forgot-password", middleware.IPRateLimiter(5, time.Hour), authHandler.ForgotPassword)
 		public.POST("/auth/reset-password", authHandler.ResetPassword)
+		public.POST("/auth/2fa/verify", otpHandler.Verify2FA)
 		// PayPal webhooks must be reachable without auth; signature verification
 		// happens inside the handler.
 		public.POST("/webhooks/paypal", billingHandler.Webhook)
@@ -396,7 +448,13 @@ func main() {
 		protected.POST("/blocks", moderationHandler.Block)
 		protected.DELETE("/blocks/:userId", moderationHandler.Unblock)
 		protected.GET("/blocks", moderationHandler.ListBlocked)
+		protected.GET("/blocks/:userId/status", moderationHandler.GetBlockStatus)
 		protected.POST("/reports", moderationHandler.Report)
+
+		protected.GET("/users/me/phone", otpHandler.GetStatus)
+		protected.POST("/users/me/phone/request-otp", middleware.UserRateLimiter(5, 15*time.Minute), otpHandler.RequestOTP)
+		protected.POST("/users/me/phone/verify", otpHandler.VerifyPhone)
+		protected.PUT("/users/me/2fa", otpHandler.SetTwoFactor)
 
 		// Non-gated status probe used by the client to learn the caller's role.
 		protected.GET("/admin/status", adminWaitlistHandler.Status)
@@ -451,14 +509,41 @@ func main() {
 		protected.DELETE("/chats/:chatId/participants/:userId", chatHandler.RemoveParticipant)
 		protected.DELETE("/chats/:chatId/leave", chatHandler.LeaveChat)
 
+		// Archive & mute (task 6.4): per-user, per-chat conversation preferences.
+		protected.POST("/chats/:chatId/archive", chatHandler.ArchiveChat)
+		protected.DELETE("/chats/:chatId/archive", chatHandler.UnarchiveChat)
+		protected.POST("/chats/:chatId/mute", chatHandler.MuteChat)
+		protected.DELETE("/chats/:chatId/mute", chatHandler.UnmuteChat)
+		protected.GET("/chats/:chatId/preferences", chatHandler.GetChatPreference)
+		protected.GET("/chats/preferences", chatHandler.GetChatPreferences)
+
 		// Message routes
 		protected.GET("/chats/:chatId/messages", messageHandler.GetMessages)
 		protected.POST("/chats/:chatId/messages", messageHandler.SendMessage)
 		protected.POST("/chats/:chatId/messages/:messageId/translate", translationRateLimit, messageHandler.TranslateMessage)
+		protected.GET("/chats/:chatId/messages/:messageId/receipts", messageHandler.GetMessageReceipts)
+		protected.GET("/chats/:chatId/unread", messageHandler.GetUnreadCount)
 		protected.PUT("/chats/:chatId/read", messageHandler.MarkAsRead)
 
-		// Phase 2: Search routes
+		// Message actions (task 6.2): forward, delete, and pin.
+		protected.POST("/chats/:chatId/messages/:messageId/forward", messageHandler.ForwardMessage)
+		protected.DELETE("/chats/:chatId/messages/:messageId", messageHandler.DeleteMessage)
+		protected.POST("/chats/:chatId/pins", messageHandler.PinMessage)
+		protected.DELETE("/chats/:chatId/pins/:messageId", messageHandler.UnpinMessage)
+		protected.GET("/chats/:chatId/pins", messageHandler.GetPinnedMessages)
+
+		// Media gallery (task 6.5): photos/videos/audio/documents/links per chat.
+		protected.GET("/chats/:chatId/gallery", galleryHandler.GetChatGallery)
+
+		// File / document sharing (task 6.6): multipart upload → media message.
+		protected.POST("/chats/:chatId/attachments", attachmentHandler.SendAttachment)
+
+		// Location sharing (task 6.7): validated lat/lng → location message.
+		protected.POST("/chats/:chatId/location", locationHandler.SendLocation)
+
+		// Phase 2: Search routes (task 6.3 — universal message+media search)
 		protected.GET("/messages/search", searchHandler.SearchMessages)
+		protected.GET("/media/search", searchHandler.SearchMedia)
 		protected.GET("/chats/search", searchHandler.SearchChats)
 		protected.GET("/contacts/search", searchHandler.SearchContacts)
 
@@ -555,10 +640,19 @@ func main() {
 		protected.DELETE("/calls/:callId/transcript", callHandler.DeleteCallTranscript)
 		protected.GET("/calls/transcripts/search", callHandler.SearchTranscripts)
 		protected.POST("/calls/:callId/signal", callHandler.HandleWebRTCSignaling)
+		protected.POST("/calls/:callId/captions", callHandler.PostCaption)
+		protected.GET("/calls/:callId/captions", callHandler.GetCaptions)
+		protected.POST("/calls/:callId/captions/:index/bookmark", callHandler.BookmarkCaption)
 	}
 
 	// WebSocket endpoint (auth handled inside handler via query param or header)
 	r.GET("/ws", wsRateLimit, wsHandler.HandleWebSocket)
+
+	// Task 6.6: serve stored attachments at their public URL (default /media).
+	// This keeps the file bytes reachable for download/preview from the same
+	// origin the attachment URLs point at. The protected /api/v1/media/search
+	// route lives under a different prefix, so there is no conflict.
+	r.Static("/media", cfg.UploadDir)
 
 	// Start server
 	port := os.Getenv("PORT")

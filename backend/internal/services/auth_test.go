@@ -112,10 +112,10 @@ func TestRegister_Success(t *testing.T) {
 		TargetLanguages: []string{"es"},
 	}
 
-	mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO users (username, email, password_hash, display_name, first_name, last_name, native_language, target_languages) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO users (username, email, password_hash, display_name, first_name, last_name, native_language, target_languages) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url, phone, phone_verified, phone_verified_at, two_factor_enabled`)).
 		WithArgs(req.Username, req.Email, sqlmock.AnyArg(), req.DisplayName, nil, nil, req.NativeLanguage, pq.Array(req.TargetLanguages)).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "display_name", "first_name", "last_name", "native_language", "target_languages", "role", "created_at", "last_active_at", "suspended_at", "deleted_at", "plan", "plan_grace_until", "premium_since", "subscription_id", "subscription_provider", "subscription_plan_id", "subscription_status", "next_billing_date", "last_payment_at", "avatar_url"}).
-			AddRow("user-1", "testuser", "test@example.com", "Test User", "", "", "en", pq.Array([]string{"es"}), "member", time.Now(), time.Now(), nil, nil, "free", nil, nil, nil, "paypal", nil, nil, nil, nil, nil))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "display_name", "first_name", "last_name", "native_language", "target_languages", "role", "created_at", "last_active_at", "suspended_at", "deleted_at", "plan", "plan_grace_until", "premium_since", "subscription_id", "subscription_provider", "subscription_plan_id", "subscription_status", "next_billing_date", "last_payment_at", "avatar_url", "phone", "phone_verified", "phone_verified_at", "two_factor_enabled"}).
+			AddRow("user-1", "testuser", "test@example.com", "Test User", "", "", "en", pq.Array([]string{"es"}), "member", time.Now(), time.Now(), nil, nil, "free", nil, nil, nil, "paypal", nil, nil, nil, nil, nil, nil, false, nil, false))
 
 	user, err := s.Register(req)
 	if err != nil {
@@ -151,7 +151,7 @@ func TestRegister_DuplicateEmail(t *testing.T) {
 		TargetLanguages: []string{"es"},
 	}
 
-	mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO users (username, email, password_hash, display_name, first_name, last_name, native_language, target_languages) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO users (username, email, password_hash, display_name, first_name, last_name, native_language, target_languages) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url, phone, phone_verified, phone_verified_at, two_factor_enabled`)).
 		WithArgs(req.Username, req.Email, sqlmock.AnyArg(), req.DisplayName, nil, nil, req.NativeLanguage, pq.Array(req.TargetLanguages)).
 		WillReturnError(&pq.Error{Code: "23505", Constraint: "users_email_key"})
 
@@ -185,10 +185,10 @@ func TestRegister_EmptyUsername(t *testing.T) {
 		TargetLanguages: []string{"es"},
 	}
 
-	mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO users (username, email, password_hash, display_name, first_name, last_name, native_language, target_languages) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO users (username, email, password_hash, display_name, first_name, last_name, native_language, target_languages) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url, phone, phone_verified, phone_verified_at, two_factor_enabled`)).
 		WithArgs("", req.Email, sqlmock.AnyArg(), req.DisplayName, nil, nil, req.NativeLanguage, pq.Array(req.TargetLanguages)).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "display_name", "first_name", "last_name", "native_language", "target_languages", "role", "created_at", "last_active_at", "suspended_at", "deleted_at", "plan", "plan_grace_until", "premium_since", "subscription_id", "subscription_provider", "subscription_plan_id", "subscription_status", "next_billing_date", "last_payment_at", "avatar_url"}).
-			AddRow("user-1", "", "test@example.com", "Test User", "", "", "en", pq.Array([]string{"es"}), "member", time.Now(), time.Now(), nil, nil, "free", nil, nil, nil, "paypal", nil, nil, nil, nil, nil))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "display_name", "first_name", "last_name", "native_language", "target_languages", "role", "created_at", "last_active_at", "suspended_at", "deleted_at", "plan", "plan_grace_until", "premium_since", "subscription_id", "subscription_provider", "subscription_plan_id", "subscription_status", "next_billing_date", "last_payment_at", "avatar_url", "phone", "phone_verified", "phone_verified_at", "two_factor_enabled"}).
+			AddRow("user-1", "", "test@example.com", "Test User", "", "", "en", pq.Array([]string{"es"}), "member", time.Now(), time.Now(), nil, nil, "free", nil, nil, nil, "paypal", nil, nil, nil, nil, nil, nil, false, nil, false))
 
 	user, err := s.Register(req)
 	if err != nil {
@@ -213,11 +213,11 @@ func TestLogin_Success(t *testing.T) {
 	s := &AuthService{db: db, jwtSecret: "test-secret"}
 	passwordHash, _ := s.HashPassword("Password123!")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT id, username, email, password_hash, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT id, username, email, password_hash, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url, phone, phone_verified, phone_verified_at, two_factor_enabled
 		FROM users WHERE username = $1 OR email = $1`)).
 		WithArgs("testuser").
-		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "password_hash", "display_name", "first_name", "last_name", "native_language", "target_languages", "role", "created_at", "last_active_at", "suspended_at", "deleted_at", "plan", "plan_grace_until", "premium_since", "subscription_id", "subscription_provider", "subscription_plan_id", "subscription_status", "next_billing_date", "last_payment_at", "avatar_url"}).
-			AddRow("user-1", "testuser", "test@example.com", passwordHash, "Test User", "", "", "en", pq.Array([]string{"es"}), "member", time.Now(), time.Now(), nil, nil, "free", nil, nil, nil, "paypal", nil, nil, nil, nil, nil))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "password_hash", "display_name", "first_name", "last_name", "native_language", "target_languages", "role", "created_at", "last_active_at", "suspended_at", "deleted_at", "plan", "plan_grace_until", "premium_since", "subscription_id", "subscription_provider", "subscription_plan_id", "subscription_status", "next_billing_date", "last_payment_at", "avatar_url", "phone", "phone_verified", "phone_verified_at", "two_factor_enabled"}).
+			AddRow("user-1", "testuser", "test@example.com", passwordHash, "Test User", "", "", "en", pq.Array([]string{"es"}), "member", time.Now(), time.Now(), nil, nil, "free", nil, nil, nil, "paypal", nil, nil, nil, nil, nil, nil, false, nil, false))
 
 	mock.ExpectExec(regexp.QuoteMeta(`UPDATE users SET last_active_at = CURRENT_TIMESTAMP WHERE id = $1`)).
 		WithArgs("user-1").
@@ -245,7 +245,7 @@ func TestLogin_InvalidCredentials(t *testing.T) {
 
 	s := &AuthService{db: db, jwtSecret: "test-secret"}
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT id, username, email, password_hash, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT id, username, email, password_hash, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url, phone, phone_verified, phone_verified_at, two_factor_enabled
 		FROM users WHERE username = $1 OR email = $1`)).
 		WithArgs("testuser").
 		WillReturnError(sql.ErrNoRows)

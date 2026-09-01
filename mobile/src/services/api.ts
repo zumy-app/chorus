@@ -26,6 +26,7 @@ const client = createApiClient({
 });
 
 // Kept default-exported as an object to preserve the previous ApiService API.
+export const callAPI = client.call;
 const apiService = {
   register: client.auth.register,
   login: (username: string, password: string) =>
@@ -46,6 +47,8 @@ const apiService = {
   markAsRead: client.message.markAsRead,
   translateMessage: client.translation.translateMessage,
   healthCheck: client.health,
+  getSettings: client.settings.getSettings,
+  updateSettings: client.settings.updateSettings,
   getLearningDashboard: client.learning.getDashboard,
   getLearningProfile: client.learning.getProfile,
   getLearningCapabilities: client.learning.getCapabilities,
@@ -77,6 +80,12 @@ const apiService = {
   getRealTalkPrompts: client.learning.getRealTalkPrompts,
   markRealTalkUsed: client.learning.markRealTalkUsed,
   recoverStreak: client.learning.recoverStreak,
+  initiateCall: client.call.initiate,
+  getCallSession: client.call.getSession,
+  endCall: client.call.end,
+  getCaptions: client.call.getCaptions,
+  postCaption: client.call.postCaption,
+  bookmarkCaption: client.call.bookmarkCaption,
 };
 
 export default apiService;

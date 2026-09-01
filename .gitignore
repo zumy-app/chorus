@@ -1,6 +1,9 @@
 # Dev log files
 backend/.dev-*
 
+# User-uploaded attachments (task 6.6 document/file sharing). Never commit.
+backend/uploads/
+
 # Environment files
 .env.prod
 .env.local

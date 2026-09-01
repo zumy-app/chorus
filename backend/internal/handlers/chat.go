@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"context"
+
 	"github.com/chorus/messenger/internal/middleware"
 	"github.com/chorus/messenger/internal/models"
 	"github.com/chorus/messenger/internal/services"
@@ -20,6 +22,32 @@ func NewChatHandler(chatService *services.ChatService, userService *services.Use
 		userService: userService,
 		moderation:  moderation,
 		wsHub:       wsHub,
+	}
+}
+
+// hydrateParticipants hydrates each participant's profile (via GetMultiple) and
+// stamps viewer-relative block status so the chat surfaces render
+// Block/Unblock everywhere a user appears (task 7.1).
+func (h *ChatHandler) hydrateParticipants(ctx context.Context, viewerID string, participants []models.ChatParticipant) {
+	userIDs := make([]string, 0, len(participants))
+	for _, p := range participants {
+		if p.UserID != "" {
+			userIDs = append(userIDs, p.UserID)
+		}
+	}
+	users, err := h.userService.GetMultiple(userIDs)
+	if err != nil {
+		return
+	}
+	enriched := make([]*models.User, 0, len(users))
+	for i := range participants {
+		if user, ok := users[participants[i].UserID]; ok {
+			participants[i].User = user
+			enriched = append(enriched, user)
+		}
+	}
+	if h.moderation != nil && len(enriched) > 0 {
+		_ = h.moderation.EnrichUsers(ctx, viewerID, enriched)
 	}
 }
 
@@ -51,10 +79,15 @@ func (h *ChatHandler) GetUserChats(c *gin.Context) {
 		}
 
 		// Attach user details to participants
+		enriched := make([]*models.User, 0, len(participants))
 		for j := range participants {
 			if user, ok := users[participants[j].UserID]; ok {
 				participants[j].User = user
+				enriched = append(enriched, user)
 			}
+		}
+		if h.moderation != nil && len(enriched) > 0 {
+			_ = h.moderation.EnrichUsers(c.Request.Context(), userID, enriched)
 		}
 
 		chats[i].Participants = participants
@@ -107,10 +140,15 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 		userIDs[i] = p.UserID
 	}
 	users, _ := h.userService.GetMultiple(userIDs)
+	enriched := make([]*models.User, 0, len(participants))
 	for i := range participants {
 		if user, ok := users[participants[i].UserID]; ok {
 			participants[i].User = user
+			enriched = append(enriched, user)
 		}
+	}
+	if h.moderation != nil && len(enriched) > 0 {
+		_ = h.moderation.EnrichUsers(c.Request.Context(), userID, enriched)
 	}
 	chat.Participants = participants
 
@@ -145,10 +183,15 @@ func (h *ChatHandler) GetChat(c *gin.Context) {
 		userIDs[i] = p.UserID
 	}
 	users, _ := h.userService.GetMultiple(userIDs)
+	enriched := make([]*models.User, 0, len(participants))
 	for i := range participants {
 		if user, ok := users[participants[i].UserID]; ok {
 			participants[i].User = user
+			enriched = append(enriched, user)
 		}
+	}
+	if h.moderation != nil && len(enriched) > 0 {
+		_ = h.moderation.EnrichUsers(c.Request.Context(), userID, enriched)
 	}
 	chat.Participants = participants
 
@@ -273,4 +316,162 @@ func (h *ChatHandler) LeaveChat(c *gin.Context) {
 	}
 
 	c.JSON(204, nil)
+}
+
+// ---------------------------------------------------------------------------
+// Archive & mute (task 6.4): per-user, per-chat conversation preferences.
+// ---------------------------------------------------------------------------
+
+// ArchiveChat archives (or, with archived=false, unarchives) a conversation for
+// the calling user. The caller must be a participant. The preference is
+// strictly user-scoped, so no co-participants are notified.
+func (h *ChatHandler) ArchiveChat(c *gin.Context) {
+	userID := c.GetString("userID")
+	chatID := c.Param("chatId")
+
+	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
+	if err != nil || !isParticipant {
+		WriteError(c, middleware.ErrForbidden("Access denied"))
+		return
+	}
+
+	var req models.ArchiveChatRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		WriteError(c, middleware.ErrValidation("Invalid request"))
+		return
+	}
+
+	// Default to archiving when the flag is omitted.
+	archived := true
+	if req.Archived != nil {
+		archived = *req.Archived
+	}
+
+	pref, err := h.chatService.ArchiveChat(c.Request.Context(), userID, chatID, archived)
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to update archive state"))
+		return
+	}
+
+	h.wsHub.SendToUser(userID, "chat_preferences_updated", pref)
+
+	c.JSON(200, pref)
+}
+
+// UnarchiveChat unarchives a conversation for the calling user (task 6.4).
+func (h *ChatHandler) UnarchiveChat(c *gin.Context) {
+	userID := c.GetString("userID")
+	chatID := c.Param("chatId")
+
+	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
+	if err != nil || !isParticipant {
+		WriteError(c, middleware.ErrForbidden("Access denied"))
+		return
+	}
+
+	pref, err := h.chatService.ArchiveChat(c.Request.Context(), userID, chatID, false)
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to update archive state"))
+		return
+	}
+
+	h.wsHub.SendToUser(userID, "chat_preferences_updated", pref)
+
+	c.JSON(200, pref)
+}
+
+// MuteChat mutes (or, with muted=false, unmutes) a conversation for the calling
+// user (task 6.4). Until, when set with muted=true, makes the mute timed; an
+// omitted until with muted=true mutes indefinitely.
+func (h *ChatHandler) MuteChat(c *gin.Context) {
+	userID := c.GetString("userID")
+	chatID := c.Param("chatId")
+
+	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
+	if err != nil || !isParticipant {
+		WriteError(c, middleware.ErrForbidden("Access denied"))
+		return
+	}
+
+	var req models.MuteChatRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		WriteError(c, middleware.ErrValidation("Invalid request"))
+		return
+	}
+
+	// Default to muting when the flag is omitted.
+	muted := true
+	if req.Muted != nil {
+		muted = *req.Muted
+	}
+
+	pref, err := h.chatService.MuteChat(c.Request.Context(), userID, chatID, muted, req.Until)
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to update mute state"))
+		return
+	}
+
+	h.wsHub.SendToUser(userID, "chat_preferences_updated", pref)
+
+	c.JSON(200, pref)
+}
+
+// UnmuteChat unmutes a conversation for the calling user (task 6.4).
+func (h *ChatHandler) UnmuteChat(c *gin.Context) {
+	userID := c.GetString("userID")
+	chatID := c.Param("chatId")
+
+	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
+	if err != nil || !isParticipant {
+		WriteError(c, middleware.ErrForbidden("Access denied"))
+		return
+	}
+
+	pref, err := h.chatService.MuteChat(c.Request.Context(), userID, chatID, false, nil)
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to update mute state"))
+		return
+	}
+
+	h.wsHub.SendToUser(userID, "chat_preferences_updated", pref)
+
+	c.JSON(200, pref)
+}
+
+// GetChatPreferences returns the calling user's per-chat preferences (archive &
+// mute state, task 6.4) across all of their conversations, keyed by chat ID.
+func (h *ChatHandler) GetChatPreferences(c *gin.Context) {
+	userID := c.GetString("userID")
+
+	prefs, err := h.chatService.GetChatPreferences(c.Request.Context(), userID)
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to fetch chat preferences"))
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"preferences": prefs,
+	})
+}
+
+// GetChatPreference returns the calling user's preference row for a single chat
+// (task 6.4). It always returns a default (unarchived, unmuted) preference when
+// the user has never touched this chat.
+func (h *ChatHandler) GetChatPreference(c *gin.Context) {
+	userID := c.GetString("userID")
+	chatID := c.Param("chatId")
+
+	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
+	if err != nil || !isParticipant {
+		WriteError(c, middleware.ErrForbidden("Access denied"))
+		return
+	}
+
+	pref, err := h.chatService.GetChatPreference(c.Request.Context(), userID, chatID)
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to fetch chat preference"))
+		return
+	}
+
+	c.JSON(200, pref)
 }

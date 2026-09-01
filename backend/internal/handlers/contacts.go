@@ -20,6 +20,7 @@ type ContactsHandler struct {
 	contactService    *services.ContactService
 	invitationService *services.InvitationService
 	notifications     services.EmailSender
+	moderation        *services.ModerationService
 	inviteBaseURL     string
 }
 
@@ -33,6 +34,22 @@ func NewContactsHandler(
 		contactService:    cs,
 		invitationService: inv,
 		notifications:     notifications,
+		inviteBaseURL:     strings.TrimRight(inviteBaseURL, "?"),
+	}
+}
+
+func NewContactsHandlerWithModeration(
+	cs *services.ContactService,
+	inv *services.InvitationService,
+	notifications services.EmailSender,
+	moderation *services.ModerationService,
+	inviteBaseURL string,
+) *ContactsHandler {
+	return &ContactsHandler{
+		contactService:    cs,
+		invitationService: inv,
+		notifications:     notifications,
+		moderation:        moderation,
 		inviteBaseURL:     strings.TrimRight(inviteBaseURL, "?"),
 	}
 }
@@ -66,6 +83,18 @@ func (h *ContactsHandler) ScanContacts(c *gin.Context) {
 
 	if matches == nil {
 		matches = []models.ContactMatch{}
+	}
+	if h.moderation != nil && len(matches) > 0 {
+		dummies := make([]*models.User, len(matches))
+		for i := range matches {
+			dummies[i] = &models.User{ID: matches[i].UserID}
+		}
+		if err := h.moderation.EnrichUsers(c.Request.Context(), userID, dummies); err == nil {
+			for i := range matches {
+				matches[i].IsBlocked = dummies[i].IsBlocked
+				matches[i].BlockedBy = dummies[i].BlockedBy
+			}
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{"data": matches})
 }

@@ -274,6 +274,16 @@ export const hi = {
     blockedUsers: 'ब्लॉक किए गए उपयोगकर्ता',
     noBlockedUsers: 'कोई ब्लॉक किया गया उपयोगकर्ता नहीं।',
     unblock: 'अनब्लॉक करें',
+    privacy: 'Privacy',
+    privacyDesc: 'Control who can see your activity and information.',
+    lastSeen: 'Last seen',
+    profilePhoto: 'Profile photo',
+    contacts: 'Contacts',
+    everyone: 'Everyone',
+    myContacts: 'My contacts',
+    nobody: 'Nobody',
+    privacySaved: 'Privacy settings updated.',
+    privacyFailed: 'Could not save privacy settings.',
   },
 
   about: {

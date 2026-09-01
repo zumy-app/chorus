@@ -1,6 +1,30 @@
 // Single source of truth for the Chorus domain model.
 // Used by both the web frontend (frontend/) and the React Native app (mobile/).
 
+export type PrivacyVisibility = 'everyone' | 'contacts' | 'nobody'
+
+export interface UserPrivacySettings {
+  lastSeenVisibility: PrivacyVisibility
+  profilePhotoVisibility: PrivacyVisibility
+  contactsVisibility: PrivacyVisibility
+}
+
+export interface UserSettings {
+  userId: string
+  grammarEnabled: boolean
+  vocabularyEnabled: boolean
+  difficultyLevel: string
+  transcriptRecording: boolean
+  messageRetentionDays: number
+  translationEnabled: boolean
+  grammarAuto: boolean
+  highlightsEnabled: boolean
+  lastSeenVisibility: PrivacyVisibility
+  profilePhotoVisibility: PrivacyVisibility
+  contactsVisibility: PrivacyVisibility
+  updatedAt: string
+}
+
 export interface User {
   id: string
   username: string
@@ -28,6 +52,17 @@ export interface User {
   // grace deadline, quotas) are resolved server-side via /users/me/entitlements.
   plan?: 'free' | 'premium'
   planGraceUntil?: string | null
+  phone?: string | null
+  phoneVerified?: boolean
+  phoneVerifiedAt?: string | null
+  twoFactorEnabled?: boolean
+}
+
+export interface PhoneStatus {
+  phone?: string | null
+  phoneMasked?: string
+  phoneVerified: boolean
+  twoFactorEnabled: boolean
 }
 
 // Billing plans and resolved entitlements returned by /users/me/entitlements.
@@ -196,6 +231,23 @@ export interface Chat {
   createdAt: string
   lastMessage?: Message
   unreadCount?: number
+  // Task 6.4 (archive & mute): per-user conversation state, derived server-side
+  // from the chat_preferences table. isArchived hides the chat from the main
+  // list; isMuted silences its notifications (optionally until mutedUntil).
+  isArchived?: boolean
+  isMuted?: boolean
+  mutedUntil?: string
+}
+
+// Task 6.4: one per-user, per-chat conversation preference row. Strictly
+// user-scoped: one user archiving/muting a chat does not affect co-participants.
+export interface ChatPreference {
+  userId: string
+  chatId: string
+  archivedAt?: string
+  isMuted: boolean
+  mutedUntil?: string
+  updatedAt: string
 }
 
 export interface ChatParticipant {
@@ -219,6 +271,55 @@ export interface Message {
   replyToId?: string
   timestamp: string
   sender?: User
+  // Message actions (task 6.2). A forwarded message is a copy authored by the
+  // forwarder; deletedAt is a soft delete (deleted rows are filtered from chat
+  // history and search).
+  forwarded?: boolean
+  forwardedFromMessageId?: string
+  forwardedFromChatId?: string
+  forwardedFromSenderId?: string
+  deletedAt?: string
+  // Task 6.6: file/document/media attachments attached to the message, present
+  // on the send response and on history reads. Text messages omit this field.
+  media?: MediaAttachment[]
+}
+
+// One chat-scoped pin (task 6.2): the pinned message plus who pinned it and when.
+export interface PinnedMessage {
+  message: Message
+  pinnedBy: string
+  pinnedAt: string
+}
+
+// A media attachment (task 6.3/6.5/6.7): image, video, audio, document, link or
+// location attached to a message. Returned in universal search results, by
+// /media/search, on the send response, and in chat history + gallery reads.
+export interface MediaAttachment {
+  id: string
+  messageId: string
+  chatId: string
+  type: 'image' | 'video' | 'audio' | 'document' | 'link' | 'location'
+  fileName: string
+  fileSize: number
+  mimeType: string
+  url: string
+  thumbnailUrl?: string
+  createdAt: string
+  // Location sharing (task 6.7): the map pin's coordinates + optional label.
+  // Present only when type === 'location'; the URL above holds a map link and
+  // the client renders the pin from these.
+  latitude?: number
+  longitude?: number
+  locationName?: string
+}
+
+// Payload for sharing a location pin into a chat (task 6.7). Latitude/Longitude
+// are required and bounded to world coordinates; label is an optional place name.
+export interface SendLocationRequest {
+  latitude: number
+  longitude: number
+  label?: string
+  replyToId?: string
 }
 
 // Translation was intentionally not performed (e.g. free plan char limit).
@@ -308,6 +409,8 @@ export interface ContactMatch {
   emailHash: string
   nativeLanguage: string
   targetLanguages: string[]
+  isBlocked?: boolean
+  blockedBy?: boolean
 }
 
 export interface ContactScanRequest {
@@ -931,4 +1034,38 @@ export interface VocabularyCard {
 }
 
 // Export alias used by API methods returning placement.
+export interface CallSession {
+  id: string
+  chatId: string
+  participants: string[]
+  type: 'audio' | 'video'
+  status: 'active' | 'ended'
+  startedAt: string
+  endedAt?: string
+}
+
+export interface TranscriptSegment {
+  speakerId: string
+  startTime: number
+  endTime: number
+  originalText: string
+  originalLanguage: string
+  translations: Record<string, string>
+  confidence: number
+}
+
+export interface CallTranscript {
+  id: string
+  callId: string
+  segments: TranscriptSegment[]
+  createdAt: string
+}
+
+export interface WebRTCOffer {
+  callId: string
+  sdp: string
+  type: string
+  iceServers: { urls: string[]; username?: string; credential?: string }[]
+}
+
 export type { PlacementMainStartResponse as StartPlacementResponse }

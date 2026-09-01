@@ -79,6 +79,64 @@ func Migrate(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_messages_text_search ON messages USING gin(to_tsvector('english', text))`,
 
+		// Per-recipient read / delivery ticks (task 6.1). One row per
+		// (message, recipient); delivered/read timestamps drive the sent /
+		// delivered / read tick shown to the sender.
+		`CREATE TABLE IF NOT EXISTS message_receipts (
+			message_id UUID NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			chat_id UUID NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+			received_at TIMESTAMP,
+			read_at TIMESTAMP,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (message_id, user_id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_message_receipts_chat ON message_receipts(chat_id, message_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_message_receipts_user ON message_receipts(user_id)`,
+
+		// Message actions (task 6.2). Soft delete keeps the row so replies and
+		// forwards to a deleted message keep working and history is recoverable;
+		// deleted_at IS NULL rows are excluded from chat history and search.
+		// Forwarded messages are copies authored by the forwarder that keep a
+		// trail to the original author / message / chat for the "Forwarded from"
+		// label. All columns are additive (IF NOT EXISTS) so existing rows stay
+		// NULL, which reads as "not forwarded, not deleted".
+		`ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP`,
+		`ALTER TABLE messages ADD COLUMN IF NOT EXISTS forwarded_from_message_id UUID REFERENCES messages(id) ON DELETE SET NULL`,
+		`ALTER TABLE messages ADD COLUMN IF NOT EXISTS forwarded_from_chat_id UUID REFERENCES chats(id) ON DELETE SET NULL`,
+		`ALTER TABLE messages ADD COLUMN IF NOT EXISTS forwarded_from_sender_id UUID REFERENCES users(id) ON DELETE SET NULL`,
+
+		// Chat-scoped pin (task 6.2): any participant may pin up to N messages;
+		// the list is ordered newest-first. One row per (chat, message).
+		`CREATE TABLE IF NOT EXISTS pinned_messages (
+			chat_id UUID NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+			message_id UUID NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+			pinned_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (chat_id, message_id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_pinned_messages_chat ON pinned_messages(chat_id, created_at DESC)`,
+
+		// Archive & mute (task 6.4): per-user, per-chat conversation preferences.
+		// Archive hides a chat from the user's main list (archived_at set) without
+		// leaving the chat; mute silences notifications (is_muted) — optionally
+		// until a timestamp (muted_until) so a mute can be timed or indefinite
+		// (NULL + is_muted = indefinite). Preferences are strictly user-scoped:
+		// one user archiving a chat doesn't affect the other participants.
+		// A LEFT JOIN from chat lists means a missing row reads as
+		// "not archived, not muted", so the table needs no seeding.
+		`CREATE TABLE IF NOT EXISTS chat_preferences (
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			chat_id UUID NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+			archived_at TIMESTAMP,
+			is_muted BOOLEAN NOT NULL DEFAULT false,
+			muted_until TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (user_id, chat_id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_chat_preferences_user ON chat_preferences(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_chat_preferences_chat ON chat_preferences(chat_id)`,
+
 		`CREATE TABLE IF NOT EXISTS refresh_tokens (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -213,6 +271,11 @@ func Migrate(db *sql.DB) error {
 		`ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS translation_enabled BOOLEAN NOT NULL DEFAULT true`,
 		`ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS grammar_auto BOOLEAN NOT NULL DEFAULT true`,
 		`ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS highlights_enabled BOOLEAN NOT NULL DEFAULT true`,
+		`ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS last_seen_visibility VARCHAR(20) NOT NULL DEFAULT 'everyone'`,
+		`ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS profile_photo_visibility VARCHAR(20) NOT NULL DEFAULT 'everyone'`,
+		`ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS contacts_visibility VARCHAR(20) NOT NULL DEFAULT 'everyone'`,
+		`ALTER TABLE user_settings DROP CONSTRAINT IF EXISTS user_settings_privacy_check`,
+		`ALTER TABLE user_settings ADD CONSTRAINT user_settings_privacy_check CHECK (last_seen_visibility IN ('everyone','contacts','nobody') AND profile_photo_visibility IN ('everyone','contacts','nobody') AND contacts_visibility IN ('everyone','contacts','nobody'))`,
 
 		// Phase 2: Media attachments
 		`CREATE TABLE IF NOT EXISTS media_attachments (
@@ -227,6 +290,22 @@ func Migrate(db *sql.DB) error {
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_media_message_id ON media_attachments(message_id)`,
+		// Task 6.5/6.7: widen the media type constraint to allow 'link' (shared
+		// URLs) and 'location' (shared map pins) alongside the file-backed types
+		// so the gallery's Links tab and the location surface are queryable.
+		// DROP IF EXISTS + ADD keeps the migration idempotent on every boot.
+		`ALTER TABLE media_attachments DROP CONSTRAINT IF EXISTS media_attachments_type_check`,
+		`ALTER TABLE media_attachments ADD CONSTRAINT media_attachments_type_check CHECK (type IN ('image', 'video', 'audio', 'document', 'link', 'location'))`,
+		// Task 6.7 (location sharing): latitude/longitude + an optional label for
+		// a shared map pin. These stay NULL for every other media type; the URL
+		// column still holds a client-facing map link and the message fan-out +
+		// history read paths expose these fields so the client renders the pin.
+		`ALTER TABLE media_attachments ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION`,
+		`ALTER TABLE media_attachments ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION`,
+		`ALTER TABLE media_attachments ADD COLUMN IF NOT EXISTS location_name VARCHAR(255)`,
+		// Gallery ordering is by created_at (newest first) within a chat, so the
+		// paginated read paths skip a sort of the full attachment set.
+		`CREATE INDEX IF NOT EXISTS idx_media_created_at ON media_attachments(created_at DESC)`,
 
 		// Phase 3: Vocabulary management
 		`CREATE TABLE IF NOT EXISTS vocabulary (
@@ -261,6 +340,8 @@ func Migrate(db *sql.DB) error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_calls_chat_id ON call_sessions(chat_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_calls_status_active ON call_sessions(status, started_at) WHERE status = 'active'`,
+		`ALTER TABLE call_sessions ADD COLUMN IF NOT EXISTS participants JSONB NOT NULL DEFAULT '[]'`,
+		`ALTER TABLE call_sessions ADD COLUMN IF NOT EXISTS initiator_id UUID REFERENCES users(id) ON DELETE SET NULL`,
 
 		// Phase 3: Call participants
 		`CREATE TABLE IF NOT EXISTS call_participants (
@@ -313,6 +394,22 @@ func Migrate(db *sql.DB) error {
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name VARCHAR(100)`,
 		`CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)`,
 		`CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users(deleted_at) WHERE deleted_at IS NULL`,
+
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(20)`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_verified BOOLEAN NOT NULL DEFAULT false`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_verified_at TIMESTAMP`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN NOT NULL DEFAULT false`,
+		`CREATE TABLE IF NOT EXISTS phone_otps (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			phone VARCHAR(20) NOT NULL,
+			code_hash VARCHAR(64) NOT NULL,
+			attempts INTEGER NOT NULL DEFAULT 0,
+			expires_at TIMESTAMP NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_phone_otps_user_phone ON phone_otps(user_id, phone, created_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_phone_otps_expires ON phone_otps(expires_at)`,
 
 		// Billing plan & cutover grace. plan_grace_until is the explicit
 		// grace-upgrade window for accounts created before a paid cutover: the

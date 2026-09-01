@@ -7,9 +7,10 @@ import DeepDiveSheet from './DeepDiveSheet'
 import ChatLanguageModal from './ChatLanguageModal'
 import ReportModal from './ReportModal'
 import EmojiPicker from './EmojiPicker'
-import { moderationAPI } from '../services/api'
+import { moderationAPI, api } from '../services/api'
 import { wsService } from '../services/websocket'
 import { formatDistanceToNow } from 'date-fns'
+import CallScreen from './CallScreen'
 
 export default function ChatArea() {
   const { t } = useTranslation()
@@ -28,6 +29,9 @@ export default function ChatArea() {
   )
   const [deepDiveMessage, setDeepDiveMessage] = useState<null | { id: string; text: string; sender?: any; analysis?: any }>(null)
   const [deepDiveOpen, setDeepDiveOpen] = useState(false)
+  const [activeCall, setActiveCall] = useState<null | { id: string; chatId: string }>(null)
+  const [callError, setCallError] = useState('')
+  const [incomingCall, setIncomingCall] = useState<null | { callId: string; chatId: string; type: string }>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const typingTimeoutRef = useRef<number>()
   const chatMenuRef = useRef<HTMLDivElement>(null)
@@ -69,6 +73,20 @@ export default function ChatArea() {
   // Whitespace-delimited tokens — matches the backend's WordCount (strings.Fields).
   const wordCount = inputText.trim().split(/\s+/).filter(Boolean).length
   const isOverLimit = wordLimit != null && wordCount > wordLimit
+
+  useEffect(() => {
+    const handler = (msg: { type: string; data: unknown }) => {
+      const d = msg.data as Record<string, unknown>
+      if (msg.type === 'call_incoming' && d) {
+        const cid = (d.callId || d.call_id) as string
+        const chatId = (d.chatId || d.chat_id) as string
+        if (cid && chatId) setIncomingCall({ callId: cid, chatId, type: (d.type as string) || 'audio' })
+      }
+      if (msg.type === 'call_ended') setIncomingCall(null)
+    }
+    const unsub = wsService.onMessage(handler as Parameters<typeof wsService.onMessage>[0])
+    return () => unsub()
+  }, [])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -252,6 +270,25 @@ export default function ChatArea() {
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <button
+            onClick={async () => {
+              if (!activeChat) return
+              setCallError('')
+              try {
+                const res = await api.post<{ session: { id: string } }>('/calls/initiate', { chatId: activeChat.id, type: 'audio' })
+                setActiveCall({ id: res.data.session.id, chatId: activeChat.id })
+              } catch (e: unknown) {
+                const msg = e instanceof Error ? e.message : 'Failed to start call'
+                setCallError(msg)
+                setTimeout(() => setCallError(''), 3000)
+              }
+            }}
+            className="w-10 h-10 flex items-center justify-center text-primary hover:bg-surface-variant/20 rounded-full transition active:scale-95"
+            title={t('chat.startCall', { defaultValue: 'Start audio call' })}
+            aria-label={t('chat.startCall', { defaultValue: 'Start audio call' })}
+          >
+            <span className="material-symbols-outlined">call</span>
+          </button>
+          <button
             onClick={() => setShowLangSettings(true)}
             className="w-10 h-10 flex items-center justify-center text-primary hover:bg-surface-variant/20 rounded-full transition active:scale-95"
             title={t('chat.languageSettings')}
@@ -299,6 +336,20 @@ export default function ChatArea() {
           )}
         </div>
       </div>
+
+      {callError && (
+        <div className="bg-error-container text-on-error-container border-b border-outline-variant px-4 py-2 text-sm">{callError}</div>
+      )}
+
+      {incomingCall && !activeCall && (
+        <div className="bg-primary-container text-on-primary-container border-b border-outline-variant px-4 py-3 flex items-center justify-between gap-3">
+          <span className="text-sm font-medium flex items-center gap-2"><span className="material-symbols-outlined text-[20px]">call</span> Incoming {incomingCall.type} call</span>
+          <div className="flex gap-2">
+            <button onClick={() => setIncomingCall(null)} className="px-3 py-1.5 rounded-full bg-white/20 text-sm">Decline</button>
+            <button onClick={() => { setActiveCall({ id: incomingCall.callId, chatId: incomingCall.chatId }); setIncomingCall(null) }} className="px-4 py-1.5 rounded-full bg-emerald-600 text-white text-sm font-semibold">Answer</button>
+          </div>
+        </div>
+      )}
 
       {actionNotice && (
         <div className="bg-tertiary-container text-on-tertiary-container border-b border-outline-variant px-4 py-2 text-sm">{actionNotice}</div>
@@ -503,6 +554,10 @@ export default function ChatArea() {
 
       {deepDiveOpen && (
         <DeepDiveSheet message={deepDiveMessage} onClose={() => setDeepDiveOpen(false)} />
+      )}
+
+      {activeCall && (
+        <CallScreen callId={activeCall.id} chatId={activeCall.chatId} chatName={chatName} onClose={() => setActiveCall(null)} />
       )}
     </>
   )

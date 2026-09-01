@@ -1,6 +1,6 @@
 {
   "$comment": "Machine-readable mirror of REQUIREMENTS_MASTER.md. The supervisor loop reads/writes this to persist progress across runs. Do not hand-edit; use crew/state.py.",
-  "current_phase": 2,
+  "current_phase": 3,
   "phases": [
     {
       "id": 0,
@@ -223,72 +223,98 @@
     {
       "id": 2,
       "name": "Messaging Parity + Audio Call Captions",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "tasks": [
         {
           "id": "6.1",
           "name": "Read receipts + delivery ticks",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788194220.8294535,
+          "note": "Let me read the key files to understand the exact current implementation before making changes.\nNow let me read the pubsub, message handler, chat handler, inbox service, and database schema.\nNow let me read the database schema, chat service, and main.go wiring.\nNow let me read the main.go wiring and the websocket handler.\nLet me look at how the message handler is constructed in main.go and check the pubsub wiring to handlers.\nLet me look at the test file and check the ws client test setup to und"
         },
         {
           "id": "6.2",
           "name": "Message actions reply/forward/delete/pin",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788195142.290171,
+          "note": "I'll explore the codebase to understand the existing structure and patterns before implementing.\nNow let me look at the project spec/docs and search for any existing references to these message actions.\nLet me examine where messages are queried across the backend, and look at the chat handler/service and websocket service for patterns.\nLet me establish a baseline build before making changes.\nNow I'll implement. Starting with the model:\nNow the migrations:\nNow updating the MessageService in servi"
         },
         {
           "id": "6.3",
           "name": "Universal message+media search",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788195783.6193213,
+          "note": "Let me look at the git status and check for any existing search tests/helpers to align with conventions.\nNow I understand the codebase. Let me set up a task plan and start implementing the universal message+media search (task 6.3).\nNow let me update the models:\nNow let me update the search service. First, replace the `SearchMessages` function:\nI need to add a `ChatID` field to the `MediaAttachment` model since the search query returns it:\nNow let me build to check the service compiles:\nNow let m"
         },
         {
           "id": "6.4",
           "name": "Archive & mute",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788196351.5497117,
+          "note": "I'll explore the codebase to understand its structure and context before implementing the archive & mute feature.\nThere are existing uncommitted changes. Let me look for the task definition and understand the project structure.\nLet me read the requirements around the 6.4 task and understand the full context.\nNow I understand the context. Let me explore the backend structure and how the recent similar tasks (6.1, 6.2, 6.3) were implemented to follow conventions.\nLet me examine the models, chat se"
         },
         {
           "id": "6.5",
           "name": "Media gallery",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788196931.524721,
+          "note": "Now let me implement. Starting with the model extension:\nNow the migration in postgres.go:\nNow the GalleryService:\nNow the GalleryHandler:\nNow wire it up in main.go — service creation, handler creation, and route:\nCompiles. Now the tests. Service test:\nNow the handler test:\nNow update the handler test to use the `media` alias correctly:\nsqlmock does match `pq.Array` in `WithArgs` (auth_test.go:116). Let me update the tests:\nNow the handler test:\nNow run the full backend test suite + vet to ensur"
         },
         {
           "id": "6.6",
           "name": "Document sharing",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788197670.820927,
+          "note": "I have a thorough understanding now. Task 6.6 \"Document sharing (PDF/doc/xlsx)\" needs a backend **write path**: the `media_attachments` table and read paths (gallery, search) already exist, but there's no endpoint to upload a file, persist the message+attachment, serve the file, or deliver it in real time. Let me implement that.\n\nLet me set up a task list and look at the chat service API.\nNow let me implement. Starting with config additions.\nNow the model addition. Let me add `Media` to the `Mes"
         },
         {
           "id": "6.7",
           "name": "Location sharing",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788198296.5427747,
+          "note": "Now I understand the architecture. Let me implement location sharing (task 6.7) following the existing media-attachment pattern. Starting with the DB migration.\nNow the model — adding location fields to `MediaAttachment`:\nNow the location service:\nI made an error in the URL format string (unneeded `%` escapes). Let me fix it:\nNow extend the read paths so a location pin survives reloads. Starting with `AttachMedia` in message.go:\nNow the gallery read path and type-set in gallery.go:\nNow add the `"
         },
         {
           "id": "7.1",
           "name": "Block/report surfaced everywhere",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788233995.7557678,
+          "note": "Block/report everywhere — wiring it across the backend now.\nMapping the remaining surfaces that need block status.\nCore chat surfaces updated — now covering message history and remaining endpoints.\nSwitching to contacts and shared type updates.\nFinalizing the shared contract and running checks.\nBlock/report surfaced: chat participants (list/create/get), message history senders, contact search/scan, gallery senders, and in-chat search now carry `isBlocked`/`blockedBy` via `ModerationService.Enric"
         },
         {
           "id": "7.2",
           "name": "WhatsApp OTP / 2FA",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788234321.3398526,
+          "note": "Implementing WhatsApp OTP / 2FA.\nStarting OTP/2FA build — laying down phone verification and second-factor login.\nCore 2FA flow done — fixing test expectations.\nTest fixtures patched — wiring shared package.\nVerification passed — finalizing delivery.\nImplemented WhatsApp OTP / 2FA (7.2): phone column + verification flags + `phone_otps` table (5m TTL, 5 attempts, 5/hr rate limit), `WhatsAppSender` (HTTP Business API + mock fallback), `OTPService` (Request/Verify/GetStatus/SetTwoFactor), JWT 2FA t"
         },
         {
           "id": "7.3",
           "name": "Privacy settings",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788234730.1714659,
+          "note": "Privacy settings 7.3 — building it out.\nPrivacy 7.3 — mapping requirements to build plan.\nCore implementation done — verifying the build.\nPrivacy translations need a quick patch.\nBackend `go vet` + `go test` exit 0 (handlers, services green); `frontend` `tsc && vite build` exit 0, `vitest` 99/99 green; `mobile` `jest` 13/13 green.\n\n**Backend:** extended `UserSettings`/`PrivacySettings` with `lastSeenVisibility`/`profilePhotoVisibility`/`contactsVisibility` (`everyone`|`contacts`|`nobody`), migra"
         },
         {
           "id": "8.1",
           "name": "WebRTC audio call",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788234890.1033385,
+          "note": "Starting WebRTC audio calls — mapping your codebase first.\nYour call service is a stub — designing real WebRTC signaling now.\nWebRTC audio (8.1): real signaling via `CallService.HandleSignal` + WS `webrtc_signal` relay + HTTP `POST /calls/:callId/signal` forward, `call_incoming`/`call_ended` fanout via hub+pubsub, initiator/participant validation, active-state checks, configurable ICE (`WEBRTC_STUN_URLS`/`WEBRTC_TURN_*`), `call_participants` + `participants` column support, WS `webrtc_signal` pu"
         },
         {
           "id": "8.2",
           "name": "Live+translated scrollable captions",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788235159.619938,
+          "note": "Live captions — building the feed.\nSwitching to caption specifics.\nFinalizing the caption streaming logic.\nCore features done — hooking up real-time delivery.\nBackend 8.2 done.\n\n**New API (captions):**\n- `POST /api/v1/calls/:callId/captions {text, language}` — validates call active/participant, translates via `TranslationService` to each participant's `native_language`, persists as `TranscriptSegment` (durably via `call_transcripts.segments`), broadcasts `live_caption` via `hub+pubsub` to all pa"
         },
         {
           "id": "8.3",
           "name": "Call client UI web+mobile",
-          "status": "PENDING"
+          "status": "DONE",
+          "updated_at": 1788235417.6566794,
+          "note": "Implementing Call client UI — mapping your codebase first.\nExisting call backend found — auditing the UI layer before building the screens.\nWeb: `CallScreen.tsx` (full-screen call, WebRTC, scrollable translated captions + bookmark, controls), `ChatArea.tsx` header call button + incoming banner. Mobile: `CallScreen.tsx` + stack route + chat header call button + WS incoming. Shared: `types.ts` CallSession/Transcript/WebRTCOffer, `api.ts` call group, `mobile/services/api.ts` wiring. Builds: fronten"
         }
       ],
       "gate": "messaging parity + audio captions end-to-end"
@@ -296,7 +322,7 @@
     {
       "id": 3,
       "name": "Video Call + Advanced Learning + Scaled Arch",
-      "status": "NOT_STARTED",
+      "status": "IN_PROGRESS",
       "tasks": [
         {
           "id": "9.1",

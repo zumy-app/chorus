@@ -48,8 +48,11 @@ export default function ChatScreen({ route, navigation }: any) {
       );
     } else if (message.type === 'user_typing' && payload.chatId === chatId) {
       setTyping(payload.isTyping === true);
+    } else if (message.type === 'call_incoming' && payload.chatId === chatId) {
+      const callId = (payload as Record<string, string>).callId || (payload as Record<string, string>).call_id;
+      if (callId) navigation.navigate('Call', { callId, chatId, chatName });
     }
-  }, [chatId]);
+  }, [chatId, chatName, navigation]);
 
   const loadCurrentUser = useCallback(async () => {
     const userStr = await storage.getItem('user');
@@ -77,13 +80,25 @@ export default function ChatScreen({ route, navigation }: any) {
     }
   }, [chatId]);
 
+  const startCall = async () => {
+    try {
+      const res = await apiService.initiateCall(chatId, 'audio');
+      navigation.navigate('Call', { callId: res.session.id, chatId, chatName });
+    } catch {}
+  };
+
   useEffect(() => {
     navigation.setOptions({
       title: chatName,
       headerTintColor: COLOR.primary,
       headerTitleStyle: { fontSize: 18, fontWeight: '600', color: COLOR.primary },
+      headerRight: () => (
+        <TouchableOpacity onPress={startCall} style={{ marginRight: 4, width: 36, height: 36, borderRadius: 18, backgroundColor: COLOR.primaryContainer, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: '#fff', fontSize: 16 }}>📞</Text>
+        </TouchableOpacity>
+      ),
     });
-  }, [navigation, chatName]);
+  }, [navigation, chatName, chatId]);
 
   useEffect(() => {
     loadCurrentUser();

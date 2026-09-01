@@ -20,6 +20,10 @@ type User struct {
 	// NULL until attachment infrastructure exists; clients fall back to the
 	// initials + AvatarColor rendering when it is unset.
 	AvatarURL       *string   `json:"avatarUrl,omitempty" db:"avatar_url"`
+	Phone           *string    `json:"phone,omitempty" db:"phone"`
+	PhoneVerified   bool       `json:"phoneVerified" db:"phone_verified"`
+	PhoneVerifiedAt *time.Time `json:"phoneVerifiedAt,omitempty" db:"phone_verified_at"`
+	TwoFactorEnabled bool      `json:"twoFactorEnabled" db:"two_factor_enabled"`
 	NativeLanguage  string    `json:"nativeLanguage" db:"native_language"`
 	TargetLanguages []string  `json:"targetLanguages" db:"target_languages"`
 	Role            string    `json:"role" db:"role"` // member, moderator, admin
@@ -48,10 +52,29 @@ type User struct {
 	// DeletedAt is a permanent soft delete; the account is blocked and hidden
 	// from the user directory.
 	DeletedAt *time.Time `json:"deletedAt,omitempty" db:"deleted_at"`
+	// IsBlocked and BlockedBy are viewer-relative moderation enrichment computed
+	// by the moderation service whenever a user is surfaced to the caller. They
+	// let the client render Block/Unblock and the "ghost" state everywhere a user
+	// appears (task 7.1). Not persisted.
+	IsBlocked bool `json:"isBlocked,omitempty" db:"-"`
+	BlockedBy bool `json:"blockedBy,omitempty" db:"-"`
 	// Phase 2: Learning settings
 	LearningSettings *LearningSettings `json:"learningSettings,omitempty" db:"-"`
 	// Phase 2: Privacy settings
 	PrivacySettings *PrivacySettings `json:"privacySettings,omitempty" db:"-"`
+}
+
+// BlockStatus is the moderation view of the relationship between the caller
+// (viewer) and a target user, derived from the directed edges in
+// blocked_users. It is what a client uses to render Block/Unblock accurately
+// on every surface the target user appears in (task 7.1).
+type BlockStatus struct {
+	// Blocked is true when the viewer has blocked the target.
+	Blocked bool `json:"blocked"`
+	// BlockedBy is true when the target has blocked the viewer.
+	BlockedBy bool `json:"blockedBy"`
+	// Mutual is true when both directions are present.
+	Mutual bool `json:"mutual"`
 }
 
 // Phase 2: Learning settings for grammar and vocabulary features
@@ -61,10 +84,46 @@ type LearningSettings struct {
 	DifficultyLevel   string `json:"difficultyLevel" db:"difficulty_level"` // beginner, intermediate, advanced
 }
 
+type PrivacyVisibility string
+
+const (
+	PrivacyEveryone PrivacyVisibility = "everyone"
+	PrivacyContacts PrivacyVisibility = "contacts"
+	PrivacyNobody   PrivacyVisibility = "nobody"
+)
+
 // Phase 2: Privacy settings
 type PrivacySettings struct {
-	TranscriptRecording  bool `json:"transcriptRecording" db:"transcript_recording"`
-	MessageRetentionDays int  `json:"messageRetentionDays" db:"message_retention_days"`
+	TranscriptRecording      bool              `json:"transcriptRecording" db:"transcript_recording"`
+	MessageRetentionDays     int               `json:"messageRetentionDays" db:"message_retention_days"`
+	LastSeenVisibility       PrivacyVisibility `json:"lastSeenVisibility" db:"last_seen_visibility"`
+	ProfilePhotoVisibility   PrivacyVisibility `json:"profilePhotoVisibility" db:"profile_photo_visibility"`
+	ContactsVisibility       PrivacyVisibility `json:"contactsVisibility" db:"contacts_visibility"`
+}
+
+type PhoneStatus struct {
+	Phone            *string `json:"phone,omitempty"`
+	PhoneMasked      string  `json:"phoneMasked,omitempty"`
+	PhoneVerified    bool    `json:"phoneVerified"`
+	TwoFactorEnabled bool    `json:"twoFactorEnabled"`
+}
+
+type OTPRequest struct {
+	Phone string `json:"phone" binding:"required"`
+}
+
+type OTPVerifyRequest struct {
+	Phone string `json:"phone" binding:"required"`
+	Code  string `json:"code" binding:"required,len=6"`
+}
+
+type TwoFASetupRequest struct {
+	Enabled *bool `json:"enabled" binding:"required"`
+}
+
+type TwoFAVerifyRequest struct {
+	TempToken string `json:"tempToken" binding:"required"`
+	Code      string `json:"code" binding:"required,len=6"`
 }
 
 // UserSettings is the full, persisted per-account settings row (the
@@ -72,16 +131,19 @@ type PrivacySettings struct {
 // feature toggles. Set is returned by GET /users/me/settings and updated via
 // PUT /users/me/settings.
 type UserSettings struct {
-	UserID               string    `json:"userId" db:"user_id"`
-	GrammarEnabled       bool      `json:"grammarEnabled" db:"grammar_enabled"`
-	VocabularyEnabled    bool      `json:"vocabularyEnabled" db:"vocabulary_enabled"`
-	DifficultyLevel      string    `json:"difficultyLevel" db:"difficulty_level"`
-	TranscriptRecording  bool      `json:"transcriptRecording" db:"transcript_recording"`
-	MessageRetentionDays int       `json:"messageRetentionDays" db:"message_retention_days"`
-	TranslationEnabled   bool      `json:"translationEnabled" db:"translation_enabled"`
-	GrammarAuto          bool      `json:"grammarAuto" db:"grammar_auto"`
-	HighlightsEnabled    bool      `json:"highlightsEnabled" db:"highlights_enabled"`
-	UpdatedAt            time.Time `json:"updatedAt" db:"updated_at"`
+	UserID                 string            `json:"userId" db:"user_id"`
+	GrammarEnabled         bool              `json:"grammarEnabled" db:"grammar_enabled"`
+	VocabularyEnabled      bool              `json:"vocabularyEnabled" db:"vocabulary_enabled"`
+	DifficultyLevel        string            `json:"difficultyLevel" db:"difficulty_level"`
+	TranscriptRecording    bool              `json:"transcriptRecording" db:"transcript_recording"`
+	MessageRetentionDays   int               `json:"messageRetentionDays" db:"message_retention_days"`
+	TranslationEnabled     bool              `json:"translationEnabled" db:"translation_enabled"`
+	GrammarAuto            bool              `json:"grammarAuto" db:"grammar_auto"`
+	HighlightsEnabled      bool              `json:"highlightsEnabled" db:"highlights_enabled"`
+	LastSeenVisibility     PrivacyVisibility `json:"lastSeenVisibility" db:"last_seen_visibility"`
+	ProfilePhotoVisibility PrivacyVisibility `json:"profilePhotoVisibility" db:"profile_photo_visibility"`
+	ContactsVisibility     PrivacyVisibility `json:"contactsVisibility" db:"contacts_visibility"`
+	UpdatedAt              time.Time         `json:"updatedAt" db:"updated_at"`
 }
 
 // FeatureSettings are the FR-25 per-account feature toggles. They gate
@@ -96,12 +158,15 @@ type FeatureSettings struct {
 }
 
 // UpdateFeatureSettingsRequest is the partial-update payload for the FR-25
-// toggles. Omitted (nil) pointers are left unchanged, so a client can toggle a
-// single feature without re-sending the others.
+// toggles plus the 7.3 privacy visibilities. Omitted (nil) pointers are left
+// unchanged, so a client can toggle a single field without re-sending the others.
 type UpdateFeatureSettingsRequest struct {
-	TranslationEnabled *bool `json:"translationEnabled"`
-	GrammarAuto        *bool `json:"grammarAuto"`
-	HighlightsEnabled  *bool `json:"highlightsEnabled"`
+	TranslationEnabled     *bool              `json:"translationEnabled"`
+	GrammarAuto            *bool              `json:"grammarAuto"`
+	HighlightsEnabled      *bool              `json:"highlightsEnabled"`
+	LastSeenVisibility     *PrivacyVisibility `json:"lastSeenVisibility" binding:"omitempty,oneof=everyone contacts nobody"`
+	ProfilePhotoVisibility *PrivacyVisibility `json:"profilePhotoVisibility" binding:"omitempty,oneof=everyone contacts nobody"`
+	ContactsVisibility     *PrivacyVisibility `json:"contactsVisibility" binding:"omitempty,oneof=everyone contacts nobody"`
 }
 
 // Phase 2: Client model for multi-device support
@@ -255,6 +320,12 @@ type Chat struct {
 	Participants []ChatParticipant      `json:"participants,omitempty" db:"-"`
 	LastMessage  *Message               `json:"lastMessage,omitempty" db:"-"`
 	UnreadCount  int                    `json:"unreadCount,omitempty" db:"-"`
+	// Task 6.4 (archive & mute): per-user conversation state derived from the
+	// chat_preferences table. These are scoped to the requesting user and are
+	// populated on read (GetUserChats / GetChatPreference), never the chat itself.
+	IsArchived bool       `json:"isArchived,omitempty" db:"archived_at"`
+	IsMuted    bool       `json:"isMuted,omitempty" db:"is_muted"`
+	MutedUntil *time.Time `json:"mutedUntil,omitempty" db:"muted_until"`
 }
 
 type ChatParticipant struct {
@@ -265,6 +336,20 @@ type ChatParticipant struct {
 	JoinedAt          time.Time `json:"joinedAt" db:"joined_at"`
 	LastReadMessageID *string   `json:"lastReadMessageId,omitempty" db:"last_read_message_id"`
 	User              *User     `json:"user,omitempty" db:"-"`
+}
+
+// ChatPreference is one per-user, per-chat conversation preference row
+// (task 6.4: archive & mute). IsArchived (archived_at IS NOT NULL) hides the
+// chat from the user's main list; IsMuted silences its notifications, optionally
+// until muted_until so a mute can be timed or indefinite. It is strictly
+// user-scoped: one user archiving/muting a chat does not affect co-participants.
+type ChatPreference struct {
+	UserID     string     `json:"userId" db:"user_id"`
+	ChatID     string     `json:"chatId" db:"chat_id"`
+	ArchivedAt *time.Time `json:"archivedAt,omitempty" db:"archived_at"`
+	IsMuted    bool       `json:"isMuted" db:"is_muted"`
+	MutedUntil *time.Time `json:"mutedUntil,omitempty" db:"muted_until"`
+	UpdatedAt  time.Time  `json:"updatedAt" db:"updated_at"`
 }
 
 type Message struct {
@@ -278,7 +363,54 @@ type Message struct {
 	DeliveryStatus      string            `json:"deliveryStatus" db:"delivery_status"`
 	ReplyToID           *string           `json:"replyToId,omitempty" db:"reply_to_id"`
 	CreatedAt           time.Time         `json:"timestamp" db:"created_at"`
-	Sender              *User             `json:"sender,omitempty" db:"-"`
+	// Message actions (task 6.2). A forwarded message is a copy authored by the
+	// forwarder; the original author / message / chat are kept for the "Forwarded
+	// from ..." label. DeletedAt is a soft delete: deleted rows are excluded from
+	// chat history and search but remain in the DB (so replies/forwards to them
+	// keep working and data is recoverable). Forwarded is derived on read from
+	// ForwardedFromMessageID being non-null.
+	Forwarded              bool             `json:"forwarded,omitempty" db:"-"`
+	ForwardedFromMessageID *string          `json:"forwardedFromMessageId,omitempty" db:"forwarded_from_message_id"`
+	ForwardedFromChatID    *string          `json:"forwardedFromChatId,omitempty" db:"forwarded_from_chat_id"`
+	ForwardedFromSenderID  *string          `json:"forwardedFromSenderId,omitempty" db:"forwarded_from_sender_id"`
+	DeletedAt              *time.Time       `json:"deletedAt,omitempty" db:"deleted_at"`
+	Sender                 *User            `json:"sender,omitempty" db:"-"`
+	Receipts               []MessageReceipt `json:"receipts,omitempty" db:"-"`
+	// Media holds the attachments (file/document/image/video/audio) attached to
+	// this message (task 6.6). Text messages carry an empty slice; when a media
+	// share persists, the attachment rows are attached to the message on read
+	// and on the send response so clients render the file bubble + download.
+	Media []MediaAttachment `json:"media,omitempty" db:"-"`
+}
+
+// PinnedMessage is one chat-scoped pin (task 6.2). It bundles the pinned
+// message with who pinned it and when so the client can render the pin banner
+// and the "pinned by" attribution without a second lookup.
+type PinnedMessage struct {
+	Message  Message   `json:"message"`
+	PinnedBy string    `json:"pinnedBy" db:"pinned_by"`
+	PinnedAt time.Time `json:"pinnedAt" db:"created_at"`
+}
+
+// MessageReceipt is the per-recipient tick state for one message (task 6.1).
+// Status is derived from the timestamps: sent (no timestamps), delivered
+// (received_at set), read (read_at set).
+type MessageReceipt struct {
+	MessageID  string     `json:"messageId" db:"message_id"`
+	UserID     string     `json:"userId" db:"user_id"`
+	ChatID     string     `json:"chatId" db:"chat_id"`
+	ReceivedAt *time.Time `json:"deliveredAt,omitempty" db:"received_at"`
+	ReadAt     *time.Time `json:"readAt,omitempty" db:"read_at"`
+	Status     string     `json:"status" db:"-"`
+}
+
+// ReceiptEvent is the real-time payload pushed to chat participants when a
+// message transitions to delivered or read (task 6.1).
+type ReceiptEvent struct {
+	ChatID    string `json:"chatId"`
+	MessageID string `json:"messageId"`
+	UserID    string `json:"userId"`
+	Status    string `json:"status"`
 }
 
 type AuthTokens struct {
@@ -332,6 +464,8 @@ type ContactMatch struct {
 	EmailHash       string   `json:"emailHash"`
 	NativeLanguage  string   `json:"nativeLanguage"`
 	TargetLanguages []string `json:"targetLanguages"`
+	IsBlocked       bool     `json:"isBlocked,omitempty"`
+	BlockedBy       bool     `json:"blockedBy,omitempty"`
 }
 
 // ContactScanRequest is the privacy-preserving contact upload. Only hashed
@@ -515,6 +649,21 @@ type CreateChatRequest struct {
 	Name         string   `json:"name"`
 }
 
+// ArchiveChatRequest is the payload for archiving/unarchiving a conversation
+// (task 6.4). Omitted Archived (nil) defaults to true, so POST /archive with no
+// body archives; an explicit false unarchives.
+type ArchiveChatRequest struct {
+	Archived *bool `json:"archived"`
+}
+
+// MuteChatRequest is the payload for muting/unmuting a conversation (task 6.4).
+// Muted defaults to true when omitted. Until, when set with Muted=true, makes the
+// mute timed (e.g. 8 hours); a nil Until with Muted=true mutes indefinitely.
+type MuteChatRequest struct {
+	Muted *bool      `json:"muted"`
+	Until *time.Time `json:"until,omitempty"`
+}
+
 type SendMessageRequest struct {
 	Text      string  `json:"text" binding:"required,min=1,max=10000"`
 	ReplyToID *string `json:"replyToId"`
@@ -565,17 +714,31 @@ type MessageAck struct {
 
 // Phase 2: Search request/response
 type SearchRequest struct {
-	Query    string   `json:"query" binding:"required,min=1"`
-	ChatIDs  []string `json:"chatIds,omitempty"`
-	Language string   `json:"language,omitempty"`
-	Limit    int      `json:"limit,omitempty"`
-	Offset   int      `json:"offset,omitempty"`
+	Query     string   `json:"query" binding:"required,min=1"`
+	ChatIDs   []string `json:"chatIds,omitempty"`
+	Language  string   `json:"language,omitempty"`
+	MediaType string   `json:"mediaType,omitempty"` // image, video, audio, document (task 6.3)
+	Limit     int      `json:"limit,omitempty"`
+	Offset    int      `json:"offset,omitempty"`
 }
 
+// SearchResult is the universal search response (task 6.3): it bundles text
+// messages and media attachments (images/videos/audio/documents) so a single
+// query surfaces both. MediaTotal is the matching-media count independent of
+// the message Total; HasMore refers to the messages page.
 type SearchResult struct {
-	Messages []Message `json:"messages"`
-	Total    int       `json:"total"`
-	HasMore  bool      `json:"hasMore"`
+	Messages   []Message         `json:"messages"`
+	Media      []MediaAttachment `json:"media"`
+	Total      int               `json:"total"`
+	MediaTotal int               `json:"mediaTotal"`
+	HasMore    bool              `json:"hasMore"`
+}
+
+// MediaSearchResult is the dedicated media-only search response (task 6.3).
+type MediaSearchResult struct {
+	Media   []MediaAttachment `json:"media"`
+	Total   int               `json:"total"`
+	HasMore bool              `json:"hasMore"`
 }
 
 // Phase 3: Grammar analysis request
@@ -607,13 +770,56 @@ type InitiateCallRequest struct {
 type MediaAttachment struct {
 	ID           string    `json:"id" db:"id"`
 	MessageID    string    `json:"messageId" db:"message_id"`
-	Type         string    `json:"type" db:"type"` // image, video, audio, document
+	ChatID       string    `json:"chatId" db:"chat_id"`
+	Type         string    `json:"type" db:"type"` // image, video, audio, document, link, location (link = 6.5, location = 6.7)
 	FileName     string    `json:"fileName" db:"file_name"`
 	FileSize     int64     `json:"fileSize" db:"file_size"`
 	MimeType     string    `json:"mimeType" db:"mime_type"`
 	URL          string    `json:"url" db:"url"`
 	ThumbnailURL *string   `json:"thumbnailUrl,omitempty" db:"thumbnail_url"`
 	CreatedAt    time.Time `json:"createdAt" db:"created_at"`
+	// Location sharing (task 6.7): latitude/longitude of the shared map pin and
+	// an optional human-readable label. These are set only for type == "location"
+	// and stay NULL for every other media type. Clients render the pin on a map
+	// from these (the URL is the map link); the gallery/search read paths expose
+	// them so a location bubble survives a reload.
+	Latitude     *float64 `json:"latitude,omitempty" db:"latitude"`
+	Longitude    *float64 `json:"longitude,omitempty" db:"longitude"`
+	LocationName string   `json:"locationName,omitempty" db:"location_name"`
+	// Sender is the user who shared the item, used by the media gallery's
+	// "Shared by" row (task 6.5). Not persisted — derived on read.
+	Sender *User `json:"sender,omitempty" db:"-"`
+}
+
+// SendLocationRequest is the payload for sharing a location pin into a chat
+// (task 6.7). Latitude/Longitude are required and validated to world bounds;
+// Label is an optional place name the client can supply from the geocoder.
+type SendLocationRequest struct {
+	Latitude  float64 `json:"latitude" binding:"required"`
+	Longitude float64 `json:"longitude" binding:"required"`
+	Label     string  `json:"label,omitempty"`
+	ReplyToID *string `json:"replyToId,omitempty"`
+}
+
+// GalleryTypeCounts holds per-type media counts for a chat (task 6.5) so the
+// client can render the Media / Docs / Links tab badges without extra calls.
+type GalleryTypeCounts struct {
+	Image    int `json:"image"`
+	Video    int `json:"video"`
+	Audio    int `json:"audio"`
+	Document int `json:"document"`
+	Link     int `json:"link"`
+	Location int `json:"location"`
+}
+
+// ChatMediaGallery is the chat-scoped media gallery response (task 6.5):
+// photos/videos/audio/documents/links shared in a specific chat, plus per-type
+// counts and pagination metadata.
+type ChatMediaGallery struct {
+	Items   []MediaAttachment `json:"items"`
+	Total   int               `json:"total"`
+	HasMore bool              `json:"hasMore"`
+	Counts  GalleryTypeCounts `json:"counts"`
 }
 
 // Phase 2: Metrics for monitoring

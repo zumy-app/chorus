@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { useStore } from '../store'
 import BottomNav from '../components/BottomNav'
 import AppHeader from '../components/AppHeader'
+import PrivacySettings from '../components/PrivacySettings'
 
 interface ProfileProps {
   onLogout: () => void
@@ -98,6 +99,11 @@ export default function Profile({ onLogout }: ProfileProps) {
             </div>
             <span className="material-symbols-outlined text-outline-variant">chevron_right</span>
           </div>
+        </section>
+
+        {/* Privacy Section */}
+        <section className="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/40 overflow-hidden p-4">
+          <PrivacySettings />
         </section>
 
         {/* Preferences Section */}

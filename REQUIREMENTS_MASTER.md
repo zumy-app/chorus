@@ -93,8 +93,8 @@
 - [ ] 6.1 Read receipts & delivery status ticks (sent/delivered/read, per recipient) **[PARTIAL]**.
 - [ ] 6.2 Message actions: reply+forward+delete+pin **[PARTIAL]**.
 - [ ] 6.3 Message + media search (universal) **[PARTIAL]**.
-- [ ] 6.4 Archive & mute conversations **[MISSING]**.
-- [ ] 6.5 Media gallery (photos/videos/links per chat) **[MISSING]**.
+- [x] 6.4 Archive & mute conversations.
+- [x] 6.5 Media gallery (photos/videos/links per chat).
 - [ ] 6.6 Document sharing (PDF/doc/xlsx) **[MISSING]**.
 - [ ] 6.7 Location sharing **[MISSING]**.
 

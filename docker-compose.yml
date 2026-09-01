@@ -53,6 +53,8 @@ services:
       - PORT=8080
       - PHOENIX_ENABLED=true
       - PHOENIX_OTLP_ENDPOINT=phoenix:4317
+    volumes:
+      - uploads_data:/root/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -254,4 +256,5 @@ volumes:
   libretranslate_data:
   phoenix_data:
   prometheus_data:
+  uploads_data:
   grafana_data:

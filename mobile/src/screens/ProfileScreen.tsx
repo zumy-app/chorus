@@ -12,7 +12,7 @@ import {
 import storage from '../utils/storage';
 import apiService from '../services/api';
 import webSocketService from '../services/websocket';
-import { SUPPORTED_LANGUAGES, User } from '@chorus/shared';
+import { SUPPORTED_LANGUAGES, User, type PrivacyVisibility } from '@chorus/shared';
 import { COLOR, FONTS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../theme';
 
 export default function ProfileScreen({ navigation }: any) {
@@ -22,10 +22,33 @@ export default function ProfileScreen({ navigation }: any) {
   const [targetLanguages, setTargetLanguages] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [lastSeen, setLastSeen] = useState<PrivacyVisibility>('everyone');
+  const [profilePhoto, setProfilePhoto] = useState<PrivacyVisibility>('everyone');
+  const [contacts, setContacts] = useState<PrivacyVisibility>('everyone');
+  const [privacyLoading, setPrivacyLoading] = useState(true);
 
   useEffect(() => {
     loadUser();
+    loadPrivacy();
   }, []);
+
+  const loadPrivacy = async () => {
+    try {
+      const s = await apiService.getSettings();
+      setLastSeen(s.lastSeenVisibility ?? 'everyone');
+      setProfilePhoto(s.profilePhotoVisibility ?? 'everyone');
+      setContacts(s.contactsVisibility ?? 'everyone');
+    } catch {} finally { setPrivacyLoading(false) }
+  };
+
+  const updatePrivacy = async (field: 'lastSeenVisibility' | 'profilePhotoVisibility' | 'contactsVisibility', value: PrivacyVisibility) => {
+    try {
+      const updated = await apiService.updateSettings({ [field]: value } as any);
+      setLastSeen(updated.lastSeenVisibility);
+      setProfilePhoto(updated.profilePhotoVisibility);
+      setContacts(updated.contactsVisibility);
+    } catch { Alert.alert('Error', 'Could not save privacy settings.'); }
+  };
 
   const loadUser = async () => {
     const userStr = await storage.getItem('user');
@@ -181,6 +204,26 @@ export default function ProfileScreen({ navigation }: any) {
             ))}
           </View>
         </View>
+      </View>
+
+      {/* Privacy */}
+      <View style={styles.card}>
+        <Text style={styles.sectionHeader}>Privacy</Text>
+        {privacyLoading ? <ActivityIndicator style={{margin: 16}} color={COLOR.primary} /> : <>
+        {( [ ['Last seen', lastSeen, 'lastSeenVisibility', setLastSeen], ['Profile photo', profilePhoto, 'profilePhotoVisibility', setProfilePhoto], ['Contacts', contacts, 'contactsVisibility', setContacts] ] as const).map(([label, val, field, setter]) => (
+          <View key={field} style={styles.settingsRow}>
+            <Text style={styles.settingsRowIcon}>🔒</Text>
+            <View style={styles.settingsRowTextWrap}><Text style={styles.settingsRowText}>{label}</Text><Text style={styles.settingsRowDesc}>{val === 'everyone' ? 'Everyone' : val === 'contacts' ? 'My contacts' : 'Nobody'}</Text></View>
+            <View style={styles.privacyOptions}>
+              {(['everyone','contacts','nobody'] as PrivacyVisibility[]).map(opt => (
+                <TouchableOpacity key={opt} style={[styles.privacyChip, val === opt && styles.privacyChipSelected]} onPress={() => { (setter as any)(opt); updatePrivacy(field as any, opt) }}>
+                  <Text style={[styles.privacyChipText, val === opt && styles.privacyChipTextSelected]}>{opt === 'everyone' ? 'Everyone' : opt === 'contacts' ? 'Contacts' : 'Nobody'}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        ))}
+        </>}
       </View>
 
       {/* AI Features */}
@@ -426,4 +469,9 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.6,
   },
+  privacyOptions: { flexDirection: 'row', gap: 6 },
+  privacyChip: { borderWidth: 1, borderColor: COLOR.outlineVariant, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4 },
+  privacyChipSelected: { backgroundColor: COLOR.primary, borderColor: COLOR.primary },
+  privacyChipText: { fontSize: 11, color: COLOR.onSurface, fontFamily: FONTS.label },
+  privacyChipTextSelected: { color: COLOR.onPrimary },
 });

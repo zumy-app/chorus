@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"sync"
@@ -26,6 +27,8 @@ type Client struct {
 	Conn     *websocket.Conn
 	Send     chan []byte
 	Hub      *WebSocketHub
+	Receipts *ReceiptService
+	Calls    *CallService
 	msgLimit *FixedWindowLimiter
 }
 
@@ -243,9 +246,47 @@ func (c *Client) ReadPump() {
 		switch wsMsg.Type {
 		case "typing_start", "typing_stop":
 			c.handleTypingEvent(wsMsg)
+		case "message_ack":
+			c.handleMessageAck(wsMsg)
+		case "webrtc_signal", "call_signal":
+			c.handleCallSignal(wsMsg)
+		case "live_caption", "caption":
+			c.handleLiveCaption(wsMsg)
 		case "join_chat":
 			// Handle join chat event
 		}
+	}
+}
+
+// handleMessageAck processes an inbound delivered/read acknowledgment (task
+// 6.1). The recipient's client acks each message it receives ("received") and,
+// when opened, "read"; the server records the per-recipient tick and notifies
+// the participants through the ReceiptService.
+func (c *Client) handleMessageAck(msg models.WebSocketMessage) {
+	if c.Receipts == nil {
+		return
+	}
+
+	var ack models.MessageAck
+	data, err := json.Marshal(msg.Data)
+	if err != nil {
+		return
+	}
+	if err := json.Unmarshal(data, &ack); err != nil {
+		return
+	}
+	if ack.MessageID == "" {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	switch ack.Status {
+	case "received":
+		_ = c.Receipts.AcknowledgeReceived(ctx, ack.ChatID, ack.MessageID, c.UserID)
+	case "read":
+		_ = c.Receipts.AcknowledgeRead(ctx, ack.ChatID, ack.MessageID, c.UserID)
 	}
 }
 
@@ -258,6 +299,64 @@ func (c *Client) WritePump() {
 			return
 		}
 	}
+}
+
+func (c *Client) handleLiveCaption(msg models.WebSocketMessage) {
+	if c.Calls == nil {
+		return
+	}
+	data, ok := msg.Data.(map[string]interface{})
+	if !ok {
+		return
+	}
+	callID, _ := data["callId"].(string)
+	if callID == "" {
+		callID, _ = data["call_id"].(string)
+	}
+	text, _ := data["text"].(string)
+	if text == "" {
+		text, _ = data["originalText"].(string)
+	}
+	lang, _ := data["language"].(string)
+	if lang == "" {
+		lang, _ = data["originalLanguage"].(string)
+	}
+	if callID == "" || text == "" {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, _ = c.Calls.PublishLiveCaption(ctx, callID, c.UserID, text, lang)
+}
+
+func (c *Client) handleCallSignal(msg models.WebSocketMessage) {
+	if c.Calls == nil {
+		return
+	}
+	data, ok := msg.Data.(map[string]interface{})
+	if !ok {
+		return
+	}
+	callID, _ := data["callId"].(string)
+	if callID == "" {
+		callID, _ = data["call_id"].(string)
+	}
+	sigType, _ := data["type"].(string)
+	sdp, _ := data["sdp"].(string)
+	candidate, _ := data["candidate"].(string)
+	if candidate == "" {
+		if v, ok := data["candidate"]; ok && v != nil {
+			if b, err := json.Marshal(v); err == nil {
+				candidate = string(b)
+			}
+		}
+	}
+	if callID == "" || sigType == "" {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_ = c.Calls.HandleSignal(ctx, callID, c.UserID, sigType, sdp, candidate, data)
 }
 
 func (c *Client) handleTypingEvent(msg models.WebSocketMessage) {
