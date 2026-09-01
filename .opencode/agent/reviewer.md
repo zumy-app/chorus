@@ -1,7 +1,7 @@
 ---
 mode: subagent
 description: Code reviewer. Reads diffs, checks correctness, security, requirement adherence; returns PASS or CHANGES-REQUIRED.
-model: opencode-go/deepseek-v4-flash-vision-exp
+model: opencode/muse-spark-1.2-contributor-free
 permission:
   read: allow
   grep: allow

@@ -1,7 +1,7 @@
 ---
 mode: subagent
 description: Senior Expo React Native engineer for Android + iOS as the PRIMARY Chorus app surface.
-model: opencode-go/deepseek-v4-flash-vision-exp
+model: opencode/muse-spark-1.2-contributor-free
 permission:
   read: allow
   edit: allow

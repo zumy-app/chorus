@@ -36,9 +36,8 @@ AGENT_ROUTE = {
     "teacher": "teacher",
 }
 
-# Must match the model the interactive session runs on so headless subagents
-# use an already-configured provider. Override via env OPENCODE_MODEL.
-DEFAULT_MODEL = os.environ.get("OPENCODE_MODEL", "opencode-go/deepseek-v4-flash-vision-exp")
+# Zen free tier — no billing required. Override via env OPENCODE_MODEL.
+DEFAULT_MODEL = os.environ.get("OPENCODE_MODEL", "opencode/muse-spark-1.2-contributor-free")
 
 
 class OpencodeRunSchema(BaseModel):
