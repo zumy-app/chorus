@@ -92,7 +92,9 @@ export default function BrowseTutorsScreen() {
                       <View style={styles.avatarLg}><Text style={styles.avatarLgText}>{(t.displayName || t.userId).slice(0, 1).toUpperCase()}</Text></View>
                       <Text style={styles.featuredName}>{t.displayName || t.userId}</Text>
                       <Text style={styles.featuredLang}>{(t.languages || []).slice(0, 2).join(' • ') || 'Tutor'}</Text>
+                      {t.verified && <View style={styles.verifiedBadge}><Text style={styles.verifiedText}>Verified</Text></View>}
                       <View style={styles.ratingPill}><Text style={styles.ratingPillText}>★ {(t.ratingAvg ?? 5).toFixed(1)}</Text></View>
+                      <Text style={styles.listPrice}>${Math.round((t.rateCents ?? 2500) / 100)} / session</Text>
                     </View>
                   </Pressable>
                 ))}
@@ -114,8 +116,9 @@ export default function BrowseTutorsScreen() {
                       <Text style={styles.listName}>{t.displayName || t.userId}</Text>
                       <Text style={styles.listRating}>★ {(t.ratingAvg ?? 4.8).toFixed(1)}</Text>
                     </View>
-                    <Text style={styles.listLang}>{(t.languages || []).join(' • ') || 'Language tutor'}</Text>
-                    <Text style={styles.listPrice}>${Math.round((t.rateCents ?? 1800) / 100)} / session</Text>
+                    <Text style={styles.listLang}>{(t.languages || []).join(' • ') || 'Language tutor'} {t.verified ? '· Verified' : ''}</Text>
+                    {t.verified && <Text style={styles.verifiedInline}>Verified</Text>}
+                    <Text style={styles.listPrice}>${Math.round((t.rateCents ?? 2500) / 100)} / session</Text>
                   </View>
                 </View>
                 <View style={styles.listActions}>
@@ -169,6 +172,9 @@ const styles = StyleSheet.create({
   featuredLang: { ...TYPOGRAPHY.labelSm, color: COLOR.onSurfaceVariant, fontFamily: FONTS.body },
   ratingPill: { backgroundColor: COLOR.surfaceContainer, borderRadius: RADIUS.full, paddingHorizontal: 8, paddingVertical: 2, marginTop: 4 },
   ratingPillText: { ...TYPOGRAPHY.labelSm, color: COLOR.onSurface, fontFamily: FONTS.label },
+  verifiedBadge: { backgroundColor: COLOR.primaryContainer, borderRadius: RADIUS.full, paddingHorizontal: 8, paddingVertical: 2, marginTop: 4 },
+  verifiedText: { ...TYPOGRAPHY.labelSm, color: COLOR.onPrimaryContainer, fontFamily: FONTS.label, fontSize: 11 },
+  verifiedInline: { ...TYPOGRAPHY.labelSm, color: COLOR.primary, fontFamily: FONTS.label, fontSize: 10 },
   listSection: { gap: 12 },
   listCard: { backgroundColor: COLOR.surfaceContainerLowest, borderRadius: RADIUS.xl, padding: 14, borderWidth: 1, borderColor: COLOR.outlineVariant, gap: 12, ...SHADOWS.elevation1 },
   listRow: { flexDirection: 'row', gap: 12 },

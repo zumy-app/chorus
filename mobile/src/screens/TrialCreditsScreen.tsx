@@ -31,6 +31,7 @@ export default function TrialCreditsScreen() {
   const history = data?.history ?? [];
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <Text style={styles.title}>Trial Credits</Text>
       <View style={styles.hero}>
         <Text style={styles.star}>★</Text>
         <Text style={styles.heroNum}>{credits}</Text>
@@ -66,6 +67,7 @@ const styles = StyleSheet.create({
   container:{flex:1,backgroundColor:COLOR.background},
   content:{padding:SPACING.marginMobile,gap:SPACING.stackMd,paddingBottom:32},
   center:{flex:1,backgroundColor:COLOR.background,alignItems:'center',justifyContent:'center',padding:24},
+  title:{...TYPOGRAPHY.headlineSm,color:COLOR.onSurface,fontFamily:FONTS.headline,fontSize:18},
   hero:{backgroundColor:COLOR.surfaceContainerLowest,borderRadius:RADIUS.xl,padding:SPACING.stackMd,alignItems:'center',gap:4,...SHADOWS.elevation1},
   star:{color:COLOR.primary,fontSize:28},
   heroNum:{...TYPOGRAPHY.headlineMd,color:COLOR.primary,fontFamily:FONTS.headline,fontSize:40},

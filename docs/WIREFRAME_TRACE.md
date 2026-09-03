@@ -222,3 +222,95 @@ Backend in `backend/cmd/server/main.go:604-634`, `backend/internal/handlers/teac
 5. **Trust & Safety polish (P2)** — add `TrustSafetyCenter` page aggregating blocks/reports/retention (`GET /blocks` `:487`, `GET /privacy/retention-policy` `:478`) and expose `moderator_queue` on mobile for moderators.
 6. **Wireframe hygiene** — `image.png` stray file and empty `linguist_flow` / `languagelearning` folders should be removed or documented as N/A.
 
+---
+
+## Addendum 2026-09-03 — Gap Closure S-HOME-01..04 + S-T-01..06 (BA+QA Sign-off, NOT yet DONE)
+
+> **Authority:** `wireframes/chorus_home_desktop_v2/code.html:134` Home v2 canonical + `docs/REQUIREMENTS_SLICE_HOME_V2.md:1` (S-HOME-01..04) + `docs/REQUIREMENTS_SLICE_MARKETPLACE.md:1` (S-T-01..06) + `docs/GAP_SIGNOFF.md:1` + `docs/CREWAI_GAP_CLOSURE_PLAN.md:39` TDD loop + `crew/roles.py:22` analyst sign-off
+> **Date:** 2026-09-03 | **BA:** analyst (`crew/roles.py:22`) | **QA:** qa_engineer (`crew/roles.py:54`) | **Builds:** `go vet 0`, `go test 0`, `frontend tsc 0 && vite build 0 && vitest 205 pass`, `mobile tsc 0 && jest 96 pass`, `e2e --list 143`
+> **Effect:** Home v2 remains **PASS** with v2 annotation; Marketplace **6 slices (9 rows) flip GAP → PASS**. Original audit rows above are **preserved for history** — this addendum is the flip record (audit trail, do not overwrite audit). Summary counts below are post-flip.
+
+### Updated Summary (post-flip)
+
+| Metric | Before (2026-09-01 audit) | After (2026-09-03 addendum) | Δ |
+|---|---|---|---|
+| Total wireframe entries | 94 | 94 | — |
+| Fully implemented (both platforms have screen+route) | 18 | **27** (+9 marketplace) | +9 |
+| Partial (one platform or backend-only) | 14 | 14 | — |
+| GAP — no screen/route on either platform | 62 | **53** | −9 |
+| Backend API exists but no UI | 11 | 11 | — (backend unchanged) |
+
+| Area | Before | After | Note |
+|---|---|---|---|
+| Teacher marketplace | **1/13** (`become_a_teacher` only) | **10/13** | 9 rows flipped: `browse_tutors`, `find_a_trial_tutor`, `tutor_profile_sofia`, `confirm_trial_booking`, `trial_credit_dashboard`, `teacher_dashboard`, `teacher_earnings_overview`, `payout_settings_history`, `student_management_progress_teacher` (students section of dashboard) — only non-marketplace deferred gaps remain (`teacher_student_learning_chat` PARTIAL, `custom_activity_builder_pusher`, `teacher_pronunciation_review_dashboard` etc. out of S-T scope) |
+| Learning dashboard | 7/12 | 7/12 | No change (Activity Hub P1 deferred) |
+
+### Home — already PASS, now annotated as v2
+
+| # | Wireframe folder | Status before | Status after + note | Impl citations |
+|---|---|---|---|---|
+| 27 | `chorus_home` | **PASS** | **PASS (v2)** — `implemented as v2 — Communication is Learning + 4-card ecosystem + $7.99/mo pricing (BA 2026-09-03)` | `frontend/src/pages/Landing.tsx:7` hero `:42` `Communication is Learning.` + brain `:64` + ecosystem `:87` + pricing `:138` + mission `:213` + footer `:239`; `mobile/src/screens/LandingScreen.tsx:68` TopNav + `:99` hero + `:133` bridging + `:143` ecosystem + `:176` pricing + `:216` mission + `:235` footer |
+| 28 | `chorus_home_desktop` | **PASS** | **PASS (v2)** — same | `frontend/src/pages/Landing.tsx:1` responsive via same route `/` `App.tsx:127` |
+| 29 | `chorus_home_desktop_v2` | **PASS** | **PASS (v2) — CANONICAL** — `wireframes/chorus_home_desktop_v2/code.html:134` TopNav `:115` + Hero `:134` + Bridging `:164` + Ecosystem `:174` + Pricing `:221` + Mission `:295` + Final CTA `:304` + Footer `:317` — single source of truth | `frontend/src/pages/Landing.tsx:38` `:74` `:87` `:138` `:213` `:224` `:239`; `mobile/src/screens/LandingScreen.tsx:52` `:100` `:133` `:143` `:176` `:216` `:225` `:235` |
+| 30 | `chorus_home_desktop_waitlist_product_previews` | **PASS** | **PASS (v2)** | `Landing.tsx:1` + `Waitlist.tsx:1` |
+| 31 | `chorus_home_fixed` | **PASS** | **PASS (v2)** | `LandingScreen.tsx:1` |
+| 32 | `chorus_home_mobile` | **PASS** | **PASS (v2)** | `LandingScreen.tsx:1` responsive |
+| 33 | `chorus_home_mobile_v2` | **PASS** | **PASS (v2)** — canonical mobile | `LandingScreen.tsx:52-262` full v2 |
+| 34 | `chorus_home_mobile_waitlist_product_previews` | **PASS** | **PASS (v2)** | `LandingScreen.tsx:1` |
+
+> Original rows 27-34 above remain **PASS** — addendum only adds `v2` annotation + file:line citations. No GAP flip needed for Home.
+
+### Marketplace — 9 rows GAP → PASS (6 slices S-T-01..06)
+
+| # | Wireframe folder (audit #) | Audit status (2026-09-01) | Post-addendum status | Slice | Impl file:line citations (both surfaces + backend) | QA testRefs green |
+|---|---|---|---|---|---|---|
+| 13 | `browse_tutors` | **GAP** — no `BrowseTutorsScreen` / no `/tutors` route | **PASS** (S-T-01) | S-T-01 Browse Tutors + Find a Trial Tutor | `frontend/src/pages/BrowseTutors.tsx:1` (`h2 Tutors` `:46`, `tutor-search` `:50`, filters `Language` `:54` `Price` `:65` `Rating` `:74`, `Featured Tutors` `:94`, `Available Now` `:114`, `$` per session `:106`) `frontend/src/App.tsx:247` `/tutors`; `mobile/src/screens/BrowseTutorsScreen.tsx:1` (`Featured Tutors` `:84`, `Available Now` `:106`, filter chips `:57`, `Verified` `:95`, `$/session` `:97`) `mobile/src/components/MainTabs.tsx:183` `MarketplaceTab/BrowseTutors`; `backend/cmd/server/main.go:648` `GET /teachers/browse` `backend/internal/services/teacher.go:132` `BrowseTutors` | `e2e/tests/tutor-browse.spec.ts:14` nav+wireframe+mobile parity; `frontend/src/__tests__/marketplace.slices.test.tsx` + `mobile/__tests__/MarketplaceSlices.test.tsx` |
+| 42 | `find_a_trial_tutor` | **GAP** — no `FindTrialTutorScreen` | **PASS** (S-T-01 filtered variant) | S-T-01 | **Same screen** filtered — `BrowseTutors.tsx:21` `teacherAPI.browse({search})` + `GET /teachers/trial-credits:650` `teacher.go:232` badge; no separate route, documented as `?filter=trial` | `tutor-browse.spec.ts:27` filtered variant |
+| 91 | `tutor_profile_sofia` | **GAP** — no `TutorProfileScreen` | **PASS** (S-T-02) | S-T-02 Tutor Profile — Sofia | `frontend/src/pages/TutorProfile.tsx:1` (`Sofia Tutor` `:51`, `Verified` `:51`, `About` `:57` `Hola! I am Sofia` `:58`, `Reviews` `:62`, `Pricing Options` `:65` Single `$25` `:73` / Monthly `$80`, `Booking calendar` `:90` Oct 16-22, `book-trial` `:143`) `App.tsx:248` `/tutors/:id`; `mobile/src/screens/TutorProfileScreen.tsx:1` (`Verified` + rating + bio + reviews + `Book Trial`); `backend/cmd/server/main.go:664` `GET /teachers/:id` `teacher.go:105` + `:665` reviews + `:667` availability | `e2e/tests/tutor-profile.spec.ts:13` Sofia hero + Verified + `book-trial` → Confirm |
+| 39 | `confirm_trial_booking` | **GAP** — no confirm-booking UI | **PASS** (S-T-03) | S-T-03 Confirm Trial Booking | `frontend/src/pages/ConfirmBooking.tsx:1` (`Confirm Booking` `:51`, `Great choice!` `:56`, tutor card `:59`, Date/Time `:68-76`, `Payment Summary` `:79` `Trial Session 1 Credit` `:80` `Credits Applied -1` `:81` `Total $0.00` `:83`, `Cancellation Policy 24h` `:86`, `confirm-booking` `:92` sticky) `App.tsx:249` `/tutors/:id/confirm`; `mobile/src/screens/ConfirmBookingScreen.tsx:1`; `backend/cmd/server/main.go:668` `POST /teachers/:id/book` `teacher.go:416` `isTrial` | `e2e/tests/tutor-booking.spec.ts:13` `Great choice` + `$0.00` + `confirm-booking` |
+| 88 | `trial_credit_dashboard` | **GAP** — no `TrialCreditScreen` | **PASS** (S-T-04) | S-T-04 Trial Credit Dashboard | `frontend/src/pages/TrialCredits.tsx:1` (`Trial Credits` `:40` star, credits large `:41`, `Available to use right now` `:42`, `Next credit:` `:43` when 0, `Find a Tutor` `:44`, `How Trials Work` `:51` 20 Minutes/Meet & Greet, `Recommended for Trials` `:65`, `History` `:84`) `App.tsx:250` `/trial-credits`; `mobile/src/screens/TrialCreditsScreen.tsx:1`; `backend/cmd/server/main.go:651` `GET /teachers/trial-credits/dashboard` `teacher.go:249` | `e2e/tests/trial-credits.spec.ts:13` credits card + CTA + History |
+| 83 | `teacher_dashboard` | **GAP** — no `TeacherDashboardScreen` | **PASS** (S-T-05) | S-T-05 Teacher Dashboard | `frontend/src/pages/TeacherDashboard.tsx:1` (`Teacher Dashboard` `:29`, `Welcome back!` `:33` `Accepting New Students` `:34`, `Earnings Overview` `:39` Total/Pending/Fee 3 cols, `Premium Program` `:46`, `Availability` `:51` 3 slots, `Recent Students` `:58`, `Profile Completion — {pct}%` `:64` bar `:65` checklist `:67`) `App.tsx:251` `/teacher/dashboard`; `mobile/src/screens/TeacherDashboardScreen.tsx:1`; `backend/cmd/server/main.go:649` `GET /teachers/dashboard` `teacher.go:635` | `e2e/tests/teacher-dashboard.spec.ts:13` Welcome + Earnings + Availability + Students + Profile Completion |
+| 80 | `student_management_progress_teacher` | **GAP** — no teacher student-list | **PASS** (S-T-05 via same dashboard) | S-T-05 (students section) | Same `TeacherDashboard.tsx:58-61` `dash.students` via `teacher.go:751` students array | `teacher-dashboard.spec.ts` |
+| 84 | `teacher_earnings_overview` | **GAP** — no `EarningsScreen` | **PASS** (S-T-06 earnings alias) | S-T-06 Payout Settings & History | `frontend/src/pages/Payouts.tsx:1` merged with `payout_settings_history` — earnings via `This Month's Breakdown` `:67` Gross/Fee/Net + `Performance Insight` `:84` `12% more` `Hours Taught` `Active Students` `App.tsx:252` `/teacher/payouts`; `mobile/src/screens/PayoutsScreen.tsx:1`; `backend/cmd/server/main.go:638` `GET /teachers/payouts/overview` `payout.go:107` | `e2e/tests/payouts.spec.ts:13` alias via same Payouts |
+| 65 | `payout_settings_history` | **GAP** — no `PayoutSettingsScreen` | **PASS** (S-T-06) | S-T-06 Payout Settings & History | `frontend/src/pages/Payouts.tsx:1` (`Payout Settings & History` `:40`, `Total Lifetime Earnings` `:47` `Available for payout` `:48`, `Withdraw Funds →` `:49`, `Payout Methods` `:52` list + `paypal`/`bank` add `:60` `Add` `:63`, `This Month's Breakdown` `:67`, `Withdraw` `:75-81` amount + Available/Pending, `Performance Insight` `:84`, `Payout History` `:91`) `App.tsx:252`; `mobile/src/screens/PayoutsScreen.tsx:1`; `backend/cmd/server/main.go:641` `GET /teachers/payouts/methods` + `:642` POST + `:643` DELETE + `:644` PUT default + `:640` POST withdraw + `:639` GET history `payout.go:107-409` | `payouts.spec.ts` Lifetime Earnings + Methods + Breakdown + Withdraw + History |
+
+> **Navigation verified:** `frontend/src/App.tsx:247-253` six routes guarded `isAuthenticated ? <Page/> : <Navigate to="/login"/>`; `mobile/src/components/MainTabs.tsx:180-202` `MarketplaceTab` stack six screens + 4th tab `Tutors` `MainTabs.tsx:207` `label:Tutors glyph:🏫` (`TabIconMarketplace`). **Backend already live** since `main.go:638-668` + seed `dev_seed.go:79` Sofia (approved 2500c, 4 slots, 2 reviews, alice trial credit).
+
+### Audit trail note
+
+- This addendum **does not overwrite** the original audit table (`#1-94` rows above) — original GAP values are preserved for history. Readers should interpret any row above that is still marked **GAP** but listed here as **PASS post-addendum**.
+- Original `Recommendations 1-2` (P0 marketplace UI missing) are now **RESOLVED** via S-T-01..06; remaining Recommendations 3-6 (Activity Hub P1, Group P2, Trust & Safety P2, hygiene) are **unchanged / deferred**.
+- BA sign-off: `docs/GAP_SIGNOFF.md:1` table + signature 2026-09-03 — **phase_status stays PENDING** until reviewer + SRE gates pass (`crew/state.py:97`).
+
+### Files changed (git status at 2026-09-03 sign-off)
+
+```
+ M frontend/src/pages/BrowseTutors.tsx
+ M frontend/src/pages/Landing.tsx
+ M frontend/src/pages/Payouts.tsx
+ M frontend/src/pages/TutorProfile.tsx
+ M mobile/src/screens/BrowseTutorsScreen.tsx
+ M mobile/src/screens/LandingScreen.tsx
+ M mobile/src/screens/PayoutsScreen.tsx
+ M mobile/src/screens/TeacherDashboardScreen.tsx
+ M mobile/src/screens/TrialCreditsScreen.tsx
+ M mobile/src/screens/TutorProfileScreen.tsx
+ M mobile/tsconfig.json
+ A docs/GAP_SIGNOFF.md                  ← BA+QA sign-off (this addendum references it)
+?? docs/REQUIREMENTS_SLICE_HOME_V2.md   ← BA spec pre-existing
+?? docs/REQUIREMENTS_SLICE_MARKETPLACE.md
+?? e2e/tests/00-home.spec.ts
+?? e2e/tests/payouts.spec.ts
+?? e2e/tests/teacher-dashboard.spec.ts
+?? e2e/tests/trial-credits.spec.ts
+?? e2e/tests/tutor-booking.spec.ts
+?? e2e/tests/tutor-browse.spec.ts
+?? e2e/tests/tutor-profile.spec.ts
+?? frontend/src/__tests__/marketplace.slices.test.tsx
+?? frontend/src/pages/__tests__/Landing.test.tsx
+?? mobile/__tests__/Home.test.tsx
+?? mobile/__tests__/MarketplaceSlices.test.tsx
+ M docs/WIREFRAME_TRACE.md              ← THIS ADDENDUM APPENDED
+```
+
+

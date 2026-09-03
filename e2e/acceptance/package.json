@@ -1,0 +1,16 @@
+{
+  "name": "@chorus/acceptance",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "QA-owned acceptance suite for the Chorus rescue plan (docs/TEST_SPEC.md). Every test runs against the REAL backend + real database with deterministic dev fixtures seeded via `go run ./cmd/server --seed-dev`.",
+  "scripts": {
+    "acceptance": "tsx run.ts",
+    "acceptance:red": "tsx run.ts --mode red",
+    "acceptance:green": "tsx run.ts --mode green"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "@types/node": "^20.11.0"
+  }
+}
