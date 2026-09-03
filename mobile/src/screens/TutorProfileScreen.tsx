@@ -83,6 +83,31 @@ export default function TutorProfileScreen() {
         </View>
       )}
 
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Pricing Options</Text>
+        <View style={styles.pricingOption}>
+          <Text style={styles.pricingLabel}>Single Class (50 min)</Text>
+          <Text style={styles.pricingPrice}>$25</Text>
+        </View>
+        <Text style={styles.body}>Pay as you go. Flexible scheduling.</Text>
+        <View style={styles.pricingOption}>
+          <Text style={styles.pricingLabel}>Monthly Subscription</Text>
+          <Text style={styles.pricingPrice}>$80</Text>
+        </View>
+        <Text style={styles.body}>4 classes/month. Save 20% — Best Value</Text>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Booking calendar</Text>
+        <Text style={styles.body}>Oct 16 - 22 · Tue 17 selected</Text>
+        <View style={styles.calendarRow}>
+          <Text style={styles.calendarChip}>09:00 AM</Text>
+          <Text style={[styles.calendarChip, styles.calendarChipActive]}>10:00 AM</Text>
+          <Text style={styles.calendarChip}>02:00 PM</Text>
+          <Text style={styles.calendarChip}>04:30 PM</Text>
+        </View>
+      </View>
+
       <View style={{flexDirection:'row', gap: 8}}>
         <Pressable
           style={[styles.secondaryBtn, { flex: 1, borderColor: isBlocked ? COLOR.outlineVariant : COLOR.error }]}
@@ -154,6 +179,12 @@ const styles = StyleSheet.create({
   link: { ...TYPOGRAPHY.labelMd, color: COLOR.primary, marginTop: 12, fontFamily: FONTS.label },
   review: { borderTopWidth: 1, borderTopColor: COLOR.outlineVariant, paddingTop: 8, gap: 4 },
   reviewRating: { ...TYPOGRAPHY.labelMd, color: COLOR.onSurface, fontFamily: FONTS.label },
+  pricingOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: COLOR.outlineVariant, borderRadius: RADIUS.xl, padding: 12, marginTop: 6 },
+  pricingLabel: { ...TYPOGRAPHY.labelMd, color: COLOR.onSurface, fontFamily: FONTS.label },
+  pricingPrice: { ...TYPOGRAPHY.headlineSm, color: COLOR.onSurface, fontFamily: FONTS.headline, fontSize: 16 },
+  calendarRow: { flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap' },
+  calendarChip: { borderWidth: 1, borderColor: COLOR.outlineVariant, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, ...TYPOGRAPHY.labelSm, color: COLOR.onSurface, fontFamily: FONTS.label },
+  calendarChipActive: { backgroundColor: COLOR.primaryContainer, borderColor: COLOR.primary, color: COLOR.onPrimaryContainer },
   ctaRow: { flexDirection: 'row', gap: 12, marginTop: 4 },
   secondaryBtn: { flex: 1, borderWidth: 1, borderColor: COLOR.primary, borderRadius: RADIUS.full, paddingVertical: 14, alignItems: 'center' },
   secondaryBtnText: { ...TYPOGRAPHY.labelMd, color: COLOR.primary, fontFamily: FONTS.label },

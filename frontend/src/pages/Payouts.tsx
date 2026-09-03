@@ -64,7 +64,7 @@ export default function Payouts() {
                 </div>
               </div>
               <div className="lg:col-span-3 bg-surface-container-lowest rounded-xl p-6 shadow border">
-                <h3 className="font-semibold mb-4">This Month&apos;s Breakdown</h3>
+                <h3 className="font-semibold mb-4">This Month's Breakdown</h3>
                 <div className="space-y-3">
                   <div className="flex justify-between border-b pb-2"><span className="text-sm text-gray-500">Gross Earnings</span><span className="text-sm font-semibold">${((overview?.lifetimeGross ?? 0)/100).toFixed(2)}</span></div>
                   <div className="flex justify-between border-b pb-2"><span className="text-sm text-gray-500">Platform Fee {overview?.platformFeePct ?? 15}%</span><span className="text-sm text-error">-${(((overview?.lifetimeGross ?? 0)-(overview?.lifetimeNet ?? 0))/100).toFixed(2)}</span></div>
