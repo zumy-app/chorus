@@ -270,13 +270,13 @@ describe('QA marketplace', () => {
   });
   it('TutorProfile renders Spanish tutor and Book Trial', async () => {
     mockRouteParams = { userId: 't1' };
-    const { getByText } = render(<TutorProfileScreen navigation={{ navigate: mockNavigate, goBack: mockGoBack }} />);
+    const { getByText } = render(<TutorProfileScreen /> as any);
     await waitFor(() => getByText('María García'));
     expect(getByText('Book Trial')).toBeTruthy();
   });
   it('ConfirmBooking shows tutor and confirms booking', async () => {
     mockRouteParams = { userId: 't1' };
-    const { getByText } = render(<ConfirmBookingScreen navigation={{ navigate: mockNavigate, goBack: mockGoBack }} />);
+    const { getByText } = render(<ConfirmBookingScreen /> as any);
     await waitFor(() => getByText(/Confirm/i));
     const btn = getByText(/Confirm Booking|Book Trial|Confirm/i);
     fireEvent.press(btn);

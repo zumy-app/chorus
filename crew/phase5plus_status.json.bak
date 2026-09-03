@@ -1,0 +1,252 @@
+{
+  "$comment": "Phases 5-10 for missing features from wireframes. Managed by crew/autonomous_flow.py.",
+  "current_phase": 5,
+  "phases": [
+    {
+      "id": 5,
+      "name": "Messaging Parity",
+      "status": "IN_PROGRESS",
+      "gate": "all 5 features work on mobile + web, QA tests green",
+      "tasks": [
+        {
+          "id": "5.1",
+          "name": "Read receipts & delivery status ticks",
+          "status": "DONE",
+          "role": "backend_engineer",
+          "updated_at": 1788322130.6203234,
+          "note": "Read receipts & delivery ticks implemented. See agent_jobs/phase5_5.1_result.json"
+        },
+        {
+          "id": "5.2",
+          "name": "Message actions: reply, forward, delete, pin",
+          "status": "DONE",
+          "role": "backend_engineer",
+          "updated_at": 1788322807.4281266,
+          "note": "Reply/forward/delete/pin wired web+mobile+WS. See agent_jobs/phase5_5.2_result.json"
+        },
+        {
+          "id": "5.3",
+          "name": "Universal message & media search",
+          "status": "DONE",
+          "role": "frontend_engineer",
+          "updated_at": 1788323324.0465093,
+          "note": "Universal search: UniversalSearch.tsx + SearchMessages + /search route + mobile UniversalSearchScreen. 136 web + 43 mobile tests pass."
+        },
+        {
+          "id": "5.4",
+          "name": "Document sharing (PDF/DOC/XLSX)",
+          "status": "PENDING",
+          "role": "backend_engineer"
+        },
+        {
+          "id": "5.5",
+          "name": "Location sharing",
+          "status": "PENDING",
+          "role": "mobile_engineer"
+        },
+        {
+          "id": "5.QA",
+          "name": "QA: design + execute messaging parity tests",
+          "status": "PENDING",
+          "role": "qa_engineer"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Privacy & Security",
+      "status": "NOT_STARTED",
+      "gate": "security features work e2e, QA security tests green",
+      "tasks": [
+        {
+          "id": "6.1",
+          "name": "Block & report UX surfacing",
+          "status": "PENDING",
+          "role": "frontend_engineer"
+        },
+        {
+          "id": "6.2",
+          "name": "Two-factor authentication (2FA)",
+          "status": "PENDING",
+          "role": "backend_engineer"
+        },
+        {
+          "id": "6.3",
+          "name": "Privacy settings (last seen, profile photo, contacts)",
+          "status": "PENDING",
+          "role": "frontend_engineer"
+        },
+        {
+          "id": "6.QA",
+          "name": "QA: design + execute security tests",
+          "status": "PENDING",
+          "role": "qa_engineer"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Audio Calling with Smart Captions",
+      "status": "NOT_STARTED",
+      "gate": "audio call with live captions works, teacher signs off",
+      "tasks": [
+        {
+          "id": "7.1",
+          "name": "WebRTC audio call signaling",
+          "status": "PENDING",
+          "role": "backend_engineer"
+        },
+        {
+          "id": "7.2",
+          "name": "Live transcription + translated captions",
+          "status": "PENDING",
+          "role": "backend_engineer"
+        },
+        {
+          "id": "7.3",
+          "name": "Scrollable transcript panel",
+          "status": "PENDING",
+          "role": "frontend_engineer"
+        },
+        {
+          "id": "7.4",
+          "name": "Vocabulary capture from captions",
+          "status": "PENDING",
+          "role": "frontend_engineer"
+        },
+        {
+          "id": "7.TE",
+          "name": "Teacher: review caption translation quality",
+          "status": "PENDING",
+          "role": "teacher"
+        },
+        {
+          "id": "7.QA",
+          "name": "QA: design + execute call tests",
+          "status": "PENDING",
+          "role": "qa_engineer"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Video Calling & Desktop Optimization",
+      "status": "NOT_STARTED",
+      "gate": "video call with screen sharing + captions works, dashboard renders",
+      "tasks": [
+        {
+          "id": "8.1",
+          "name": "WebRTC video call (dual-view/PiP)",
+          "status": "PENDING",
+          "role": "backend_engineer"
+        },
+        {
+          "id": "8.2",
+          "name": "Screen sharing",
+          "status": "PENDING",
+          "role": "frontend_engineer"
+        },
+        {
+          "id": "8.3",
+          "name": "Immersive captions (subtitle overlays)",
+          "status": "PENDING",
+          "role": "frontend_engineer"
+        },
+        {
+          "id": "8.4",
+          "name": "Desktop dashboard / control center",
+          "status": "PENDING",
+          "role": "frontend_engineer"
+        },
+        {
+          "id": "8.QA",
+          "name": "QA: design + execute video call tests",
+          "status": "PENDING",
+          "role": "qa_engineer"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "SRE: Performance, Scalability & NFRs",
+      "status": "NOT_STARTED",
+      "gate": "L4 LB + Redis registry + cross-server delivery proven, soak test zero loss",
+      "tasks": [
+        {
+          "id": "9.1",
+          "name": "Layer 4 load balancer (leastconn)",
+          "status": "PENDING",
+          "role": "sre"
+        },
+        {
+          "id": "9.2",
+          "name": "Redis connection registry",
+          "status": "PENDING",
+          "role": "sre"
+        },
+        {
+          "id": "9.3",
+          "name": "Cross-server message routing",
+          "status": "PENDING",
+          "role": "sre"
+        },
+        {
+          "id": "9.4",
+          "name": "Horizontal scalability (stateless servers)",
+          "status": "PENDING",
+          "role": "sre"
+        },
+        {
+          "id": "9.5",
+          "name": "Load & soak testing (Artillery)",
+          "status": "PENDING",
+          "role": "sre"
+        },
+        {
+          "id": "9.6",
+          "name": "NFR compliance (17/22/23/24/25/26)",
+          "status": "PENDING",
+          "role": "sre"
+        },
+        {
+          "id": "9.QA",
+          "name": "QA: verify NFR compliance",
+          "status": "PENDING",
+          "role": "qa_engineer"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "QA, Testing & Final Release",
+      "status": "NOT_STARTED",
+      "gate": "all tests green, performance benchmarks meet NFRs, release gate passes",
+      "tasks": [
+        {
+          "id": "10.1",
+          "name": "Comprehensive test suite design",
+          "status": "PENDING",
+          "role": "qa_engineer"
+        },
+        {
+          "id": "10.2",
+          "name": "Test execution (unit + integration + e2e)",
+          "status": "PENDING",
+          "role": "test_engineer"
+        },
+        {
+          "id": "10.3",
+          "name": "Performance benchmarks",
+          "status": "PENDING",
+          "role": "sre"
+        },
+        {
+          "id": "10.4",
+          "name": "Final release gate",
+          "status": "PENDING",
+          "role": "reviewer"
+        }
+      ]
+    }
+  ]
+}

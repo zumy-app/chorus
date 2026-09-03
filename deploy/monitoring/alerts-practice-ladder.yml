@@ -1,0 +1,48 @@
+groups:
+  - name: practice-ladder
+    interval: 30s
+    rules:
+      - alert: PracticeHighLeechRate
+        expr: increase(chorus_backend_practice_leech_total[10m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Practice leech rate high (>10/10m)"
+          description: "Many cards leeched — check SRS intervals or prompts."
+
+      - alert: PracticeNoProgress
+        expr: sum(rate(chorus_backend_practice_attempts_total[10m])) == 0 and chorus_backend_practice_due_cards > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Practice attempts stalled while due cards exist"
+          description: "Due cards >0 but attempt rate 0 — frontend or API may be broken."
+
+      - alert: PracticeLowCorrectRate
+        expr: sum(rate(chorus_backend_practice_attempts_total{outcome="correct"}[5m])) / clamp_min(sum(rate(chorus_backend_practice_attempts_total[5m])),0.001) < 0.3
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Practice correct rate <30%"
+          description: "Learners failing >70% — possible prompt regression."
+
+      - alert: PracticeHighErrorRatio
+        expr: sum(rate(chorus_backend_http_requests_total{path="/api/v1/learning/vocabulary/{id}/review",status=~"5.."}[5m])) / clamp_min(sum(rate(chorus_backend_http_requests_total{path="/api/v1/learning/vocabulary/{id}/review"}[5m])),0.001) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Practice review endpoint 5xx >5%"
+          description: "Review API failing — check practice service / DB."
+
+      - alert: PracticeDurationHigh
+        expr: histogram_quantile(0.95, sum by (le) (rate(chorus_backend_practice_duration_seconds_bucket[5m]))) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Practice p95 >500ms"
+          description: "Grading latency elevated — DB slow or CPU saturated."

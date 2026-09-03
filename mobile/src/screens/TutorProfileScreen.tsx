@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, Modal, TouchableOpacity } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -17,6 +17,9 @@ export default function TutorProfileScreen() {
   const [tutor, setTutor] = useState<TutorProfile | null>(null);
   const [reviews, setReviews] = useState<TutorReview[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [reportVisible, setReportVisible] = useState(false);
+  const [reportReason, setReportReason] = useState('spam');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -27,6 +30,7 @@ export default function TutorProfileScreen() {
         const r = await apiService.getTutorReviews(userId, { limit: 3 });
         setReviews(r.reviews ?? []);
       } catch {}
+      try { const s = await (apiService as any).getBlockStatus(userId); setIsBlocked(s.blocked) } catch {}
     } catch {
       Alert.alert('Error', 'Could not load tutor profile');
     } finally { setLoading(false); }
@@ -79,6 +83,28 @@ export default function TutorProfileScreen() {
         </View>
       )}
 
+      <View style={{flexDirection:'row', gap: 8}}>
+        <Pressable
+          style={[styles.secondaryBtn, { flex: 1, borderColor: isBlocked ? COLOR.outlineVariant : COLOR.error }]}
+          onPress={async () => {
+            try {
+              if (isBlocked) { await (apiService as any).unblockUser(userId); setIsBlocked(false); }
+              else {
+                Alert.alert('Block user', 'Block this tutor?', [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Block', style: 'destructive', onPress: async () => { await (apiService as any).blockUser(userId); setIsBlocked(true); } },
+                ]);
+              }
+            } catch { Alert.alert('Error', 'Action failed') }
+          }}
+          testID="block-tutor"
+        >
+          <Text style={[styles.secondaryBtnText, !isBlocked && { color: COLOR.error }]}>{isBlocked ? 'Unblock' : '🚫 Block'}</Text>
+        </Pressable>
+        <Pressable style={[styles.secondaryBtn, { flex: 1 }]} onPress={() => setReportVisible(true)} testID="report-tutor">
+          <Text style={styles.secondaryBtnText}>🚩 Report</Text>
+        </Pressable>
+      </View>
       <View style={styles.ctaRow}>
         <Pressable style={styles.secondaryBtn} onPress={() => navigation.goBack()}>
           <Text style={styles.secondaryBtnText}>Back</Text>
@@ -87,6 +113,22 @@ export default function TutorProfileScreen() {
           <Text style={styles.primaryBtnText}>Book Trial</Text>
         </Pressable>
       </View>
+      <Modal visible={reportVisible} transparent animationType="fade" onRequestClose={()=>setReportVisible(false)}>
+        <View style={{flex:1, justifyContent:'flex-end'}}><Pressable style={{...StyleSheet.absoluteFillObject, backgroundColor:'rgba(0,0,0,0.4)'}} onPress={()=>setReportVisible(false)} />
+          <View style={{backgroundColor: COLOR.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 16, gap: 4}}>
+            <Text style={{fontSize:16, fontWeight:'700', color: COLOR.onSurface, marginBottom:8}}>Report tutor</Text>
+            {(['spam','harassment','inappropriate','scam','other'] as const).map(r=>(
+              <Pressable key={r} style={{padding:12, borderRadius:8, backgroundColor: reportReason===r ? COLOR.primaryContainer : COLOR.surfaceContainerHigh}} onPress={()=>setReportReason(r)}>
+                <Text style={{color: reportReason===r ? COLOR.onPrimaryContainer : COLOR.onSurface}}>{r}</Text>
+              </Pressable>
+            ))}
+            <Pressable style={{backgroundColor: COLOR.error, borderRadius: 12, padding: 14, alignItems:'center', marginTop:8}} onPress={async()=>{ try{ await (apiService as any).reportUser({type:'user', reportedUserId:userId, reason: reportReason}); Alert.alert('Reported','Thanks for reporting.'); } catch{ Alert.alert('Error','Could not report')} setReportVisible(false)}}>
+              <Text style={{color:'#fff', fontWeight:'600'}}>Submit report</Text>
+            </Pressable>
+            <TouchableOpacity style={{padding:12, alignItems:'center'}} onPress={()=>setReportVisible(false)}><Text style={{color: COLOR.onSurfaceVariant}}>Cancel</Text></TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }

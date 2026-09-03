@@ -207,6 +207,53 @@
       "targets": [
         { "expr": "sum(rate(chorus_backend_word_mining_jobs_total{status=\"failed\"}[5m])) / clamp_min(sum(rate(chorus_backend_word_mining_jobs_total[5m])), 0.001)", "legendFormat": "failed ratio", "refId": "A" }
       ]
+    },
+    {
+      "id": 17,
+      "title": "Practice attempts (by stage)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 56 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "expr": "sum by (stage) (rate(chorus_backend_practice_attempts_total[5m]))", "legendFormat": "{{stage}}", "refId": "A" }
+      ]
+    },
+    {
+      "id": 18,
+      "title": "Practice stage promotions",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 56 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "expr": "sum by (from_stage, to_stage) (rate(chorus_backend_practice_stage_promotions_total[5m]))", "legendFormat": "{{from_stage}}→{{to_stage}}", "refId": "A" }
+      ]
+    },
+    {
+      "id": 19,
+      "title": "Leech / Mastered / Spontaneous rate",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 64 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "expr": "rate(chorus_backend_practice_leech_total[5m])", "legendFormat": "leech", "refId": "A" },
+        { "expr": "rate(chorus_backend_practice_mastered_total[5m])", "legendFormat": "mastered", "refId": "B" },
+        { "expr": "rate(chorus_backend_practice_spontaneous_total[5m])", "legendFormat": "spontaneous", "refId": "C" }
+      ]
+    },
+    {
+      "id": 20,
+      "title": "Practice p95 latency + due gauge",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 64 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(chorus_backend_practice_duration_seconds_bucket[5m])))", "legendFormat": "p95", "refId": "A" },
+        { "expr": "chorus_backend_practice_due_cards", "legendFormat": "due gauge", "refId": "B" }
+      ]
     }
   ],
   "time": { "from": "now-6h", "to": "now" },

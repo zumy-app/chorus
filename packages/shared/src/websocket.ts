@@ -139,6 +139,13 @@ export function createWebSocketService(options: WebSocketServiceOptions) {
     })
   }
 
+  function sendReceipt(chatId: string, messageId: string, status: 'received' | 'read') {
+    send({
+      type: 'message_ack',
+      data: { chatId, messageId, status },
+    })
+  }
+
   return {
     connect,
     disconnect,
@@ -146,5 +153,6 @@ export function createWebSocketService(options: WebSocketServiceOptions) {
     onReconnect,
     send,
     sendTyping,
+    sendReceipt,
   }
 }

@@ -32,7 +32,6 @@ import type {
   LessonStartResponse,
   LessonStepResult,
   LoginRequest,
-  MediaAttachment,
   Message,
   MinedItem,
   OnboardRequest,
@@ -440,6 +439,11 @@ export function createApiClient(options: ApiClientOptions) {
       return response.data.blocks
     },
 
+    getBlockStatus: async (userId: string) => {
+      const response = await client.get<import('./types').BlockStatus>(`/blocks/${userId}/status`)
+      return response.data
+    },
+
     report: async (data: ReportRequest) => {
       const response = await client.post<Report>('/reports', data)
       return response.data
@@ -561,13 +565,18 @@ export function createApiClient(options: ApiClientOptions) {
       return response.data.messages
     },
 
-    // Universal message+media search (task 6.3): returns matching media
-    // attachments alongside messages.
+    universalSearch: async (query: string, params?: { chatId?: string; type?: string; limit?: number; offset?: number }) => {
+      const response = await client.get<import('./types').SearchResult>(
+        `/messages/search${qs({ q: query, chatId: params?.chatId, type: params?.type, limit: params?.limit, offset: params?.offset })}`
+      )
+      return response.data
+    },
+
     searchMedia: async (query: string, params?: { type?: string; chatId?: string; limit?: number; offset?: number }) => {
-      const response = await client.get<{ media: MediaAttachment[] }>(
+      const response = await client.get<import('./types').MediaSearchResult>(
         `/media/search${qs({ q: query, ...params })}`
       )
-      return response.data.media
+      return response.data
     },
 
     // Message actions (task 6.2).
@@ -973,6 +982,24 @@ export function createApiClient(options: ApiClientOptions) {
     },
   }
 
+  const captionReview = {
+    getQueue: async (params?: { limit?: number; offset?: number }) => {
+      const r = await client.get<{ items: import('./types').CaptionReviewQueueItem[]; total: number; hasMore: boolean }>(`/captions/review-queue${qs({ limit: params?.limit, offset: params?.offset })}`)
+      return r.data
+    },
+    getStats: async () => {
+      const r = await client.get<import('./types').CaptionQualityStats>('/captions/quality-stats')
+      return r.data
+    },
+    review: async (callId: string, index: number, data: { rating: number; correctedText?: string; feedback?: string; targetLanguage?: string }) => {
+      const r = await client.post<import('./types').CaptionReview>(`/calls/${callId}/captions/${index}/review`, data)
+      return r.data
+    },
+    getReviews: async (callId: string, index: number) => {
+      const r = await client.get<{ reviews: import('./types').CaptionReview[] }>(`/calls/${callId}/captions/${index}/reviews`)
+      return r.data.reviews
+    },
+  }
   const call = {
     initiate: async (chatId: string, type: 'audio' | 'video' = 'audio') => {
       const response = await client.post<{ session: import('./types').CallSession; offer: import('./types').WebRTCOffer }>('/calls/initiate', { chatId, type })
@@ -994,8 +1021,12 @@ export function createApiClient(options: ApiClientOptions) {
       const response = await client.post<import('./types').TranscriptSegment>(`/calls/${callId}/captions`, data)
       return response.data
     },
-    bookmarkCaption: async (callId: string, index: number) => {
-      const response = await client.post(`/calls/${callId}/captions/${index}/bookmark`)
+    bookmarkCaption: async (callId: string, index: number, phrase?: string) => {
+      const response = await client.post(`/calls/${callId}/captions/${index}/bookmark`, phrase ? { phrase } : {})
+      return response.data
+    },
+    transcribe: async (callId: string, data: { audio: string; language?: string }) => {
+      const response = await client.post<import('./types').TranscriptSegment>(`/calls/${callId}/transcribe`, data)
       return response.data
     },
     signal: async (callId: string, data: { type: string; sdp?: string; candidate?: string; data?: Record<string, unknown> }) => {
@@ -1013,6 +1044,25 @@ export function createApiClient(options: ApiClientOptions) {
     searchTranscripts: async (query: string, language?: string) => {
       const response = await client.get<import('./types').CallTranscript[]>(`/calls/transcripts/search${qs({ q: query, language })}`)
       return response.data
+    },
+  }
+
+  const search = {
+    universal: async (query: string, params?: { chatId?: string; type?: string; limit?: number; offset?: number; language?: string }) => {
+      const r = await client.get<import('./types').SearchResult>(`/messages/search${qs({ q: query, chatId: params?.chatId, type: params?.type, limit: params?.limit, offset: params?.offset, language: params?.language })}`)
+      return r.data
+    },
+    media: async (query: string, params?: { chatId?: string; type?: string; limit?: number; offset?: number }) => {
+      const r = await client.get<import('./types').MediaSearchResult>(`/media/search${qs({ q: query, chatId: params?.chatId, type: params?.type, limit: params?.limit, offset: params?.offset })}`)
+      return r.data
+    },
+    chats: async (query: string) => {
+      const r = await client.get<{ data: import('./types').Chat[] }>(`/chats/search${qs({ q: query })}`)
+      return r.data.data
+    },
+    contacts: async (query: string) => {
+      const r = await client.get<{ data: import('./types').User[] }>(`/contacts/search${qs({ q: query })}`)
+      return r.data.data
     },
   }
 
@@ -1154,8 +1204,10 @@ export function createApiClient(options: ApiClientOptions) {
     presence,
     settings,
     call,
+    captionReview,
     teacher,
     payouts,
+    search,
     health,
   }
 }

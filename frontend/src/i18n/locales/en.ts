@@ -167,6 +167,15 @@ export const en = {
     practicePrompt: 'Practice Prompt',
     practicePromptDesc: '"Order coffee in Paris"',
     emoji: 'Insert emoji',
+    reply: 'Reply',
+    forward: 'Forward',
+    forwarded: 'Forwarded',
+    pin: 'Pin',
+    unpin: 'Unpin',
+    pinned: 'Pinned',
+    replyingTo: 'Replying to {{name}}',
+    forwardTo: 'Forward to',
+    deleteFailed: 'Could not delete message',
   },
 
   learn: {
@@ -268,6 +277,23 @@ export const en = {
     noResults: 'No messages found for "{{query}}"',
     results: '{{count}} result(s)',
     unknown: 'Unknown',
+  },
+
+  search: {
+    universalPlaceholder: 'Search messages, media, or people...',
+    filter_all: 'All',
+    filter_messages: 'Messages',
+    filter_media: 'Media',
+    filter_people: 'People',
+    recent: 'Recent Searches',
+    clear: 'Clear',
+    noResults: 'No results for "{{query}}"',
+    messages: 'messages',
+    media: 'media',
+    people: 'People & Chats',
+    mediaTitle: 'Media',
+    resultsFor: 'Results for "{{query}}"',
+    typeHint: 'Search across all chats, media and people',
   },
 
   languagePicker: {

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import AppHeader from '../components/AppHeader'
 import BottomNav from '../components/BottomNav'
-import { teacherAPI } from '../services/api'
+import ReportModal from '../components/ReportModal'
+import { teacherAPI, moderationAPI } from '../services/api'
 import type { TutorProfile, TutorReview } from '@chorus/shared'
 
 export default function TutorProfilePage() {
@@ -12,6 +13,10 @@ export default function TutorProfilePage() {
   const [reviews, setReviews] = useState<TutorReview[]>([])
   const [loading, setLoading] = useState(true)
   const [msg] = useState('')
+  const [isBlocked, setIsBlocked] = useState(false)
+  const [blockBusy, setBlockBusy] = useState(false)
+  const [showReport, setShowReport] = useState(false)
+  const [actionMsg, setActionMsg] = useState('')
 
   useEffect(() => {
     if (!id) return
@@ -20,6 +25,7 @@ export default function TutorProfilePage() {
       setTutor(t)
       teacherAPI.getReviews(id, { limit: 5 }).then(r => setReviews(r.reviews)).catch(() => {})
     }).catch(() => setTutor(null)).finally(() => setLoading(false))
+    try { (moderationAPI as any)?.getBlockStatus?.(id)?.then((s:any) => setIsBlocked(s.blocked)).catch(()=>{}) } catch {}
   }, [id])
 
   const openConfirm = () => {
@@ -50,10 +56,33 @@ export default function TutorProfilePage() {
         </div>
         {reviews.length>0 && <div className="border rounded-xl p-4 space-y-2"><h3 className="font-semibold text-sm">Reviews</h3>{reviews.map(r=> <div key={r.id} className="border-t pt-2"><p className="text-xs font-medium">★ {r.rating} {r.studentName?`· ${r.studentName}`:''}</p><p className="text-sm text-gray-600">{r.comment}</p></div>)}</div>}
         {msg && <p className="text-sm text-center text-primary">{msg}</p>}
+        {actionMsg && <p className="text-sm text-center text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">{actionMsg}</p>}
+        <div className="flex gap-2">
+          <button
+            onClick={async () => {
+              if (!id || blockBusy) return
+              setBlockBusy(true)
+              try {
+                if (isBlocked) { await moderationAPI.unblock(id); setIsBlocked(false); setActionMsg('Unblocked tutor.'); }
+                else { await (moderationAPI as any).block(id); setIsBlocked(true); setActionMsg('Tutor blocked.'); }
+                setTimeout(()=>setActionMsg(''), 2500)
+              } catch { setActionMsg('Action failed. Try again.') } finally { setBlockBusy(false) }
+            }}
+            disabled={blockBusy}
+            className={`flex-1 rounded-full py-3 text-sm font-medium border ${isBlocked ? 'bg-white border-gray-300 text-gray-700' : 'bg-white border-red-200 text-red-600 hover:bg-red-50'}`}
+            data-testid="block-tutor"
+          >
+            {isBlocked ? 'Unblock' : '🚫 Block'}
+          </button>
+          <button onClick={() => setShowReport(true)} className="flex-1 bg-white border border-gray-300 text-gray-700 rounded-full py-3 text-sm font-medium" data-testid="report-tutor">🚩 Report</button>
+        </div>
         <div className="flex gap-3">
           <Link to="/tutors" className="flex-1 border border-primary text-primary rounded-full py-3 text-center text-sm font-medium">Browse</Link>
           <button onClick={openConfirm} className="flex-1 bg-primary text-white rounded-full py-3 text-sm font-medium" data-testid="book-trial">Book Trial</button>
         </div>
+        {showReport && id && (
+          <ReportModal targetType="user" targetUserId={id} reportedUserName={tutor?.displayName} onClose={() => setShowReport(false)} />
+        )}
       </main>
       <BottomNav />
     </div>

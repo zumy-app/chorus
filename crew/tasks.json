@@ -1,0 +1,22 @@
+{
+  "wireframe_parity_audit": {
+    "description": "Audit all wireframes in wireframes/ against existing codebase. Check mobile/src/screens, frontend/src/pages, backend/internal/handlers.",
+    "expected_output": "WireframeParityReport showing every wireframe with coverage status.",
+    "agent": "qa_engineer"
+  },
+  "requirements_trace": {
+    "description": "Read REQUIREMENTS_MASTER.md and trace every requirement ID to implementing code in frontend/src, mobile/src, backend/internal.",
+    "expected_output": "GapAnalysis showing implemented/missing/partial requirements with traces.",
+    "agent": "analyst"
+  },
+  "qa_parity_gate": {
+    "description": "Verify every wireframe reachable in mobile navigation (MainTabs, RootStack) and frontend routing (App.tsx). Check learning, marketplace, chat flows.",
+    "expected_output": "WireframeParityReport with verification results and gate outcome.",
+    "agent": "qa_engineer"
+  },
+  "release_gate": {
+    "description": "All phase tasks DONE, builds green, tests pass, security scan passes, Go/No-Go complete.",
+    "expected_output": "ReleaseGateCheck with pass/fail for each check and overall verdict.",
+    "agent": "reviewer"
+  }
+}

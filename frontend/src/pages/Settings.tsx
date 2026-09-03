@@ -5,6 +5,7 @@ import { authAPI, moderationAPI } from '../services/api'
 import { SUPPORTED_LANGUAGES } from '../services/language'
 import PlanCard from '../components/PlanCard'
 import PrivacySettings from '../components/PrivacySettings'
+import TwoFactorSettings from '../components/TwoFactorSettings'
 import type { Block } from '@chorus/shared'
 
 interface SettingsProps {
@@ -158,6 +159,11 @@ export default function Settings({ onClose }: SettingsProps) {
           {/* Privacy */}
           <div className="border border-gray-200 rounded-lg p-4">
             <PrivacySettings />
+          </div>
+
+          {/* 2FA */}
+          <div className="border border-gray-200 rounded-lg p-4">
+            <TwoFactorSettings />
           </div>
 
           {/* Blocked Users */}

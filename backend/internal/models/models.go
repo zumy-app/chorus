@@ -1249,3 +1249,46 @@ type TeacherDashboard struct {
 	UpcomingBookings     []TutorBooking       `json:"upcomingBookings"`
 	UpcomingAvailability []TutorAvailability  `json:"upcomingAvailability"`
 }
+
+type CaptionReview struct {
+	ID                 string    `json:"id" db:"id"`
+	CallID             string    `json:"callId" db:"call_id"`
+	SegmentIndex       int       `json:"segmentIndex" db:"segment_index"`
+	OriginalText       string    `json:"originalText" db:"original_text"`
+	OriginalLanguage   string    `json:"originalLanguage" db:"original_language"`
+	TranslatedText     string    `json:"translatedText" db:"translated_text"`
+	TargetLanguage     string    `json:"targetLanguage" db:"target_language"`
+	ReviewerID         string    `json:"reviewerId" db:"reviewer_id"`
+	Rating             int       `json:"rating" db:"rating"`
+	CorrectedText      string    `json:"correctedText,omitempty" db:"corrected_text"`
+	Feedback           string    `json:"feedback,omitempty" db:"feedback"`
+	ReviewerName       string    `json:"reviewerName,omitempty" db:"-"`
+	CreatedAt          time.Time `json:"createdAt" db:"created_at"`
+}
+
+type CaptionReviewRequest struct {
+	Rating        int    `json:"rating" binding:"required,min=1,max=5"`
+	CorrectedText string `json:"correctedText" binding:"omitempty,max=5000"`
+	Feedback      string `json:"feedback" binding:"omitempty,max=2000"`
+	TargetLanguage string `json:"targetLanguage" binding:"omitempty,max=10"`
+}
+
+type CaptionReviewQueueItem struct {
+	CallID           string  `json:"callId"`
+	SegmentIndex     int     `json:"segmentIndex"`
+	OriginalText     string  `json:"originalText"`
+	OriginalLanguage string  `json:"originalLanguage"`
+	Translations     map[string]string `json:"translations"`
+	SpeakerID        string  `json:"speakerId"`
+	Confidence       float64 `json:"confidence"`
+	ReviewCount      int     `json:"reviewCount"`
+	AvgRating        *float64 `json:"avgRating,omitempty"`
+}
+
+type CaptionQualityStats struct {
+	TotalCaptions   int      `json:"totalCaptions"`
+	ReviewedCount   int      `json:"reviewedCount"`
+	AvgRating       float64  `json:"avgRating"`
+	RatingCounts    map[int]int `json:"ratingCounts"`
+	PendingCount    int      `json:"pendingCount"`
+}

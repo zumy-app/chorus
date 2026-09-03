@@ -51,5 +51,7 @@ export const presenceAPI = client.presence
 export const settingsAPI = client.settings
 export const teacherAPI = client.teacher
 export const payoutsAPI = client.payouts
+export const searchAPI = client.search
+export const otpAPI = client.otp
 
 export default api

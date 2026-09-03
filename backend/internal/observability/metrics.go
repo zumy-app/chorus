@@ -53,6 +53,14 @@ var (
 	wordMiningItems    *prometheus.CounterVec
 	wordMiningPending  prometheus.Gauge
 
+	practiceAttempts    *prometheus.CounterVec
+	practiceDuration    *prometheus.HistogramVec
+	practicePromotions  *prometheus.CounterVec
+	practiceLeech       prometheus.Counter
+	practiceSpontaneous prometheus.Counter
+	practiceMastered    prometheus.Counter
+	practiceDueGauge    prometheus.Gauge
+
 	startedAt = time.Now()
 )
 
@@ -211,6 +219,63 @@ func SetupMetrics() *prometheus.Registry {
 		})
 		registry.MustRegister(wordMiningPending)
 
+		practiceAttempts = prometheus.NewCounterVec(prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      "practice_attempts_total",
+			Help:      "Practice attempts by stage and outcome (correct/incorrect).",
+		}, []string{"stage", "outcome"})
+		registry.MustRegister(practiceAttempts)
+
+		practiceDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      "practice_duration_seconds",
+			Help:      "Time to grade a practice attempt, by stage.",
+			Buckets:   []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2},
+		}, []string{"stage"})
+		registry.MustRegister(practiceDuration)
+
+		practicePromotions = prometheus.NewCounterVec(prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      "practice_stage_promotions_total",
+			Help:      "Stage promotions by from_stage and to_stage.",
+		}, []string{"from_stage", "to_stage"})
+		registry.MustRegister(practicePromotions)
+
+		practiceLeech = prometheus.NewCounter(prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      "practice_leech_total",
+			Help:      "Cards marked leech (lapses>=3 at low stage).",
+		})
+		registry.MustRegister(practiceLeech)
+
+		practiceSpontaneous = prometheus.NewCounter(prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      "practice_spontaneous_total",
+			Help:      "Spontaneous-use promotions (stage 5).",
+		})
+		registry.MustRegister(practiceSpontaneous)
+
+		practiceMastered = prometheus.NewCounter(prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      "practice_mastered_total",
+			Help:      "Cards reaching mastered state (production-gated).",
+		})
+		registry.MustRegister(practiceMastered)
+
+		practiceDueGauge = prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      "practice_due_cards",
+			Help:      "Current due cards gauge (sampled).",
+		})
+		registry.MustRegister(practiceDueGauge)
+
 		// Standard runtime/process collectors so the Grafana dashboard can show
 		// goroutines, memory, CPU, and open file descriptors alongside app data.
 		registry.MustRegister(prometheus.NewGoCollector())
@@ -331,6 +396,72 @@ func SetWordMiningPending(n int) {
 		return
 	}
 	wordMiningPending.Set(float64(n))
+}
+
+func ObservePracticeAttempt(stage int, correct bool, elapsed time.Duration) {
+	if practiceAttempts == nil {
+		return
+	}
+	outcome := "incorrect"
+	if correct {
+		outcome = "correct"
+	}
+	practiceAttempts.WithLabelValues(stageLabel(stage), outcome).Inc()
+	if elapsed > 0 && practiceDuration != nil {
+		practiceDuration.WithLabelValues(stageLabel(stage)).Observe(elapsed.Seconds())
+	}
+}
+
+func ObservePracticePromotion(fromStage, toStage int) {
+	if practicePromotions == nil {
+		return
+	}
+	practicePromotions.WithLabelValues(stageLabel(fromStage), stageLabel(toStage)).Inc()
+}
+
+func IncPracticeLeech() {
+	if practiceLeech == nil {
+		return
+	}
+	practiceLeech.Inc()
+}
+
+func IncPracticeSpontaneous() {
+	if practiceSpontaneous == nil {
+		return
+	}
+	practiceSpontaneous.Inc()
+}
+
+func IncPracticeMastered() {
+	if practiceMastered == nil {
+		return
+	}
+	practiceMastered.Inc()
+}
+
+func SetPracticeDue(n int) {
+	if practiceDueGauge == nil {
+		return
+	}
+	practiceDueGauge.Set(float64(n))
+}
+
+func stageLabel(s int) string {
+	switch s {
+	case 1:
+		return "1_recognition"
+	case 2:
+		return "2_cued"
+	case 3:
+		return "3_free"
+	case 4:
+		return "4_production"
+	case 5:
+		return "5_spontaneous"
+	default:
+		return "unknown"
+	}
 }
 
 // envOr reads an env var returning def when it is unset or empty.

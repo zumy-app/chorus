@@ -26,10 +26,16 @@ export default function ProfileScreen({ navigation }: any) {
   const [profilePhoto, setProfilePhoto] = useState<PrivacyVisibility>('everyone');
   const [contacts, setContacts] = useState<PrivacyVisibility>('everyone');
   const [privacyLoading, setPrivacyLoading] = useState(true);
+  const [blocked, setBlocked] = useState<any[]>([]);
+  const [phoneStatus, setPhoneStatus] = useState<any>(null);
+  const [phone, setPhone] = useState('');
+  const [code, setCode] = useState('');
 
   useEffect(() => {
     loadUser();
     loadPrivacy();
+    (apiService as any).getBlocked?.().then(setBlocked).catch(()=>{});
+    (apiService as any).getPhoneStatus?.().then(setPhoneStatus).catch(()=>{});
   }, []);
 
   const loadPrivacy = async () => {
@@ -226,6 +232,18 @@ export default function ProfileScreen({ navigation }: any) {
         </>}
       </View>
 
+      <View style={styles.card}>
+        <Text style={styles.sectionHeader}>Two-factor authentication</Text>
+        <View style={{padding: 16, gap: 8}}>
+          <Text style={styles.settingsRowDesc}>Phone: {phoneStatus?.phoneMasked || 'not set'} {phoneStatus?.phoneVerified ? '✓' : ''}  2FA: {phoneStatus?.twoFactorEnabled ? 'on' : 'off'}</Text>
+          <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="+14155551234" keyboardType="phone-pad" />
+          <TouchableOpacity style={styles.saveButton} onPress={async()=>{ try{ const r=await (apiService as any).requestOTP(phone); Alert.alert('Sent', `Code sent to ${r.phoneMasked}`)} catch(e:any){ Alert.alert('Error', e.response?.data?.error||'Failed')}}}><Text style={styles.saveButtonText}>Send code</Text></TouchableOpacity>
+          <TextInput style={styles.input} value={code} onChangeText={setCode} placeholder="123456" keyboardType="number-pad" maxLength={6} />
+          <TouchableOpacity style={styles.saveButton} onPress={async()=>{ try{ await (apiService as any).verifyPhone(phone, code); Alert.alert('Verified','Phone verified'); const s=await (apiService as any).getPhoneStatus(); setPhoneStatus(s)} catch(e:any){ Alert.alert('Error', e.response?.data?.error||'Invalid code')}}}><Text style={styles.saveButtonText}>Verify</Text></TouchableOpacity>
+          <TouchableOpacity style={[styles.saveButton, !phoneStatus?.phoneVerified && styles.buttonDisabled]} disabled={!phoneStatus?.phoneVerified} onPress={async()=>{ try{ const s=await (apiService as any).setTwoFactor(!phoneStatus?.twoFactorEnabled); setPhoneStatus(s); Alert.alert(s.twoFactorEnabled?'Enabled':'Disabled')} catch(e:any){ Alert.alert('Error', e.response?.data?.error||'Failed')}}}><Text style={styles.saveButtonText}>{phoneStatus?.twoFactorEnabled?'Disable 2FA':'Enable 2FA'}</Text></TouchableOpacity>
+        </View>
+      </View>
+
       {/* AI Features */}
       <View style={[styles.card, styles.aiCard]}>
         <Text style={[styles.sectionHeader, styles.aiSectionHeader]}>AI Features</Text>
@@ -249,6 +267,17 @@ export default function ProfileScreen({ navigation }: any) {
         </View>
       </View>
 
+      <View style={styles.card}>
+        <Text style={styles.sectionHeader}>🚫 Blocked users</Text>
+        {blocked.length === 0 ? <Text style={{padding:16, color: COLOR.onSurfaceVariant}}>No blocked users.</Text> : blocked.map((b:any)=>(
+          <View key={b.id} style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', padding:12, borderTopWidth:1, borderTopColor: COLOR.outlineVariant}}>
+            <Text style={{color: COLOR.onSurface, flex:1}}>{b.blocked?.displayName || b.blocked?.username || 'User'}</Text>
+            <TouchableOpacity style={{borderWidth:1, borderColor: COLOR.outlineVariant, borderRadius: 999, paddingHorizontal:12, paddingVertical:6}} onPress={async()=>{ try{ await (apiService as any).unblockUser(b.blockedId); setBlocked(prev=>prev.filter(x=>x.blockedId!==b.blockedId)) } catch{ Alert.alert('Error','Could not unblock')}}}>
+              <Text style={{color: COLOR.onSurface}}>Unblock</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+      </View>
       <TouchableOpacity style={{backgroundColor: COLOR.primary, borderRadius: RADIUS.xl, padding: 16, alignItems:'center', marginTop: SPACING.stackSm}} onPress={()=>navigation.navigate('BecomeTeacher')}>
         <Text style={styles.saveButtonText}>Become a Teacher</Text>
       </TouchableOpacity>

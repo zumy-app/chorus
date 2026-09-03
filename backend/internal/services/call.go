@@ -541,6 +541,27 @@ func (s *CallService) notifyParticipants(callID, chatID string, participants []s
 }
 
 func (s *CallService) PublishLiveCaption(ctx context.Context, callID, speakerID, text, originalLanguage string) (*models.TranscriptSegment, error) {
+	return s.publishCaption(ctx, callID, speakerID, text, originalLanguage, 1.0)
+}
+
+func (s *CallService) TranscribeAndPublish(ctx context.Context, callID, speakerID string, audioData []byte, hintLanguage string) (*models.TranscriptSegment, error) {
+	if s.sttService == nil {
+		return nil, fmt.Errorf("speech service not configured")
+	}
+	text, lang, confidence, err := s.sttService.TranscribeAudio(ctx, audioData)
+	if err != nil {
+		return nil, err
+	}
+	if lang == "" {
+		lang = hintLanguage
+	}
+	if lang == "" {
+		lang = "en"
+	}
+	return s.publishCaption(ctx, callID, speakerID, text, lang, confidence)
+}
+
+func (s *CallService) publishCaption(ctx context.Context, callID, speakerID, text, originalLanguage string, confidence float64) (*models.TranscriptSegment, error) {
 	text = strings.TrimSpace(text)
 	if text == "" {
 		return nil, fmt.Errorf("text required")
@@ -582,7 +603,7 @@ func (s *CallService) PublishLiveCaption(ctx context.Context, callID, speakerID,
 		OriginalText:     text,
 		OriginalLanguage: originalLanguage,
 		Translations:     translations,
-		Confidence:       1.0,
+		Confidence:       confidence,
 	}
 	if err := s.SaveTranscriptSegment(ctx, callID, segment); err != nil {
 		return nil, err
@@ -641,6 +662,10 @@ func (s *CallService) GetCaptionsPaginated(ctx context.Context, callID, userID s
 }
 
 func (s *CallService) BookmarkCaption(ctx context.Context, callID, userID string, segmentIndex int) (*models.VocabularyEntry, error) {
+	return s.BookmarkCaptionWithPhrase(ctx, callID, userID, segmentIndex, "")
+}
+
+func (s *CallService) BookmarkCaptionWithPhrase(ctx context.Context, callID, userID string, segmentIndex int, phrase string) (*models.VocabularyEntry, error) {
 	session, err := s.GetCallSession(ctx, callID)
 	if err != nil {
 		return nil, err
@@ -663,9 +688,15 @@ func (s *CallService) BookmarkCaption(ctx context.Context, callID, userID string
 		return nil, fmt.Errorf("segment index out of range")
 	}
 	seg := transcript.Segments[segmentIndex]
-	term := strings.TrimSpace(seg.OriginalText)
+	term := strings.TrimSpace(phrase)
+	if term == "" {
+		term = strings.TrimSpace(seg.OriginalText)
+	}
 	if term == "" {
 		return nil, fmt.Errorf("empty segment")
+	}
+	if len([]rune(term)) > 255 {
+		term = string([]rune(term)[:255])
 	}
 	lang := seg.OriginalLanguage
 	if lang == "" {
@@ -676,31 +707,41 @@ func (s *CallService) BookmarkCaption(ctx context.Context, callID, userID string
 		translation = v
 		break
 	}
-	if translation == "" && s.translationService != nil {
+	if phrase != "" && translation == "" && s.translationService != nil {
+		if tr, err := s.translationService.Translate(phrase, "en"); err == nil {
+			translation = tr
+		}
+	} else if translation == "" && s.translationService != nil {
 		if tr, err := s.translationService.Translate(term, "en"); err == nil {
 			translation = tr
 		}
 	}
-	var nativeLang string
-	_ = s.db.QueryRowContext(ctx, `SELECT native_language FROM users WHERE id=$1`, userID).Scan(&nativeLang)
-	_ = nativeLang
-	now := time.Now()
+	if translation != "" && len([]rune(translation)) > 500 {
+		translation = string([]rune(translation)[:500])
+	}
+	normalized := NormalizeLearningTerm(term, lang)
+	lemma := term
+	isChunk := strings.Contains(strings.TrimSpace(term), " ")
+	contextSentence := term
+	if seg.OriginalText != "" {
+		contextSentence = seg.OriginalText
+	}
 	var entry models.VocabularyEntry
 	entry.LearningData = &models.LearningData{}
 	err = s.db.QueryRowContext(ctx, `
-		INSERT INTO vocabulary (user_id, term, language, translation, definition, context_sentence, source_type, next_review)
-		VALUES ($1,$2,$3,$4,$5,$6,'scenario', CURRENT_TIMESTAMP + INTERVAL '1 day')
-		ON CONFLICT (user_id, term, language) DO UPDATE SET translation=EXCLUDED.translation
+		INSERT INTO vocabulary (user_id, term, language, translation, definition, context_sentence, source_type, normalized_term, lemma, is_chunk, next_review, interval_days, review_count, correct_count)
+		VALUES ($1,$2,$3,$4,'',$5,'caption',$6,$7,$8, CURRENT_TIMESTAMP, 1, 0, 0)
+		ON CONFLICT (user_id, term, language) DO UPDATE SET translation=COALESCE(NULLIF(EXCLUDED.translation,''), vocabulary.translation), normalized_term=EXCLUDED.normalized_term, lemma=EXCLUDED.lemma
 		RETURNING id, user_id, term, language, translation, definition, next_review, interval_days, created_at
-	`, userID, term, lang, translation, "", term).Scan(
+	`, userID, term, lang, translation, contextSentence, normalized, lemma, isChunk).Scan(
 		&entry.ID, &entry.UserID, &entry.Term, &entry.Language, &entry.Translation, &entry.Definition,
 		&entry.LearningData.NextReview, &entry.LearningData.Interval, &entry.CreatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to bookmark caption: %w", err)
 	}
-	entry.Context.Sentence = term
-	_ = now
+	entry.Context.Sentence = contextSentence
+	_, _ = s.db.ExecContext(ctx, `INSERT INTO vocabulary_sources (vocabulary_id, source_type, source_id, sentence) VALUES ($1,'caption',NULL,$2) ON CONFLICT (vocabulary_id, source_type, source_id) DO UPDATE SET seen_count = vocabulary_sources.seen_count + 1, last_seen_at = CURRENT_TIMESTAMP`, entry.ID, contextSentence)
 	return &entry, nil
 }
 
