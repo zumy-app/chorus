@@ -1047,7 +1047,7 @@ type TeacherApplyRequest struct {
 	Languages   []string             `json:"languages" binding:"required,min=1"`
 	Expertise   string               `json:"expertise" binding:"omitempty,max=500"`
 	RateCents   int                  `json:"rateCents" binding:"required,min=100"`
-	VideoURL    string               `json:"videoUrl" binding:"required,url"`
+	VideoURL    string               `json:"videoUrl" binding:"omitempty,url"`
 	Certificates []TeacherCertificate `json:"certificates"`
 }
 

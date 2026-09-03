@@ -13,7 +13,7 @@ import (
 
 func TestLivenessAlwaysHealthy(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewHealth("test-1.0.0")
+	h := NewHealth("test-1.0.0", "test-commit")
 	h.AddCheck("postgres", func(ctx context.Context) error {
 		return errors.New("db down")
 	})
@@ -43,7 +43,7 @@ func TestReadiness503And200(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	// Failing dependency -> 503.
-	h := NewHealth("test-1.0.0")
+	h := NewHealth("test-1.0.0", "test-commit")
 	h.AddCheck("redis", func(ctx context.Context) error {
 		return errors.New("redis down")
 	})
@@ -60,7 +60,7 @@ func TestReadiness503And200(t *testing.T) {
 	}
 
 	// All checks pass -> 200.
-	h2 := NewHealth("test-1.0.0")
+	h2 := NewHealth("test-1.0.0", "test-commit")
 	h2.AddCheck("postgres", func(ctx context.Context) error { return nil })
 	h2.AddCheck("redis", func(ctx context.Context) error { return nil })
 	router2 := gin.New()
@@ -78,7 +78,7 @@ func TestReadiness503And200(t *testing.T) {
 
 func TestEmptyChecksAreReady(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewHealth("test-1.0.0")
+	h := NewHealth("test-1.0.0", "test-commit")
 	router := gin.New()
 	router.GET("/health/ready", h.Readiness())
 

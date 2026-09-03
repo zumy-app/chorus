@@ -5,6 +5,7 @@ import { otpAPI } from '../services/api'
 import { api } from '../services/api'
 import { detectBrowserLanguage, getNativeLanguageName } from '../services/language'
 import AuthShell from '../components/AuthShell'
+import DevAccountSwitcher from '../components/DevAccountSwitcher'
 
 interface LoginProps {
   onLogin: (tokens: { accessToken: string; refreshToken: string }) => void
@@ -97,6 +98,7 @@ export default function Login({ onLogin }: LoginProps) {
             </div>
           )}
 
+          <DevAccountSwitcher onSelect={({ email: e, password: p }) => { setEmail(e); setPassword(p); setError('') }} />
           {requires2FA ? (
             <form onSubmit={handleVerify2FA} className="flex flex-col gap-5">
               <p className="text-sm text-on-surface-variant">Code sent to {phoneMasked}</p>

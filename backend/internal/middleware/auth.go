@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log"
 	"strings"
 
 	"github.com/chorus/messenger/internal/services"
@@ -35,6 +36,10 @@ func AuthMiddleware(authService *services.AuthService, userService *services.Use
 
 		user, err := userService.GetByID(userID)
 		if err != nil {
+			// Rescue plan C3: log the underlying error (sql.ErrNoRows vs a
+			// scan/schema failure) so "User not found" is diagnosable
+			// instead of opaque — this masked a DB split-brain issue.
+			log.Printf("[Auth] GetByID(%s) failed: %v", userID, err)
 			WriteError(c, ErrAuth("User not found"))
 			return
 		}

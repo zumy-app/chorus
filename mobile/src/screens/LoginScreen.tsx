@@ -11,6 +11,7 @@ import {
 import storage from '../utils/storage';
 import apiService from '../services/api';
 import AuthLayout from '../components/AuthLayout';
+import DevAccountSwitcher from '../components/DevAccountSwitcher';
 import { COLOR, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../theme';
 
 export default function LoginScreen({ navigation }: any) {
@@ -71,6 +72,7 @@ export default function LoginScreen({ navigation }: any) {
   return (
     <AuthLayout tagline="Master new languages through seamless, conversational learning.">
       <View style={styles.card}>
+        <DevAccountSwitcher onSelect={({ email, password }) => { setUsername(email); setPassword(password) }} />
         <View style={styles.field}>
           <Text style={styles.label}>Email Address</Text>
           <View style={styles.inputWrap}>

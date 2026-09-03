@@ -26,12 +26,14 @@ export default function LearnScreen() {
   const [d, setD] = useState<LearningDashboard | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [loadError, setLoadError] = useState<string | null>(null);
   const load = useCallback(() => {
     setLoading(true);
+    setLoadError(null);
     apiService
       .getLearningDashboard(targetLanguage, nativeLanguage)
       .then(setD)
-      .catch(() => {})
+      .catch((e: any) => setLoadError(e?.message || 'Failed to load dashboard'))
       .finally(() => setLoading(false));
   }, [targetLanguage, nativeLanguage]);
 
@@ -65,7 +67,18 @@ export default function LearnScreen() {
   const pendingPlacement =
     d?.profile.placementStatus === 'not_started' || d?.profile.placementStatus === 'in_progress';
   const goalPct = d?.dailyGoal.percent ?? 0;
-  const totalXp = Math.max(1, d?.weeklyActivity.reduce((s, w) => s + (w.xp || 0), 0) || 1);
+  const totalXp = Math.max(1, (d?.weeklyActivity ?? []).reduce((s: number, w: any) => s + (w.xp || 0), 0) || 1);
+
+  if (loadError) {
+    return (
+      <View style={styles.center}>
+        <Text style={{ color: COLOR.error, marginBottom: 12 }}>{loadError}</Text>
+        <Pressable onPress={load} style={[styles.primaryButton, { paddingHorizontal: 16, paddingVertical: 10 }]}>
+          <Text style={styles.primaryButtonText}>Retry</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>

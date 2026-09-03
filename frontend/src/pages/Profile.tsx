@@ -5,8 +5,9 @@ import BottomNav from '../components/BottomNav'
 import AppHeader from '../components/AppHeader'
 import PrivacySettings from '../components/PrivacySettings'
 import TwoFactorSettings from '../components/TwoFactorSettings'
-import { moderationAPI } from '../services/api'
+import { moderationAPI, api } from '../services/api'
 import type { Block } from '@chorus/shared'
+import { DEV_ACCOUNTS } from '@chorus/shared'
 
 interface ProfileProps {
   onLogout: () => void
@@ -23,6 +24,20 @@ export default function Profile({ onLogout }: ProfileProps) {
   const [blocked, setBlocked] = useState<Block[]>([])
   useEffect(() => { try { (moderationAPI as any)?.getBlocked?.().then(setBlocked).catch(()=>{}) } catch {} }, [])
 
+  // Dev-only quick switch (build-time gated — stripped from prod)
+  const isDev = (import.meta as any).env?.DEV
+  const handleDevSwitch = async (a: typeof DEV_ACCOUNTS[number]) => {
+    try {
+      const raw = await api.post('/auth/login', { username: a.email, password: a.password })
+      localStorage.setItem('accessToken', raw.data.tokens.accessToken)
+      localStorage.setItem('refreshToken', raw.data.tokens.refreshToken)
+      localStorage.setItem('user', JSON.stringify(raw.data.user))
+      window.location.href = '/chat'
+    } catch (e: any) {
+      alert(e.response?.data?.error || 'Switch failed')
+    }
+  }
+
   return (
     <div className="h-screen flex flex-col bg-background">
       <AppHeader />
@@ -31,6 +46,22 @@ export default function Profile({ onLogout }: ProfileProps) {
           <h2 className="font-headline-sm text-headline-sm text-on-surface mb-unit">{t('profile.title')}</h2>
           <p className="font-body-sm text-body-sm text-on-surface-variant">{t('profile.subtitle')}</p>
         </div>
+        {isDev && (
+          <section className="rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-3 flex flex-col gap-2">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold tracking-widest text-amber-700">DEV ONLY</span>
+              <span className="text-xs text-amber-700/70">Quick switch test account</span>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              {DEV_ACCOUNTS.map((a) => (
+                <button key={a.email} type="button" onClick={() => handleDevSwitch(a)} className="flex items-center justify-between rounded-lg bg-white border border-amber-200 px-3 py-2 text-left hover:bg-amber-100/60 transition-colors">
+                  <span className="flex flex-col"><span className="text-sm font-medium">{a.label}</span><span className="text-xs text-on-surface-variant">{a.email}</span></span>
+                  <span className="text-xs font-medium text-primary ml-2 shrink-0">Switch →</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Account Section */}
         <section className="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/40 overflow-hidden">
