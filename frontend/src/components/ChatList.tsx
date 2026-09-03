@@ -69,8 +69,9 @@ export default function ChatList({ searchQuery = '' }: ChatListProps) {
         return (
           <div key={chat.id}>
             <button
+              data-testid="chat-list-item"
               onClick={() => handleSelectChat(chat)}
-              className={`w-full flex items-center p-3 rounded-xl hover:bg-surface-container-low transition-colors duration-200 active:bg-surface-container gap-4 text-left relative ${
+              className={`w-full flex items-center p-3 rounded-xl hover:bg-surface-container-low transition-colors duration-200 active:bg-surface-container gap-4 text-left relative cursor-pointer ${
                 isActive ? 'bg-surface-container' : ''
               }`}
             >

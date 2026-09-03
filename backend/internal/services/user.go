@@ -25,13 +25,14 @@ const userColumns = "id, username, email, display_name, first_name, last_name, n
 // scanUser scans one row of the userColumns projection into a User.
 func scanUser(sc interface{ Scan(...interface{}) error }) (*models.User, error) {
 	user := &models.User{}
+	var firstNameNS, lastNameNS sql.NullString
 	err := sc.Scan(
 		&user.ID,
 		&user.Username,
 		&user.Email,
 		&user.DisplayName,
-		&user.FirstName,
-		&user.LastName,
+		&firstNameNS,
+		&lastNameNS,
 		&user.NativeLanguage,
 		pq.Array(&user.TargetLanguages),
 		&user.Role,
@@ -54,6 +55,12 @@ func scanUser(sc interface{ Scan(...interface{}) error }) (*models.User, error) 
 		&user.PhoneVerifiedAt,
 		&user.TwoFactorEnabled,
 	)
+	if firstNameNS.Valid {
+		user.FirstName = firstNameNS.String
+	}
+	if lastNameNS.Valid {
+		user.LastName = lastNameNS.String
+	}
 	if err != nil {
 		return nil, err
 	}

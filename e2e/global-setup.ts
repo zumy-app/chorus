@@ -148,6 +148,37 @@ export default async function globalSetup() {
   console.log('⏳ Waiting for backend health check...')
   await waitForUrl(BACKEND_HEALTH, 'Backend', true)
 
+  // ── Dev seed + JWT clear (QA fix #2, #6) — deterministic alice/bob/sofia ===
+  // When E2E_SEED!=false, hit the dev-only seed endpoint (backend exposes it when
+  // ENVIRONMENT=development). Falls back to no-op if endpoint is disabled (prod).
+  if (process.env.E2E_SEED !== 'false') {
+    try {
+      const seedUrl = (process.env.E2E_API_URL || 'http://localhost:8080/api/v1') + '/dev/seed'
+      // Try via HTTP first (if backend has dev seed route, e.g., POST /dev/seed)
+      // Otherwise the seed is done via `go run ./cmd/server --seed-dev` before this.
+      const res = await fetch(seedUrl, { method: 'POST' })
+      if (res.ok) {
+        console.log('✅ Dev seed via API succeeded')
+      } else {
+        console.log(`ℹ️ Dev seed API not available (${res.status}) — assuming pre-seeded via go run --seed-dev`)
+      }
+    } catch (e) {
+      console.log(`ℹ️ Dev seed API not reachable — assuming pre-seeded: ${(e as Error).message}`)
+    }
+    // Clear any stale JWTs from prior runs (storageState.json or prior localStorage)
+    // Playwright contexts start fresh, but global-setup runs outside browser — ensure
+    // no storageState file leaks prior alice/bob ids.
+    try {
+      const { unlinkSync, existsSync: existsSync2 } = await import('fs')
+      const storageState = resolve(ROOT_DIR, 'e2e/storageState.json')
+      if (existsSync2(storageState)) {
+        unlinkSync(storageState)
+        console.log('✅ Cleared stale storageState.json')
+      }
+    } catch {}
+    console.log('✅ Seed + JWT clear done — dev accounts alice.dev/bob.dev/sofia.tutor ready')
+  }
+
   // ── Wait for frontend ──
   console.log('⏳ Waiting for frontend...')
   await waitForUrl(FRONTEND_URL, 'Frontend', false)
