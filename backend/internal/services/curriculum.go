@@ -86,6 +86,12 @@ func (s *CurriculumService) SeedDefaultCourses(ctx context.Context) error {
 		return err
 	}
 
+	// Rescue plan D1: broader EN→ES scenario library so the Scenarios screen
+	// has real content (idempotent upserts, safe on every boot).
+	if err := s.seedExtraScenarios(ctx, courseID, unitIDs); err != nil {
+		return err
+	}
+
 	_, err = s.db.ExecContext(ctx, `
 		INSERT INTO learning_pair_capabilities (
 			native_language, target_language, support_tier, active_course_id,
@@ -305,6 +311,108 @@ func (s *CurriculumService) seedOrderingCoffeeScenario(ctx context.Context, cour
 	}
 
 	for _, phase := range orderingCoffeePhases {
+		chunks, _ := json.Marshal(phase.ChunkBank)
+		_, err := s.db.ExecContext(ctx, `
+			INSERT INTO scenario_phases (scenario_id, ordinal, title, learner_goal, required_intents, chunk_bank)
+			VALUES ($1, $2, $3, $4, $5, $6)
+			ON CONFLICT (scenario_id, ordinal) DO UPDATE SET
+				title = EXCLUDED.title,
+				learner_goal = EXCLUDED.learner_goal,
+				required_intents = EXCLUDED.required_intents,
+				chunk_bank = EXCLUDED.chunk_bank
+		`, scenarioID, phase.Ordinal, phase.Title, phase.LearnerGoal,
+			pq.Array(phase.RequiredIntents), chunks)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// scenarioSeedSpec describes one roleplay scenario for the seed library
+// (rescue plan D1). Phases reuse scenarioPhaseSeed so chunk banks stay
+// consistent with the hand-authored ordering-coffee scenario.
+type scenarioSeedSpec struct {
+	Slug     string
+	UnitSlug string
+	Title    string
+	Domain   string
+	Level    string
+	CanDo    string
+	RoleName string
+	RoleDesc string
+	Opening  string
+	MaxTurns int
+	Minutes  int
+	Phases   []scenarioPhaseSeed
+}
+
+// seedExtraScenarios upserts the broader EN→ES scenario library. Idempotent:
+// scripts are keyed by (course_id, slug) and phases by (scenario_id, ordinal),
+// so this is safe to run on every boot.
+func (s *CurriculumService) seedExtraScenarios(ctx context.Context, courseID string, unitIDs map[string]string) error {
+	for _, spec := range extraScenarioSpecs {
+		unitID := unitIDs[spec.UnitSlug]
+		if unitID == "" {
+			return fmt.Errorf("scenario %q references unknown unit %q", spec.Slug, spec.UnitSlug)
+		}
+		if err := s.seedScenarioSpec(ctx, courseID, unitID, spec); err != nil {
+			return fmt.Errorf("seed scenario %q: %w", spec.Slug, err)
+		}
+	}
+	return nil
+}
+
+func (s *CurriculumService) seedScenarioSpec(ctx context.Context, courseID, unitID string, spec scenarioSeedSpec) error {
+	intents := make([]string, 0, len(spec.Phases))
+	for _, p := range spec.Phases {
+		intents = append(intents, p.RequiredIntents...)
+	}
+	criteria, _ := json.Marshal(map[string]any{
+		"required_phase_count":          len(spec.Phases),
+		"required_intents":              intents,
+		"min_user_turns":                len(spec.Phases),
+		"min_score":                     700,
+		"allowed_native_language_turns": 1,
+	})
+
+	maxTurns := spec.MaxTurns
+	if maxTurns == 0 {
+		maxTurns = 10
+	}
+	minutes := spec.Minutes
+	if minutes == 0 {
+		minutes = 5
+	}
+
+	var scenarioID string
+	err := s.db.QueryRowContext(ctx, `
+		INSERT INTO scenario_scripts (
+			course_id, unit_id, slug, title, domain, cefr_level, can_do_statement,
+			ai_role_name, ai_role_description, opening_line, max_turns,
+			estimated_minutes, completion_criteria
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+		ON CONFLICT (course_id, slug) DO UPDATE SET
+			unit_id = EXCLUDED.unit_id,
+			title = EXCLUDED.title,
+			domain = EXCLUDED.domain,
+			cefr_level = EXCLUDED.cefr_level,
+			can_do_statement = EXCLUDED.can_do_statement,
+			ai_role_name = EXCLUDED.ai_role_name,
+			ai_role_description = EXCLUDED.ai_role_description,
+			opening_line = EXCLUDED.opening_line,
+			max_turns = EXCLUDED.max_turns,
+			estimated_minutes = EXCLUDED.estimated_minutes,
+			completion_criteria = EXCLUDED.completion_criteria
+		RETURNING id::text
+	`, courseID, unitID, spec.Slug, spec.Title, spec.Domain, spec.Level, spec.CanDo,
+		spec.RoleName, spec.RoleDesc, spec.Opening, maxTurns, minutes, criteria).Scan(&scenarioID)
+	if err != nil {
+		return err
+	}
+
+	for _, phase := range spec.Phases {
 		chunks, _ := json.Marshal(phase.ChunkBank)
 		_, err := s.db.ExecContext(ctx, `
 			INSERT INTO scenario_phases (scenario_id, ordinal, title, learner_goal, required_intents, chunk_bank)
@@ -664,4 +772,125 @@ var orderingCoffeePhases = []scenarioPhaseSeed{
 		{"text": "Gracias.", "translation": "Thank you."},
 		{"text": "Que tenga un buen día.", "translation": "Have a good day."},
 	}},
+}
+
+// extraScenarioSpecs is the seed roleplay library beyond ordering coffee
+// (rescue plan D1). Content is intentionally practical A1–B1 service/social
+// interactions matching the real_world_scenario_practice wireframe.
+var extraScenarioSpecs = []scenarioSeedSpec{
+	{
+		Slug: "restaurant-dinner", UnitSlug: "a1-ordering-food",
+		Title: "Dinner at a Restaurant", Domain: "food_drink", Level: "A1",
+		CanDo:  "I can order a meal, ask simple questions about the menu, and pay.",
+		RoleName: "Lola", RoleDesc: "Warm restaurant server. Speaks clear A1 Spanish.",
+		Opening:  "Buenas noches. Aquí está el menú. ¿Qué le gustaría?",
+		MaxTurns: 10, Minutes: 5,
+		Phases: []scenarioPhaseSeed{
+			{1, "Greeting", "Greet the server.", []string{"greet"}, []map[string]string{
+				{"text": "Buenas noches.", "translation": "Good evening."},
+				{"text": "Una mesa para uno, por favor.", "translation": "A table for one, please."},
+			}},
+			{2, "Ordering", "Order food and a drink.", []string{"order_food"}, []map[string]string{
+				{"text": "Quisiera la sopa del día, por favor.", "translation": "I would like the soup of the day, please."},
+				{"text": "Para mí, el pollo con arroz.", "translation": "For me, the chicken with rice."},
+			}},
+			{3, "The bill", "Ask for and understand the bill.", []string{"pay"}, []map[string]string{
+				{"text": "La cuenta, por favor.", "translation": "The bill, please."},
+				{"text": "¿Aceptan tarjeta?", "translation": "Do you accept card?"},
+			}},
+			{4, "Closing", "Close politely.", []string{"close"}, []map[string]string{
+				{"text": "Muchas gracias. Estuvo delicioso.", "translation": "Thank you very much. It was delicious."},
+			}},
+		},
+	},
+	{
+		Slug: "asking-directions", UnitSlug: "a1-around-town",
+		Title: "Asking for Directions", Domain: "navigation", Level: "A1",
+		CanDo:  "I can ask where a place is and understand simple directions.",
+		RoleName: "Don Manuel", RoleDesc: "Friendly local resident. Speaks slowly and clearly.",
+		Opening:  "Hola. Parece que buscas algo. ¿Puedo ayudarte?",
+		MaxTurns: 10, Minutes: 5,
+		Phases: []scenarioPhaseSeed{
+			{1, "Ask location", "Ask where a place is.", []string{"ask_location"}, []map[string]string{
+				{"text": "Perdone, ¿dónde está la estación?", "translation": "Excuse me, where is the station?"},
+				{"text": "¿Sabe dónde hay una farmacia?", "translation": "Do you know where there is a pharmacy?"},
+			}},
+			{2, "Understand directions", "Confirm the directions you hear.", []string{"understand_directions"}, []map[string]string{
+				{"text": "¿A la izquierda o a la derecha?", "translation": "To the left or to the right?"},
+				{"text": "Entonces, todo recto y después a la derecha.", "translation": "So, straight ahead and then to the right."},
+			}},
+			{3, "Closing", "Thank and close.", []string{"close"}, []map[string]string{
+				{"text": "Muchas gracias por su ayuda.", "translation": "Thank you very much for your help."},
+			}},
+		},
+	},
+	{
+		Slug: "market-shopping", UnitSlug: "a2-shopping",
+		Title: "Shopping at the Market", Domain: "shopping", Level: "A2",
+		CanDo:  "I can ask for items, quantities, and prices at a market stall.",
+		RoleName: "Marta", RoleDesc: "Cheerful market vendor. Uses everyday shopping language.",
+		Opening:  "¡Bienvenido! Todo está fresco hoy. ¿Qué necesita?",
+		MaxTurns: 10, Minutes: 5,
+		Phases: []scenarioPhaseSeed{
+			{1, "Request items", "Ask for items and quantities.", []string{"request_item"}, []map[string]string{
+				{"text": "Me da un kilo de tomates, por favor.", "translation": "Can you give me a kilo of tomatoes, please."},
+				{"text": "Quisiera media docena de huevos.", "translation": "I would like half a dozen eggs."},
+			}},
+			{2, "Price", "Ask about price and total.", []string{"ask_price"}, []map[string]string{
+				{"text": "¿Cuánto cuesta todo?", "translation": "How much is everything?"},
+				{"text": "¿Tiene algo más barato?", "translation": "Do you have something cheaper?"},
+			}},
+			{3, "Payment", "Pay and close.", []string{"pay", "close"}, []map[string]string{
+				{"text": "Aquí tiene. Gracias.", "translation": "Here you go. Thank you."},
+			}},
+		},
+	},
+	{
+		Slug: "hotel-checkin", UnitSlug: "a2-travel-basics",
+		Title: "Hotel Check-in", Domain: "travel", Level: "A2",
+		CanDo:  "I can check in, ask about the room, and make a simple request.",
+		RoleName: "Carlos", RoleDesc: "Hotel receptionist. Polite, uses travel vocabulary.",
+		Opening:  "Buenas tardes. Bienvenido al Hotel Miramar. ¿Tiene una reserva?",
+		MaxTurns: 12, Minutes: 6,
+		Phases: []scenarioPhaseSeed{
+			{1, "Reservation", "Confirm your reservation.", []string{"confirm_reservation"}, []map[string]string{
+				{"text": "Sí, tengo una reserva a nombre de Alex.", "translation": "Yes, I have a reservation under Alex."},
+				{"text": "Reservé una habitación doble por tres noches.", "translation": "I booked a double room for three nights."},
+			}},
+			{2, "Details", "Ask about breakfast and Wi-Fi.", []string{"ask_details"}, []map[string]string{
+				{"text": "¿A qué hora es el desayuno?", "translation": "What time is breakfast?"},
+				{"text": "¿Cuál es la contraseña del wifi?", "translation": "What is the Wi-Fi password?"},
+			}},
+			{3, "Request", "Make a simple request.", []string{"make_request"}, []map[string]string{
+				{"text": "¿Me puede dar una toalla más, por favor?", "translation": "Can you give me one more towel, please?"},
+			}},
+			{4, "Closing", "Close politely.", []string{"close"}, []map[string]string{
+				{"text": "Perfecto, muchas gracias.", "translation": "Perfect, thank you very much."},
+			}},
+		},
+	},
+	{
+		Slug: "job-interview", UnitSlug: "b1-work-study",
+		Title: "Job Interview", Domain: "work", Level: "B1",
+		CanDo:  "I can introduce myself, describe my experience, and ask about a role.",
+		RoleName: "Lic. Rivera", RoleDesc: "Hiring manager. Professional but friendly B1 Spanish.",
+		Opening:  "Buenos días. Gracias por venir. Cuéntame un poco sobre ti.",
+		MaxTurns: 12, Minutes: 7,
+		Phases: []scenarioPhaseSeed{
+			{1, "Introduction", "Introduce yourself.", []string{"introduce"}, []map[string]string{
+				{"text": "Buenos días. Me llamo Alex y soy de Estados Unidos.", "translation": "Good morning. My name is Alex and I am from the United States."},
+			}},
+			{2, "Experience", "Describe your experience or studies.", []string{"describe_experience"}, []map[string]string{
+				{"text": "Tengo tres años de experiencia en atención al cliente.", "translation": "I have three years of experience in customer service."},
+				{"text": "Estudié administración en la universidad.", "translation": "I studied business administration at university."},
+			}},
+			{3, "Questions", "Ask about the role.", []string{"ask_question"}, []map[string]string{
+				{"text": "¿Cuáles son las responsabilidades principales?", "translation": "What are the main responsibilities?"},
+				{"text": "¿Cuándo empieza el trabajo?", "translation": "When does the job start?"},
+			}},
+			{4, "Closing", "Close professionally.", []string{"close"}, []map[string]string{
+				{"text": "Muchas gracias por su tiempo.", "translation": "Thank you very much for your time."},
+			}},
+		},
+	},
 }

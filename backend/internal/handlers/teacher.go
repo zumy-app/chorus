@@ -28,7 +28,8 @@ func (h *TeacherHandler) Apply(c *gin.Context) {
 	userID := c.GetString("userID")
 	var req models.TeacherApplyRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		WriteError(c, middleware.ErrValidation("Invalid application. Check bio, languages, rate and video URL."))
+		// TDD slice B — BA spec requires field-specific error, not generic; forward binding detail so QA TC-TUTOR-01 can assert.
+		WriteError(c, middleware.ErrValidation("Invalid application: "+err.Error()))
 		return
 	}
 	app, err := h.svc.Apply(userID, req)

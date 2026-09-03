@@ -55,7 +55,9 @@ func (s *TeacherService) Apply(userID string, req models.TeacherApplyRequest) (*
 	req.Bio = strings.TrimSpace(req.Bio)
 	req.Expertise = strings.TrimSpace(req.Expertise)
 	req.VideoURL = strings.TrimSpace(req.VideoURL)
-	if req.Bio == "" || len(req.Languages) == 0 || req.RateCents <= 0 || req.VideoURL == "" {
+		// Rescue plan C1: intro video is OPTIONAL (user decision 2026-03). When
+	// present it must still be a valid URL (bound-validated at the model layer).
+	if req.Bio == "" || len(req.Languages) == 0 || req.RateCents <= 0 {
 		return nil, fmt.Errorf("missing required fields")
 	}
 	if len(req.Bio) > 1000 {

@@ -13,29 +13,31 @@ import (
 )
 
 type AuthHandler struct {
-	authService        *services.AuthService
-	userService        *services.UserService
-	invitationService  *services.InvitationService
-	emailSender        services.EmailSender
-	entitlementService *services.EntitlementService
-	moderation         *services.ModerationService
-	privacyService     *services.PrivacyService
-	otpService         *services.OTPService
-	resetBaseURL       string
+	authService           *services.AuthService
+	userService           *services.UserService
+	invitationService     *services.InvitationService
+	emailSender           services.EmailSender
+	entitlementService    *services.EntitlementService
+	moderation            *services.ModerationService
+	privacyService        *services.PrivacyService
+	otpService            *services.OTPService
+	resetBaseURL          string
+	allowOpenRegistration bool
 }
 
 func (h *AuthHandler) SetOTPService(s *services.OTPService) { h.otpService = s }
 func (h *AuthHandler) SetPrivacyService(s *services.PrivacyService) { h.privacyService = s }
 
-func NewAuthHandler(authService *services.AuthService, userService *services.UserService, invitationService *services.InvitationService, emailSender services.EmailSender, entitlementService *services.EntitlementService, moderation *services.ModerationService, resetBaseURL string) *AuthHandler {
+func NewAuthHandler(authService *services.AuthService, userService *services.UserService, invitationService *services.InvitationService, emailSender services.EmailSender, entitlementService *services.EntitlementService, moderation *services.ModerationService, resetBaseURL string, allowOpenRegistration bool) *AuthHandler {
 	return &AuthHandler{
-		authService:        authService,
-		userService:        userService,
-		invitationService:  invitationService,
-		emailSender:        emailSender,
-		entitlementService: entitlementService,
-		moderation:         moderation,
-		resetBaseURL:       strings.TrimRight(resetBaseURL, "?"),
+		authService:           authService,
+		userService:           userService,
+		invitationService:     invitationService,
+		emailSender:           emailSender,
+		entitlementService:    entitlementService,
+		moderation:            moderation,
+		resetBaseURL:          strings.TrimRight(resetBaseURL, "?"),
+		allowOpenRegistration: allowOpenRegistration,
 	}
 }
 
@@ -64,7 +66,13 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 	var user *models.User
 	var err error
-	if h.invitationService != nil {
+	// Rescue plan C2: registration is invite-gated unless the deployment
+	// explicitly allows open registration (dev-only flag). When the invite
+	// token is present we always consume it so invited users keep the
+	// email-bound guarantee even on open-registration deployments.
+	if h.invitationService != nil && !h.allowOpenRegistration {
+		user, err = h.authService.RegisterWithInvitation(req)
+	} else if h.invitationService != nil && strings.TrimSpace(req.InviteToken) != "" {
 		user, err = h.authService.RegisterWithInvitation(req)
 	} else {
 		user, err = h.authService.Register(req)

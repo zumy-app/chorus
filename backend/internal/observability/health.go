@@ -31,15 +31,21 @@ type CheckFunc func(ctx context.Context) error
 // so liveness and readiness never disagree.
 type Health struct {
 	version string
+	commit  string
 	mu      sync.RWMutex
 	checks  map[string]CheckFunc
 	started time.Time
 }
 
-// NewHealth returns a Health carrying the given build version.
-func NewHealth(version string) *Health {
+// NewHealth returns a Health carrying the given build version and git commit
+// (rescue plan C3: start scripts verify the served binary matches HEAD).
+func NewHealth(version, commit string) *Health {
+	if commit == "" {
+		commit = "dev"
+	}
 	return &Health{
 		version: version,
+		commit:  commit,
 		checks:  make(map[string]CheckFunc),
 		started: time.Now(),
 	}
@@ -104,6 +110,7 @@ func (h *Health) Liveness() gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{
 			"status":    "healthy",
 			"version":   h.version,
+			"commit":    h.commit,
 			"uptime_s":  int(time.Since(h.started).Seconds()),
 			"checkTime": time.Now().UTC().Format(time.RFC3339),
 			"checks":    h.currentStatus(),

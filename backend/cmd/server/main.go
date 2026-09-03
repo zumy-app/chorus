@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"flag"
 	"log"
 	"net/http"
 	"os"
@@ -31,6 +33,13 @@ func main() {
 	if err := godotenv.Overload(); err != nil {
 		log.Println("No .env file found, using system environment variables")
 	}
+
+	// Dev seed mode: `go run ./cmd/server --seed-dev` provisions deterministic
+	// dev fixtures (learners, tutor, marketplace data, dev invitation) after
+	// migrations run, then exits before serving traffic. The acceptance suite
+	// (docs/TEST_SPEC.md) and start scripts rely on these fixtures.
+	seedDev := flag.Bool("seed-dev", false, "seed deterministic dev fixtures and exit")
+	flag.Parse()
 
 	// Load configuration
 	cfg := config.Load()
@@ -78,6 +87,22 @@ func main() {
 	curriculumService := services.NewCurriculumService(db)
 	if err := curriculumService.SeedDefaultCourses(context.Background()); err != nil {
 		log.Fatalf("Failed to seed learning curriculum: %v", err)
+	}
+
+	// Startup diagnostics (rescue plan C3): log which database we actually
+	// reached and how many users it holds so split-brain / wrong-DB issues
+	// are obvious in the console instead of surfacing later as opaque
+	// "User not found" errors on every authenticated screen.
+	logDatabaseDiagnostics(db, cfg.DatabaseURL)
+
+	if *seedDev {
+		if err := services.SeedDevData(db); err != nil {
+			log.Fatalf("Failed to seed dev fixtures: %v", err)
+		}
+		log.Printf("[SeedDev] deterministic dev fixtures ready: %s / %s / %s (password: %s); dev invite code: %s",
+			services.DevLearnerEmail, services.DevLearner2Email, services.DevTutorEmail,
+			services.DevPassword, services.DevInviteToken)
+		return
 	}
 
 	// Initialize Redis (optional in lean local mode)
@@ -308,7 +333,7 @@ func main() {
 	}
 	otpService := services.NewOTPService(db, whatsAppSender)
 
-	authHandler := handlers.NewAuthHandler(authService, userService, invitationService, notificationService, entitlementService, moderationService, cfg.PasswordResetBaseURL)
+	authHandler := handlers.NewAuthHandler(authService, userService, invitationService, notificationService, entitlementService, moderationService, cfg.PasswordResetBaseURL, cfg.AllowOpenRegistration)
 	authHandler.SetOTPService(otpService)
 	authHandler.SetPrivacyService(privacyService)
 	settingsHandler := handlers.NewSettingsHandler(settingsService)
@@ -427,7 +452,7 @@ func main() {
 	// detail map for operators); /health/ready flips to 503 until the DB, Redis
 	// (when configured), and the translation chain are all reachable. This is
 	// the same surface the Docker healthchecks and LB probes hit.
-	appHealth := observability.NewHealth(observability.Version)
+	appHealth := observability.NewHealth(observability.Version, buildCommit())
 	appHealth.AddCheck("postgres", func(ctx context.Context) error {
 		return db.PingContext(ctx)
 	})
@@ -1003,4 +1028,41 @@ func envIntOr(key string, def int) int {
 // envMinutesOr reads a minutes integer env var and converts it to a Duration.
 func envMinutesOr(key string, def int) time.Duration {
 	return time.Duration(envIntOr(key, def)) * time.Minute
+}
+
+// logDatabaseDiagnostics prints the host the backend actually connected to and
+// how many users that database holds (rescue plan C3). A zero user count on a
+// dev box almost always means the process reached the wrong Postgres (e.g. a
+// stray WSL/local instance shadowing the Docker container on :5432), which
+// previously surfaced only as opaque "User not found" errors in the app.
+func logDatabaseDiagnostics(db *sql.DB, dsn string) {
+	host := dsn
+	if i := strings.Index(host, "@"); i >= 0 {
+		host = host[i+1:]
+	}
+	if i := strings.Index(host, "/"); i >= 0 {
+		host = host[:i]
+	}
+	var count int
+	if err := db.QueryRow(`SELECT count(*) FROM users`).Scan(&count); err != nil {
+		log.Printf("[Startup] WARNING: could not count users on %s: %v", host, err)
+		return
+	}
+	if count == 0 {
+		log.Printf("[Startup] WARNING: connected to %s but the users table is EMPTY — "+
+			"wrong database? Run `go run ./cmd/server --seed-dev` to provision dev fixtures.", host)
+		return
+	}
+	log.Printf("[Startup] Database %s reachable; %d user(s) present", host, count)
+}
+
+// buildCommit returns the git commit this backend was built from, used by the
+// /health payload so start scripts can verify the served binary matches HEAD.
+// Set CHORUS_BUILD_COMMIT at build/start time (start-android.ps1 does this);
+// falls back to "dev" when unknown (plain `go run`).
+func buildCommit() string {
+	if c := os.Getenv("CHORUS_BUILD_COMMIT"); c != "" {
+		return c
+	}
+	return "dev"
 }

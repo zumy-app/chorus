@@ -86,6 +86,13 @@ type Config struct {
 	// (upsell nudges, plan badges, ads) are suppressed entirely.
 	SelfHost bool
 
+	// AllowOpenRegistration, when true, permits registration without an
+	// invitation token. DEVELOPMENT ONLY — production stays invite-gated.
+	// Rescue plan C2: QA/emulator walkthroughs need to create accounts
+	// without email delivery; the mobile/web UIs still surface the
+	// invite-code + waitlist flow.
+	AllowOpenRegistration bool
+
 	// PayPal configuration. Client ID/secret correspond to the env keys
 	// PAYMENT_PROVIDER_PAYPAL_CLIENT_ID / PAYMENT_PROVIDER_PAYPAL_CLIENT_SECRET.
 	PayPalClientID          string
@@ -148,6 +155,7 @@ func Load() *Config {
 		InviteTTLHours:        getEnvInt("INVITE_TTL_HOURS", 168),
 		AdminEmails:           splitAndTrim(getEnv("WAITLIST_ADMIN_EMAILS", "")),
 		SelfHost:              getEnvBool("SELFHOST", false),
+		AllowOpenRegistration: getEnvBool("ALLOW_OPEN_REGISTRATION", false),
 
 		LogLevel: getEnv("LOG_LEVEL", "info"),
 

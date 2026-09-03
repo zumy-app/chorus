@@ -12,7 +12,7 @@ import {
 import storage from '../utils/storage';
 import apiService from '../services/api';
 import webSocketService from '../services/websocket';
-import { SUPPORTED_LANGUAGES, User, type PrivacyVisibility } from '@chorus/shared';
+import { SUPPORTED_LANGUAGES, User, type PrivacyVisibility, DEV_ACCOUNTS } from '@chorus/shared';
 import { COLOR, FONTS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../theme';
 
 export default function ProfileScreen({ navigation }: any) {
@@ -131,6 +131,24 @@ export default function ProfileScreen({ navigation }: any) {
     );
   }
 
+  const isDev = typeof (globalThis as any).__DEV__ !== 'undefined' ? (globalThis as any).__DEV__ : (typeof __DEV__ !== 'undefined' ? (__DEV__ as unknown as boolean) : true)
+  const handleDevSwitch = async (a: typeof DEV_ACCOUNTS[number]) => {
+    try {
+      webSocketService.disconnect()
+      const raw: any = await (apiService as any).api?.post?.('/auth/login', { username: a.email, password: a.password })
+      const tokens = raw.data?.tokens
+      const user = raw.data?.user
+      if (tokens && user) {
+        await storage.setItem('accessToken', tokens.accessToken)
+        await storage.setItem('refreshToken', tokens.refreshToken)
+        await storage.setItem('user', JSON.stringify(user))
+        navigation.replace('MainTabs')
+      }
+    } catch (e: any) {
+      Alert.alert('Switch failed', e.response?.data?.error || e.message)
+    }
+  }
+
   return (
     <ScrollView
       style={styles.container}
@@ -140,6 +158,20 @@ export default function ProfileScreen({ navigation }: any) {
         <Text style={styles.title}>Profile</Text>
         <Text style={styles.subtitle}>Manage your account and app preferences.</Text>
       </View>
+      {isDev && (
+        <View style={{ borderWidth: 1, borderColor: '#FDE68A', backgroundColor: '#FFFBEB', borderRadius: RADIUS.lg, padding: SPACING.stackMd, gap: 8, marginBottom: SPACING.stackMd }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 0.8, color: '#92400E' }}>DEV ONLY</Text>
+            <Text style={{ fontSize: 11, color: '#B45309', flex: 1 }}>Quick switch test account</Text>
+          </View>
+          {DEV_ACCOUNTS.map((a) => (
+            <TouchableOpacity key={a.email} onPress={() => handleDevSwitch(a)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'white', borderWidth: 1, borderColor: '#FDE68A', borderRadius: RADIUS.lg, paddingHorizontal: 12, paddingVertical: 10 }}>
+              <View style={{ flex: 1, gap: 2 }}><Text style={{ fontSize: 13, fontWeight: '600', color: COLOR.onSurface }}>{a.label}</Text><Text style={{ fontSize: 11, color: COLOR.onSurfaceVariant }}>{a.email}</Text></View>
+              <Text style={{ fontSize: 12, color: COLOR.primary, marginLeft: 8 }}>Switch →</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       {/* Account */}
       <View style={styles.card}>

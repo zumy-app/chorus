@@ -193,7 +193,7 @@ func TestRegisterHandler_DuplicateEmail(t *testing.T) {
 
 func TestRegisterHandler_InvalidInput(t *testing.T) {
 	router := setupTestRouter()
-	h := NewAuthHandler(nil, nil, nil, nil, nil, nil, "")
+	h := NewAuthHandler(nil, nil, nil, nil, nil, nil, "", false)
 	router.POST("/api/v1/auth/register", h.Register)
 
 	// Missing email and password
@@ -414,7 +414,7 @@ func TestGetMyEntitlements_Success(t *testing.T) {
 			AddRow("user-1", "testuser", "test@example.com", "Test User", "", "", "en", pq.Array([]string{"es"}), "member", time.Now(), time.Now(), nil, nil, "free", nil, nil, nil, "paypal", nil, nil, nil, nil, nil, nil, false, nil, false))
 
 	entitlementService := services.NewEntitlementService(false)
-	h := NewAuthHandler(nil, userService, nil, nil, entitlementService, nil, "")
+	h := NewAuthHandler(nil, userService, nil, nil, entitlementService, nil, "", false)
 
 	router.GET("/users/me/entitlements", func(c *gin.Context) {
 		c.Set("userID", "user-1")
@@ -464,7 +464,7 @@ func TestOnboardMe_Success(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "email", "display_name", "first_name", "last_name", "native_language", "target_languages", "role", "created_at", "last_active_at", "suspended_at", "deleted_at", "plan", "plan_grace_until", "premium_since", "subscription_id", "subscription_provider", "subscription_plan_id", "subscription_status", "next_billing_date", "last_payment_at", "avatar_url", "phone", "phone_verified", "phone_verified_at", "two_factor_enabled"}).
 			AddRow("user-1", "testuser", "test@example.com", "John Smith", "John", "Smith", "en", pq.Array([]string{"es"}), "member", time.Now(), time.Now(), nil, nil, "free", nil, nil, nil, "paypal", nil, nil, nil, nil, nil, nil, false, nil, false))
 
-	h := NewAuthHandler(nil, userService, nil, nil, services.NewEntitlementService(false), nil, "")
+	h := NewAuthHandler(nil, userService, nil, nil, services.NewEntitlementService(false), nil, "", false)
 
 	router.PUT("/users/me/onboard", func(c *gin.Context) {
 		c.Set("userID", "user-1")
@@ -515,7 +515,7 @@ func TestGetMyEntitlements_NotFound(t *testing.T) {
 		WillReturnError(sql.ErrNoRows)
 
 	entitlementService := services.NewEntitlementService(false)
-	h := NewAuthHandler(nil, userService, nil, nil, entitlementService, nil, "")
+	h := NewAuthHandler(nil, userService, nil, nil, entitlementService, nil, "", false)
 
 	router.GET("/users/me/entitlements", func(c *gin.Context) {
 		c.Set("userID", "missing")

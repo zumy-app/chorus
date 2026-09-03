@@ -20,7 +20,10 @@ export default function BecomeTeacherScreen() {
   const submit = async()=>{
     try{
       const rateCents=Math.round(parseFloat(rate)*100)
-      const payload={bio,languages,expertise,rateCents,videoUrl,certificates:certs.map(c=>({type:c.type,issuer:c.issuer,year:parseInt(c.year)||0,fileUrl:c.fileUrl}))}
+      const payload={bio,languages,expertise,rateCents,videoUrl,certificates:certs.map(c=>{
+        const y = Number(String(c.year).trim())
+        return {type:String(c.type||'').trim()||'language_certificate',issuer:String(c.issuer||'').trim(),year:Number.isFinite(y)&&y>0? y: new Date().getFullYear(),fileUrl:String(c.fileUrl||'').trim()}
+      })}
       const r:any = await api.post('/teachers/apply', payload)
       setStatus(r.data.application.status); Alert.alert('Submitted', r.data.application.status)
     }catch(e:any){ Alert.alert('Error', e?.response?.data?.error || e.message)}
@@ -53,12 +56,18 @@ export default function BecomeTeacherScreen() {
       {certs.map((c,i)=>(
         <View key={i} style={{borderWidth:1,borderRadius:8,padding:8,gap:6}}>
           <View style={{flexDirection:'row', gap:8}}>
-            <TextInput value={c.type} onChangeText={v=>setCerts(certs.map((x,j)=>j===i?{...x,type:v}:x))} style={{flex:1,borderWidth:1,borderRadius:6,padding:6}} placeholder="type" />
+            <View style={{flex:1,flexDirection:'row',gap:4}}>
+              {(['teaching_degree','language_certificate','other'] as const).map(t=>(
+                <TouchableOpacity key={t} onPress={()=>setCerts(certs.map((x,j)=>j===i?{...x,type:t}:x))} style={{flex:1,paddingVertical:6,borderRadius:6,borderWidth:1,backgroundColor: c.type===t?'#6366F1':'white',borderColor:'#E2E8F0',alignItems:'center'}}>
+                  <Text style={{fontSize:10,color:c.type===t?'white':'black'}}>{t==='teaching_degree'?'Degree':t==='language_certificate'?'Lang Cert':'Other'}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
             <TouchableOpacity onPress={()=>setCerts(certs.filter((_,j)=>j!==i))}><Text style={{color:'red'}}>Remove</Text></TouchableOpacity>
           </View>
           <TextInput value={c.issuer} onChangeText={v=>setCerts(certs.map((x,j)=>j===i?{...x,issuer:v}:x))} style={{borderWidth:1,borderRadius:6,padding:6}} placeholder="Issuer" />
           <TextInput value={c.year} onChangeText={v=>setCerts(certs.map((x,j)=>j===i?{...x,year:v}:x))} style={{borderWidth:1,borderRadius:6,padding:6}} placeholder="Year" keyboardType="numeric" />
-          <TextInput value={c.fileUrl} onChangeText={v=>setCerts(certs.map((x,j)=>j===i?{...x,fileUrl:v}:x))} style={{borderWidth:1,borderRadius:6,padding:6}} placeholder="File URL" />
+          <TextInput value={c.fileUrl} onChangeText={v=>setCerts(certs.map((x,j)=>j===i?{...x,fileUrl:v}:x))} style={{borderWidth:1,borderRadius:6,padding:6}} placeholder="File URL (https://...)" />
         </View>
       ))}
       <TouchableOpacity onPress={submit} style={{backgroundColor:'#6366F1',padding:14,borderRadius:12,alignItems:'center'}}><Text style={{color:'white',fontWeight:'600'}}>{status?'Update application':'Submit application'}</Text></TouchableOpacity>
