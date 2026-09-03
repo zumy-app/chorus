@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Start Chorus Android development environment.
 
@@ -40,9 +40,9 @@ Log "  Chorus Android Dev Environment" Cyan
 Log "============================================" Cyan
 Log ""
 
-# ──────────────────────────────────────────────
+# ----------------------------------------------
 # 1. Android SDK / platform-tools
-# ──────────────────────────────────────────────
+# ----------------------------------------------
 Log "[1/8] Checking Android SDK..." Yellow
 
 if ($env:ANDROID_SDK_ROOT) {
@@ -107,9 +107,9 @@ $env:ANDROID_HOME = $SdkRoot
 $env:ANDROID_SDK_ROOT = $SdkRoot
 Log ""
 
-# ──────────────────────────────────────────────
+# ----------------------------------------------
 # 2. System image & AVD
-# ──────────────────────────────────────────────
+# ----------------------------------------------
 if ($SkipEmulator) { Log "[2/8] Skipped (SkipEmulator)" Yellow; Log "" } else {
 Log "[2/8] Checking AVD..." Yellow
 
@@ -236,9 +236,9 @@ if (-not $needCreate -and $useAvd -eq $AvdName) {
 Log ""
 } # end SkipEmulator for step 2
 
-# ──────────────────────────────────────────────
+# ----------------------------------------------
 # 3. Start emulator if not running
-# ──────────────────────────────────────────────
+# ----------------------------------------------
 if ($SkipEmulator) { Log "[3/8] Skipped (SkipEmulator)" Yellow; Log "" } else {
 Log "[3/8] Checking emulator..." Yellow
 
@@ -296,9 +296,9 @@ if ($deviceState -ne "device") {
 Log ""
 } # end SkipEmulator for step 3
 
-# ──────────────────────────────────────────────
+# ----------------------------------------------
 # 4. Ensure Docker is running
-# ──────────────────────────────────────────────
+# ----------------------------------------------
 if ($SkipDocker) { Log "[4/8] Skipped (SkipDocker)" Yellow; Log "" } else {
 Log "[4/8] Checking Docker..." Yellow
 $dockerOk = $false
@@ -324,9 +324,9 @@ Ok "Docker Desktop ready"
 Log ""
 } # end SkipDocker for step 4 (keep Docker running check visible even when skipped? No, already handled)
 
-# ──────────────────────────────────────────────
+# ----------------------------------------------
 # 5. Start Docker services (PostgreSQL, Redis)
-# ──────────────────────────────────────────────
+# ----------------------------------------------
 if ($SkipDocker) { Log "[5/8] Skipped (SkipDocker)" Yellow; Log "" } else {
 Log "[5/8] Starting Docker services..." Yellow
 
@@ -350,9 +350,9 @@ if (Test-Path $ComposeFile) {
 Log ""
 } # end SkipDocker for step 5
 
-# ──────────────────────────────────────────────
+# ----------------------------------------------
 # 6. Wait for PostgreSQL & Redis to be healthy
-# ──────────────────────────────────────────────
+# ----------------------------------------------
 if ($SkipDocker) { Log "[6/8] Skipped (SkipDocker)" Yellow; Log "" } else {
 Log "[6/8] Waiting for services..." Yellow
 
@@ -381,9 +381,9 @@ if ($redisReady) { Ok "Redis healthy" } else { Warn "Redis not healthy yet" }
 Log ""
 } # end SkipDocker for step 6
 
-# ──────────────────────────────────────────────
+# ----------------------------------------------
 # 7. Start Go backend with air (hot-reload)
-# ──────────────────────────────────────────────
+# ----------------------------------------------
 if ($SkipBackend) { Log "[7/8] Skipped (SkipBackend) - backend hot-reload via air still watches *.go" Yellow; Log "" } else {
 Log "[7/8] Starting Go backend..." Yellow
 
@@ -445,9 +445,9 @@ if ($LASTEXITCODE -ne 0) {
 Log ""
 } # end SkipBackend for step 7
 
-# ──────────────────────────────────────────────
+# ----------------------------------------------
 # 8. Start Metro and install the app on the emulator
-# ──────────────────────────────────────────────
+# ----------------------------------------------
 Log "[8/8] Starting Metro and installing app on emulator..." Yellow
 
 $MobileDir = Join-Path $RootDir "mobile"
@@ -498,12 +498,12 @@ Ok "Backend URL: ${expoUrl} (emulator uses http://10.0.2.2:${backendPort})"
 
 # Start Metro bundler in a new window (skip if already running)
 if ($SkipMetro) {
-    Warn "Metro start skipped (SkipMetro) — use existing Metro window (press r for Fast Refresh, R for reload)" Yellow
+    Warn "Metro start skipped (SkipMetro) -- use existing Metro window (press r for Fast Refresh, R for reload)" Yellow
 } else {
     $metroRunning = $false
     try { $metroRunning = (Get-NetTCPConnection -LocalPort 8081 -ErrorAction SilentlyContinue | Where-Object { $_.State -eq 'Listen' }).Count -gt 0 } catch {}
     if ($metroRunning) {
-        Warn "Metro already listening on :8081 — reusing existing bundler (press r/R in that window)" Yellow
+        Warn "Metro already listening on :8081 -- reusing existing bundler (press r/R in that window)" Yellow
     } else {
         Start-Process powershell -ArgumentList @(
             "-NoExit", "-Command", @"
@@ -520,7 +520,7 @@ if ($SkipMetro) {
 
 # Build the native app and install it on the connected emulator/device.
 if ($SkipGradle) {
-    Warn "Gradle build skipped (SkipGradle) — JS changes hot-reload via Metro (r/R). Use --no-packager only when android/ changed." Yellow
+    Warn "Gradle build skipped (SkipGradle) -- JS changes hot-reload via Metro (r/R). Use --no-packager only when android/ changed." Yellow
 } else {
 Log "  Building and installing app on the device (first build may take several minutes)..." Yellow
 Push-Location $MobileDir
