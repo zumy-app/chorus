@@ -1,9 +1,9 @@
 /**
  * Test user credentials for Chorus E2E tests.
  *
- * Both users are expected to already exist in the database.
- * If they don't, the first login attempt will fail — run the
- * registration flow manually once before the test suite.
+ * Canonical dev accounts seeded via backend/internal/services/dev_seed.go:16
+ * with `go run ./cmd/server --seed-dev`. All share password ChorusDev123!
+ * Legacy Gmail accounts kept as fallback aliases for local runs without seed.
  */
 
 export interface TestUser {
@@ -13,14 +13,38 @@ export interface TestUser {
   displayName: string
 }
 
-export const ENGLISH_USER: TestUser = {
+// Canonical DEV accounts — must match packages/shared/src/devAccounts.ts:15 + dev_seed.go:17
+export const DEV_ALICE: TestUser = {
+  email: 'alice.dev@chorus.test',
+  password: 'ChorusDev123!',
+  nativeLanguage: 'en',
+  displayName: 'Alice Dev',
+}
+
+export const DEV_BOB: TestUser = {
+  email: 'bob.dev@chorus.test',
+  password: 'ChorusDev123!',
+  nativeLanguage: 'es',
+  displayName: 'Bob Dev',
+}
+
+export const DEV_SOFIA: TestUser = {
+  email: 'sofia.tutor@chorus.test',
+  password: 'ChorusDev123!',
+  nativeLanguage: 'en',
+  displayName: 'Sofia Tutor',
+}
+
+// Aliases for backward compat — new tests should use DEV_* directly
+export const ENGLISH_USER: TestUser = DEV_ALICE
+export const SPANISH_USER: TestUser = DEV_BOB
+export const ENGLISH_USER_LEGACY: TestUser = {
   email: 'uhsarp@gmail.com',
   password: 'Demor@cer1',
   nativeLanguage: 'en',
   displayName: 'Prashanth',
 }
-
-export const SPANISH_USER: TestUser = {
+export const SPANISH_USER_LEGACY: TestUser = {
   email: 'avcxafefwer@gmail.com',
   password: 'Demor@cer1',
   nativeLanguage: 'es',

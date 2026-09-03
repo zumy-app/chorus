@@ -136,7 +136,7 @@ func (s *ChatService) GetByID(chatID string) (*models.Chat, error) {
 func (s *ChatService) GetUserChats(userID string) ([]models.Chat, error) {
 	query := `
 		SELECT DISTINCT c.id, c.type, c.name, c.created_by, c.settings, c.created_at,
-		       cp.archived_at IS NOT NULL, COALESCE(cp.is_muted, FALSE), cp.muted_until
+		       pref.archived_at IS NOT NULL, COALESCE(pref.is_muted, FALSE), pref.muted_until
 		FROM chats c
 		INNER JOIN chat_participants cp ON c.id = cp.chat_id
 		LEFT JOIN chat_preferences pref ON pref.chat_id = c.id AND pref.user_id = $1

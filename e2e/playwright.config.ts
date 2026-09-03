@@ -35,6 +35,19 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+    // AVD parity — web on emulator Chrome via 10.0.2.2 (NFR-22 mobile-first)
+    // Enable with E2E_AVD=true (requires emulator running: start-android.ps1)
+    ...(process.env.E2E_AVD === 'true'
+      ? [
+          {
+            name: 'mobile-chrome',
+            use: {
+              ...devices['Pixel 7'],
+              baseURL: process.env.E2E_AVD_BASE_URL || 'http://10.0.2.2:3000',
+            },
+          } as any,
+        ]
+      : []),
   ],
 
   // Start services before tests, stop after

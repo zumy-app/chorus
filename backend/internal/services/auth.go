@@ -254,14 +254,15 @@ func (s *AuthService) Login(username, password string) (*models.User, error) {
 		WHERE username = $1 OR email = $1
 	`
 
+	var firstNameNS, lastNameNS sql.NullString
 	err := s.db.QueryRow(query, username).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Email,
 		&user.PasswordHash,
 		&user.DisplayName,
-		&user.FirstName,
-		&user.LastName,
+		&firstNameNS,
+		&lastNameNS,
 		&user.NativeLanguage,
 		pq.Array(&user.TargetLanguages),
 		&user.Role,
@@ -284,6 +285,12 @@ func (s *AuthService) Login(username, password string) (*models.User, error) {
 		&user.PhoneVerifiedAt,
 		&user.TwoFactorEnabled,
 	)
+	if firstNameNS.Valid {
+		user.FirstName = firstNameNS.String
+	}
+	if lastNameNS.Valid {
+		user.LastName = lastNameNS.String
+	}
 
 	if err != nil {
 		return nil, errors.New("invalid credentials")
