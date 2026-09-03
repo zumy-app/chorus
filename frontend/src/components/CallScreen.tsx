@@ -27,14 +27,18 @@ export default function CallScreen({ callId, chatName, initialType = 'audio', on
   const [remoteScreenShare, setRemoteScreenShare] = useState(false)
   const [speakerOn, setSpeakerOn] = useState(true)
   const [captionsEnabled, setCaptionsEnabled] = useState(true)
+  const [showTranslated, setShowTranslated] = useState(true)
   const [immersive, setImmersive] = useState(true)
   const [dualView, setDualView] = useState(false)
+  const [transcribing, setTranscribing] = useState(false)
+  const recognitionRef = useRef<unknown>(null)
   const [segments, setSegments] = useState<TranscriptSegment[]>([])
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [captionInput, setCaptionInput] = useState('')
   const [sending, setSending] = useState(false)
   const [bookmarked, setBookmarked] = useState<Set<number>>(new Set())
+  const [showTranscript, setShowTranscript] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 768 : true)
   const [duration, setDuration] = useState(0)
   const [callType, setCallType] = useState<'audio' | 'video'>(initialType)
   const listRef = useRef<HTMLDivElement>(null)
@@ -232,9 +236,59 @@ export default function CallScreen({ callId, chatName, initialType = 'audio', on
     } catch {} finally { setSending(false) }
   }
 
-  const handleBookmark = async (idx: number) => {
-    if (bookmarked.has(idx)) return
-    try { await api.post(`/calls/${callId}/captions/${idx}/bookmark`); setBookmarked(prev => new Set(prev).add(idx)) } catch {}
+  const toggleLiveTranscription = useCallback(() => {
+    const w = window as unknown as Record<string, unknown>
+    const RecCtor = (w.SpeechRecognition || w.webkitSpeechRecognition) as unknown as new () => {
+      continuous: boolean; interimResults: boolean; lang: string
+      onresult: ((e: { resultIndex: number; results: Array<{ isFinal: boolean; 0: { transcript: string } }> }) => void) | null
+      onerror: (() => void) | null
+      onend: (() => void) | null
+      start: () => void; stop: () => void
+    } | undefined
+    if (!RecCtor) return
+    if (transcribing) {
+      try { (recognitionRef.current as { stop: () => void })?.stop() } catch {}
+      setTranscribing(false)
+      return
+    }
+    try {
+      const rec: any = new (RecCtor as unknown as { new(): unknown })()
+      rec.continuous = true
+      rec.interimResults = true
+      rec.lang = nativeLanguage || 'en-US'
+      rec.onresult = (e: { resultIndex: number; results: Array<{ isFinal: boolean; 0: { transcript: string } }> }) => {
+        let finalText = ''
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          if (e.results[i].isFinal) finalText += e.results[i][0].transcript + ' '
+        }
+        finalText = finalText.trim()
+        if (finalText) {
+          api.post<TranscriptSegment>(`/calls/${callId}/captions`, { text: finalText, language: nativeLanguage }).then(r => {
+            if (r.data) setSegments(prev => [...prev, r.data])
+          }).catch(() => {})
+        }
+      }
+      rec.onerror = () => setTranscribing(false)
+      rec.onend = () => setTranscribing(false)
+      rec.start()
+      recognitionRef.current = rec
+      setTranscribing(true)
+    } catch { setTranscribing(false) }
+  }, [callId, nativeLanguage, transcribing])
+
+  useEffect(() => () => {
+    try { (recognitionRef.current as { stop: () => void })?.stop() } catch {}
+  }, [])
+
+  const [savedPhrases, setSavedPhrases] = useState<Set<string>>(new Set())
+  const handleBookmark = async (idx: number, phrase?: string) => {
+    const key = phrase ? `${idx}:${phrase}` : `${idx}:*`
+    if (phrase ? savedPhrases.has(key) : bookmarked.has(idx)) return
+    try {
+      await api.post(`/calls/${callId}/captions/${idx}/bookmark`, phrase ? { phrase } : {})
+      if (phrase) setSavedPhrases(prev => new Set(prev).add(key))
+      else setBookmarked(prev => new Set(prev).add(idx))
+    } catch {}
   }
 
   const handleLoadMore = async () => {
@@ -263,12 +317,13 @@ export default function CallScreen({ callId, chatName, initialType = 'audio', on
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={() => setShowTranscript(v => !v)} className={`w-9 h-9 rounded-full flex items-center justify-center ${showTranscript ? 'bg-indigo-600' : 'bg-white/10 hover:bg-white/20'}`} title={showTranscript ? 'Hide transcript' : 'Show transcript'} aria-label="Toggle transcript" data-testid="toggle-transcript-btn"><span className="material-symbols-outlined text-[18px]">forum</span></button>
           {isVideo && <button onClick={() => setDualView(v => !v)} className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center" title={dualView ? 'PiP view' : 'Dual view'} aria-label="Toggle layout"><span className="material-symbols-outlined text-[18px]">{dualView ? 'picture_in_picture' : 'view_split'}</span></button>}
           <button onClick={onClose} className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center" aria-label="Minimize call"><span className="material-symbols-outlined text-[20px]">close_fullscreen</span></button>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
         <div className="flex-1 relative flex flex-col overflow-hidden bg-gradient-to-b from-[#0B1C30] to-[#132a4a] min-h-[280px]">
           {isVideo ? (
             <div className={`flex-1 relative bg-black overflow-hidden ${dualView ? 'grid grid-cols-2 gap-1 p-1' : ''}`}>
@@ -286,7 +341,7 @@ export default function CallScreen({ callId, chatName, initialType = 'audio', on
                 <div className="absolute bottom-3 left-3 right-3 sm:left-6 sm:right-20 pointer-events-none">
                   <div className="bg-black/70 backdrop-blur rounded-xl px-3 py-2 border border-white/10 space-y-1" data-testid="immersive-captions">
                     {latestImmersive.map((seg, i) => {
-                      const tr = seg.translations?.[nativeLanguage] || Object.values(seg.translations || {})[0]
+                      const tr = showTranslated ? (seg.translations?.[nativeLanguage] || Object.values(seg.translations || {})[0]) : undefined
                       return (
                         <div key={i} className="text-sm leading-5">
                           <span className="text-white">{seg.originalText}</span>
@@ -308,7 +363,7 @@ export default function CallScreen({ callId, chatName, initialType = 'audio', on
                 <div className="absolute bottom-4 left-4 right-4">
                   <div className="bg-black/50 backdrop-blur rounded-xl px-3 py-2 border border-white/10 space-y-1" data-testid="immersive-captions">
                     {latestImmersive.map((seg, i) => {
-                      const tr = seg.translations?.[nativeLanguage] || Object.values(seg.translations || {})[0]
+                      const tr = showTranslated ? (seg.translations?.[nativeLanguage] || Object.values(seg.translations || {})[0]) : undefined
                       return <div key={i} className="text-sm text-center"><span className="text-white">{seg.originalText}</span>{tr && tr !== seg.originalText && <span className="text-indigo-200 italic"> · {tr}</span>}</div>
                     })}
                   </div>
@@ -319,15 +374,23 @@ export default function CallScreen({ callId, chatName, initialType = 'audio', on
           <audio ref={remoteAudioRef} autoPlay playsInline className="hidden" />
         </div>
 
-        <div className="w-full md:w-[380px] border-t md:border-t-0 md:border-l border-white/10 flex flex-col bg-[#0F2440] shrink-0 max-h-[42vh] md:max-h-none md:min-h-0">
+        <div id="transcript-panel" data-testid="transcript-panel" className={`${showTranscript ? 'flex' : 'hidden md:hidden'} w-full md:w-[380px] lg:w-96 border-t md:border-t-0 md:border-l border-white/10 flex-col bg-[#0F2440] shrink-0 absolute md:relative inset-x-0 bottom-0 md:inset-auto z-30 md:z-auto h-[50vh] md:h-auto md:flex-1 md:min-h-0 rounded-t-2xl md:rounded-none shadow-xl md:shadow-none transition-transform duration-300 ${showTranscript ? 'translate-y-0' : 'translate-y-full'}`}>
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0">
             <h3 className="font-semibold text-sm flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">closed_caption</span>Live captions</h3>
             <div className="flex items-center gap-3">
-              <label className="flex items-center gap-1.5 text-xs text-white/70 cursor-pointer"><input type="checkbox" checked={immersive} onChange={e => setImmersive(e.target.checked)} className="accent-indigo-500" />Immersive</label>
-              <label className="flex items-center gap-1.5 text-xs text-white/70 cursor-pointer"><input type="checkbox" checked={captionsEnabled} onChange={e => setCaptionsEnabled(e.target.checked)} className="accent-indigo-500" />Show</label>
+              <label className="hidden sm:flex items-center gap-1.5 text-xs text-white/70 cursor-pointer"><input type="checkbox" checked={showTranslated} onChange={e => setShowTranslated(e.target.checked)} className="accent-indigo-500" data-testid="translated-toggle" />Translated</label>
+              <label className="hidden sm:flex items-center gap-1.5 text-xs text-white/70 cursor-pointer"><input type="checkbox" checked={immersive} onChange={e => setImmersive(e.target.checked)} className="accent-indigo-500" />Immersive</label>
+              <label className="hidden sm:flex items-center gap-1.5 text-xs text-white/70 cursor-pointer"><input type="checkbox" checked={captionsEnabled} onChange={e => setCaptionsEnabled(e.target.checked)} className="accent-indigo-500" data-testid="captions-toggle" />Show</label>
+              <button onClick={() => setShowTranscript(false)} className="md:hidden w-8 h-8 rounded-full bg-white/10 flex items-center justify-center" aria-label="Close transcript" id="close-transcript-btn" data-testid="close-transcript-btn"><span className="material-symbols-outlined text-[18px]">expand_more</span></button>
+              <button onClick={() => setShowTranscript(false)} className="hidden md:flex w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 items-center justify-center" aria-label="Close transcript"><span className="material-symbols-outlined text-[18px]">close</span></button>
             </div>
           </div>
-          <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-0" data-testid="transcript-panel">
+          <div className="flex sm:hidden items-center gap-3 px-4 py-2 border-b border-white/5 shrink-0">
+            <label className="flex items-center gap-1.5 text-xs text-white/70 cursor-pointer"><input type="checkbox" checked={showTranslated} onChange={e => setShowTranslated(e.target.checked)} className="accent-indigo-500" />Translated</label>
+            <label className="flex items-center gap-1.5 text-xs text-white/70 cursor-pointer"><input type="checkbox" checked={immersive} onChange={e => setImmersive(e.target.checked)} className="accent-indigo-500" />Immersive</label>
+            <label className="flex items-center gap-1.5 text-xs text-white/70 cursor-pointer"><input type="checkbox" checked={captionsEnabled} onChange={e => setCaptionsEnabled(e.target.checked)} className="accent-indigo-500" />Show</label>
+          </div>
+          <div ref={listRef} className="flex-1 overflow-y-auto custom-scrollbar px-4 py-3 space-y-3 min-h-0 overscroll-contain [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.2)_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full" data-testid="transcript-scroll">
             {captionsEnabled ? (
               segments.length === 0 ? (
                 <div className="text-center text-white/40 text-sm py-8"><div className="text-2xl mb-2">💬</div>Captions will appear here as you speak.<br /><span className="text-xs">Type below to add a caption manually.</span></div>
@@ -335,14 +398,22 @@ export default function CallScreen({ callId, chatName, initialType = 'audio', on
                 <>
                   {hasMore && <button onClick={handleLoadMore} disabled={loadingMore} className="w-full text-xs text-white/50 hover:text-white/80 py-1">{loadingMore ? 'Loading...' : 'Load older captions'}</button>}
                   {segments.map((seg, idx) => {
-                    const translation = seg.translations?.[nativeLanguage] || Object.values(seg.translations || {})[0]
+                    const translation = showTranslated ? (seg.translations?.[nativeLanguage] || Object.values(seg.translations || {})[0]) : undefined
                     const isOwn = seg.speakerId === user?.id
+                    const words = seg.originalText.split(/(\s+)/)
                     return (
                       <div key={`${seg.startTime}-${idx}`} className={`rounded-xl px-3 py-2.5 ${isOwn ? 'bg-indigo-600/30 border border-indigo-500/30' : 'bg-white/5 border border-white/10'}`}>
                         <div className="text-xs text-white/50 mb-1 flex items-center justify-between"><span>{isOwn ? 'You' : seg.speakerId.slice(0, 6)}</span><span>{new Date(seg.startTime * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div>
-                        <div className="text-sm leading-5">{seg.originalText}</div>
-                        {translation && translation !== seg.originalText && <div className="mt-1.5 pt-1.5 border-t border-white/10 text-sm italic text-indigo-200">{translation}</div>}
-                        <div className="mt-2 flex gap-2"><button onClick={() => handleBookmark(idx)} disabled={bookmarked.has(idx)} className={`text-xs px-2 py-1 rounded-full border ${bookmarked.has(idx) ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>{bookmarked.has(idx) ? '✓ Saved to vocab' : '☆ Save phrase'}</button></div>
+                        <div className="text-sm leading-5 flex flex-wrap gap-1">{words.map((w, wi) => {
+                          if (/^\s+$/.test(w)) return <span key={wi}>{w}</span>
+                          const clean = w.replace(/^[.,!?¿¡"'()]+|[.,!?¿¡"'()]+$/g, '')
+                          if (!clean || clean.length < 2) return <span key={wi}>{w}</span>
+                          const key = `${idx}:${clean}`
+                          const saved = savedPhrases.has(key)
+                          return <button key={wi} onClick={() => handleBookmark(idx, clean)} disabled={saved} title={saved ? 'Saved' : `Save "${clean}"`} className={`px-1 rounded ${saved ? 'bg-emerald-500/30 text-emerald-200' : 'hover:bg-white/15 hover:underline decoration-dotted underline-offset-2'}`}>{w}</button>
+                        })}</div>
+                        {translation && translation !== seg.originalText && <div className="mt-1.5 pt-1.5 border-t border-white/10 text-sm italic text-indigo-200" data-testid="caption-translation">{translation}</div>}
+                        <div className="mt-2 flex gap-2"><button onClick={() => handleBookmark(idx)} disabled={bookmarked.has(idx)} className={`text-xs px-2 py-1 rounded-full border ${bookmarked.has(idx) ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300' : 'bg-white/5 border-white/10 hover:bg-white/10'}`} data-testid={`save-phrase-${idx}`}>{bookmarked.has(idx) ? '✓ Saved to vocab' : '☆ Save phrase'}</button></div>
                       </div>
                     )
                   })}
@@ -350,14 +421,17 @@ export default function CallScreen({ callId, chatName, initialType = 'audio', on
               )
             ) : <div className="text-center text-white/30 text-sm py-8">Captions hidden</div>}
           </div>
+          <div className="px-3 py-1 text-center text-[11px] text-white/30 shrink-0">Transcript auto-scrolls during conversation</div>
           <form onSubmit={handleSendCaption} className="p-3 border-t border-white/10 flex gap-2 shrink-0">
             <input value={captionInput} onChange={e => setCaptionInput(e.target.value)} placeholder="Type a caption..." className="flex-1 min-w-0 bg-white/10 border border-white/15 rounded-full px-4 py-2 text-sm placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-indigo-500" maxLength={500} />
+            <button type="button" onClick={toggleLiveTranscription} className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${transcribing ? 'bg-red-600 animate-pulse' : 'bg-white/10 hover:bg-white/15'}`} aria-label="Live transcribe" title="Live transcribe" data-testid="live-transcribe-btn"><span className="material-symbols-outlined text-[18px]">{transcribing ? 'mic' : 'graphic_eq'}</span></button>
             <button type="submit" disabled={!captionInput.trim() || sending} className="w-9 h-9 rounded-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 flex items-center justify-center shrink-0" aria-label="Send caption"><span className="material-symbols-outlined text-[18px]">send</span></button>
           </form>
         </div>
       </div>
 
       <div className="px-4 py-4 border-t border-white/10 bg-[#081428] flex items-center justify-center gap-2 sm:gap-3 shrink-0 flex-wrap">
+        <button onClick={() => setShowTranscript(v => !v)} aria-pressed={showTranscript} className={`w-12 h-12 rounded-full flex items-center justify-center transition md:hidden ${showTranscript ? 'bg-indigo-600 text-white' : 'bg-white/10 text-white/60'}`} title="Toggle transcript" aria-label="Toggle transcript" data-testid="toggle-transcript-btn-mobile"><span className="material-symbols-outlined">chat</span></button>
         <button onClick={toggleMute} aria-pressed={muted} className={`w-12 h-12 rounded-full flex items-center justify-center transition ${muted ? 'bg-amber-500 text-white' : 'bg-white/10 hover:bg-white/15 text-white'}`} title={muted ? 'Unmute' : 'Mute'} aria-label={muted ? 'Unmute microphone' : 'Mute microphone'}><span className="material-symbols-outlined">{muted ? 'mic_off' : 'mic'}</span></button>
         <button onClick={toggleCamera} aria-pressed={cameraOn} className={`w-12 h-12 rounded-full flex items-center justify-center transition ${cameraOn ? 'bg-white/10 hover:bg-white/15' : 'bg-white/5 opacity-60'}`} title={cameraOn ? 'Camera on' : 'Camera off'} aria-label="Toggle camera"><span className="material-symbols-outlined">{cameraOn ? 'videocam' : 'videocam_off'}</span></button>
         <button onClick={toggleScreenShare} aria-pressed={screenSharing} className={`w-12 h-12 rounded-full flex items-center justify-center transition ${screenSharing ? 'bg-emerald-600 text-white' : 'bg-white/10 hover:bg-white/15'}`} title={screenSharing ? 'Stop sharing' : 'Share screen'} aria-label="Toggle screen share"><span className="material-symbols-outlined">screen_share</span></button>

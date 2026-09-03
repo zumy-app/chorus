@@ -24,6 +24,7 @@ import PayoutsScreen from '../screens/PayoutsScreen';
 import ConfirmBookingScreen from '../screens/ConfirmBookingScreen';
 import StreakRecoveryScreen from '../screens/StreakRecoveryScreen';
 import CallScreen from '../screens/CallScreen';
+import UniversalSearchScreen from '../screens/UniversalSearchScreen';
 import { COLOR, TYPOGRAPHY } from '../theme';
 
 export type MainTabsParamList = {
@@ -37,6 +38,7 @@ export type ChatsStackParamList = {
   ChatList: undefined;
   Chat: { chatId: string; chatName: string };
   NewChat: undefined;
+  UniversalSearch: undefined;
   Call: { callId: string; chatId: string; chatName: string };
 };
 
@@ -101,6 +103,11 @@ const ChatsTab = () => (
       name="Call"
       component={CallScreen}
       options={{ title: 'Call', headerShown: false, presentation: 'fullScreenModal' }}
+    />
+    <ChatsStack.Screen
+      name="UniversalSearch"
+      component={UniversalSearchScreen}
+      options={{ title: 'Search' }}
     />
   </ChatsStack.Navigator>
 );

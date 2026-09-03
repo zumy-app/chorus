@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput } from 'react-native';
 import { COLOR } from '../theme';
 import apiService from '../services/api';
@@ -30,6 +30,9 @@ export default function CallScreen({ route, navigation }: any) {
   const [sending, setSending] = useState(false);
   const [nativeLanguage, setNativeLanguage] = useState('en');
   const [bookmarked, setBookmarked] = useState<Set<number>>(new Set());
+  const [showTranslated, setShowTranslated] = useState(true);
+  const [showTranscript, setShowTranscript] = useState(true);
+  const listRef = useRef<FlatList>(null);
 
   const isVideo = callType === 'video';
 
@@ -54,6 +57,7 @@ export default function CallScreen({ route, navigation }: any) {
   }, [callId]);
 
   useEffect(() => { loadCaptions(0); }, [loadCaptions]);
+  useEffect(() => { if (segments.length > 0) setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100); }, [segments]);
 
   useEffect(() => {
     const unsub = webSocketService.onMessage((msg: any) => {
@@ -91,19 +95,38 @@ export default function CallScreen({ route, navigation }: any) {
     } catch {} finally { setSending(false); }
   };
 
-  const handleBookmark = async (idx: number) => {
-    if (bookmarked.has(idx)) return;
+  const [savedPhrases, setSavedPhrases] = useState<Set<string>>(new Set());
+  const handleBookmark = async (idx: number, phrase?: string) => {
+    const key = phrase ? `${idx}:${phrase}` : `${idx}:*`;
+    if (phrase ? savedPhrases.has(key) : bookmarked.has(idx)) return;
     try {
-      await apiService.bookmarkCaption(callId, idx);
-      setBookmarked(prev => new Set(prev).add(idx));
+      if (phrase) {
+        await apiService.bookmarkCaption(callId, idx, phrase);
+        setSavedPhrases(prev => new Set(prev).add(key));
+      } else {
+        await apiService.bookmarkCaption(callId, idx);
+        setBookmarked(prev => new Set(prev).add(idx));
+      }
     } catch {}
   };
 
-  const toggleScreenShare = () => {
+  const toggleScreenShare = async () => {
     const next = !screenSharing;
     setScreenSharing(next);
     setCallType('video');
     if (!next) setRemoteScreenShare(false);
+    try {
+      await (apiService as unknown as { sendSignal: (id: string, d: unknown) => Promise<void> }).sendSignal?.(callId, { type: next ? 'screen-share-start' : 'screen-share-stop' });
+    } catch {}
+    if (!next) return;
+    try {
+      const mediaDevices = (globalThis as unknown as { navigator?: { mediaDevices?: { getDisplayMedia?: (c: unknown) => Promise<unknown> } } })?.navigator?.mediaDevices;
+      if (mediaDevices?.getDisplayMedia) {
+        const stream = await (mediaDevices.getDisplayMedia as (c: unknown) => Promise<{ getVideoTracks: () => { onended?: () => void }[] }> )({ video: true });
+        const track = stream?.getVideoTracks?.()[0];
+        if (track) track.onended = () => toggleScreenShare();
+      }
+    } catch {}
   };
 
   const toggleCamera = () => {
@@ -113,15 +136,29 @@ export default function CallScreen({ route, navigation }: any) {
   };
 
   const renderCaption = ({ item, index }: { item: TranscriptSegment; index: number }) => {
-    const translation = item.translations?.[nativeLanguage] || Object.values(item.translations || {})[0];
+    const translation = showTranslated ? (item.translations?.[nativeLanguage] || Object.values(item.translations || {})[0]) : undefined;
+    const words = item.originalText.split(/(\s+)/);
     return (
       <View style={styles.captionBubble}>
-        <Text style={styles.captionOriginal}>{item.originalText}</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+          {words.map((w: string, wi: number) => {
+            if (/^\s+$/.test(w)) return <Text key={wi} style={styles.captionOriginal}>{w}</Text>;
+            const clean = w.replace(/^[.,!?¿¡"'()]+|[.,!?¿¡"'()]+$/g, '');
+            if (!clean || clean.length < 2) return <Text key={wi} style={styles.captionOriginal}>{w}</Text>;
+            const key = `${index}:${clean}`;
+            const saved = savedPhrases.has(key);
+            return (
+              <TouchableOpacity key={wi} onPress={() => handleBookmark(index, clean)} disabled={saved} style={[styles.wordChip, saved && styles.wordChipSaved]}>
+                <Text style={[styles.wordText, saved && styles.wordTextSaved]}>{w}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
         {translation && translation !== item.originalText ? <Text style={styles.captionTranslated}>{translation}</Text> : null}
         <View style={styles.captionFooter}>
           <Text style={styles.captionTime}>{new Date(item.startTime * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
-          <TouchableOpacity onPress={() => handleBookmark(index)} style={[styles.bookmarkBtn, bookmarked.has(index) && styles.bookmarkBtnDone]}>
-            <Text style={[styles.bookmarkText, bookmarked.has(index) && styles.bookmarkTextDone]}>{bookmarked.has(index) ? '✓ Saved' : '☆ Save'}</Text>
+          <TouchableOpacity onPress={() => handleBookmark(index)} style={[styles.bookmarkBtn, bookmarked.has(index) && styles.bookmarkBtnDone]} testID={`save-phrase-${index}`}>
+            <Text style={[styles.bookmarkText, bookmarked.has(index) && styles.bookmarkTextDone]}>{bookmarked.has(index) ? '✓ Saved to vocab' : '☆ Save phrase'}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -138,6 +175,7 @@ export default function CallScreen({ route, navigation }: any) {
           <Text style={styles.headerName}>{chatName}</Text>
           <Text style={styles.headerSub}>{status === 'active' ? formatDuration(duration) : 'Ended'} · {callType === 'video' ? 'Video' : 'Audio'} call {screenSharing ? '· Sharing' : ''} {remoteScreenShare ? '· Remote sharing' : ''}</Text>
         </View>
+        <TouchableOpacity onPress={() => setShowTranscript(v => !v)} style={[styles.minimizeBtn, showTranscript && { backgroundColor: '#4f46e5' }]} testID="toggle-transcript-btn"><Text style={styles.minimizeText}>💬</Text></TouchableOpacity>
         {isVideo && <TouchableOpacity onPress={() => setDualView(v => !v)} style={styles.minimizeBtn}><Text style={styles.minimizeText}>{dualView ? '◫' : '▣'}</Text></TouchableOpacity>}
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.minimizeBtn}><Text style={styles.minimizeText}>✕</Text></TouchableOpacity>
       </View>
@@ -161,7 +199,7 @@ export default function CallScreen({ route, navigation }: any) {
             {immersive && latestImmersive.length > 0 && (
               <View style={styles.immersiveOverlay} testID="immersive-captions">
                 {latestImmersive.map((seg, i) => {
-                  const tr = seg.translations?.[nativeLanguage] || Object.values(seg.translations || {})[0];
+                  const tr = showTranslated ? (seg.translations?.[nativeLanguage] || Object.values(seg.translations || {})[0]) : undefined;
                   return <Text key={i} style={styles.immersiveText}>{seg.originalText}{tr && tr !== seg.originalText ? ` · ${tr}` : ''}</Text>;
                 })}
               </View>
@@ -176,7 +214,7 @@ export default function CallScreen({ route, navigation }: any) {
             {immersive && latestImmersive.length > 0 && (
               <View style={[styles.immersiveOverlay, { position: 'relative', marginTop: 12 }]} testID="immersive-captions">
                 {latestImmersive.map((seg, i) => {
-                  const tr = seg.translations?.[nativeLanguage] || Object.values(seg.translations || {})[0];
+                  const tr = showTranslated ? (seg.translations?.[nativeLanguage] || Object.values(seg.translations || {})[0]) : undefined;
                   return <Text key={i} style={styles.immersiveText}>{seg.originalText}{tr && tr !== seg.originalText ? ` · ${tr}` : ''}</Text>;
                 })}
               </View>
@@ -185,30 +223,38 @@ export default function CallScreen({ route, navigation }: any) {
         )}
       </View>
 
-      <View style={styles.transcriptWrap}>
-        <View style={styles.transcriptHeader}>
-          <Text style={styles.transcriptTitle}>Live captions</Text>
-          <View style={{ flexDirection: 'row', gap: 12 }}>
-            <TouchableOpacity onPress={() => setImmersive(v => !v)}><Text style={[styles.transcriptHint, immersive && { color: '#a78bfa' }]}>{immersive ? 'Immersive on' : 'Immersive off'}</Text></TouchableOpacity>
-            <Text style={styles.transcriptHint}>Scrollable · tap Save</Text>
+      {showTranscript ? (
+        <View style={styles.transcriptWrap} testID="transcript-panel">
+          <View style={styles.dragHandleWrap}><View style={styles.dragHandle} /></View>
+          <View style={styles.transcriptHeader}>
+            <Text style={styles.transcriptTitle}>Live captions</Text>
+            <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+              <TouchableOpacity onPress={() => setShowTranslated(v => !v)} testID="translated-toggle"><Text style={[styles.transcriptHint, showTranslated && { color: '#a78bfa' }]}>{showTranslated ? 'Translated on' : 'Translated off'}</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setImmersive(v => !v)}><Text style={[styles.transcriptHint, immersive && { color: '#a78bfa' }]}>{immersive ? 'Immersive on' : 'Immersive off'}</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowTranscript(false)} testID="close-transcript-btn" style={styles.closeBtn}><Text style={styles.closeBtnText}>⌄</Text></TouchableOpacity>
+            </View>
+          </View>
+          {segments.length === 0 ? (
+            <View style={styles.empty}><Text style={styles.emptyIcon}>💬</Text><Text style={styles.emptyText}>Captions will appear here as you speak.</Text><Text style={styles.autoScrollHint}>Transcript auto-scrolls during conversation</Text></View>
+          ) : (
+            <FlatList ref={listRef} data={segments} renderItem={renderCaption} keyExtractor={(_, i) => String(i)} style={styles.list} contentContainerStyle={styles.listContent} testID="transcript-scroll" onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })} />
+          )}
+          {hasMore ? <TouchableOpacity onPress={() => loadCaptions(segments.length)} style={styles.loadMore}><Text style={styles.loadMoreText}>Load older captions</Text></TouchableOpacity> : null}
+          <Text style={styles.autoScrollHintCenter}>Transcript auto-scrolls during conversation</Text>
+          <View style={styles.inputRow}>
+            <TextInput value={captionInput} onChangeText={setCaptionInput} placeholder="Type a caption..." placeholderTextColor={COLOR.onSurfaceVariant} style={styles.input} onSubmitEditing={handleSendCaption} returnKeyType="send" />
+            <TouchableOpacity onPress={handleSendCaption} disabled={!captionInput.trim() || sending} style={[styles.sendBtn, (!captionInput.trim() || sending) && styles.sendBtnDisabled]}><Text style={styles.sendBtnText}>➤</Text></TouchableOpacity>
           </View>
         </View>
-        {segments.length === 0 ? (
-          <View style={styles.empty}><Text style={styles.emptyIcon}>💬</Text><Text style={styles.emptyText}>Captions will appear here as you speak.</Text></View>
-        ) : (
-          <FlatList data={segments} renderItem={renderCaption} keyExtractor={(_, i) => String(i)} style={styles.list} contentContainerStyle={styles.listContent} />
-        )}
-        {hasMore ? <TouchableOpacity onPress={() => loadCaptions(segments.length)} style={styles.loadMore}><Text style={styles.loadMoreText}>Load older captions</Text></TouchableOpacity> : null}
-        <View style={styles.inputRow}>
-          <TextInput value={captionInput} onChangeText={setCaptionInput} placeholder="Type a caption..." placeholderTextColor={COLOR.onSurfaceVariant} style={styles.input} onSubmitEditing={handleSendCaption} returnKeyType="send" />
-          <TouchableOpacity onPress={handleSendCaption} disabled={!captionInput.trim() || sending} style={[styles.sendBtn, (!captionInput.trim() || sending) && styles.sendBtnDisabled]}><Text style={styles.sendBtnText}>➤</Text></TouchableOpacity>
-        </View>
-      </View>
+      ) : (
+        <TouchableOpacity onPress={() => setShowTranscript(true)} style={styles.transcriptCollapsed} testID="open-transcript-btn"><Text style={styles.transcriptCollapsedText}>💬 Show transcript ({segments.length})</Text></TouchableOpacity>
+      )}
 
       <View style={styles.controls}>
+        <TouchableOpacity onPress={() => setShowTranscript(v => !v)} style={[styles.ctrlBtn, showTranscript && { backgroundColor: '#4f46e5' }]} testID="toggle-transcript-btn-ctrl"><Text style={styles.ctrlIcon}>💬</Text></TouchableOpacity>
         <TouchableOpacity onPress={() => setMuted(v => !v)} style={[styles.ctrlBtn, muted && styles.ctrlBtnActive]}><Text style={[styles.ctrlIcon, muted && styles.ctrlIconActive]}>{muted ? '🔇' : '🎤'}</Text></TouchableOpacity>
-        <TouchableOpacity onPress={toggleCamera} style={[styles.ctrlBtn, !cameraOn && styles.ctrlBtnMuted]}><Text style={styles.ctrlIcon}>{cameraOn ? '📹' : '🚫'}</Text></TouchableOpacity>
-        <TouchableOpacity onPress={toggleScreenShare} style={[styles.ctrlBtn, screenSharing && styles.ctrlBtnActive]}><Text style={styles.ctrlIcon}>🖥️</Text></TouchableOpacity>
+        <TouchableOpacity onPress={toggleCamera} style={[styles.ctrlBtn, !cameraOn && styles.ctrlBtnMuted]} testID="toggle-camera-btn"><Text style={styles.ctrlIcon}>{cameraOn ? '📹' : '🚫'}</Text></TouchableOpacity>
+        <TouchableOpacity onPress={toggleScreenShare} style={[styles.ctrlBtn, screenSharing && styles.ctrlBtnActive]} testID="toggle-screen-share-btn"><Text style={styles.ctrlIcon}>🖥️</Text></TouchableOpacity>
         <TouchableOpacity onPress={() => setSpeakerOn(v => !v)} style={[styles.ctrlBtn, !speakerOn && styles.ctrlBtnMuted]}><Text style={styles.ctrlIcon}>{speakerOn ? '🔊' : '🔈'}</Text></TouchableOpacity>
         <TouchableOpacity onPress={handleEnd} style={styles.endBtn}><Text style={styles.endIcon}>✕</Text><Text style={styles.endText}>End</Text></TouchableOpacity>
       </View>
@@ -254,7 +300,15 @@ const styles = StyleSheet.create({
   paneLabel: { position: 'absolute', bottom: 4, left: 6, backgroundColor: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 10, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 9999 },
   immersiveOverlay: { position: 'absolute', bottom: 8, left: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.65)', borderRadius: 8, padding: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   immersiveText: { color: '#fff', fontSize: 12, lineHeight: 16, textAlign: 'center' },
-  transcriptWrap: { flex: 1, backgroundColor: '#0F2440', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
+  transcriptWrap: { flex: 1, backgroundColor: '#0F2440', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', maxHeight: '50%' },
+  transcriptCollapsed: { backgroundColor: '#0F2440', paddingVertical: 10, alignItems: 'center', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
+  transcriptCollapsedText: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600' },
+  dragHandleWrap: { alignItems: 'center', paddingTop: 8, paddingBottom: 4 },
+  dragHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)' },
+  closeBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+  closeBtnText: { color: '#fff', fontSize: 14 },
+  autoScrollHint: { color: 'rgba(255,255,255,0.25)', fontSize: 11, marginTop: 8, textAlign: 'center' },
+  autoScrollHintCenter: { color: 'rgba(255,255,255,0.25)', fontSize: 11, textAlign: 'center', paddingVertical: 4 },
   transcriptHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
   transcriptTitle: { color: '#fff', fontWeight: '600', fontSize: 13 },
   transcriptHint: { color: 'rgba(255,255,255,0.4)', fontSize: 11 },
@@ -265,6 +319,10 @@ const styles = StyleSheet.create({
   captionTranslated: { color: '#C4B5FD', fontSize: 13, fontStyle: 'italic', marginTop: 6, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', paddingTop: 6 },
   captionFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
   captionTime: { color: 'rgba(255,255,255,0.4)', fontSize: 11 },
+  wordChip: { paddingHorizontal: 4, paddingVertical: 1, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)' },
+  wordChipSaved: { backgroundColor: 'rgba(16,185,129,0.25)' },
+  wordText: { color: '#fff', fontSize: 14 },
+  wordTextSaved: { color: '#6ee7b7' },
   bookmarkBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 9999, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   bookmarkBtnDone: { backgroundColor: 'rgba(16,185,129,0.15)', borderColor: 'rgba(16,185,129,0.3)' },
   bookmarkText: { color: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: '600' },

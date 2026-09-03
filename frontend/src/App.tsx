@@ -27,6 +27,9 @@ import TeacherDashboard from './pages/TeacherDashboard'
 import Payouts from './pages/Payouts'
 import ConfirmBooking from './pages/ConfirmBooking'
 import StreakRecovery from './pages/StreakRecovery'
+import UniversalSearch from './pages/UniversalSearch'
+import TeacherCaptionReview from './pages/TeacherCaptionReview'
+import Dashboard from './pages/Dashboard'
 import { authAPI, presenceAPI } from './services/api'
 import { wsService } from './services/websocket'
 import { useStore } from './store'
@@ -247,7 +250,10 @@ function App() {
         <Route path="/trial-credits" element={isAuthenticated ? <TrialCredits /> : <Navigate to="/login" />} />
         <Route path="/teacher/dashboard" element={isAuthenticated ? <TeacherDashboard /> : <Navigate to="/login" />} />
         <Route path="/teacher/payouts" element={isAuthenticated ? <Payouts /> : <Navigate to="/login" />} />
+        <Route path="/teacher/caption-review" element={isAuthenticated ? <TeacherCaptionReview /> : <Navigate to="/login" />} />
         <Route path="/learn/streak-recovery" element={isAuthenticated ? <StreakRecovery /> : <Navigate to="/login" />} />
+        <Route path="/search" element={isAuthenticated ? <UniversalSearch /> : <Navigate to="/login" />} />
+        <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
       </Routes>
     </>
   )

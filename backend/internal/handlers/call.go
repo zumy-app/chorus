@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/base64"
 	"errors"
 	"net/http"
 	"strconv"
@@ -12,12 +13,15 @@ import (
 )
 
 type CallHandler struct {
-	callService *services.CallService
+	callService   *services.CallService
+	reviewService *services.CaptionReviewService
 }
 
 func NewCallHandler(callService *services.CallService) *CallHandler {
 	return &CallHandler{callService: callService}
 }
+
+func (h *CallHandler) SetReviewService(s *services.CaptionReviewService) { h.reviewService = s }
 
 func (h *CallHandler) InitiateCall(c *gin.Context) {
 	userID := c.GetString("userID")
@@ -239,7 +243,20 @@ func (h *CallHandler) BookmarkCaption(c *gin.Context) {
 		WriteError(c, middleware.ErrValidation("Invalid caption index"))
 		return
 	}
-	entry, err := h.callService.BookmarkCaption(c.Request.Context(), callID, userID, idx)
+	var body struct {
+		Phrase string `json:"phrase"`
+		Text   string `json:"text"`
+		Term   string `json:"term"`
+	}
+	_ = c.ShouldBindJSON(&body)
+	phrase := body.Phrase
+	if phrase == "" {
+		phrase = body.Text
+	}
+	if phrase == "" {
+		phrase = body.Term
+	}
+	entry, err := h.callService.BookmarkCaptionWithPhrase(c.Request.Context(), callID, userID, idx, phrase)
 	if err != nil {
 		if errors.Is(err, services.ErrNotParticipant) {
 			WriteError(c, middleware.ErrForbidden("Not a participant of this call"))
@@ -249,6 +266,42 @@ func (h *CallHandler) BookmarkCaption(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, entry)
+}
+
+func (h *CallHandler) TranscribeCaption(c *gin.Context) {
+	callID := c.Param("callId")
+	userID := c.GetString("userID")
+	var req struct {
+		Audio    string `json:"audio" binding:"required"`
+		Language string `json:"language"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		WriteError(c, middleware.ErrValidation("Audio (base64) required"))
+		return
+	}
+	audioData, err := base64.StdEncoding.DecodeString(req.Audio)
+	if err != nil {
+		WriteError(c, middleware.ErrValidation("Invalid audio encoding"))
+		return
+	}
+	seg, err := h.callService.TranscribeAndPublish(c.Request.Context(), callID, userID, audioData, req.Language)
+	if err != nil {
+		if errors.Is(err, services.ErrNotParticipant) {
+			WriteError(c, middleware.ErrForbidden("Not a participant of this call"))
+			return
+		}
+		if errors.Is(err, services.ErrCallAlreadyEnded) {
+			WriteError(c, middleware.ErrValidation("Call already ended"))
+			return
+		}
+		if errors.Is(err, services.ErrCallNotFound) {
+			WriteError(c, middleware.ErrNotFound("Call session not found"))
+			return
+		}
+		WriteError(c, middleware.ErrValidation(err.Error()))
+		return
+	}
+	c.JSON(http.StatusCreated, seg)
 }
 
 func (h *CallHandler) HandleWebRTCSignaling(c *gin.Context) {
@@ -303,4 +356,81 @@ func (h *CallHandler) HandleWebRTCSignaling(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Signal forwarded", "callId": callID})
+}
+
+func (h *CallHandler) ReviewCaption(c *gin.Context) {
+	if h.reviewService == nil {
+		WriteError(c, middleware.ErrInternal("Review service unavailable"))
+		return
+	}
+	callID := c.Param("callId")
+	idx, _ := strconv.Atoi(c.Param("index"))
+	userID := c.GetString("userID")
+	var req models.CaptionReviewRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		WriteError(c, middleware.ErrValidation("Invalid review payload"))
+		return
+	}
+	review, err := h.reviewService.SubmitReview(c.Request.Context(), callID, idx, userID, req)
+	if err != nil {
+		if err.Error() == "rating must be between 1 and 5" || err.Error() == "feedback too long" || err.Error() == "corrected text too long" {
+			WriteError(c, middleware.ErrValidation(err.Error()))
+			return
+		}
+		if errors.Is(err, services.ErrCallNotFound) {
+			WriteError(c, middleware.ErrNotFound("Call not found"))
+			return
+		}
+		if err.Error() == "transcript not found" || err.Error() == "segment index out of range" {
+			WriteError(c, middleware.ErrValidation(err.Error()))
+			return
+		}
+		WriteError(c, middleware.ErrInternal("Failed to save review"))
+		return
+	}
+	c.JSON(http.StatusCreated, review)
+}
+
+func (h *CallHandler) GetCaptionReviews(c *gin.Context) {
+	if h.reviewService == nil {
+		WriteError(c, middleware.ErrInternal("Review service unavailable"))
+		return
+	}
+	callID := c.Param("callId")
+	idx, _ := strconv.Atoi(c.Param("index"))
+	reviews, err := h.reviewService.GetReviews(c.Request.Context(), callID, idx)
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to fetch reviews"))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"reviews": reviews})
+}
+
+func (h *CallHandler) GetReviewQueue(c *gin.Context) {
+	if h.reviewService == nil {
+		WriteError(c, middleware.ErrInternal("Review service unavailable"))
+		return
+	}
+	userID := c.GetString("userID")
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	items, total, err := h.reviewService.GetReviewQueue(c.Request.Context(), userID, limit, offset)
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to fetch queue"))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": items, "total": total, "hasMore": offset+len(items) < total})
+}
+
+func (h *CallHandler) GetCaptionQualityStats(c *gin.Context) {
+	if h.reviewService == nil {
+		WriteError(c, middleware.ErrInternal("Review service unavailable"))
+		return
+	}
+	stats, err := h.reviewService.GetQualityStats(c.Request.Context())
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to fetch stats"))
+		return
+	}
+	c.JSON(http.StatusOK, stats)
 }

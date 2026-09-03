@@ -15,10 +15,17 @@ interface MessageBubbleProps {
   isOwn: boolean
   nativeLanguage: string
   targetLanguage?: string
+  allMessages?: Message[]
+  isPinned?: boolean
   onDeepDive?: (message: { id: string; text: string; sender?: any; analysis?: any }) => void
+  onReply?: (message: Message) => void
+  onForward?: (message: Message) => void
+  onDelete?: (message: Message) => void
+  onPin?: (message: Message) => void
+  onUnpin?: (message: Message) => void
 }
 
-export default function MessageBubble({ message, isOwn, nativeLanguage, targetLanguage, onDeepDive }: MessageBubbleProps) {
+export default function MessageBubble({ message, isOwn, nativeLanguage, targetLanguage, allMessages, isPinned, onDeepDive, onReply, onForward, onDelete, onPin, onUnpin }: MessageBubbleProps) {
   const { t } = useTranslation()
   const [showActions, setShowActions] = useState(false)
   const [savedWord, setSavedWord] = useState<string | null>(null)
@@ -211,6 +218,8 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
     .filter((w: string) => w.length > 3)
     .slice(0, 5)
 
+  const replySource = message.replyToId ? allMessages?.find((m) => m.id === message.replyToId) : null
+
   return (
     <div
       className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group`}
@@ -225,12 +234,56 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
               : 'bg-surface-container-lowest text-on-surface bubble-incoming shadow-[0px_4px_12px_rgba(0,0,0,0.05)] border border-outline-variant/20 relative'
           }`}
         >
+          {message.forwarded && (
+            <div className={`text-[11px] flex items-center gap-1 mb-1 ${isOwn ? 'text-white/70' : 'text-on-surface-variant/70'}`}>
+              <span className="material-symbols-outlined text-[12px]">forward</span> {t('chat.forwarded')}
+            </div>
+          )}
+          {isPinned && (
+            <div className={`text-[11px] flex items-center gap-1 mb-1 ${isOwn ? 'text-white/70' : 'text-amber-600'}`}>
+              <span className="material-symbols-outlined text-[12px]">push_pin</span> {t('chat.pinned')}
+            </div>
+          )}
+          {replySource && (
+            <div className={`mb-2 px-2 py-1.5 rounded-lg border-l-2 text-xs truncate ${isOwn ? 'bg-white/15 border-white/60 text-white/90' : 'bg-surface-container-high border-primary/40 text-on-surface-variant'}`}>
+              <div className="font-semibold truncate">{replySource.sender?.displayName || t('chat.unknownUser')}</div>
+              <div className="truncate opacity-80">{replySource.text}</div>
+            </div>
+          )}
           {!isOwn && message.sender && (
             <div className="text-xs font-semibold mb-1 opacity-75">
               {message.sender.displayName}
             </div>
           )}
           
+          {message.media && message.media.length > 0 && (
+            <div className="mb-2 space-y-1.5 w-full">
+              {message.media.map((att: any) => att.type === 'location' ? (
+                <a key={att.id} href={att.url} target="_blank" rel="noopener noreferrer" data-testid="location-pin" className={`block rounded-xl border overflow-hidden no-underline ${isOwn ? 'bg-white/15 border-white/20 text-white' : 'bg-surface-container-high border-outline-variant/30 text-on-surface'}`}>
+                  <div className="h-28 bg-surface-variant/30 relative flex items-center justify-center">
+                    <iframe title="map" src={att.url} className="w-full h-full border-0 pointer-events-none" loading="lazy" />
+                    <span className="absolute text-2xl drop-shadow">📍</span>
+                  </div>
+                  <div className="p-2.5">
+                    <div className="text-sm font-medium flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">location_on</span>{att.locationName || 'Shared location'}</div>
+                    <div className={`text-xs ${isOwn ? 'text-white/70' : 'text-on-surface-variant'}`}>{att.latitude?.toFixed(5)}, {att.longitude?.toFixed(5)}</div>
+                    <div className={`text-xs underline ${isOwn ? 'text-white/80' : 'text-primary'}`}>Open in maps</div>
+                  </div>
+                </a>
+              ) : (
+                <a key={att.id} href={att.url} target="_blank" rel="noopener noreferrer" download={att.fileName} className={`flex items-center gap-3 p-2.5 rounded-xl border text-sm no-underline ${isOwn ? 'bg-white/15 border-white/20 text-white hover:bg-white/20' : 'bg-surface-container-high border-outline-variant/30 text-on-surface hover:bg-surface-variant/30'}`}>
+                  <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm ${isOwn ? 'bg-white/20' : 'bg-primary-container text-on-primary-container'}`}>
+                    {att.type === 'document' ? '📄' : att.type === 'image' ? '🖼️' : att.type === 'video' ? '🎬' : att.type === 'audio' ? '🎵' : '📎'}
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block truncate font-medium">{att.fileName}</span>
+                    <span className={`block text-xs ${isOwn ? 'text-white/70' : 'text-on-surface-variant'}`}>{att.mimeType} · {(att.fileSize / 1024).toFixed(1)} KB</span>
+                  </span>
+                  <span className="material-symbols-outlined text-[18px] shrink-0">download</span>
+                </a>
+              ))}
+            </div>
+          )}
           <div className="break-words whitespace-pre-wrap font-body-md text-body-md">
             {originalIsLearningLang ? (
               <HighlightableText
@@ -313,10 +366,20 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
             </div>
           )}
 
-          {/* Outgoing read checkmarks */}
           {isOwn && (
-            <div className="flex justify-end mt-1 opacity-70">
-              <span className="material-symbols-outlined text-[14px]">done_all</span>
+            <div className="flex justify-end mt-1 items-center gap-1">
+              {(() => {
+                const receipts = (message as any).receipts as Array<{ status: string }> | undefined
+                let status: 'sent' | 'delivered' | 'read' = 'sent'
+                if (receipts && receipts.length) {
+                  if (receipts.some(r => r.status === 'read')) status = 'read'
+                  else if (receipts.some(r => r.status === 'delivered')) status = 'delivered'
+                } else if ((message as any).deliveryStatus === 'delivered') status = 'delivered'
+                const color = status === 'read' ? 'text-sky-400' : status === 'delivered' ? 'text-white/70' : 'text-white/50'
+                const icon = status === 'sent' ? 'done' : 'done_all'
+                const label = status === 'read' ? 'Read' : status === 'delivered' ? 'Delivered' : 'Sent'
+                return <span className={`material-symbols-outlined text-[14px] ${color}`} title={label} aria-label={label}>{icon}</span>
+              })()}
             </div>
           )}
 
@@ -379,10 +442,20 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
           />
         )}
 
-        {/* Action Buttons */}
-        {showActions && !isOwn && (
+        {/* Message actions + learning actions */}
+        {showActions && (
           <div className="flex flex-wrap gap-1 mt-1">
-            {!nativeTranslation && !isTranslationBlocked && (
+            <button onClick={() => onReply?.(message)} className="text-xs px-2 py-1 bg-surface-container-high text-on-surface rounded hover:bg-surface-variant transition" title={t('chat.reply')}>↩ {t('chat.reply')}</button>
+            <button onClick={() => onForward?.(message)} className="text-xs px-2 py-1 bg-surface-container-high text-on-surface rounded hover:bg-surface-variant transition" title={t('chat.forward')}>↪ {t('chat.forward')}</button>
+            {isPinned ? (
+              <button onClick={() => onUnpin?.(message)} className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded hover:bg-amber-200 transition">📌 {t('chat.unpin')}</button>
+            ) : (
+              <button onClick={() => onPin?.(message)} className="text-xs px-2 py-1 bg-surface-container-high text-on-surface rounded hover:bg-surface-variant transition">📌 {t('chat.pin')}</button>
+            )}
+            {isOwn && (
+              <button onClick={() => onDelete?.(message)} className="text-xs px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100 transition">🗑 {t('common.delete')}</button>
+            )}
+            {!isOwn && !nativeTranslation && !isTranslationBlocked && (
               <button
                 onClick={handleManualTranslate}
                 disabled={manualTranslating}
@@ -399,23 +472,25 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
                 )}
               </button>
             )}
-            <button
-              onClick={() => handleAnalyzeGrammar()}
-              disabled={jobBusy}
-              className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded hover:bg-amber-200 transition disabled:opacity-50"
-            >
-              {jobBusy ? (
-                <span className="flex items-center gap-1">
-                  <span className="inline-block w-1 h-1 bg-amber-600 rounded-full animate-pulse" />
-                  {grammarJob?.status === 'queued' ? t('grammar.queued') : t('grammar.analyzing')}
-                </span>
-              ) : grammarError ? (
-                `↻ ${t('grammar.retry')}`
-              ) : (
-                `📝 ${t('grammar.grammar')}`
-              )}
-            </button>
-            {words.slice(0, 3).map((word: string) => (
+            {!isOwn && (
+              <button
+                onClick={() => handleAnalyzeGrammar()}
+                disabled={jobBusy}
+                className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded hover:bg-amber-200 transition disabled:opacity-50"
+              >
+                {jobBusy ? (
+                  <span className="flex items-center gap-1">
+                    <span className="inline-block w-1 h-1 bg-amber-600 rounded-full animate-pulse" />
+                    {grammarJob?.status === 'queued' ? t('grammar.queued') : t('grammar.analyzing')}
+                  </span>
+                ) : grammarError ? (
+                  `↻ ${t('grammar.retry')}`
+                ) : (
+                  `📝 ${t('grammar.grammar')}`
+                )}
+              </button>
+            )}
+            {!isOwn && words.slice(0, 2).map((word: string) => (
               <button
                 key={word}
                 onClick={() => handleSaveWord(word)}
@@ -425,13 +500,15 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
                 {savedWord === word ? t('common.saved') : `+ ${word.substring(0, 12)}`}
               </button>
             ))}
-            <button
-              onClick={() => setShowReport(true)}
-              className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition"
-              title={t('report.reportMessage')}
-            >
-              🚩
-            </button>
+            {!isOwn && (
+              <button
+                onClick={() => setShowReport(true)}
+                className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition"
+                title={t('report.reportMessage')}
+              >
+                🚩
+              </button>
+            )}
           </div>
         )}
       </div>

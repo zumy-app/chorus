@@ -10,10 +10,11 @@ import (
 )
 
 type ChatHandler struct {
-	chatService *services.ChatService
-	userService *services.UserService
-	moderation  *services.ModerationService
-	wsHub       *services.WebSocketHub
+	chatService    *services.ChatService
+	userService    *services.UserService
+	moderation     *services.ModerationService
+	privacyService *services.PrivacyService
+	wsHub          *services.WebSocketHub
 }
 
 func NewChatHandler(chatService *services.ChatService, userService *services.UserService, moderation *services.ModerationService, wsHub *services.WebSocketHub) *ChatHandler {
@@ -24,6 +25,8 @@ func NewChatHandler(chatService *services.ChatService, userService *services.Use
 		wsHub:       wsHub,
 	}
 }
+
+func (h *ChatHandler) SetPrivacyService(p *services.PrivacyService) { h.privacyService = p }
 
 // hydrateParticipants hydrates each participant's profile (via GetMultiple) and
 // stamps viewer-relative block status so the chat surfaces render
@@ -48,6 +51,11 @@ func (h *ChatHandler) hydrateParticipants(ctx context.Context, viewerID string, 
 	}
 	if h.moderation != nil && len(enriched) > 0 {
 		_ = h.moderation.EnrichUsers(ctx, viewerID, enriched)
+	}
+	if h.privacyService != nil {
+		for _, u := range enriched {
+			h.privacyService.FilterUser(viewerID, u)
+		}
 	}
 }
 
@@ -88,6 +96,11 @@ func (h *ChatHandler) GetUserChats(c *gin.Context) {
 		}
 		if h.moderation != nil && len(enriched) > 0 {
 			_ = h.moderation.EnrichUsers(c.Request.Context(), userID, enriched)
+		}
+		if h.privacyService != nil {
+			for _, u := range enriched {
+				h.privacyService.FilterUser(userID, u)
+			}
 		}
 
 		chats[i].Participants = participants
@@ -150,6 +163,11 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 	if h.moderation != nil && len(enriched) > 0 {
 		_ = h.moderation.EnrichUsers(c.Request.Context(), userID, enriched)
 	}
+	if h.privacyService != nil {
+		for _, u := range enriched {
+			h.privacyService.FilterUser(userID, u)
+		}
+	}
 	chat.Participants = participants
 
 	// Broadcast chat_updated to all participants so their chat lists refresh
@@ -192,6 +210,11 @@ func (h *ChatHandler) GetChat(c *gin.Context) {
 	}
 	if h.moderation != nil && len(enriched) > 0 {
 		_ = h.moderation.EnrichUsers(c.Request.Context(), userID, enriched)
+	}
+	if h.privacyService != nil {
+		for _, u := range enriched {
+			h.privacyService.FilterUser(userID, u)
+		}
 	}
 	chat.Participants = participants
 

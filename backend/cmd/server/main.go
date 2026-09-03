@@ -4,9 +4,12 @@ import (
 	"context"
 	"errors"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/chorus/messenger/internal/config"
@@ -191,6 +194,7 @@ func main() {
 	// Contacts & Invites epic (REQ 2.4 / FR-22-23): hashed on-platform detection
 	// and single-use invites for off-platform contacts.
 	contactService := services.NewContactService(db)
+	privacyService := services.NewPrivacyService(db)
 
 	// Phase 3: Initialize Grammar service with endpoint chain
 	log.Printf("[Startup] TRANSLATION_FALLBACK_ORDER=%q from env", os.Getenv("TRANSLATION_FALLBACK_ORDER"))
@@ -306,6 +310,7 @@ func main() {
 
 	authHandler := handlers.NewAuthHandler(authService, userService, invitationService, notificationService, entitlementService, moderationService, cfg.PasswordResetBaseURL)
 	authHandler.SetOTPService(otpService)
+	authHandler.SetPrivacyService(privacyService)
 	settingsHandler := handlers.NewSettingsHandler(settingsService)
 	waitlistHandler := handlers.NewWaitlistHandler(waitlistService, notificationService)
 	adminWaitlistHandler := handlers.NewAdminWaitlistHandler(
@@ -319,6 +324,7 @@ func main() {
 	adminQualityHandler := handlers.NewAdminQualityHandler(qualityEvaluator)
 
 	chatHandler := handlers.NewChatHandler(chatService, userService, moderationService, wsHub)
+	chatHandler.SetPrivacyService(privacyService)
 	messageHandler := handlers.NewMessageHandler(messageService, chatService, userService, entitlementService, translationQueue, settingsService, moderationService, wsHub, translationService)
 	messageHandler.SetWordMining(wordMiningQueue, learningProfileService)
 	messageHandler.SetReceiptService(receiptService)
@@ -371,10 +377,13 @@ func main() {
 	searchHandler := handlers.NewSearchHandlerWithUsers(searchService, userService, moderationService)
 	galleryHandler := handlers.NewGalleryHandlerWithModeration(galleryService, moderationService)
 	contactsHandler := handlers.NewContactsHandlerWithModeration(contactService, invitationService, notificationService, moderationService, cfg.InviteBaseURL)
-	presenceHandler := handlers.NewPresenceHandler(presenceService)
+	contactsHandler.SetPrivacyService(privacyService)
+	presenceHandler := handlers.NewPresenceHandlerWithPrivacy(presenceService, privacyService)
 	grammarHandler := handlers.NewGrammarHandler(grammarService, grammarQueue, messageService)
 	vocabularyHandler := handlers.NewVocabularyHandler(vocabularyService, messageService, translationService)
+	captionReviewService := services.NewCaptionReviewService(db)
 	callHandler := handlers.NewCallHandler(callService)
+	callHandler.SetReviewService(captionReviewService)
 	learningHandler := handlers.NewLearningHandlerWithPractice(learningCapabilityService, learningProfileService, learningDashboardService, curriculumService, placementService, lessonService, sessionComposerService, wordMiningService, scenarioService, fluencyService, vocabularyService, seedQueueService, srsQueueService, practiceService)
 
 	moderationHandler := handlers.NewModerationHandler(moderationService)
@@ -719,6 +728,11 @@ func main() {
 		protected.POST("/calls/:callId/captions", callHandler.PostCaption)
 		protected.GET("/calls/:callId/captions", callHandler.GetCaptions)
 		protected.POST("/calls/:callId/captions/:index/bookmark", callHandler.BookmarkCaption)
+		protected.POST("/calls/:callId/transcribe", callHandler.TranscribeCaption)
+		protected.POST("/calls/:callId/captions/:index/review", callHandler.ReviewCaption)
+		protected.GET("/calls/:callId/captions/:index/reviews", callHandler.GetCaptionReviews)
+		protected.GET("/captions/review-queue", callHandler.GetReviewQueue)
+		protected.GET("/captions/quality-stats", callHandler.GetCaptionQualityStats)
 	}
 
 	// WebSocket endpoint (auth handled inside handler via query param or header)
@@ -730,16 +744,39 @@ func main() {
 	// route lives under a different prefix, so there is no conflict.
 	r.Static("/media", cfg.UploadDir)
 
-	// Start server
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	log.Printf("Server starting on port %s (Phase 2 & 3 features enabled)", port)
-	if err := r.Run(":" + port); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+	srv := &http.Server{
+		Addr:    ":" + port,
+		Handler: r,
 	}
+
+	go func() {
+		log.Printf("Server starting on port %s (stateless, SERVER_ID=%s)", port, cfg.ServerID)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("Failed to start server: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Printf("[Shutdown] signal received, draining (SERVER_ID=%s)...", cfg.ServerID)
+	ctxShutdown, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	if deliveryRouter != nil {
+		deliveryRouter.Stop()
+	}
+	if pubsubService != nil {
+		pubsubService.Stop()
+	}
+	if err := srv.Shutdown(ctxShutdown); err != nil {
+		log.Printf("[Shutdown] forced: %v", err)
+	}
+	log.Printf("[Shutdown] server stopped (SERVER_ID=%s)", cfg.ServerID)
 }
 
 // buildTranslationProviderChain constructs a provider chain from config.

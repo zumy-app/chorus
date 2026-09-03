@@ -19,11 +19,13 @@ type AuthHandler struct {
 	emailSender        services.EmailSender
 	entitlementService *services.EntitlementService
 	moderation         *services.ModerationService
+	privacyService     *services.PrivacyService
 	otpService         *services.OTPService
 	resetBaseURL       string
 }
 
 func (h *AuthHandler) SetOTPService(s *services.OTPService) { h.otpService = s }
+func (h *AuthHandler) SetPrivacyService(s *services.PrivacyService) { h.privacyService = s }
 
 func NewAuthHandler(authService *services.AuthService, userService *services.UserService, invitationService *services.InvitationService, emailSender services.EmailSender, entitlementService *services.EntitlementService, moderation *services.ModerationService, resetBaseURL string) *AuthHandler {
 	return &AuthHandler{
@@ -153,6 +155,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		masked := ""
 		if user.Phone != nil {
 			masked = services.MaskPhone(*user.Phone)
+			if h.otpService != nil {
+				_ = h.otpService.RequestOTP(user.ID, *user.Phone)
+			}
 		}
 		c.JSON(200, gin.H{"requires2FA": true, "tempToken": tempToken, "phoneMasked": masked})
 		return
@@ -356,6 +361,12 @@ func (h *AuthHandler) SearchUsers(c *gin.Context) {
 		if err := h.moderation.EnrichUsers(c.Request.Context(), c.GetString("userID"), ptrs); err != nil {
 			WriteError(c, middleware.ErrInternal("Search failed"))
 			return
+		}
+	}
+	if h.privacyService != nil {
+		viewerID := c.GetString("userID")
+		for i := range users {
+			h.privacyService.FilterUser(viewerID, &users[i])
 		}
 	}
 

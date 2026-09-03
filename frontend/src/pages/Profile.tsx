@@ -1,8 +1,12 @@
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useStore } from '../store'
 import BottomNav from '../components/BottomNav'
 import AppHeader from '../components/AppHeader'
 import PrivacySettings from '../components/PrivacySettings'
+import TwoFactorSettings from '../components/TwoFactorSettings'
+import { moderationAPI } from '../services/api'
+import type { Block } from '@chorus/shared'
 
 interface ProfileProps {
   onLogout: () => void
@@ -16,6 +20,8 @@ export default function Profile({ onLogout }: ProfileProps) {
   const nativeLang = user?.nativeLanguage?.toUpperCase() || 'EN'
   const targetLang = user?.targetLanguages?.[0]?.toUpperCase() || 'ES'
   const planLabel = entitlements?.effectivePlan === 'premium' ? 'Pro' : entitlements?.effectivePlan === 'free' ? t('plan.free') : t('plan.unlimited')
+  const [blocked, setBlocked] = useState<Block[]>([])
+  useEffect(() => { try { (moderationAPI as any)?.getBlocked?.().then(setBlocked).catch(()=>{}) } catch {} }, [])
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -104,6 +110,27 @@ export default function Profile({ onLogout }: ProfileProps) {
         {/* Privacy Section */}
         <section className="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/40 overflow-hidden p-4">
           <PrivacySettings />
+        </section>
+
+        <section className="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/40 overflow-hidden p-4">
+          <TwoFactorSettings />
+        </section>
+
+        {/* Blocked Users */}
+        <section className="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/40 overflow-hidden">
+          <h3 className="font-label-sm text-label-sm text-primary uppercase tracking-wider px-stack-md py-stack-sm bg-surface-container-low border-b border-outline-variant/40">🚫 {t('settings.blockedUsers')}</h3>
+          {blocked.length === 0 ? (
+            <p className="px-stack-md py-stack-md text-sm text-on-surface-variant">{t('settings.noBlockedUsers')}</p>
+          ) : (
+            <ul className="divide-y divide-outline-variant/20">
+              {blocked.map(b => (
+                <li key={b.id} className="flex items-center justify-between px-stack-md py-stack-sm">
+                  <span className="text-sm text-on-surface truncate">{b.blocked?.displayName || b.blocked?.username || t('common.unknown')}</span>
+                  <button onClick={async () => { try { await (moderationAPI as any)?.unblock?.(b.blockedId) } catch {} setBlocked(prev=>prev.filter(x=>x.blockedId!==b.blockedId)) }} className="ml-2 px-3 py-1 text-xs border border-outline-variant rounded-full whitespace-nowrap">{t('settings.unblock')}</button>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
         <section className="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/40 overflow-hidden">

@@ -214,6 +214,7 @@ services:
       - ./deploy/monitoring/alerts-soak.yml:/etc/prometheus/alerts-soak.yml:ro
       - ./deploy/monitoring/alerts-word-mining.yml:/etc/prometheus/alerts-word-mining.yml:ro
       - ./deploy/monitoring/alerts-support.yml:/etc/prometheus/alerts-support.yml:ro
+      - ./deploy/monitoring/alerts-practice-ladder.yml:/etc/prometheus/alerts-practice-ladder.yml:ro
       - prometheus_data:/prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"

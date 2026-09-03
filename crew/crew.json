@@ -1,0 +1,34 @@
+{
+  "name": "Chorus Autonomous Build Crew",
+  "agents": [
+    "analyst",
+    "product_manager",
+    "backend_engineer",
+    "frontend_engineer",
+    "mobile_engineer",
+    "qa_engineer",
+    "test_engineer",
+    "teacher",
+    "sre",
+    "reviewer"
+  ],
+  "tasks": [
+    {
+      "name": "requirements_trace",
+      "description": "Trace every requirement to code",
+      "expected_output": "GapAnalysis",
+      "agent": "analyst"
+    },
+    {
+      "name": "wireframe_parity_audit",
+      "description": "Audit wireframe coverage",
+      "expected_output": "WireframeParityReport",
+      "agent": "qa_engineer"
+    }
+  ],
+  "process": "sequential",
+  "verbose": true,
+  "memory": true,
+  "planning": true,
+  "cache": true
+}

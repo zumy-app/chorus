@@ -867,7 +867,7 @@ func Migrate(db *sql.DB) error {
 		`ALTER TABLE vocabulary ADD COLUMN IF NOT EXISTS is_chunk BOOLEAN NOT NULL DEFAULT false`,
 		`ALTER TABLE vocabulary ADD COLUMN IF NOT EXISTS source_type VARCHAR(30) NOT NULL DEFAULT 'chat'`,
 		`ALTER TABLE vocabulary DROP CONSTRAINT IF EXISTS vocabulary_source_type_check`,
-		`ALTER TABLE vocabulary ADD CONSTRAINT vocabulary_source_type_check CHECK (source_type IN ('chat', 'manual', 'scenario', 'lesson', 'import', 'teacher_push')) NOT VALID`,
+		`ALTER TABLE vocabulary ADD CONSTRAINT vocabulary_source_type_check CHECK (source_type IN ('chat', 'manual', 'scenario', 'lesson', 'import', 'teacher_push', 'caption')) NOT VALID`,
 		`ALTER TABLE vocabulary ADD COLUMN IF NOT EXISTS source_message_id UUID REFERENCES messages(id) ON DELETE SET NULL`,
 		`ALTER TABLE vocabulary ADD COLUMN IF NOT EXISTS source_scenario_run_id UUID`,
 		`ALTER TABLE vocabulary ADD COLUMN IF NOT EXISTS cefr_level VARCHAR(2)`,
@@ -1253,6 +1253,23 @@ func Migrate(db *sql.DB) error {
 			completed_at TIMESTAMP
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_deletion_requests_user ON data_deletion_requests(user_id)`,
+		`CREATE TABLE IF NOT EXISTS caption_reviews (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			call_id UUID NOT NULL REFERENCES call_sessions(id) ON DELETE CASCADE,
+			segment_index INTEGER NOT NULL,
+			original_text TEXT NOT NULL,
+			original_language VARCHAR(10) NOT NULL DEFAULT 'en',
+			translated_text TEXT NOT NULL,
+			target_language VARCHAR(10) NOT NULL,
+			reviewer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+			corrected_text TEXT NOT NULL DEFAULT '',
+			feedback TEXT NOT NULL DEFAULT '',
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(call_id, segment_index, reviewer_id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_caption_reviews_call ON caption_reviews(call_id, segment_index)`,
+		`CREATE INDEX IF NOT EXISTS idx_caption_reviews_reviewer ON caption_reviews(reviewer_id, created_at DESC)`,
 	}
 
 	for _, migration := range migrations {

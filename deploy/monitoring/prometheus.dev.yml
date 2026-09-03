@@ -12,6 +12,7 @@ rule_files:
   - /etc/prometheus/alerts-soak.yml
   - /etc/prometheus/alerts-word-mining.yml
   - /etc/prometheus/alerts-support.yml
+  - /etc/prometheus/alerts-practice-ladder.yml
 
 scrape_configs:
   - job_name: chorus-backend-dev

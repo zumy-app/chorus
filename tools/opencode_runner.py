@@ -36,6 +36,7 @@ AGENT_ROUTE = {
     "qa": "qa-engineer",
     "review": "reviewer",
     "teacher": "teacher",
+    "test": "test-engineer",
 }
 
 # Go subscription — higher limits. Override via env OPENCODE_MODEL.

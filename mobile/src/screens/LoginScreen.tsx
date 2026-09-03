@@ -22,31 +22,50 @@ export default function LoginScreen({ navigation }: any) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [tempToken, setTempToken] = useState('');
+  const [phoneMasked, setPhoneMasked] = useState('');
+  const [code, setCode] = useState('');
+
   const handleLogin = async () => {
     if (!username.trim() || !password) {
       Alert.alert('Error', 'Please enter username and password');
       return;
     }
-
     setLoading(true);
     try {
-      const response = await apiService.login(username.trim(), password);
-
-      // Store auth tokens and user data
-      await storage.setItem('accessToken', response.tokens.accessToken);
-      await storage.setItem('refreshToken', response.tokens.refreshToken);
-      await storage.setItem('user', JSON.stringify(response.user));
-
-      // Navigate to main app
-      navigation.replace('MainTabs');
+      const raw: any = await (apiService as any).api?.post?.('/auth/login', { username: username.trim(), password }) ?? await (await import('../services/api')).api.post('/auth/login', { username: username.trim(), password });
+      if (raw.data?.requires2FA) {
+        setTempToken(raw.data.tempToken);
+        setPhoneMasked(raw.data.phoneMasked || '');
+        setRequires2FA(true);
+        return;
+      }
+      const response = raw.data.tokens ? raw.data : await apiService.login(username.trim(), password);
+      if (response.tokens) {
+        await storage.setItem('accessToken', response.tokens.accessToken);
+        await storage.setItem('refreshToken', response.tokens.refreshToken);
+        await storage.setItem('user', JSON.stringify(response.user));
+        navigation.replace('MainTabs');
+      }
     } catch (error: any) {
-      Alert.alert(
-        'Login Failed',
-        error.response?.data?.error || 'Invalid credentials. Please try again.'
-      );
+      Alert.alert('Login Failed', error.response?.data?.error || 'Invalid credentials. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleVerify2FA = async () => {
+    if (code.length !== 6) { Alert.alert('Error','Enter 6-digit code'); return; }
+    setLoading(true);
+    try {
+      const r: any = await (apiService as any).verify2FA(tempToken, code);
+      await storage.setItem('accessToken', r.tokens.accessToken);
+      await storage.setItem('refreshToken', r.tokens.refreshToken);
+      await storage.setItem('user', JSON.stringify(r.user));
+      navigation.replace('MainTabs');
+    } catch (e: any) { Alert.alert('Failed', e.response?.data?.error || 'Invalid code') }
+    finally { setLoading(false) }
   };
 
   return (
@@ -97,16 +116,29 @@ export default function LoginScreen({ navigation }: any) {
           </View>
         </View>
 
-        <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleLogin}
-          disabled={loading}>
-          {loading ? (
-            <ActivityIndicator color={COLOR.onPrimaryContainer} />
-          ) : (
-            <Text style={styles.buttonText}>Log In</Text>
-          )}
-        </TouchableOpacity>
+        {requires2FA ? (
+          <>
+            <Text style={{...TYPOGRAPHY.bodySm, color: COLOR.onSurfaceVariant, marginBottom: 8}}>Code sent to {phoneMasked}</Text>
+            <View style={styles.inputWrap}>
+              <TextInput style={styles.input} placeholder="123456" keyboardType="number-pad" maxLength={6} value={code} onChangeText={setCode} />
+            </View>
+            <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleVerify2FA} disabled={loading}>
+              <Text style={styles.buttonText}>Verify</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={()=>setRequires2FA(false)} style={{alignItems:'center', marginTop:8}}><Text style={styles.link}>Back</Text></TouchableOpacity>
+          </>
+        ) : (
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleLogin}
+            disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color={COLOR.onPrimaryContainer} />
+            ) : (
+              <Text style={styles.buttonText}>Log In</Text>
+            )}
+          </TouchableOpacity>
+        )}
 
         <View style={styles.divider}>
           <View style={styles.dividerLine} />

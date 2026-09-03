@@ -1,0 +1,39 @@
+config:
+  target: "{{ $processEnvironment.API_URL }}"
+  phases:
+    - duration: 60
+      arrivalRate: 20
+      maxVusers: 80
+      name: "perf probe 20rps/60s"
+  ensure:
+    thresholds:
+      - "http.response_time.p95 < 500"
+      - "http.response_time.p99 < 1000"
+      - "http.codes.200 > 0"
+scenarios:
+  - name: "NFR-3 history pagination"
+    weight: 40
+    flow:
+      - get:
+          url: "/api/v1/chats/{{ $processEnvironment.PERF_CHAT_ID }}/messages?limit=50"
+          headers:
+            Authorization: "Bearer {{ $processEnvironment.API_TOKEN }}"
+  - name: "NFR-1 translation cache path"
+    weight: 30
+    flow:
+      - post:
+          url: "/api/v1/chats/{{ $processEnvironment.PERF_CHAT_ID }}/messages"
+          headers:
+            Authorization: "Bearer {{ $processEnvironment.API_TOKEN }}"
+            Content-Type: "application/json"
+          json:
+            text: "hello perf {{ $loopCount }}"
+  - name: "search + health"
+    weight: 30
+    flow:
+      - get:
+          url: "/health"
+      - get:
+          url: "/api/v1/messages/search?q=hello&limit=20"
+          headers:
+            Authorization: "Bearer {{ $processEnvironment.API_TOKEN }}"

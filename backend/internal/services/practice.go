@@ -11,6 +11,7 @@ import (
 	"unicode"
 
 	"github.com/chorus/messenger/internal/models"
+	"github.com/chorus/messenger/internal/observability"
 )
 
 // Type aliases so the practice service can work with the learning card model
@@ -91,7 +92,11 @@ func (s *PracticeService) GradeAnswer(correctAnswer string, answerText string, p
 // UpdateVocabAfterAttempt mutates the SRS state of a card according to the
 // stage-aware SM-2 variant described in plan section 9. It persists the change.
 func (s *PracticeService) UpdateVocabAfterAttempt(ctx context.Context, card *VocabularyCard, stage int, quality int, activityType string) error {
+	prevStage := card.MasteryStage
+	prevState := card.MasteryState
 	now := time.Now()
+	correct := quality >= 3
+	observability.ObservePracticeAttempt(stage, correct, 0)
 	card.ReviewCount++
 	if quality < 3 {
 		card.Lapses++
@@ -103,6 +108,12 @@ func (s *PracticeService) UpdateVocabAfterAttempt(ctx context.Context, card *Voc
 			card.MasteryStage = max(1, card.MasteryStage-1)
 		}
 		card.MasteryState = learningOrNew(card)
+		if card.MasteryState == stateLeech && prevState != stateLeech {
+			observability.IncPracticeLeech()
+		}
+		if prevStage != card.MasteryStage {
+			observability.ObservePracticePromotion(prevStage, card.MasteryStage)
+		}
 		return s.persistCard(ctx, card)
 	}
 
@@ -121,6 +132,15 @@ func (s *PracticeService) UpdateVocabAfterAttempt(ctx context.Context, card *Voc
 	card.IntervalDays = nextInterval(card.IntervalDays, card.EaseFactor, stage)
 	card.NextReview = now.AddDate(0, 0, int(card.IntervalDays))
 	card.MasteryState = masteryStateOf(card)
+	if card.MasteryState == stateLeech && prevState != stateLeech {
+		observability.IncPracticeLeech()
+	}
+	if card.MasteryState == stateMastered && prevState != stateMastered {
+		observability.IncPracticeMastered()
+	}
+	if prevStage != card.MasteryStage {
+		observability.ObservePracticePromotion(prevStage, card.MasteryStage)
+	}
 	return s.persistCard(ctx, card)
 }
 
@@ -301,14 +321,21 @@ func (s *PracticeService) TouchSpontaneousUse(ctx context.Context, userID, norma
 	if err != nil {
 		return nil
 	}
+	prevStage := card.MasteryStage
+	prevState := card.MasteryState
 	card.SpontaneousUseCount++
+	observability.IncPracticeSpontaneous()
 	if card.MasteryStage == 4 && card.ProductionSuccessCount >= 1 {
 		card.MasteryStage = 5
+		observability.ObservePracticePromotion(prevStage, 5)
 	}
 	if isMastered(card) {
 		card.MasteryState = stateMastered
 		card.IntervalDays = 14
 		card.NextReview = time.Now().AddDate(0, 0, 14)
+		if prevState != stateMastered {
+			observability.IncPracticeMastered()
+		}
 	} else if card.MasteryState == stateNew {
 		card.MasteryState = stateLearning
 	}

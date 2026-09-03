@@ -23,10 +23,20 @@ grep -q "chorus-support" "$ROOT/docs/SUPPORT_RUNBOOK.md" 2>/dev/null || failc "S
 for dash in chorus-backend.json chorus-support.json; do
   if [[ -f "$ROOT/deploy/monitoring/grafana/dashboards/$dash" ]]; then
     pass "dashboard $dash present"
-    if command -v python3 >/dev/null 2>&1; then
-      python3 -c "import json; json.load(open('$ROOT/deploy/monitoring/grafana/dashboards/$dash'))" 2>/dev/null && pass "$dash valid JSON" || failc "$dash invalid JSON"
-      uid=$(python3 -c "import json; print(json.load(open('$ROOT/deploy/monitoring/grafana/dashboards/$dash')).get('uid',''))" 2>/dev/null || true)
+    if command -v node >/dev/null 2>&1; then
+      cat "$ROOT/deploy/monitoring/grafana/dashboards/$dash" | node -e "JSON.parse(require('fs').readFileSync(0,'utf-8'))" 2>/dev/null && pass "$dash valid JSON" || failc "$dash invalid JSON"
+      uid=$(cat "$ROOT/deploy/monitoring/grafana/dashboards/$dash" | node -e "console.log(JSON.parse(require('fs').readFileSync(0,'utf-8')).uid||'')" 2>/dev/null || true)
       [[ -n "$uid" ]] && pass "$dash uid=$uid" || failc "$dash missing uid"
+    else
+      _py=""
+      if command -v python3 >/dev/null 2>&1 && python3 -c "import sys" 2>/dev/null; then _py=python3
+      elif command -v python >/dev/null 2>&1 && python -c "import sys" 2>/dev/null; then _py=python
+      fi
+      if [[ -n "$_py" ]]; then
+        cat "$ROOT/deploy/monitoring/grafana/dashboards/$dash" | $_py -c "import json,sys; json.loads(sys.stdin.buffer.read().decode('utf-8'))" 2>/dev/null && pass "$dash valid JSON" || failc "$dash invalid JSON"
+        uid=$(cat "$ROOT/deploy/monitoring/grafana/dashboards/$dash" | $_py -c "import json,sys; print(json.loads(sys.stdin.buffer.read().decode('utf-8')).get('uid',''))" 2>/dev/null || true)
+        [[ -n "$uid" ]] && pass "$dash uid=$uid" || failc "$dash missing uid"
+      fi
     fi
   else
     failc "missing dashboard $dash"

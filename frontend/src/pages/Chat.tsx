@@ -256,15 +256,18 @@ export default function Chat({ onLogout }: ChatProps) {
                 <input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onClick={()=>navigate('/search')}
+                  onFocus={()=>navigate('/search')}
                   placeholder={t('chat.searchPlaceholder')}
-                  className="flex-1 bg-transparent border-none p-0 font-body-md text-body-md text-on-surface placeholder:text-outline focus:ring-0 focus:outline-none"
+                  className="flex-1 bg-transparent border-none p-0 font-body-md text-body-md text-on-surface placeholder:text-outline focus:ring-0 focus:outline-none cursor-pointer"
+                  readOnly
                 />
                 <button
                   aria-label={t('chat.searchMessages')}
                   onClick={() => setShowSearch(true)}
                   className="text-primary hover:bg-surface-container-low rounded-full p-1 transition"
                 >
-                  <span className="material-symbols-outlined text-[20px]">mic</span>
+                  <span className="material-symbols-outlined text-[20px]">search</span>
                 </button>
               </div>
             </div>

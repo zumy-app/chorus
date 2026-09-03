@@ -29,6 +29,8 @@ export interface User {
   id: string
   username: string
   email: string
+  isBlocked?: boolean
+  blockedBy?: boolean
   // Onboarding (REQ 2.1): structured name whose displayName ("first last") is
   // composed server-side but still overridable. Optional for accounts created
   // before onboarding was introduced.
@@ -169,6 +171,12 @@ export interface GrantPlanRequest {
 }
 
 // Report & Block (REQ §8.2)
+export interface BlockStatus {
+  blocked: boolean
+  blockedBy: boolean
+  mutual: boolean
+}
+
 export interface Block {
   id: string
   blockerId: string
@@ -259,6 +267,22 @@ export interface ChatParticipant {
   user?: User
 }
 
+export interface MessageReceipt {
+  messageId: string
+  userId: string
+  chatId: string
+  deliveredAt?: string
+  readAt?: string
+  status: 'sent' | 'delivered' | 'read'
+}
+
+export interface ReceiptEvent {
+  chatId: string
+  messageId: string
+  userId: string
+  status: 'delivered' | 'read'
+}
+
 export interface Message {
   id: string
   chatId: string
@@ -271,17 +295,13 @@ export interface Message {
   replyToId?: string
   timestamp: string
   sender?: User
-  // Message actions (task 6.2). A forwarded message is a copy authored by the
-  // forwarder; deletedAt is a soft delete (deleted rows are filtered from chat
-  // history and search).
   forwarded?: boolean
   forwardedFromMessageId?: string
   forwardedFromChatId?: string
   forwardedFromSenderId?: string
   deletedAt?: string
-  // Task 6.6: file/document/media attachments attached to the message, present
-  // on the send response and on history reads. Text messages omit this field.
   media?: MediaAttachment[]
+  receipts?: MessageReceipt[]
 }
 
 // One chat-scoped pin (task 6.2): the pinned message plus who pinned it and when.
@@ -495,6 +515,37 @@ export interface CreateChatRequest {
 export interface SendMessageRequest {
   text: string
   replyToId?: string
+}
+
+export interface SearchRequest {
+  query: string
+  chatIds?: string[]
+  language?: string
+  mediaType?: string
+  limit?: number
+  offset?: number
+}
+
+export interface SearchResult {
+  messages: Message[]
+  media: MediaAttachment[]
+  total: number
+  mediaTotal: number
+  hasMore: boolean
+}
+
+export interface MediaSearchResult {
+  media: MediaAttachment[]
+  total: number
+  hasMore: boolean
+}
+
+export interface ChatSearchResult {
+  data: Chat[]
+}
+
+export interface ContactSearchResult {
+  data: User[]
 }
 
 export interface WebSocketMessage {
@@ -1263,4 +1314,37 @@ export interface PayoutOverview {
   }>
 }
 
+export interface CaptionReview {
+  id: string
+  callId: string
+  segmentIndex: number
+  originalText: string
+  originalLanguage: string
+  translatedText: string
+  targetLanguage: string
+  reviewerId: string
+  rating: number
+  correctedText?: string
+  feedback?: string
+  reviewerName?: string
+  createdAt: string
+}
+export interface CaptionReviewQueueItem {
+  callId: string
+  segmentIndex: number
+  originalText: string
+  originalLanguage: string
+  translations: Record<string,string>
+  speakerId: string
+  confidence: number
+  reviewCount: number
+  avgRating?: number
+}
+export interface CaptionQualityStats {
+  totalCaptions: number
+  reviewedCount: number
+  avgRating: number
+  ratingCounts: Record<number,number>
+  pendingCount: number
+}
 export type { PlacementMainStartResponse as StartPlacementResponse }

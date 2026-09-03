@@ -7,7 +7,8 @@ import DeepDiveSheet from './DeepDiveSheet'
 import ChatLanguageModal from './ChatLanguageModal'
 import ReportModal from './ReportModal'
 import EmojiPicker from './EmojiPicker'
-import { moderationAPI, api } from '../services/api'
+import ForwardDialog from './ForwardDialog'
+import { moderationAPI, api, messageAPI } from '../services/api'
 import { wsService } from '../services/websocket'
 import { formatDistanceToNow } from 'date-fns'
 import CallScreen from './CallScreen'
@@ -15,7 +16,7 @@ import RealTalkNudge from './chat/RealTalkNudge'
 
 export default function ChatArea() {
   const { t } = useTranslation()
-  const { activeChat, messages, user, entitlements, sendMessage, typingUsers, presence, fetchPresence } = useStore()
+  const { activeChat, messages, user, chats, entitlements, sendMessage, sendAttachment, sendLocation, deleteMessage, forwardMessage, pinMessage, unpinMessage, typingUsers, presence, fetchPresence } = useStore()
   const [inputText, setInputText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [showLangSettings, setShowLangSettings] = useState(false)
@@ -25,6 +26,10 @@ export default function ChatArea() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [actionNotice, setActionNotice] = useState('')
   const [actionError, setActionError] = useState('')
+  const [replyTo, setReplyTo] = useState<any | null>(null)
+  const [forwardMsg, setForwardMsg] = useState<any | null>(null)
+  const [pinned, setPinned] = useState<any[]>([])
+  const [pinnedOpen, setPinnedOpen] = useState(false)
   const [translateAsType, setTranslateAsType] = useState(
     () => localStorage.getItem('translateAsType') === '1'
   )
@@ -33,13 +38,46 @@ export default function ChatArea() {
   const [activeCall, setActiveCall] = useState<null | { id: string; chatId: string; type: 'audio' | 'video' }>(null)
   const [callError, setCallError] = useState('')
   const [incomingCall, setIncomingCall] = useState<null | { callId: string; chatId: string; type: string }>(null)
+  const [attachError, setAttachError] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [locating, setLocating] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const typingTimeoutRef = useRef<number>()
   const chatMenuRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const chatMessages = activeChat ? messages[activeChat.id] || [] : []
   const targetLang = user?.targetLanguages?.[0]?.toUpperCase()
+
+  useEffect(() => {
+    if (!activeChat || !user) return
+    const unseen = chatMessages.filter(m => m.senderId !== user.id)
+    if (unseen.length === 0) return
+    for (const m of unseen) {
+      wsService.send({ type: 'message_ack', data: { chatId: activeChat.id, messageId: m.id, status: 'received' } } as any)
+    }
+    const last = unseen[unseen.length - 1]
+    if (last) {
+      wsService.send({ type: 'message_ack', data: { chatId: activeChat.id, messageId: last.id, status: 'read' } } as any)
+      import('../services/api').then(({ messageAPI }) => messageAPI.markAsRead(activeChat.id, last.id).catch(() => {}))
+    }
+  }, [activeChat?.id, chatMessages.length])
+
+  useEffect(() => {
+    if (!activeChat) { setPinned([]); return }
+    messageAPI.getPinnedMessages(activeChat.id).then(r => setPinned(r as any)).catch(()=>setPinned([]))
+    const handler = (msg: { type: string; data: any }) => {
+      if (msg.type === 'message_pinned' && msg.data?.chatId === activeChat.id) {
+        messageAPI.getPinnedMessages(activeChat.id).then(r => setPinned(r as any)).catch(()=>{})
+      }
+      if (msg.type === 'message_unpinned' && msg.data?.chatId === activeChat.id) {
+        messageAPI.getPinnedMessages(activeChat.id).then(r => setPinned(r as any)).catch(()=>{})
+      }
+    }
+    const unsub = wsService.onMessage(handler as any)
+    return () => unsub()
+  }, [activeChat?.id])
 
   // Keep the other participants' presence fresh whenever the active chat (or
   // the current user) changes. Group chats include every participant; direct
@@ -167,13 +205,78 @@ export default function ChatArea() {
     if (isOverLimit) return
 
     const text = inputText
+    const replyId = replyTo?.id
     setInputText('')
+    setReplyTo(null)
     wsService.sendTyping(activeChat.id, false)
 
     try {
-      await sendMessage(activeChat.id, text)
+      await sendMessage(activeChat.id, text, replyId)
     } catch (error) {
       console.error('Failed to send message:', error)
+    }
+  }
+
+  const handleShareLocation = async () => {
+    if (!activeChat) return
+    const replyId = replyTo?.id
+    const sendWithCoords = async (lat: number, lng: number, label?: string) => {
+      setLocating(true)
+      setAttachError('')
+      try {
+        await sendLocation(activeChat.id, lat, lng, label, replyId)
+        setReplyTo(null)
+      } catch (err: any) {
+        setAttachError(err?.response?.data?.error || err?.message || 'Failed to share location')
+        setTimeout(() => setAttachError(''), 3000)
+      } finally {
+        setLocating(false)
+      }
+    }
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => sendWithCoords(pos.coords.latitude, pos.coords.longitude),
+        () => {
+          const latStr = window.prompt('Enter latitude (-90 to 90):')
+          const lngStr = window.prompt('Enter longitude (-180 to 180):')
+          const label = window.prompt('Label (optional):') || undefined
+          const lat = latStr ? parseFloat(latStr) : NaN
+          const lng = lngStr ? parseFloat(lngStr) : NaN
+          if (!isNaN(lat) && !isNaN(lng)) sendWithCoords(lat, lng, label)
+          else setAttachError('Invalid coordinates')
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      )
+    } else {
+      const latStr = window.prompt('Enter latitude (-90 to 90):')
+      const lngStr = window.prompt('Enter longitude (-180 to 180):')
+      const label = window.prompt('Label (optional):') || undefined
+      const lat = latStr ? parseFloat(latStr) : NaN
+      const lng = lngStr ? parseFloat(lngStr) : NaN
+      if (!isNaN(lat) && !isNaN(lng)) sendWithCoords(lat, lng, label)
+    }
+  }
+
+  const handleAttachment = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !activeChat) return
+    const maxBytes = 50 * 1024 * 1024
+    if (file.size > maxBytes) {
+      setAttachError(t('chat.fileTooLarge', { defaultValue: 'File exceeds 50 MB limit' }))
+      setTimeout(() => setAttachError(''), 3000)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
+    setUploading(true)
+    setAttachError('')
+    try {
+      await sendAttachment(activeChat.id, file)
+    } catch (err: any) {
+      setAttachError(err?.response?.data?.error || t('chat.uploadFailed', { defaultValue: 'Upload failed' }))
+      setTimeout(() => setAttachError(''), 3000)
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
@@ -380,6 +483,31 @@ export default function ChatArea() {
         </div>
       )}
 
+      {pinned.length > 0 && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center justify-between gap-2">
+          <button onClick={() => setPinnedOpen(!pinnedOpen)} className="flex items-center gap-2 text-sm text-amber-800 font-medium">
+            <span className="material-symbols-outlined text-[16px]">push_pin</span> {pinned.length} {t('chat.pinned')} {pinnedOpen ? '▴' : '▾'}
+          </button>
+          <span className="text-xs text-amber-700 truncate flex-1 text-right">{pinned[0]?.message?.text?.slice(0,60)}</span>
+        </div>
+      )}
+      {pinnedOpen && pinned.length > 0 && (
+        <div className="bg-amber-50 border-b border-amber-200 max-h-40 overflow-y-auto">
+          {pinned.map((p:any) => (
+            <div key={p.message.id} className="px-4 py-2 flex items-center justify-between gap-2 border-b border-amber-100 last:border-0">
+              <span className="text-sm truncate flex-1">{p.message.text}</span>
+              <button onClick={() => unpinMessage(activeChat!.id, p.message.id)} className="text-xs text-amber-700 hover:underline">{t('chat.unpin')}</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {attachError && (
+        <div className="bg-error-container text-on-error-container border-b border-outline-variant px-4 py-2 text-sm">{attachError}</div>
+      )}
+      {uploading && (
+        <div className="bg-surface-container-high border-b border-outline-variant px-4 py-2 text-sm text-on-surface-variant flex items-center gap-2"><span className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" /> {t('chat.uploading', { defaultValue: 'Uploading...' })}</div>
+      )}
       {actionNotice && (
         <div className="bg-tertiary-container text-on-tertiary-container border-b border-outline-variant px-4 py-2 text-sm">{actionNotice}</div>
       )}
@@ -415,7 +543,14 @@ export default function ChatArea() {
                 isOwn={message.senderId === user?.id}
                 nativeLanguage={user?.nativeLanguage || 'en'}
                 targetLanguage={user?.targetLanguages?.[0]}
+                allMessages={chatMessages}
+                isPinned={pinned.some((p:any)=>p.message.id===message.id)}
                 onDeepDive={handleDeepDive}
+                onReply={(m)=>{ setReplyTo(m); inputRef.current?.focus() }}
+                onForward={(m)=> setForwardMsg(m)}
+                onDelete={(m)=> deleteMessage(activeChat!.id, m.id).catch(()=>setActionError(t('chat.deleteFailed')))}
+                onPin={(m)=> pinMessage(activeChat!.id, m.id).catch(()=>{})}
+                onUnpin={(m)=> unpinMessage(activeChat!.id, m.id).catch(()=>{})}
               />
             ))}
           </>
@@ -424,6 +559,17 @@ export default function ChatArea() {
       </div>
 
       <RealTalkNudge chatId={activeChat.id} onSendToInput={(text) => setInputText(text)} />
+
+      {/* Reply preview */}
+      {replyTo && (
+        <div className="bg-surface-container-high border-t border-outline-variant px-4 py-2 flex items-center justify-between gap-2">
+          <div className="border-l-2 border-primary pl-2 truncate">
+            <div className="text-xs font-semibold text-primary">{t('chat.replyingTo', { name: replyTo.sender?.displayName || replyTo.senderId })}</div>
+            <div className="text-sm text-on-surface-variant truncate">{replyTo.text}</div>
+          </div>
+          <button onClick={() => setReplyTo(null)} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-surface-variant text-on-surface-variant">✕</button>
+        </div>
+      )}
 
       {/* Input Area */}
       <div className="bg-surface border-t border-outline-variant px-4 pt-3 pb-4">
@@ -487,13 +633,27 @@ export default function ChatArea() {
           </div>
         )}
 
+        <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.md,.odt,.ods,.odp,.rtf,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleAttachment} className="hidden" data-testid="document-input" />
         <form onSubmit={handleSend} className="flex items-end gap-2">
           <button
             type="button"
-            title={t('chat.settings')}
+            onClick={() => fileInputRef.current?.click()}
+            title={t('chat.attachDocument', { defaultValue: 'Attach document' })}
+            aria-label={t('chat.attachDocument', { defaultValue: 'Attach document' })}
             className="w-10 h-10 flex items-center justify-center text-primary hover:bg-surface-variant/20 rounded-full transition active:scale-95 shrink-0"
           >
-            <span className="material-symbols-outlined text-[22px]">add_circle</span>
+            <span className="material-symbols-outlined text-[22px]">attach_file</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleShareLocation}
+            disabled={locating}
+            title="Share location"
+            aria-label="Share location"
+            data-testid="location-button"
+            className="w-10 h-10 flex items-center justify-center text-primary hover:bg-surface-variant/20 rounded-full transition active:scale-95 shrink-0 disabled:opacity-40"
+          >
+            <span className="material-symbols-outlined text-[22px]">{locating ? 'progress_activity' : 'location_on'}</span>
           </button>
           <div className="relative shrink-0">
             <button
@@ -585,6 +745,10 @@ export default function ChatArea() {
 
       {deepDiveOpen && (
         <DeepDiveSheet message={deepDiveMessage} onClose={() => setDeepDiveOpen(false)} />
+      )}
+
+      {forwardMsg && (
+        <ForwardDialog message={forwardMsg} chats={chats} currentChatId={activeChat!.id} onClose={() => setForwardMsg(null)} onForward={async (targetId)=>{ await forwardMessage(activeChat!.id, forwardMsg.id, targetId); setForwardMsg(null); setActionNotice(t('chat.forwarded')); setTimeout(()=>setActionNotice(''),2000)}} />
       )}
 
       {activeCall && (

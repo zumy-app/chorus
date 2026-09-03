@@ -21,6 +21,7 @@ type ContactsHandler struct {
 	invitationService *services.InvitationService
 	notifications     services.EmailSender
 	moderation        *services.ModerationService
+	privacyService    *services.PrivacyService
 	inviteBaseURL     string
 }
 
@@ -54,6 +55,8 @@ func NewContactsHandlerWithModeration(
 	}
 }
 
+func (h *ContactsHandler) SetPrivacyService(p *services.PrivacyService) { h.privacyService = p }
+
 // ScanContacts detects which of the caller's (hashed) contacts are already on
 // Chorus. Raw contacts never reach the server — only SHA-256 hashes of
 // normalized emails are uploaded (FR-22/23 "on-platform detect (hashed)").
@@ -81,6 +84,15 @@ func (h *ContactsHandler) ScanContacts(c *gin.Context) {
 		return
 	}
 
+	if h.privacyService != nil && len(matches) > 0 {
+		filtered := matches[:0]
+		for _, m := range matches {
+			if h.privacyService.CanViewContacts(userID, m.UserID) {
+				filtered = append(filtered, m)
+			}
+		}
+		matches = filtered
+	}
 	if matches == nil {
 		matches = []models.ContactMatch{}
 	}

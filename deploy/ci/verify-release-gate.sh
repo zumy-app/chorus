@@ -30,7 +30,7 @@ failc() { echo "  FAIL: $1" >&2; fails=$((fails+1)); }
 echo "== 14.3 Release gate + Go/No-Go =="
 
 # --- 1. Required docs present ------------------------------------------------
-for doc in docs/RELEASE_GATE.md docs/GO_NO_GO.md docs/CI_CD_NFR26.md docs/DATA_RETENTION_GDPR.md docs/TEACHER_VETTING.md docs/SUPPORT_RUNBOOK.md; do
+for doc in docs/RELEASE_GATE.md docs/GO_NO_GO.md docs/CI_CD_NFR26.md docs/DATA_RETENTION_GDPR.md docs/TEACHER_VETTING.md docs/SUPPORT_RUNBOOK.md docs/PERFORMANCE_BENCHMARKS.md; do
   if [[ -f "$ROOT/$doc" ]]; then
     pass "$doc present"
   else
@@ -74,10 +74,16 @@ fi
 # --- 4. Phase gate: marketplace + payouts + auto-promotion tasks are DONE ----
 STATUS_JSON="$ROOT/crew/phase_status.json"
 if [[ -f "$STATUS_JSON" ]]; then
-  if command -v python3 >/dev/null 2>&1; then
-    py_out=$(python3 - "$STATUS_JSON" <<'PY' 2>&1 || true
+  _py=""
+  if command -v python3 >/dev/null 2>&1 && python3 -c "import sys" 2>/dev/null; then _py=python3
+  elif command -v python >/dev/null 2>&1 && python -c "import sys" 2>/dev/null; then _py=python
+  fi
+  if [[ -n "$_py" ]]; then
+    _py_json="$STATUS_JSON"
+    if command -v cygpath >/dev/null 2>&1; then _py_json=$(cygpath -w "$STATUS_JSON" 2>/dev/null || echo "$STATUS_JSON"); fi
+    py_out=$($_py - "$_py_json" <<'PY' 2>&1 || true
 import json, sys
-p=json.load(open(sys.argv[1]))
+p=json.load(open(sys.argv[1], encoding='utf-8'))
 phases={x["id"]:x for x in p["phases"]}
 ph4=phases.get(4)
 if not ph4:
@@ -128,7 +134,19 @@ if [[ -x "$ROOT/deploy/mail/verify-isolation.sh" ]] || [[ -f "$ROOT/deploy/mail/
   fi
 fi
 
-# --- 7. Support runbook + dashboards (14.4) ------------------------------------
+# --- 7. NFR compliance (17/22/23/24/25/26) — 9.6 gate ----------------------------
+if [[ -f "$ROOT/deploy/ci/verify-nfr.sh" ]]; then
+  if bash "$ROOT/deploy/ci/verify-nfr.sh" --offline >/tmp/vnfr.log 2>&1; then
+    pass "NFR compliance PASS (verify-nfr.sh --offline)"
+  else
+    cat /tmp/vnfr.log >&2 || true
+    failc "NFR compliance FAIL — see verify-nfr.sh log above"
+  fi
+else
+  warn "verify-nfr.sh not found — skipping NFR gate"
+fi
+
+# --- 7b. Support runbook + dashboards (14.4) ----------------------------------
 if [[ -f "$ROOT/deploy/ci/verify-support.sh" ]]; then
   if bash "$ROOT/deploy/ci/verify-support.sh" --offline >/tmp/vsup.log 2>&1; then
     pass "support runbook + dashboards PASS (verify-support.sh --offline)"
@@ -138,6 +156,18 @@ if [[ -f "$ROOT/deploy/ci/verify-support.sh" ]]; then
   fi
 else
   warn "verify-support.sh not found — skipping support gate"
+fi
+
+# --- 7c. Performance benchmarks (10.3) ---------------------------------------
+if [[ -f "$ROOT/deploy/ci/verify-perf.sh" ]]; then
+  if bash "$ROOT/deploy/ci/verify-perf.sh" --offline >/tmp/vperf.log 2>&1; then
+    pass "performance benchmarks PASS (verify-perf.sh --offline)"
+  else
+    cat /tmp/vperf.log >&2 || true
+    failc "performance benchmarks FAIL — see verify-perf.sh log above"
+  fi
+else
+  warn "verify-perf.sh not found — skipping perf gate"
 fi
 
 # --- 8. Phoenix eval thresholds (when DB reachable, else skip in offline) ---

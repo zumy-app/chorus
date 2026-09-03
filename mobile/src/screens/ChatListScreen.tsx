@@ -217,18 +217,10 @@ export default function ChatListScreen({ navigation }: any) {
         contentContainerStyle={filteredChats.length === 0 ? styles.emptyContainer : styles.listContent}
         ListHeaderComponent={
           <View>
-            {/* Search Bar */}
-            <View style={styles.searchWrap}>
+            <TouchableOpacity style={styles.searchWrap} onPress={()=>navigation.navigate('UniversalSearch')}>
               <Text style={styles.searchIcon}>🔍</Text>
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search chats or languages..."
-                placeholderTextColor={COLOR.outlineVariant}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoCorrect={false}
-              />
-            </View>
+              <Text style={[styles.searchInput,{color:COLOR.outlineVariant}]}>Search messages, media, or people...</Text>
+            </TouchableOpacity>
             {/* Insights bento */}
             <View style={styles.bento}>
               <TouchableOpacity style={styles.bentoPrimary}>
