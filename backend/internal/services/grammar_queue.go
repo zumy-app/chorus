@@ -28,7 +28,7 @@ const (
 // GrammarPromptVersion mirrors grammar.go's aiAnalysisCacheVersion and is
 // persisted as grammar_jobs.prompt_version so evals (FR-30) can be attributed
 // to the exact prompt that produced the analysis.
-const GrammarPromptVersion = "v2"
+const GrammarPromptVersion = "v3"
 
 // GrammarAnalyzer is the subset of GrammarService used by the queue. GrammarService
 // satisfies it, and tests inject a fake.

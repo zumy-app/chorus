@@ -697,7 +697,7 @@ func (s *GrammarService) GenerateGrammarReport(userID, language string) (map[str
 
 // aiAnalysisCacheKey returns the Redis key for a cached AI grammar analysis.
 // Bump the version to invalidate all cached analyses after prompt/model changes.
-const aiAnalysisCacheVersion = "v2"
+const aiAnalysisCacheVersion = "v3"
 
 func aiAnalysisCacheKey(language, nativeLanguage, text string) string {
 	return fmt.Sprintf("ai_grammar:%s:%s:%s:%s", aiAnalysisCacheVersion, language, nativeLanguage, hashText(text))
@@ -847,6 +847,8 @@ func (s *GrammarService) cacheAIAnalysis(text, language, nativeLanguage string, 
 // fallbackAIAnalysis returns a regex-based analysis when the AI API is unavailable.
 // It builds a human-readable summary from the identified patterns so the grammar
 // panel always has something useful to show. Explanations are in the user's native language.
+// Gracefully includes a minimal word-by-word breakdown so the UI word-by-word tab
+// never appears empty when Ollama is down (regex fallback must not break CI).
 func (s *GrammarService) fallbackAIAnalysis(text, language, nativeLanguage string) (*models.AIGrammarAnalysis, error) {
 	if nativeLanguage == "" {
 		nativeLanguage = "en"
@@ -858,12 +860,91 @@ func (s *GrammarService) fallbackAIAnalysis(text, language, nativeLanguage strin
 
 	summary := s.buildFallbackSummary(text, language, basic, nativeLanguage)
 	grammarNotes := s.buildFallbackGrammarNotes(text, language, basic, nativeLanguage)
+	breakdown := s.buildFallbackDetailedBreakdown(text, language, nativeLanguage)
 
 	return &models.AIGrammarAnalysis{
-		Difficulty:   basic.Difficulty,
-		Summary:      summary,
-		GrammarNotes: grammarNotes,
+		Difficulty:        basic.Difficulty,
+		Summary:           summary,
+		SentenceStructure: s.buildFallbackSentenceStructure(text, nativeLanguage),
+		DetailedBreakdown: breakdown,
+		GrammarNotes:      grammarNotes,
 	}, nil
+}
+
+// buildFallbackDetailedBreakdown creates a minimal word-by-word breakdown for regex fallback.
+// Each word gets a light role/type so the word-by-word tab can render even without AI.
+func (s *GrammarService) buildFallbackDetailedBreakdown(text, language, nativeLanguage string) []models.BreakdownItem {
+	words := strings.Fields(text)
+	var items []models.BreakdownItem
+	for _, w := range words {
+		clean := strings.Trim(w, ".,!?;:\"'()[]")
+		if clean == "" {
+			continue
+		}
+		if len(items) >= 12 {
+			break
+		}
+		lower := strings.ToLower(clean)
+		itemType := "word"
+		role := "word"
+		// light heuristic for type
+		switch {
+		case regexp.MustCompile(`^(is|are|was|were|am|be|been|being|have|has|had|do|does|did|will|would|could|should|can)$`).MatchString(lower):
+			itemType = "verb"
+			role = "helper verb"
+		case regexp.MustCompile(`^(the|a|an)$`).MatchString(lower):
+			itemType = "article"
+			role = "article"
+		case regexp.MustCompile(`^(in|on|at|by|for|with|about|through|over|under|to|from|of)$`).MatchString(lower):
+			itemType = "preposition"
+			role = "preposition"
+		case regexp.MustCompile(`^(i|you|he|she|it|we|they|me|him|her|us|them)$`).MatchString(lower):
+			itemType = "pronoun"
+			role = "pronoun"
+		case regexp.MustCompile(`^(and|or|but|when|while|because|if|that)$`).MatchString(lower):
+			itemType = "conjunction"
+			role = "connector"
+		case regexp.MustCompile(`\w+ing$`).MatchString(lower):
+			itemType = "verb"
+			role = "action word"
+		case regexp.MustCompile(`\w+ed$`).MatchString(lower):
+			itemType = "verb"
+			role = "action word"
+		case regexp.MustCompile(`\w+ly$`).MatchString(lower):
+			itemType = "adverb"
+			role = "describing word"
+		default:
+			// default noun for longer words, adjective for mid
+			if len(clean) > 5 {
+				itemType = "noun"
+				role = "thing or idea"
+			} else {
+				itemType = "noun"
+				role = "word"
+			}
+		}
+		items = append(items, models.BreakdownItem{
+			Text: clean,
+			Type: itemType,
+			Role: role,
+		})
+	}
+	return items
+}
+
+// buildFallbackSentenceStructure creates a simple sentence structure hint for fallback.
+func (s *GrammarService) buildFallbackSentenceStructure(text, nativeLanguage string) string {
+	// Keep it short and localized fallback; default English.
+	sentences := map[string]string{
+		"en": "This sentence has a clear structure with words working together to share an idea.",
+		"es": "Esta oración tiene una estructura clara donde las palabras trabajan juntas para compartir una idea.",
+		"fr": "Cette phrase a une structure claire où les mots s'unissent pour partager une idée.",
+		"de": "Dieser Satz hat eine klare Struktur, in der die Wörter zusammenwirken, um eine Idee zu teilen.",
+	}
+	if v, ok := sentences[nativeLanguage]; ok {
+		return v
+	}
+	return sentences["en"]
 }
 
 // isQuestion checks if text looks like a question (starts with question word or ends with ?)

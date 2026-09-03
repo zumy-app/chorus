@@ -408,7 +408,7 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
 
         {/* AI-Powered Grammar Analysis */}
         {showGrammar && jobBusy && !grammarError && (
-          <div className="mt-1 bg-amber-50 border border-amber-200 rounded-lg shadow-sm max-w-md px-3 py-2.5">
+          <div data-testid="grammar-queued" className="mt-1 bg-amber-50 border border-amber-200 rounded-lg shadow-sm max-w-md px-3 py-2.5">
             <div className="flex items-center gap-2">
               <span className="inline-block w-1.5 h-1.5 bg-amber-600 rounded-full animate-pulse" />
               <span className="text-xs font-medium text-amber-800">
@@ -420,9 +420,10 @@ export default function MessageBubble({ message, isOwn, nativeLanguage, targetLa
         )}
 
         {showGrammar && grammarError && !jobBusy && (
-          <div className="mt-1 bg-red-50 border border-red-200 rounded-lg shadow-sm max-w-md px-3 py-2.5">
+          <div data-testid="grammar-error" className="mt-1 bg-red-50 border border-red-200 rounded-lg shadow-sm max-w-md px-3 py-2.5">
             <div className="text-xs font-medium text-red-700">{t('grammar.failed')}</div>
             <button
+              data-testid="grammar-retry"
               onClick={() => handleAnalyzeGrammar()}
               className="text-[11px] mt-1 px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition"
             >
