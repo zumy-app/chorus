@@ -47,16 +47,16 @@ export default function SearchMessages({ chatId, onClose, onSelectMessage }: { c
   const hl=(text:string)=>{ if(!query) return text; const i=text.toLowerCase().indexOf(query.toLowerCase()); if(i===-1) return text; return <>{text.slice(0,i)}<mark className="bg-secondary-fixed/50 px-0.5 rounded">{text.slice(i,i+query.length)}</mark>{text.slice(i+query.length)}</> }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-start justify-center pt-10 z-50 p-4">
+    <div data-testid="search-modal" className="fixed inset-0 bg-black/50 flex items-start justify-center pt-10 z-50 p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col">
         <div className="p-4 border-b flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <div className="flex-1 relative">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[20px]">search</span>
-              <input ref={inputRef} value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&doSearch()} placeholder={t('search.universalPlaceholder','Search messages, media, or people...')} className="w-full pl-10 pr-4 py-2.5 border rounded-full focus:ring-2 focus:ring-primary focus:outline-none text-sm" />
+              <input data-testid="search-input" ref={inputRef} value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&doSearch()} placeholder={t('search.universalPlaceholder','Search messages, media, or people...')} className="w-full pl-10 pr-4 py-2.5 border rounded-full focus:ring-2 focus:ring-primary focus:outline-none text-sm" />
             </div>
-            <button onClick={doSearch} disabled={loading||!query.trim()} className="px-4 py-2 bg-primary text-on-primary rounded-full text-sm font-medium disabled:opacity-40">{loading? t('common.searching'): t('common.search')}</button>
-            <button onClick={onClose} className="text-gray-500 text-xl px-2">×</button>
+            <button data-testid="search-button" onClick={doSearch} disabled={loading||!query.trim()} className="px-4 py-2 bg-primary text-on-primary rounded-full text-sm font-medium disabled:opacity-40">{loading? t('common.searching'): t('common.search')}</button>
+            <button data-testid="search-close" onClick={onClose} className="text-gray-500 text-xl px-2">×</button>
           </div>
           <div className="flex gap-2 overflow-x-auto">
             {(['all','messages','media','people'] as Filter[]).map(f=>(

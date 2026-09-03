@@ -81,14 +81,14 @@ export default function LearningPanel({ text, language, nativeLanguage, onClose 
   }
 
   return (
-    <div className="bg-white border border-indigo-200 rounded-lg shadow-md overflow-hidden max-w-sm">
+    <div data-testid="ai-tutor-panel" className="bg-white border border-indigo-200 rounded-lg shadow-md overflow-hidden max-w-sm">
       {/* Header */}
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-3 py-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-lg">🤖</span>
           <span className="text-white font-semibold text-sm">{t('grammar.aiTutor')}</span>
         </div>
-        <button onClick={onClose} className="text-white/80 hover:text-white text-lg leading-none">×</button>
+        <button data-testid="ai-tutor-close" onClick={onClose} className="text-white/80 hover:text-white text-lg leading-none">×</button>
       </div>
 
       {/* Messages */}
@@ -114,7 +114,7 @@ export default function LearningPanel({ text, language, nativeLanguage, onClose 
                 AI
               </div>
               <div className="flex-1 min-w-0">
-                <div className="bg-white border border-indigo-100 rounded-lg p-2.5 text-xs text-gray-800 leading-relaxed shadow-sm">
+                <div data-testid="ai-tutor-message" className="bg-white border border-indigo-100 rounded-lg p-2.5 text-xs text-gray-800 leading-relaxed shadow-sm">
                   {/* Action label */}
                   {i === 0 && (
                     <div className="text-[10px] font-semibold text-indigo-600 uppercase tracking-wide mb-1">
@@ -176,8 +176,9 @@ export default function LearningPanel({ text, language, nativeLanguage, onClose 
       </div>
 
       {/* Custom question input */}
-      <form onSubmit={handleCustomSubmit} className="border-t border-indigo-100 p-2 flex gap-2 bg-white">
+      <form data-testid="ai-tutor-form" onSubmit={handleCustomSubmit} className="border-t border-indigo-100 p-2 flex gap-2 bg-white">
         <input
+          data-testid="ai-tutor-input"
           type="text"
           value={customQuery}
           onChange={e => setCustomQuery(e.target.value)}
@@ -186,6 +187,7 @@ export default function LearningPanel({ text, language, nativeLanguage, onClose 
           disabled={isLoading}
         />
         <button
+          data-testid="ai-tutor-submit"
           type="submit"
           disabled={!customQuery.trim() || isLoading}
           className="px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs rounded-lg hover:opacity-90 transition disabled:opacity-50 font-medium"

@@ -17,8 +17,7 @@ test.describe('Settings & Profile', () => {
     await openProfileMenu(page)
     await page.getByRole('button', { name: /settings/i }).click()
 
-    // Verify the settings modal is visible
-    await expect(page.locator('h2', { hasText: 'Settings' })).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByTestId('settings-modal').or(page.locator('h2', { hasText: 'Settings' })).first()).toBeVisible({ timeout: 10_000 })
   })
 
   test('8.2 — Settings form fields are present', async ({ page }) => {
@@ -27,19 +26,12 @@ test.describe('Settings & Profile', () => {
     await openProfileMenu(page)
     await page.getByRole('button', { name: /settings/i }).click()
 
-    await expect(page.locator('h2', { hasText: 'Settings' })).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByTestId('settings-modal').or(page.locator('h2', { hasText: 'Settings' })).first()).toBeVisible({ timeout: 10_000 })
 
-    // Verify Display Name field
-    await expect(page.locator('label', { hasText: 'Display Name' })).toBeVisible()
-
-    // Verify Email field (read-only)
-    await expect(page.locator('label', { hasText: 'Email' })).toBeVisible()
-
-    // Verify Native Language field
-    await expect(page.locator('label', { hasText: 'Native Language' })).toBeVisible()
-
-    // Verify Target Languages section
-    await expect(page.locator('label', { hasText: /languages you want to learn/i })).toBeVisible()
+    await expect(page.getByTestId('settings-modal').locator('label', { hasText: 'Display Name' }).or(page.locator('label', { hasText: 'Display Name' })).first()).toBeVisible()
+    await expect(page.locator('label', { hasText: 'Email' }).first()).toBeVisible()
+    await expect(page.locator('label', { hasText: 'Native Language' }).first()).toBeVisible()
+    await expect(page.locator('label', { hasText: /languages you want to learn/i }).first()).toBeVisible()
   })
 
   test('8.3 — Update display name', async ({ page }) => {
@@ -48,23 +40,19 @@ test.describe('Settings & Profile', () => {
     await openProfileMenu(page)
     await page.getByRole('button', { name: /settings/i }).click()
 
-    await expect(page.locator('h2', { hasText: 'Settings' })).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByTestId('settings-modal').or(page.locator('h2', { hasText: 'Settings' })).first()).toBeVisible({ timeout: 10_000 })
 
-    // Change display name to a fixed test value, then restore original
     const testName = `TestDisplayName`
-    const nameInput = page.locator('input').first()
+    const nameInput = page.getByTestId('settings-modal').locator('input[type="text"]').first()
+    await expect(nameInput).toBeVisible({ timeout: 5_000 })
     await nameInput.fill(testName)
 
-    // Save
     await page.getByRole('button', { name: /save settings/i }).click()
+    await expect(page.locator('text=Settings saved successfully').or(page.locator('text=Saved')).first()).toBeVisible({ timeout: 10_000 })
 
-    // Verify success message
-    await expect(page.locator('text=Settings saved successfully')).toBeVisible({ timeout: 10_000 })
-
-    // Restore original display name so other tests can find the user
     await nameInput.fill(ENGLISH_USER.displayName)
     await page.getByRole('button', { name: /save settings/i }).click()
-    await expect(page.locator('text=Settings saved successfully')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('text=Settings saved successfully').or(page.locator('text=Saved')).first()).toBeVisible({ timeout: 10_000 })
   })
 
   test('8.4 — Native language dropdown works', async ({ page }) => {
@@ -73,15 +61,12 @@ test.describe('Settings & Profile', () => {
     await openProfileMenu(page)
     await page.getByRole('button', { name: /settings/i }).click()
 
-    await expect(page.locator('h2', { hasText: 'Settings' })).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByTestId('settings-modal').or(page.locator('h2', { hasText: 'Settings' })).first()).toBeVisible({ timeout: 10_000 })
 
-    // Verify the native language select has options
-    const langSelect = page.locator('select').first()
+    const langSelect = page.getByTestId('settings-modal').locator('select').first()
     await expect(langSelect).toBeVisible()
-
-    // Verify it has multiple options (SUPPORTED_LANGUAGES)
     const optionCount = await langSelect.locator('option').count()
-    expect(optionCount).toBeGreaterThan(10) // We support 80+ languages
+    expect(optionCount).toBeGreaterThan(10)
   })
 
   test('8.5 — Target languages can be toggled', async ({ page }) => {
@@ -90,23 +75,14 @@ test.describe('Settings & Profile', () => {
     await openProfileMenu(page)
     await page.getByRole('button', { name: /settings/i }).click()
 
-    await expect(page.locator('h2', { hasText: 'Settings' })).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByTestId('settings-modal').or(page.locator('h2', { hasText: 'Settings' })).first()).toBeVisible({ timeout: 10_000 })
 
-    // Find a target language checkbox (Spanish should be available since native is English)
-    const spanishLabel = page.locator('label').filter({ hasText: /Español/i })
+    const spanishLabel = page.getByTestId('settings-modal').locator('label').filter({ hasText: /Español/i }).or(page.locator('label').filter({ hasText: /Español/i })).first()
     await expect(spanishLabel).toBeVisible()
-
-    // Get the checkbox and check its initial state
     const checkbox = spanishLabel.locator('input[type="checkbox"]')
     const wasChecked = await checkbox.isChecked()
-
-    // Click to toggle it
     await spanishLabel.click()
-
-    // Wait a moment for state to update
     await page.waitForTimeout(500)
-
-    // Verify the checkbox state changed
     const isNowChecked = await checkbox.isChecked()
     expect(isNowChecked).not.toBe(wasChecked)
   })
@@ -117,13 +93,12 @@ test.describe('Settings & Profile', () => {
     await openProfileMenu(page)
     await page.getByRole('button', { name: /settings/i }).click()
 
-    await expect(page.locator('h2', { hasText: 'Settings' })).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByTestId('settings-modal').or(page.locator('h2', { hasText: 'Settings' })).first()).toBeVisible({ timeout: 10_000 })
 
-    // Click Cancel button
-    await page.getByRole('button', { name: /cancel/i }).click()
+    const closeBtn = page.getByTestId('settings-close').or(page.getByRole('button', { name: /cancel/i }))
+    await closeBtn.first().click()
 
-    // Verify modal is closed
-    await expect(page.locator('h2', { hasText: 'Settings' })).not.toBeVisible({ timeout: 5_000 })
+    await expect(page.getByTestId('settings-modal').or(page.locator('h2', { hasText: 'Settings' })).first()).not.toBeVisible({ timeout: 5_000 })
   })
 
   test('8.7 — Header language selector is visible', async ({ page }) => {

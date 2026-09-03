@@ -36,7 +36,7 @@ export default function GrammarPanel({ analysis, nativeLanguage, messageText, me
   ]
 
   return (
-    <div className="mt-1 bg-surface-container-lowest border border-outline-variant/30 rounded-xl shadow-[0px_4px_12px_rgba(0,0,0,0.05)] max-w-md overflow-hidden">
+    <div data-testid="grammar-panel" className="mt-1 bg-surface-container-lowest border border-outline-variant/30 rounded-xl shadow-[0px_4px_12px_rgba(0,0,0,0.05)] max-w-md overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-3 pt-3 pb-1">
         <div className="flex items-center gap-2">
@@ -45,12 +45,12 @@ export default function GrammarPanel({ analysis, nativeLanguage, messageText, me
           </div>
           <span className="font-label-sm text-label-sm text-on-surface">{t('grammar.sparkyInsight')}</span>
           {analysis.difficulty && analysis.difficulty !== 'N/A' && (
-            <span className="text-[10px] bg-secondary-fixed text-secondary px-1.5 py-0.5 rounded-full font-bold">
+            <span data-testid="grammar-difficulty-badge" className="text-[10px] bg-secondary-fixed text-secondary px-1.5 py-0.5 rounded-full font-bold">
               {analysis.difficulty}
             </span>
           )}
           {providerUsed && providerUsed !== 'cache' && (
-            <span className="text-[9px] bg-surface-variant text-on-surface-variant px-1.5 py-0.5 rounded-full">
+            <span data-testid="grammar-provider-badge" className="text-[9px] bg-surface-variant text-on-surface-variant px-1.5 py-0.5 rounded-full">
               {providerUsed === 'regex-fallback' ? '📊 regex' : `⚡ ${providerUsed}`}
             </span>
           )}
@@ -71,6 +71,7 @@ export default function GrammarPanel({ analysis, nativeLanguage, messageText, me
         {tabs.map(tab => (
           <button
             key={tab.id}
+            data-testid={`grammar-tab-${tab.id}`}
             onClick={() => setActiveTab(tab.id)}
             className={`flex-1 text-[11px] font-semibold py-1.5 px-2 transition border-b-2 ${
               activeTab === tab.id
@@ -142,7 +143,7 @@ export default function GrammarPanel({ analysis, nativeLanguage, messageText, me
         )}
 
         {activeTab === 'wordByWord' && (
-          <div className="space-y-1">
+          <div data-testid="grammar-wordbyword" className="space-y-1">
             {analysis.detailedBreakdown && analysis.detailedBreakdown.length > 0 ? (
               analysis.detailedBreakdown.map((item: any, i: number) => {
                 const isExpanded = expandedWord === i
