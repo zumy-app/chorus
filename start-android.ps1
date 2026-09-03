@@ -18,7 +18,12 @@
 
 param(
     [string]$AvdName,
-    [string]$SystemImage
+    [string]$SystemImage,
+    [switch]$SkipEmulator,
+    [switch]$SkipDocker,
+    [switch]$SkipBackend,
+    [switch]$SkipMetro,
+    [switch]$SkipGradle
 )
 
 $ErrorActionPreference = "Stop"
@@ -105,6 +110,7 @@ Log ""
 # ──────────────────────────────────────────────
 # 2. System image & AVD
 # ──────────────────────────────────────────────
+if ($SkipEmulator) { Log "[2/8] Skipped (SkipEmulator)" Yellow; Log "" } else {
 Log "[2/8] Checking AVD..." Yellow
 
 if (-not $AvdName) {
@@ -228,10 +234,12 @@ if (-not $needCreate -and $useAvd -eq $AvdName) {
     Ok "AVD '$useAvd' ready"
 }
 Log ""
+} # end SkipEmulator for step 2
 
 # ──────────────────────────────────────────────
 # 3. Start emulator if not running
 # ──────────────────────────────────────────────
+if ($SkipEmulator) { Log "[3/8] Skipped (SkipEmulator)" Yellow; Log "" } else {
 Log "[3/8] Checking emulator..." Yellow
 
 $deviceState = ""
@@ -286,10 +294,12 @@ if ($deviceState -ne "device") {
     Ok "Emulator already running"
 }
 Log ""
+} # end SkipEmulator for step 3
 
 # ──────────────────────────────────────────────
 # 4. Ensure Docker is running
 # ──────────────────────────────────────────────
+if ($SkipDocker) { Log "[4/8] Skipped (SkipDocker)" Yellow; Log "" } else {
 Log "[4/8] Checking Docker..." Yellow
 $dockerOk = $false
 for ($attempt = 0; $attempt -lt 20; $attempt++) {
@@ -312,10 +322,12 @@ if (-not $dockerOk) {
 }
 Ok "Docker Desktop ready"
 Log ""
+} # end SkipDocker for step 4 (keep Docker running check visible even when skipped? No, already handled)
 
 # ──────────────────────────────────────────────
 # 5. Start Docker services (PostgreSQL, Redis)
 # ──────────────────────────────────────────────
+if ($SkipDocker) { Log "[5/8] Skipped (SkipDocker)" Yellow; Log "" } else {
 Log "[5/8] Starting Docker services..." Yellow
 
 $ComposeFile = Join-Path $RootDir "docker-compose.yml"
@@ -336,10 +348,12 @@ if (Test-Path $ComposeFile) {
     Warn "docker-compose.yml not found - skipping Docker services"
 }
 Log ""
+} # end SkipDocker for step 5
 
 # ──────────────────────────────────────────────
 # 6. Wait for PostgreSQL & Redis to be healthy
 # ──────────────────────────────────────────────
+if ($SkipDocker) { Log "[6/8] Skipped (SkipDocker)" Yellow; Log "" } else {
 Log "[6/8] Waiting for services..." Yellow
 
 $pgReady = $false
@@ -365,10 +379,12 @@ for ($i = 0; $i -lt 15; $i++) {
 }
 if ($redisReady) { Ok "Redis healthy" } else { Warn "Redis not healthy yet" }
 Log ""
+} # end SkipDocker for step 6
 
 # ──────────────────────────────────────────────
 # 7. Start Go backend with air (hot-reload)
 # ──────────────────────────────────────────────
+if ($SkipBackend) { Log "[7/8] Skipped (SkipBackend) - backend hot-reload via air still watches *.go" Yellow; Log "" } else {
 Log "[7/8] Starting Go backend..." Yellow
 
 $BackendDir = Join-Path $RootDir "backend"
@@ -427,6 +443,7 @@ if ($LASTEXITCODE -ne 0) {
     Ok "Backend starting in new window (hot-reload on :8080)"
 }
 Log ""
+} # end SkipBackend for step 7
 
 # ──────────────────────────────────────────────
 # 8. Start Metro and install the app on the emulator
@@ -479,19 +496,32 @@ $expoUrl = "http://${ip}:${backendPort}"
 $env:EXPO_PUBLIC_API_URL = $expoUrl
 Ok "Backend URL: ${expoUrl} (emulator uses http://10.0.2.2:${backendPort})"
 
-# Start Metro bundler in a new window
-Start-Process powershell -ArgumentList @(
-    "-NoExit", "-Command", @"
-        Set-Location '$MobileDir'
-        `$env:EXPO_PUBLIC_API_URL = '$expoUrl'
-        Write-Host 'Starting Metro Bundler...' -ForegroundColor Cyan
-        Write-Host "Backend URL: $expoUrl" -ForegroundColor Green
-        npx react-native start
+# Start Metro bundler in a new window (skip if already running)
+if ($SkipMetro) {
+    Warn "Metro start skipped (SkipMetro) — use existing Metro window (press r for Fast Refresh, R for reload)" Yellow
+} else {
+    $metroRunning = $false
+    try { $metroRunning = (Get-NetTCPConnection -LocalPort 8081 -ErrorAction SilentlyContinue | Where-Object { $_.State -eq 'Listen' }).Count -gt 0 } catch {}
+    if ($metroRunning) {
+        Warn "Metro already listening on :8081 — reusing existing bundler (press r/R in that window)" Yellow
+    } else {
+        Start-Process powershell -ArgumentList @(
+            "-NoExit", "-Command", @"
+                Set-Location '$MobileDir'
+                `$env:EXPO_PUBLIC_API_URL = '$expoUrl'
+                Write-Host 'Starting Metro Bundler...' -ForegroundColor Cyan
+                Write-Host "Backend URL: $expoUrl" -ForegroundColor Green
+                npx react-native start
 "@
-) -WindowStyle Normal | Out-Null
-Ok "Metro bundler starting in a new window (ensure it reaches 'Bundler ready')"
+        ) -WindowStyle Normal | Out-Null
+        Ok "Metro bundler starting in a new window (ensure it reaches 'Bundler ready')"
+    }
+}
 
 # Build the native app and install it on the connected emulator/device.
+if ($SkipGradle) {
+    Warn "Gradle build skipped (SkipGradle) — JS changes hot-reload via Metro (r/R). Use --no-packager only when android/ changed." Yellow
+} else {
 Log "  Building and installing app on the device (first build may take several minutes)..." Yellow
 Push-Location $MobileDir
 
@@ -510,6 +540,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 Pop-Location
 Ok "App build/install finished (see output above; app should now be on the emulator)"
+}
 
 Log ""
 Log "============================================" Cyan
