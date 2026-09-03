@@ -4,8 +4,40 @@ Edit `.tsx`/`.ts` files and see changes **instantly** in the browser, and `.go` 
 
 ## How It Works
 
-- **Frontend**: Vite's dev server uses **Hot Module Replacement (HMR)**. When you save a file, Vite sends only the changed module to the browser, which swaps it in without a full page refresh. State is preserved.
-- **Backend**: [`air`](https://github.com/air-verse/air) watches `.go` files and recompiles/restarts the server on every save (~1s rebuild).
+- **Frontend (web)**: Vite's dev server uses **Hot Module Replacement (HMR)**. When you save a file, Vite sends only the changed module to the browser, which swaps it in without a full page refresh. State is preserved.
+- **Backend**: [`air`](https://github.com/air-verse/air) watches `.go` files (`backend/.air.toml:15` `include_ext go`) and recompiles/restarts the server on every save (~1s rebuild, `delay 1000`).
+- **Mobile**: Metro (`mobile/metro.config.js:46` `watchFolders: [sharedPackageDir]`) watches `mobile/src/**` + `packages/shared/src/**`. Saving triggers **Fast Refresh** on the emulator — no native rebuild.
+
+## Fast Path: See Mobile Changes Without Restarting `start-android.ps1`
+
+`start-android.ps1` launches 3 long-lived windows: **Docker (postgres/redis)**, **air (Go :8080)**, **Metro (RN :8081)** + installs the APK once. After the first run, keep those windows open.
+
+| What you changed | Do you need `.\start-android.ps1` again? | What to do instead |
+|---|---|---|
+| `mobile/src/**/*.tsx`, `packages/shared/src/**`, `frontend/src/**` (JS/TS/CSS) | **No** | Save → Metro `Bundling… Done` → device refreshes in <2s. If hook count changed (e.g., added `useState` in `LoginScreen.tsx:20`) Fast Refresh may white-screen → press **`R` (uppercase)** in the **Metro window** for full reload (not `r`). |
+| `backend/**/*.go` | **No** | Save → check `air` window `building… running` (~1s). Only `go.mod` major or `GOOS` changes need restart. |
+| `mobile/android/**`, `mobile/package.json` native deps, `mobile/app.json` | **Yes, but partial** | Reuse running Metro/DB: `cd mobile && npx react-native run-android --no-packager` (skips Docker/emu/Metro). Or `.\start-android.ps1 -SkipEmulator -SkipDocker -SkipBackend -SkipMetro` |
+| `docker-compose.yml`, AVD, `EXPO_PUBLIC_API_URL` | **Yes** | Full `.\start-android.ps1` (or at least `-SkipGradle` still restarts Docker) |
+
+### Incremental commands (emulator + Docker already up)
+
+```powershell
+# Reuse everything, just reinstall APK after a native change
+.\start-android.ps1 -SkipEmulator -SkipDocker -SkipBackend -SkipMetro
+
+# Only JS/Go changed — no install at all (just Metro Fast Refresh + air)
+# → just Save the file, no command needed. If Metro stale: press R in Metro window
+# Backend not picking up? Check backend window for air errors, or:
+# cd backend && go build ./...  # should be 0
+
+# Only backend changed and air window was closed:
+.\start-android.ps1 -SkipEmulator -SkipDocker -SkipMetro -SkipGradle
+
+# Only frontend web changed:
+cd frontend && npm run dev  # already HMR, no mobile needed
+```
+
+Flags added to `start-android.ps1:19` (`-SkipEmulator`, `-SkipDocker`, `-SkipBackend`, `-SkipMetro`, `-SkipGradle`) — each skips its `Log "[n/8]"` block and reuses the running window/port (`:8081` Metro reuse check `Get-NetTCPConnection -LocalPort 8081`).
 
 ## One-Command Start
 
