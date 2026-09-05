@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Fluency Messenger - Grammar Deep Dive</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "secondary-fixed": "#e9ddff",
+                      "on-background": "#0b1c30",
+                      "surface-container-highest": "#d3e4fe",
+                      "surface-bright": "#f8f9ff",
+                      "primary-fixed-dim": "#b4c5ff",
+                      "on-error-container": "#93000a",
+                      "on-tertiary-fixed-variant": "#005236",
+                      "outline": "#737686",
+                      "tertiary-fixed": "#6ffbbe",
+                      "error": "#ba1a1a",
+                      "surface-container-low": "#eff4ff",
+                      "on-surface": "#0b1c30",
+                      "error-container": "#ffdad6",
+                      "surface-tint": "#0053db",
+                      "surface-variant": "#d3e4fe",
+                      "on-secondary-fixed-variant": "#5516be",
+                      "surface-dim": "#cbdbf5",
+                      "primary": "#004ac6",
+                      "on-secondary": "#ffffff",
+                      "secondary": "#6b38d4",
+                      "inverse-primary": "#b4c5ff",
+                      "on-primary-container": "#eeefff",
+                      "secondary-container": "#8455ef",
+                      "primary-container": "#2563eb",
+                      "outline-variant": "#c3c6d7",
+                      "inverse-on-surface": "#eaf1ff",
+                      "on-secondary-fixed": "#23005c",
+                      "on-tertiary-fixed": "#002113",
+                      "tertiary-container": "#007d55",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "on-tertiary": "#ffffff",
+                      "on-error": "#ffffff",
+                      "surface-container-high": "#dce9ff",
+                      "inverse-surface": "#213145",
+                      "on-primary-fixed-variant": "#003ea8",
+                      "background": "#f8f9ff",
+                      "on-primary-fixed": "#00174b",
+                      "surface": "#f8f9ff",
+                      "on-secondary-container": "#fffbff",
+                      "on-tertiary-container": "#bdffdb",
+                      "tertiary": "#006242",
+                      "on-primary": "#ffffff",
+                      "surface-container-lowest": "#ffffff",
+                      "primary-fixed": "#dbe1ff",
+                      "secondary-fixed-dim": "#d0bcff",
+                      "on-surface-variant": "#434655",
+                      "surface-container": "#e5eeff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "stack-sm": "8px",
+                      "margin-mobile": "16px",
+                      "unit": "4px",
+                      "gutter-mobile": "12px",
+                      "stack-lg": "24px",
+                      "stack-md": "16px"
+              },
+              "fontFamily": {
+                      "translation-text": [
+                              "Be Vietnam Pro"
+                      ],
+                      "headline-lg": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "headline-sm": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "label-sm": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Be Vietnam Pro"
+                      ],
+                      "body-md": [
+                              "Be Vietnam Pro"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "body-sm": [
+                              "Be Vietnam Pro"
+                      ]
+              },
+              "fontSize": {
+                      "translation-text": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-lg": [
+                              "30px",
+                              {
+                                      "lineHeight": "38px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-sm": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-sm": [
+                              "11px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.03em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-md": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "letterSpacing": "0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&amp;family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .ai-glow {
+            box-shadow: 0 4px 12px rgba(107, 56, 212, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background antialiased selection:bg-primary-fixed selection:text-on-primary-fixed min-h-screen pb-safe">
+<!-- Top Navigation (Task-Focused: No App Nav Shell) -->
+<header class="fixed top-0 w-full z-50 bg-surface shadow-sm">
+<div class="flex items-center justify-between px-margin-mobile h-16 w-full">
+<button aria-label="Back" class="flex items-center justify-center p-2 rounded-full hover:bg-surface-variant/20 transition-colors text-primary">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="font-headline-sm text-headline-sm text-on-surface">Grammar Deep Dive</h1>
+<div class="w-10"></div> <!-- Spacer for centering -->
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-20 px-margin-mobile pb-8 max-w-2xl mx-auto flex flex-col gap-stack-lg">
+<!-- Contextual Header: The Analyzed Message -->
+<section class="bg-surface-container-lowest rounded-2xl p-stack-md shadow-[0px_4px_12px_rgba(0,0,0,0.05)] relative overflow-hidden">
+<!-- AI Subtle Background Glow -->
+<div class="absolute -top-10 -right-10 w-32 h-32 bg-secondary/10 rounded-full blur-2xl"></div>
+<div class="flex items-center gap-stack-sm mb-stack-sm text-secondary">
+<span class="material-symbols-outlined text-[20px]" data-weight="fill" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<span class="font-label-md text-label-md">Sentence Analysis</span>
+</div>
+<p class="font-body-lg text-body-lg text-on-surface mb-stack-md">
+                "Me gustaría <span class="text-tertiary-container font-semibold pb-1 border-b-2 border-tertiary-container">aprender</span> a <span class="text-primary font-semibold pb-1 border-b-2 border-primary">hablar</span> español con <span class="text-secondary font-semibold pb-1 border-b-2 border-secondary">fluidez</span>."
+            </p>
+<div class="flex flex-col gap-unit">
+<p class="font-translation-text text-translation-text text-outline">
+                    "I would like to learn to speak Spanish fluently."
+                </p>
+</div>
+</section>
+<!-- Parts of Speech Breakdown (Bento Style) -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-stack-sm">
+<!-- Verb 1 -->
+<div class="bg-tertiary-fixed-dim/20 border border-tertiary-fixed-dim/30 rounded-xl p-stack-sm flex flex-col gap-unit">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-tertiary-container uppercase tracking-wider">Infinitive Verb</span>
+<span class="material-symbols-outlined text-[16px] text-tertiary-container">bolt</span>
+</div>
+<p class="font-headline-sm text-headline-sm text-on-surface">aprender</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">to learn</p>
+</div>
+<!-- Verb 2 -->
+<div class="bg-primary-container/10 border border-primary-container/20 rounded-xl p-stack-sm flex flex-col gap-unit">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-primary uppercase tracking-wider">Infinitive Verb</span>
+<span class="material-symbols-outlined text-[16px] text-primary">bolt</span>
+</div>
+<p class="font-headline-sm text-headline-sm text-on-surface">hablar</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">to speak</p>
+</div>
+<!-- Noun/Adverbial Phrase -->
+<div class="bg-secondary-container/10 border border-secondary-container/20 rounded-xl p-stack-sm flex flex-col gap-unit">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-secondary uppercase tracking-wider">Noun (Concept)</span>
+<span class="material-symbols-outlined text-[16px] text-secondary">category</span>
+</div>
+<p class="font-headline-sm text-headline-sm text-on-surface">fluidez</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">fluency</p>
+</div>
+</section>
+<!-- The Core Rule -->
+<section class="bg-surface-container rounded-2xl p-stack-md border-l-4 border-primary">
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-stack-sm">The "A" Preposition Rule</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mb-stack-sm">
+                When using verbs of learning, starting, or teaching (like <em>aprender</em>, <em>empezar</em>, <em>enseñar</em>) followed by another action, you must connect them with the preposition <strong>"a"</strong>.
+            </p>
+<div class="bg-surface-container-lowest rounded-lg p-stack-sm flex items-center gap-stack-sm">
+<span class="material-symbols-outlined text-primary">info</span>
+<p class="font-body-sm text-body-sm text-on-surface"><strong>Formula:</strong> Verb of Learning + <strong>a</strong> + Infinitive Verb</p>
+</div>
+</section>
+<!-- Science-Based Practice -->
+<section class="bg-surface-container-lowest rounded-2xl shadow-[0px_4px_12px_rgba(0,0,0,0.05)] overflow-hidden ai-glow">
+<div class="bg-surface-variant/50 p-stack-md flex justify-between items-center border-b border-surface-variant">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Quick Practice</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Apply what you just learned.</p>
+</div>
+<div class="bg-primary-container text-on-primary-container rounded-full w-10 h-10 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">psychology</span>
+</div>
+</div>
+<div class="p-stack-md flex flex-col gap-stack-md">
+<p class="font-body-md text-body-md text-on-surface">Complete the sentence:</p>
+<div class="bg-surface py-stack-lg px-stack-sm rounded-xl text-center">
+<p class="font-headline-md text-headline-md text-on-surface leading-loose">
+                        Ella empezó 
+                        <input class="inline-block w-20 border-b-2 border-outline focus:border-primary border-t-0 border-l-0 border-r-0 bg-transparent text-center font-headline-md text-primary focus:ring-0 mx-2 pb-1" placeholder="___" type="text"/> 
+                        leer el libro.
+                    </p>
+<p class="font-translation-text text-translation-text text-outline mt-stack-sm">
+                        "She started to read the book."
+                    </p>
+</div>
+<button class="w-full bg-primary hover:bg-primary-fixed-variant text-on-primary font-label-md text-label-md py-4 rounded-xl transition-colors active:scale-[0.98] mt-stack-sm shadow-md">
+                    Check Answer
+                </button>
+</div>
+</section>
+</main>
+</body></html>

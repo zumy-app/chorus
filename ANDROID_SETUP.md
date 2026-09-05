@@ -1,8 +1,25 @@
 # Android Development Setup Guide
 
+## Quick Start (one script)
+
+If you already have Android Studio + SDK installed, a single command from the repo root sets up everything — Docker, backend, frontend, emulator, and installs the app:
+
+```powershell
+.\start-dev.ps1 -Mobile
+```
+
+This automates all the manual steps below. Skip to [Prerequisites](#prerequisites) if this is your first time.
+
+---
+
 ## Prerequisites
 
 To run the Chorus mobile app on an Android emulator, you need to install the Android SDK and set up an Android Virtual Device (AVD).
+
+> **JDK requirement**: React Native 0.83 / Gradle 8.13 requires a **JDK 17–21** (Java 25 is NOT supported — Gradle fails with `Unsupported class file major version 69`). The bundled Android Studio JBR may be too new; install e.g. [Temurin 21](https://adoptium.net/) and set `JAVA_HOME` to it before running Gradle:
+> ```powershell
+> $env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-21..."; $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
+> ```
 
 ## Installation Steps
 
@@ -81,23 +98,34 @@ emulator -avd ChorusEmulator
 
 ## Running the Chorus Mobile App
 
-### Prerequisites
+### Automated (recommended)
+
+```powershell
+cd c:\dev\chorus
+.\start-dev.ps1 -Mobile
+```
+
+This starts Docker, backend, frontend, emulator, Metro, and installs the app — all in one command.
+
+### Manual
+
+#### Prerequisites
 Ensure the backend services are running:
 ```powershell
 cd c:\dev\chorus
 docker-compose up -d
 ```
 
-### Start Metro Bundler
+#### Start Metro Bundler
 ```bash
-cd c:\dev\chorus\ChorusMobile
+cd c:\dev\chorus\mobile
 npm start
 ```
 
-### Run on Android Emulator
+#### Run on Android Emulator
 In a new terminal:
 ```bash
-cd c:\dev\chorus\ChorusMobile
+cd c:\dev\chorus\mobile
 npx react-native run-android
 ```
 
@@ -123,7 +151,7 @@ sdk.dir=C:\\Users\\YourUsername\\AppData\\Local\\Android\\Sdk
 Enable Intel HAXM or AMD-V/Hyper-V in BIOS
 
 ### "Error: spawn ./gradlew ENOENT"
-Make sure you're in the ChorusMobile directory before running commands
+Make sure you're in the mobile directory before running commands
 
 ### Port conflicts
 If port 8081 (Metro) is in use:

@@ -1,160 +1,175 @@
-# Chorus — Phase 1 Requirements
+# Chorus — Phase 1 Requirements (Consolidated)
+
+> **Consolidation 2026-08-23:** Former **Phase 0** and **Phase 1** are merged. There is now a single **Phase 1** milestone. Everything that was `phase-0` is now `phase-1` with **P0 (launch-blocking)** priority. The GitHub milestone **"Phase 0 Release"** should be closed; all its issues move to **"Phase 1 Release"**. `PHASE_1_IMPLEMENTATION_PLAN.md` is the single execution plan.
 
 ## 1. Overview
 
-Chorus ("chorus.talk") is a multilingual real-time messenger that lets users **learn a language while they communicate**. Every message is automatically translated into the recipient's target language, and every conversation becomes a learning opportunity. Phase 1 delivers a fully functional chat product with automatic translation, grammar feedback, personalized learning plans, and a horizontally scalable server architecture.
+Chorus ("chorus.talk") is a multilingual real-time messenger that lets users **learn a language while they communicate**. Every message is automatically translated into the recipient's target language, and every conversation becomes a learning opportunity. Phase 1 delivers a fully functional chat product with automatic translation, grammar feedback, personalized learning plans, horizontally scalable architecture, and a production-ready mobile surface.
+
+**Goal for Phase 1 (from dev sync Aug 23):** working language translation, grammar analysis, mobile app, basic important NFRs, security, structured language-learning activities + tracking.
 
 ## 2. Goals
 
 - Users can send and receive real-time chat messages via chorus.talk.
-- Translation of messages is **automatic** and delivered **within 500 ms**.
-- Grammar analysis is performed on messages to surface learning opportunities.
-- Users can create and manage **custom learning plans and tutorials** (positioned as more adaptive than Duolingo).
-- Language learning is woven into messaging in a **fun, gamified** way.
+- Translation is **automatic** and delivered **within 500 ms** (p95) where cache hits; otherwise queued durably and delivered as soon as ready.
+- Grammar analysis is performed on messages (async AI pipeline) with CEFR-framed feedback.
+- Users can create and manage **custom learning plans/tutorials** (more adaptive than Duolingo) and track progress on **Your Learning Path**.
+- Language learning is woven into messaging: word-bank, highlighting, practice, writing assistance, and scenario role-play.
 - Architecture is **scalable**: stateless chat servers behind a Layer 4 load balancer with a Redis-backed routing registry.
-- All features exposed in Phase 1 must be fully functional (no placeholders or stubs).
+- **Mobile (Expo React Native, Android + iOS)** is the **primary working surface**; web tracks it.
+- All features exposed in Phase 1 are fully functional (no placeholders).
+- Basic NFRs, security, observability, and a proper **dev → prod promotion** pipeline are in place.
 
 ## 3. Scope
 
-**In scope:** registration/auth, profiles and language preferences, direct chats, real-time messaging, automatic translation, grammar analysis, custom learning plans/tutorials, message history, presence, and typing indicators.
+**In scope (Phase 1 Consolidated):**
+registration/auth, profiles & language preferences, direct chats, real-time messaging, automatic translation with feature controls & learned-word optimization, grammar analysis, vocabulary/word-bank, **Your Learning Path** dashboard & metrics, highlight + practice, AI writing assistant & scenario role-play, message history, presence & typing, contacts/invites, onboarding (first/last name, avatar, level), premium plans (PayPal), admin console, rate limiting, observability, translation/grammar quality evaluation, security hardening (incl. mail server isolation), dev environment + CI/CD quality gates, mobile app (Expo).
 
-**Out of scope (Phase 1):**
-- File/image attachments
-- Voice and video calls (including call transcription)
+**Out of scope (Phase 2+):**
+- File/image attachments beyond avatar upload
+- Voice/video calls and call transcription (call infrastructure deferred)
 - Full-text message search across chats (Phase 2+)
-- Public social discovery / friend suggestions / forums
-- Community moderation tooling beyond basic safety rails
+- Public social discovery / forums (except design spike for language-pair group chats)
+- Tutoring marketplace, teacher group chats, public language-pair group chats (Phase 2 epics)
+- Competitive research & accelerated-learning research (Phase 2 research spikes)
 
 ## 4. Functional Requirements
 
 ### Profile & Authentication
-
-- **FR-1** Users must be able to register, log in, and log out (password + JWT access/refresh tokens).
-- **FR-2** Each user profile must declare a native (source) language and one or more target languages.
-- **FR-3** Users must be able to update their target languages at any time from settings.
+- **FR-1** Register / login / logout (password + JWT access/refresh).
+- **FR-2** Each profile declares a native (source) language and one or more target languages.
+- **FR-3** Target languages editable any time from Settings (and from chat if FR-25 is enabled).
+- **FR-19** Onboarding captures **first and last name**; display name composed from them, remains editable. **[P0]**
+- **FR-20** Profile avatar: generated from initials/color in Phase 1; image upload when attachment infra exists. **[P0]**
+- **FR-18 self-selection** Onboarding level self-selection (Beginner / Intermediate / Advanced) — maps to CEFR initial + seed path. (Issue #18)
 
 ### Messaging (chorus.talk)
+- **FR-4** Create direct chats, send/receive in real time over WebSockets.
+- **FR-5** Deliver to all online participants of a chat.
+- **FR-6** Route a message to a target user connected to a *different* chat server (via Redis registry).
+- **FR-7** Each message presents original text + automatic translation into the recipient's native language.
+- **FR-8** Persisted, paginated chat history (500 ms p95).
+- **FR-9** Presence (online/offline) + typing indicators.
+- **FR-21** Emoji picker in message input; emojis pass through translation unchanged. **[P0]**
+- **FR-22/23** Contacts & Invites: scan/import device contacts (permission-gated, never upload raw contacts — match on-device or via hashed values), detect on-platform users, invite off-platform via SMS/WhatsApp/email with single-use links. **[P0]**
+- **FR-24** WhatsApp OTP phone verification (Phase 1, requires WhatsApp Business API). (Issue #50)
 
-- **FR-4** Users must be able to create direct chats, send messages, and receive messages in real time over WebSockets.
-- **FR-5** Messages must be delivered to all online participants of the chat.
-- **FR-6** A chat server must be able to route a message to a target user connected via WebSocket to a *different* chat server (see NFR-7).
-- **FR-7** Each message must present both the original text and its automatic translation into the recipient's native language.
-- **FR-8** Chat history must be persisted and retrievable with pagination.
-- **FR-9** Presence (online/offline) and typing indicators must be shown to chat participants.
-
-### Translation
-
-- **FR-10** Incoming messages must be translated automatically — no manual "translate" action required.
-- **FR-11** The sender always sees the original message; the recipient sees the original plus the translation in their language.
-- **FR-12** Message language must be auto-detected before translation so the correct target is used.
-- **FR-13** Translation results must be cached (per source text + target language) so repeated content hits the 500 ms target (NFR-1).
+### Translation — Core + Enhancements from Aug 23 notes
+- **FR-10** Incoming messages translated **automatically** — no manual action.
+- **FR-11** Sender sees original; recipient sees original + translation.
+- **FR-12** Auto-detect source language before translation.
+- **FR-13** Cache per (source text + target language) for 500 ms target.
+- **FR-25 Feature controls** Users can **toggle features per-account** (and later per-chat): auto-translation on/off, auto grammar on/off, learning highlights on/off. Toggles live in Settings and are respected server-side (translation jobs not enqueued when off). Must not break message delivery. *Source: session note "Provide controls for turning on/off features like language translation."*
+- **FR-26 Learned-word / word-bank optimization** Maintain a **per-user learned-word bank** (vocabulary with `interval_days >= threshold` or explicit "known"). Translation pipeline consults it to **avoid re-translating / re-highlighting known words** (e.g., "hola", "hi") and to reduce LLM cost. UI copy: words already known are dimmed, not re-translated. *Source: "no need to waste resources for words already translated... keep track of learned words and avoid translating them."*
+- **FR-27 Add to word bank from context** From any translated message the user can tap an unknown word → **Add to word bank** (one tap). Already covered by `vocabulary.save` but now requires UX polish + dedup.
+- **FR-28 Highlight + practice** **Highlight new/unlearned words** inside translated messages; tapping opens a quick **practice** affordance (flashcard / cloze / pronunciation stub). *Source: "highlight new words in the translated messages and allow users to practice"*
+- **FR-30 Quality pipeline (store & evaluate)** **Persist every translation & grammar analysis** with metadata (source/target, provider, latency, cache hit). Run a **cross-model evaluator** (different model from the one that produced the output) to score quality. Surface **KPIs (accuracy, latency, cost)** and a **prompt-critique loop**. *Source: "store all translations/grammar analysis, do analysis of the quality using a different model... critique and refine prompts/improve efficiency. KPIs, accuracy number."*
 
 ### Learning & Grammar
+- **FR-14** Grammar analysis returns corrections, patterns, CEFR feedback.
+- **FR-15** Users can create custom learning plans/tutorials adapted to level.
+- **FR-16** Gamified but fully functional (streaks/XP if shipped).
+- **FR-17** Save/champion learned words/phrases from conversation.
+- **FR-31 Structured activities & Your Learning Path metrics** Dashboard **"Your Learning Path"** shows: **words learned per month, sentences understood per month, XP/streak, due reviews, CEFR progress, translation consumption**. Metrics are time-bucketed (month/week) and feed recommendations. *Source: "user dashboard - learned x number of words by month, understand x number of sentences per month etc.. what are the metrics? These metrics should be shown on Your Learning Path"*
+- **FR-32 Seed & personalized learning paths** Seed path: core vocab/grammar sequences per (language pair × level), cached; Personalized items mined from messages & GrammarService (vocab-recall / grammar-cloze); Unified queue interleaves seed + personal with spaced repetition. (Issues #17, #19, #20)
+- **FR-33 Writing goals — AI co-writer** Users can **draft a message in their target language**; AI provides **feedback, corrections, and gap-fill completions** before sending. Lives in the composer as "Help me write". *Source: "Learning goals - allow users to draft messages in the language they need to learn. AI should provide feedback/fill in the gaps and work with the users to write messages (part of the writing goals)"*
+- **FR-34 Scenario role-play** **AI generates scenarios** (restaurant order, date conversation, etc.) and role-plays with the user in the target language, with gentle corrections. Accessible from Learn tab + Chat. *Source: "Communicate with AI to learn. AI can generate scenarios. you are at a restaurant, place an order. or you are on a date, talking to a date."*
+- **FR-35 Chat Language Settings simplification** Settings → Chat Language Settings shows **only the current user's language** (remove "other person's language" dropdown). Target vs native selector only. *Source: "In Chat Language Settings.. remove other persons language setting dropdown. Just focus on your own."* — tracked against `frontend/src/components/ChatLanguageModal.tsx:14-77`.
 
-- **FR-14** Grammar analysis must run on messages, returning corrections, patterns, and CEFR-framed feedback to the learner.
-- **FR-15** Users must be able to create custom learning plans/tutorials (e.g., a sequence of lessons or grammar drills) adapted to their target language and level.
-- **FR-16** The learning experience must be engaging and fun (gamification such as streaks or XP) — but any gamified feature that ships must be fully functional.
-- **FR-17** Saving/championing learned words and phrases from a conversation must work as part of the learning loop.
+### Bugs / Launch blockers (former Phase 0 P0)
+- **[P0] Home button link works from the dashboard.** (Issue #40)
+- **[P0] Admin screen has a back affordance to the dashboard.** (Issue #41)
+- **[P0] Premium plans page copy** — confirm server-enforced word cap before editing copy (open item: copy shows "280 words", fix requests "28" — tracked in #42 + P4a note).
+- **[P0] Meaningful error handling** replaces generic "Sorry, something went wrong". (Issue #47)
+- **[P0] Robust invite flow** already under FR-22/23.
 
 ### Functional Completeness
-
-- **FR-18** Every feature exposed in Phase 1 must work end-to-end: no dead buttons, placeholders, or stubs.
+- **FR-18** Every feature exposed in Phase 1 works end-to-end: no dead buttons or stubs.
 
 ## 5. Non-Functional Requirements
 
 ### Performance
-
-- **NFR-1** Automatic translation must complete within **500 ms** (p95) from message receive to translation being available to the recipient.
-- **NFR-2** End-to-end message delivery to an online recipient must feel instantaneous (< 1 s p95).
-- **NFR-3** Chat history pagination must respond within 500 ms (p95) under normal load.
+- **NFR-1** Translation available within **500 ms p95** from receive (cache hits; cold misses queued).
+- **NFR-2** Online message delivery < 1 s p95.
+- **NFR-3** Chat history pagination < 500 ms p95.
 
 ### Scalability & Architecture
-
-- **NFR-4** Chat servers must be **stateless**: all runtime state lives in shared Redis/PostgreSQL, never in server memory.
-- **NFR-5** Scaling must be horizontal — adding chat servers must increase capacity without downtime.
-- **NFR-6** A **Layer 4 load balancer** must front multiple chat servers and distribute both WebSocket and HTTP traffic.
-- **NFR-7** Chat servers must maintain a **Redis-backed registry mapping user → server/WebSocket connection** so a message entering any server can be routed to a user connected on any other server.
-- **NFR-8** **Redis is never the source of truth.** Redis carries pub/sub events and the routing registry; PostgreSQL is the durable store.
-- **NFR-9** All chat servers must share one logical backend through the load balancer; WebSocket connections must survive the loss of an individual chat server via reconnect.
+- **NFR-4** Chat servers **stateless**: state in Redis/PostgreSQL only.
+- **NFR-5** Horizontal scaling without downtime.
+- **NFR-6** **Layer 4 load balancer** fronts chat servers for HTTP + WebSocket.
+- **NFR-7** **Redis-backed registry** `ws:registry:{userId}` for cross-server routing.
+- **NFR-8** Redis never source of truth; PostgreSQL is durable.
+- **NFR-9** WebSocket reconnect survives loss of an individual server.
 
 ### Reliability & Durability
-
-- **NFR-10** Messages must be persisted to PostgreSQL before acknowledgment; a Redis failure must not lose a message.
-- **NFR-11** If the translation provider fails or times out, chat must keep working — the original message is delivered and translation is retried/queued.
-- **NFR-12** WebSocket clients must auto-reconnect with exponential backoff, and reconnect must preserve chat continuity (messages are re-synchronized from history).
+- **NFR-10** Persist before ack; Redis failure must not lose a message.
+- **NFR-11** Translation provider failure → deliver original, retry/queue.
+- **NFR-12** Auto-reconnect with exponential backoff + history re-sync.
 
 ### Security
+- **NFR-13** TLS everywhere (WSS+HTTPS at LB).
+- **NFR-14** AuthZ on every chat/message read.
+- **NFR-15** Short-lived access tokens; revocable refresh.
+- **NFR-16** WebSocket authentication; no anonymous sends.
+- **NFR-17** No secrets in repo.
+- **NFR-22 Security — mail server isolation** Prod mail (Mailu) must **not share the same host/network namespace** as the app servers. Isolate via separate host, VLAN, or container network with minimal ingress (587/25 only from app), add SPF/DKIM/DMARC per Issue #3, rotate `SMTP_PASSWORD`, and scope SMTP creds to env (no `VITE_` prefix). *Source: "Security - Mail server running on prod, same space"*
+- **NFR-24** Rate limiting on public endpoints (registration, login, translation) to resist abuse/cost exhaustion.
 
-- **NFR-13** TLS must encrypt all traffic in transit (WSS+HTTPS at the load balancer).
-- **NFR-14** Only authenticated users may access chats they belong to; all chat/message reads are authorization-checked.
-- **NFR-15** JWT access tokens must be short-lived; refresh tokens must be revocable server-side.
-- **NFR-16** WebSocket connections must be authenticated; no anonymous sessions may send messages.
-- **NFR-17** Secrets and API keys must not be committed to the repository.
-
-### Observability & Operations
-
-- **NFR-18** Logs, metrics (connection, message, and translation latency), and health endpoints must be available for every chat server.
-- **NFR-19** The load balancer must health-check chat servers and stop routing to unhealthy ones.
-- **NFR-20** Deployments must be reproducible (Docker images, environment-driven configuration).
-- **NFR-21** Public endpoints (registration, login, translation) must be rate-limited to resist abuse and cost exhaustion.
+### Observability, Evaluation & Operations
+- **NFR-18** Logs, metrics (connection, message, translation latency), health endpoints per server.
+- **NFR-19** LB health-checks; stops routing to unhealthy servers.
+- **NFR-20** Reproducible deploys (Docker images, env-driven config).
+- **NFR-25 Observability — Phoenix** Deploy **Arize Phoenix** locally (or self-hosted) for **offline + realtime evaluation** of translation/grammar. Traces, datasets, and prompt versions are stored; cross-model critique runs as batch or streaming. Metrics exported to the same Grafana/Prometheus stack. *Source: "KPIs, accuracy number https://arize.com/phoenix/ Deploy it locally, do offline evaluation or realtime evaluation.. realtime analysis"*
+- **NFR-26 Quality gates on promotion** `dev` environment gates promotion to `prod`: functional tests, e2e (Playwright), translation/grammar golden-set eval (Phoenix), and load smoke must pass. Assigned to **Raju** (CI/CD). *Source: "create a dev environment, assign to raju who will work on ci/cd, create dev environment, quality gates, run functional, e2e tests on dev before auto promotion to pro"*
 
 ### Compatibility & Compliance
-
-- **NFR-22** chorus.talk must work on Web (desktop/mob) and mobile (Capacitor Android/iOS) with consistent functionality.
-- **NFR-23** A data retention policy must be defined for stored messages and translation content (GDPR-oriented), even if enforced minimally in Phase 1.
+- **NFR-22** Mobile (Expo Android/iOS) is **primary**; web is consistent but follows mobile UX.
+- **NFR-23** Data retention policy defined (GDPR-oriented), minimally enforced.
+- **NFR-27 Teacher vetting (Phase 2 prep in Phase 1)** Process note kept in Phase 1 docs but execution is Phase 2: live recording, certificates, manual video-call review by language experts (Daniella for Spanish), curated expert panel per language; later train AI on rubric. *Source: teacher onboarding notes.*
 
 ## 6. Architectural Assumptions
 
-- Redis Pub/Sub is the Phase 1 event-delivery mechanism (chosen over Kafka for low-latency, transient real-time events).
-- The routing registry (user → server/connection) lives in Redis, so a **Layer 4** LB suffices (no server-affinity/sticky sessions required).
-- Translation uses a provider chain (primary + fallback, e.g., OpenRouter/paid models) with caching to hit the 500 ms target.
+- Redis Pub/Sub for transient real-time events; **durable** triggers live in `translation_jobs` / `grammar_jobs` tables (source of truth), Redis is only the near-real-time notifier.
+- Routing registry in Redis, so a **Layer 4** LB suffices (no stickiness).
+- Translation via provider chain (OpenRouter primary + DeepSeek fallback) with caching to hit 500 ms.
+- Phoenix is deployed as a sidecar/compose service, not in the request hot path.
+- Dev and prod are **separate environments** (separate compose/Dokploy projects), promotion is via **container image promotion**, not re-build.
 
-## 7. Monetization & Premium (Phase 1.5)
+## 7. Monetization & Premium (Phase 1.5 — still separate milestone if desired, but tracked under Phase 1 epic)
 
 ### Plans & Pricing
+- **P1** Premium Monthly $7.99/mo, Premium Yearly $79.90/yr ("2 months free"). Recurring only.
+- **P2** Every account starts Free; upgrade via **PayPal Billing (Subscriptions)**.
+- **P3** No per-day quotas except AI tutor daily allowance (P16) exception.
 
-- **P1** Two paid plans: **Premium Monthly — $7.99/mo** and **Premium Yearly — $79.90/yr** ("2 months free"; list price $95.88 struck through). No one-time/lifetime tier; subscriptions are recurring only.
-- **P2** Every account starts on the **Free** plan. Users can upgrade to Premium from the app; purchases are processed by **PayPal Billing (Subscriptions)**.
-- **P3** There are **no fixed per-day usage quotas** (e.g., "N messages/day") for Free or Premium. The only plan limitations are the ones listed under P4.
+### Plan Limitations (P4 — only differentiators)
+- **P4a. Message size** — Free 280 words, Premium 1,000 words. Block client+server. Open item: copy shows "28 words per message" vs "280 words" — confirm server-enforced value (Issue #42).
+- **P4b. Grammar mode** — Free manual/lazy; Premium automatic.
+- **P4c. Response priority / experience** — Premium faster pipeline + ad-free + badge.
 
-### Plan Limitations (P4 — the ONLY plan differentiators)
+### Subscription Lifecycle / Self-Service / Admin / Emails / Future Premium — unchanged
+(see previous REQUIREMENTS.md §7, P5–P18; no material change in this consolidation).
 
-- **P4a. Message size** — Free messages are capped at **280 words** (translation/grammar limit); Premium messages at **1,000 words**. Larger messages are blocked client-side and server-side with a clear message. (Phase 1 shipped a character-based cap; the word-based cap supersedes it.)
-- **P4b. Grammar mode** — Free users get **manual/lazy grammar analysis** (analyze on request, e.g., a per-message action); Premium users get **automatic grammar analysis** on every message. Grammar *results* remain visible to everyone; only automation differs.
-- **P4c. Response priority / experience** — Premium receives faster translation pipeline priority and an ad-free experience; Free may see ads. Premium-only cosmetics (badge) may ship.
+## 7b. Phase 2+ (Future Scope — unchanged)
 
-### Subscription Lifecycle (PayPal)
+- Live tutoring marketplace (10–20% take rate, video+text)
+- Teacher group chats (custom materials)
+- Public language-pair group chats (EN→ES open)
+- Group chat size limit research (proposed 100)
+- Competitive research (HelloTalk harvest + AI analysis)
+- Accelerated learning research
+- Agentic AI / database scaling deferred as separate epics.
 
-- **P5** Checkout must be a **server-side subscription creation** via the PayPal Billing API with the user's id in `custom_id`; the client then redirects to PayPal's approval URL.
-- **P6** Webhooks (with signature verification) drive the lifecycle:
-  - `BILLING.SUBSCRIPTION.ACTIVATED` → grant Premium, set `premium_since`, store `subscription_id`.
-  - `PAYMENT.SALE.COMPLETED` (and the equivalent billing-plan payment event) → confirm/extend, refresh `next_billing_date`.
-  - `BILLING.SUBSCRIPTION.CANCELLED` / `EXPIRED` → start the **grace period** (until the end of the paid period) then downgrade to Free.
-  - `BILLING.SUBSCRIPTION.SUSPENDED` / failed payment → grace period; `PAYMENT.SALE.REVERSED` / `REFUNDED` → immediate downgrade.
-- **P7** Grace uses the existing `plan_grace_until` machinery: during grace the user keeps Premium entitlements; afterwards `Resolve` downgrades to Free.
-- **P8** Webhook events must be idempotently recorded (`subscription_events`) and audit trail of plan changes kept (`plan_changes`: from, to, actor, reason, timestamp).
+## 8. Open Questions / Gaps (updated)
 
-### Self-Service (User)
+1. **Onboarding first partner** — partially resolved by Contacts & Invites; public room + teacher discovery remain Phase 2.
+2. **Report/block** minimal scope — confirm in Phase 1 (Issue #27).
+3. **Delivery semantics** — sent/delivered/read — confirm if read receipts ship (Issue #28).
+4. **Translation cost capping** — resolved by P4 (word cap + lazy grammar); revisit only if hard monthly cap needed.
+5. **Message retention default** — define window (Issue #26).
+6. **PayPal webhook re-verification** — `PAYPAL_WEBHOOK_ID` at deploy.
+7. **(New) Phoenix retention** — how long to keep traces/evals vs. PII redaction.
+8. **(New) Learned-word threshold** — `interval_days >= 21` vs. explicit "marked known" vs. both.
 
-- **P9** The plan badge shown after login must be **clickable** and lead to a `/premium` page.
-- **P10** `/premium` must reflect current state: Free users see upgrade CTA + monthly/annual pricing (with "2 months free" on annual); Premium users see their active plan, next billing date, and a **manage link** (PayPal subscription dashboard) plus cancel/change via PayPal.
-- **P11** Entitlements/plan state must refresh after purchase (e.g., refetch on returning to the app).
-
-### Admin Console (Premium Management)
-
-- **P12** Admin console must expose Premium analytics: total premium users, stored vs. in-grace counts, monthly/yearly mix, projected MRR, new/churned this month, and top users by usage.
-- **P13** Admins can **grant Premium** to a user temporarily (N days), until a date, or indefinitely (with a reason), **extend**, and **revoke** (immediately or with a grace window). All changes are recorded with the acting admin.
-- **P14** Admins can view a user's plan history (grant/revoke/webhook changes with reasons).
-
-### Emails & Notifications
-
-- **P15** Notify users on Premium activation, entering grace, and after downgrade. (Phase 1.5 may record/queue; delivery wiring is follow-up.)
-
-## 8. Open Questions / Possible Gaps
-
-1. **Onboarding** — Where do Phase 1 users find their first chat partner (waitlist invite, public room, friend-by-invite)? Not yet specified.
-2. **Report/block** — Minimal report and block capability is recommended even for Phase 1; confirm scope.
-3. **Delivery semantics** — Define sent/delivered/read states (if "read receipts" ship) or confirm they're out of scope.
-4. **Translation cost capping** — *Resolved by P4:* no per-day quotas; cost is bounded by the 280-word message cap and manual (lazy) grammar mode on Free. Revisit only if a separate hard monthly cap is desired.
-5. **Message retention default** — how long to keep messages and translated content by default.
-6. **PayPal webhook re-verification** — `PAYPAL_WEBHOOK_ID` must be configured at deploy time; see `backend/internal/config/config.go`.
+---
+*History: This file merges the former §0 "Phase 0 (First Release)" into Phase 1. The standalone Phase 0 milestone and `phase-0` labels are deprecated; see `BACKLOG_REFINEMENT_2026-08-23.md` for the per-issue migration.*

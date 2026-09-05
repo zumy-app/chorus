@@ -1,3 +1,6 @@
+// Single source of truth for the Chorus domain model.
+// Used by both the web frontend (frontend/) and the React Native app (mobile/).
+
 export interface User {
   id: string
   username: string
@@ -235,7 +238,7 @@ export interface RegisterRequest {
   displayName: string
   nativeLanguage: string
   targetLanguages: string[]
-  inviteToken: string
+  inviteToken?: string
 }
 
 export interface WaitlistRequest {
@@ -344,4 +347,11 @@ export interface GrammarJob {
   analysis?: any
   providerUsed?: string
   error?: string
+}
+
+export interface Language {
+  code: string
+  name: string
+  nativeName: string
+  flag?: string
 }

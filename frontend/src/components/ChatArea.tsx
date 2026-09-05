@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { useStore } from '../store'
 import MessageBubble from './MessageBubble'
+import DeepDiveSheet from './DeepDiveSheet'
 import ChatLanguageModal from './ChatLanguageModal'
 import ReportModal from './ReportModal'
 import { moderationAPI } from '../services/api'
@@ -19,11 +20,30 @@ export default function ChatArea() {
   const [showReportModal, setShowReportModal] = useState(false)
   const [actionNotice, setActionNotice] = useState('')
   const [actionError, setActionError] = useState('')
+  const [translateAsType, setTranslateAsType] = useState(
+    () => localStorage.getItem('translateAsType') === '1'
+  )
+  const [deepDiveMessage, setDeepDiveMessage] = useState<null | { id: string; text: string; sender?: any; analysis?: any }>(null)
+  const [deepDiveOpen, setDeepDiveOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const typingTimeoutRef = useRef<number>()
   const chatMenuRef = useRef<HTMLDivElement>(null)
 
   const chatMessages = activeChat ? messages[activeChat.id] || [] : []
+  const targetLang = user?.targetLanguages?.[0]?.toUpperCase()
+
+  const handleToggleTranslate = () => {
+    setTranslateAsType((prev) => {
+      const next = !prev
+      localStorage.setItem('translateAsType', next ? '1' : '0')
+      return next
+    })
+  }
+
+  const handleDeepDive = (message: { id: string; text: string; sender?: any; analysis?: any }) => {
+    setDeepDiveMessage(message)
+    setDeepDiveOpen(true)
+  }
 
   // The translation word limit mirrored from the server entitlements
   // (free = 280, premium = 1,000, self-hosted = unlimited). Any message that
@@ -136,46 +156,56 @@ export default function ChatArea() {
   return (
     <>
       {/* Chat Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">{chatName}</h2>
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            {activeChat.type === 'direct' && otherParticipant && (
-              <span>🌍 {otherParticipant.nativeLanguage?.toUpperCase()}</span>
-            )}
-            {activeChat.type === 'group' && (
-              <span>{t('common.members', { count: activeChat.participants?.length || 0 })}</span>
-            )}
+      <div className="bg-surface border-b border-outline-variant px-4 py-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-sm shrink-0">
+            {chatName.charAt(0).toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <h2 className="font-headline-sm text-headline-sm text-primary truncate">{chatName}</h2>
+            <div className="flex items-center gap-2">
+              {activeChat.type === 'direct' && otherParticipant && (
+                <span className="font-label-sm text-label-sm text-tertiary-container flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-tertiary-container" />
+                  {t('chat.online')}
+                </span>
+              )}
+              {activeChat.type === 'group' && (
+                <span className="font-label-sm text-label-sm text-on-surface-variant">
+                  {t('common.members', { count: activeChat.participants?.length || 0 })}
+                </span>
+              )}
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={() => setShowLangSettings(true)}
-            className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 transition"
+            className="w-10 h-10 flex items-center justify-center text-primary hover:bg-surface-variant/20 rounded-full transition active:scale-95"
             title={t('chat.languageSettings')}
+            aria-label={t('chat.languageSettings')}
           >
-            <span>🌐</span>
-            <span className="hidden sm:inline">{t('chat.language')}</span>
+            <span className="material-symbols-outlined">translate</span>
           </button>
 
           {otherParticipant && (
             <div className="relative" ref={chatMenuRef}>
               <button
                 onClick={() => { setShowChatMenu(!showChatMenu); setConfirmBlock(false) }}
-                className="w-9 h-9 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-surface-variant/20 rounded-full transition active:scale-95"
                 title={t('report.moreActions')}
                 aria-label={t('report.moreActions')}
               >
-                <span className="text-gray-600 text-lg leading-none">⋯</span>
+                <span className="material-symbols-outlined">more_vert</span>
               </button>
 
               {showChatMenu && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                <div className="absolute right-0 mt-2 w-56 bg-surface-container-lowest rounded-xl shadow-[0px_8px_24px_rgba(0,0,0,0.12)] border border-outline-variant/30 z-50 overflow-hidden">
                   <div className="py-1">
                     <button
                       onClick={handleBlock}
                       className={`w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 ${
-                        confirmBlock ? 'text-white bg-red-600 hover:bg-red-700' : 'text-red-600 hover:bg-red-50'
+                        confirmBlock ? 'text-white bg-error hover:bg-error' : 'text-error hover:bg-error-container'
                       }`}
                     >
                       <span>🚫</span>
@@ -183,13 +213,13 @@ export default function ChatArea() {
                     </button>
                     <button
                       onClick={() => { setShowReportModal(true); setShowChatMenu(false); setConfirmBlock(false) }}
-                      className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                      className="w-full px-4 py-2.5 text-left text-sm text-on-surface hover:bg-surface-container-low flex items-center gap-3"
                     >
                       <span>🚩</span> {t('report.reportUser')}
                     </button>
                   </div>
                   {actionError && (
-                    <div className="px-4 py-2 text-xs text-red-600 border-t border-gray-100">{actionError}</div>
+                    <div className="px-4 py-2 text-xs text-error border-t border-outline-variant/30">{actionError}</div>
                   )}
                 </div>
               )}
@@ -199,38 +229,103 @@ export default function ChatArea() {
       </div>
 
       {actionNotice && (
-        <div className="bg-green-50 border-b border-green-200 px-4 py-2 text-sm text-green-700">{actionNotice}</div>
+        <div className="bg-tertiary-container text-on-tertiary-container border-b border-outline-variant px-4 py-2 text-sm">{actionNotice}</div>
       )}
 
+      {/* Sparky FAB */}
+      <button
+        onClick={() => { setDeepDiveMessage(null); setDeepDiveOpen(true) }}
+        title={t('grammar.sparkyHint')}
+        aria-label={t('grammar.sparkyHint')}
+        className="absolute bottom-36 right-4 z-40 w-14 h-14 bg-secondary text-white rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(132,85,239,0.3)] hover:bg-secondary-container transition-colors active:scale-95"
+      >
+        <span className="material-symbols-outlined text-[28px]">robot_2</span>
+        <span className="absolute top-1 right-1 w-3 h-3 bg-tertiary-fixed rounded-full border-2 border-surface animate-pulse" />
+      </button>
+
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-background">
         {chatMessages.length === 0 ? (
-          <div className="text-center text-gray-500 mt-8">
+          <div className="text-center text-on-surface-variant mt-8">
             {t('chat.noMessagesYet')}
           </div>
         ) : (
-          chatMessages.map((message) => (
-            <MessageBubble
-              key={message.id}
-              message={message}
-              isOwn={message.senderId === user?.id}
-              nativeLanguage={user?.nativeLanguage || 'en'}
-              targetLanguage={user?.targetLanguages?.[0]}
-            />
-          ))
+          <>
+            <div className="flex justify-center">
+              <span className="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-high px-3 py-1 rounded-full">
+                {t('chat.today')}
+              </span>
+            </div>
+            {chatMessages.map((message) => (
+              <MessageBubble
+                key={message.id}
+                message={message}
+                isOwn={message.senderId === user?.id}
+                nativeLanguage={user?.nativeLanguage || 'en'}
+                targetLanguage={user?.targetLanguages?.[0]}
+                onDeepDive={handleDeepDive}
+              />
+            ))}
+          </>
         )}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input Area */}
-      <div className="bg-white border-t border-gray-200 p-4">
-        <form onSubmit={handleSend} className="flex items-end space-x-2">
+      <div className="bg-surface border-t border-outline-variant px-4 pt-3 pb-4">
+        {/* Translate as I type toggle */}
+        <div className="flex items-center justify-between mb-3 px-1">
+          <button
+            type="button"
+            onClick={handleToggleTranslate}
+            aria-pressed={translateAsType}
+            className="flex items-center gap-2 text-on-surface-variant hover:text-primary transition"
+          >
+            <span className="material-symbols-outlined text-[20px]">g_translate</span>
+            <span className="font-label-md text-label-md">{t('chat.translateAsType')}</span>
+          </button>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={translateAsType}
+            onClick={handleToggleTranslate}
+            className={`relative inline-flex items-center h-5 w-10 rounded-full transition-colors ${
+              translateAsType ? 'bg-primary' : 'bg-surface-variant border border-outline-variant'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 bg-white rounded-full shadow transition-transform ${
+                translateAsType ? 'translate-x-[22px]' : 'translate-x-[2px]'
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Live translation preview while typing */}
+        {translateAsType && inputText.trim() && (
+          <div className="mb-3 rounded-xl border border-secondary/30 bg-secondary-fixed/10 px-3 py-2">
+            <div className="text-xs text-secondary flex items-center gap-1 mb-1">
+              <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
+              {t('chat.liveTranslationPreview', { lang: targetLang })}
+            </div>
+            <div className="text-sm italic text-on-surface-variant break-words">{inputText}</div>
+          </div>
+        )}
+
+        <form onSubmit={handleSend} className="flex items-end gap-2">
+          <button
+            type="button"
+            title={t('chat.settings')}
+            className="w-10 h-10 flex items-center justify-center text-primary hover:bg-surface-variant/20 rounded-full transition active:scale-95 shrink-0"
+          >
+            <span className="material-symbols-outlined text-[22px]">add_circle</span>
+          </button>
           <textarea
             value={inputText}
             onChange={handleInputChange}
             placeholder={t('chat.typeMessage')}
-            className={`flex-1 px-4 py-2 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary ${
-              isOverLimit ? 'border-amber-400 bg-amber-50' : 'border-gray-300'
+            className={`flex-1 px-4 py-3 rounded-[1.5rem] bg-surface-container-low border resize-none focus:outline-none focus:ring-2 focus:ring-primary ${
+              isOverLimit ? 'border-error bg-error-container/20' : 'border-outline-variant'
             }`}
             rows={1}
             onKeyDown={(e) => {
@@ -241,24 +336,32 @@ export default function ChatArea() {
             }}
           />
           <button
+            type="button"
+            title={t('chat.settings')}
+            className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-surface-variant/20 rounded-full transition active:scale-95 shrink-0"
+          >
+            <span className="material-symbols-outlined text-[22px]">mic</span>
+          </button>
+          <button
             type="submit"
             disabled={!inputText.trim() || isOverLimit}
             title={isOverLimit ? t('plan.wordLimitNotice', { limit: wordLimit }) : undefined}
-            className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-10 h-10 bg-primary text-on-primary rounded-full flex items-center justify-center hover:bg-primary/90 transition disabled:opacity-40 disabled:cursor-not-allowed shrink-0 active:scale-95"
+            aria-label={t('common.send')}
           >
-            {t('common.send')}
+            <span className="material-symbols-outlined text-[22px]">send</span>
           </button>
         </form>
         <div className="flex flex-row items-center justify-between gap-2 mt-2 min-h-[1.5rem]">
           <div className="flex items-center gap-2 flex-wrap">
             {isOverLimit ? (
               <>
-                <span className="text-xs text-amber-700 font-medium">
+                <span className="text-xs text-error font-medium">
                   {t('plan.wordLimitNotice', { limit: wordLimit })}
                 </span>
                 <Link
                   to="/pricing"
-                  className="text-xs px-3 py-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:opacity-90 transition"
+                  className="text-xs px-3 py-1 bg-primary-container text-on-primary-container rounded-lg font-semibold hover:bg-primary hover:text-on-primary transition"
                 >
                   {t('plan.upgrade')}
                 </Link>
@@ -266,7 +369,7 @@ export default function ChatArea() {
             ) : null}
           </div>
           {wordLimit != null && (
-            <span className={`text-xs whitespace-nowrap ${isOverLimit ? 'text-amber-700 font-semibold' : 'text-gray-400'}`}>
+            <span className={`text-xs whitespace-nowrap ${isOverLimit ? 'text-error font-semibold' : 'text-on-surface-variant'}`}>
               {wordCount.toLocaleString()} / {wordLimit.toLocaleString()}
             </span>
           )}
@@ -284,6 +387,10 @@ export default function ChatArea() {
           reportedUserName={otherParticipant.displayName}
           onClose={() => setShowReportModal(false)}
         />
+      )}
+
+      {deepDiveOpen && (
+        <DeepDiveSheet message={deepDiveMessage} onClose={() => setDeepDiveOpen(false)} />
       )}
     </>
   )

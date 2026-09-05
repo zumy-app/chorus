@@ -1,0 +1,13 @@
+﻿ PREBUNDLE  ./index.js â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘ 4.0% (2/5)
+ PREBUNDLE  ./index.js â–“â–“â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘ 16.0% (50/203)
+ PREBUNDLE  ./index.js â–“â–“â–“â–“â–“â–“â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘ 40.2% (322/508)
+ PREBUNDLE  ./index.js â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–‘â–‘ 92.4% (721/750)
+ PREBUNDLE  ./index.js â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–‘ 99.8% (876/877)
+ PREBUNDLE  ./index.js 
+ BUNDLE  ./index.js â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘ 0.0% (0/1)
+ BUNDLE  ./index.js 
+ BUNDLE  ./index.js â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘ 0.0% (0/1)
+ BUNDLE  ./index.js 
+ ERROR  [timeout] connection terminated with Device for app='com.chorusmobile' on device='Pixel 7 Pro - 17 - API 37' after not responding for 60 seconds.
+    throw error;
+Error: ENOENT: no such file or directory, watch 'C:\dev\chorus\mobile\node_modules\@react-native-async-storage\async-storage\android\build\generated\ksp\debug\resources'

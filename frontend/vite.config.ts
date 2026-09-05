@@ -1,11 +1,21 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@chorus/shared': path.resolve(__dirname, '../packages/shared/src/index.ts'),
+      'axios': path.resolve(__dirname, 'node_modules/axios/index.js'),
+    },
+  },
   server: {
     port: 3000,
     historyApiFallback: true,
+    fs: {
+      allow: [path.resolve(__dirname, '..')],
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:8080',

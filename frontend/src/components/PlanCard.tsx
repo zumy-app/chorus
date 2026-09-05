@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { useStore } from '../store'
-import type { PlanLimits } from '../types'
+import type { PlanLimits } from '@chorus/shared'
 import PlanBadge from './PlanBadge'
 
 // Ordered limit rows: label key in i18n + the quota field from PlanLimits.

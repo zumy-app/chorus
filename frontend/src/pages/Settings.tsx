@@ -4,7 +4,7 @@ import { useStore } from '../store'
 import { authAPI, moderationAPI } from '../services/api'
 import { SUPPORTED_LANGUAGES } from '../services/language'
 import PlanCard from '../components/PlanCard'
-import type { Block } from '../types'
+import type { Block } from '@chorus/shared'
 
 interface SettingsProps {
   onClose: () => void

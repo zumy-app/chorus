@@ -1,0 +1,8 @@
+{
+  "name": "@chorus/shared",
+  "version": "0.0.1",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "description": "Shared cross-platform layer for Chorus: domain types, config, API client, and WebSocket client. Consumed by the web frontend and the React Native mobile app."
+}
