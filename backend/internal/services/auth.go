@@ -129,9 +129,9 @@ func (s *AuthService) Register(req models.RegisterRequest) (*models.User, error)
 	// Insert user
 	user := &models.User{}
 	query := `
-		INSERT INTO users (username, email, password_hash, display_name, native_language, target_languages)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING id, username, email, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at
+		INSERT INTO users (username, email, password_hash, display_name, native_language, target_language_level, target_languages)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id, username, email, display_name, native_language, target_language_level, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at
 	`
 
 	err = s.db.QueryRow(
@@ -141,6 +141,7 @@ func (s *AuthService) Register(req models.RegisterRequest) (*models.User, error)
 		passwordHash,
 		req.DisplayName,
 		req.NativeLanguage,
+		req.TargetLanguageLevel,
 		pq.Array(req.TargetLanguages),
 	).Scan(
 		&user.ID,
@@ -148,6 +149,7 @@ func (s *AuthService) Register(req models.RegisterRequest) (*models.User, error)
 		&user.Email,
 		&user.DisplayName,
 		&user.NativeLanguage,
+		&user.TargetLanguageLevel,
 		pq.Array(&user.TargetLanguages),
 		&user.Role,
 		&user.CreatedAt,
@@ -199,19 +201,38 @@ func (s *AuthService) RegisterWithInvitation(req models.RegisterRequest) (*model
 	defer tx.Rollback()
 	sum := sha256.Sum256([]byte(req.InviteToken))
 	var invitationID string
+	var waitlistEntryID string
 	err = tx.QueryRow(`UPDATE invitations SET redeemed_at = CURRENT_TIMESTAMP
 		WHERE token_hash = $1 AND email = $2 AND redeemed_at IS NULL AND expires_at > CURRENT_TIMESTAMP
-		RETURNING id`, hex.EncodeToString(sum[:]), strings.ToLower(strings.TrimSpace(req.Email))).Scan(&invitationID)
+		RETURNING id, waitlist_entry_id`, hex.EncodeToString(sum[:]), strings.ToLower(strings.TrimSpace(req.Email))).Scan(&invitationID, &waitlistEntryID)
 	if err != nil {
 		return nil, ErrInvalidInvitation
 	}
+
+	// Fetch target languages and level from the waitlist entry to persist them
+	var targetLanguages []string
+	var targetLanguageLevel string
+	err = tx.QueryRow(`SELECT target_languages, target_language_level FROM waitlist_entries WHERE id = $1`, waitlistEntryID).Scan(pq.Array(&targetLanguages), &targetLanguageLevel)
+	if err != nil {
+		targetLanguages = []string{}
+		targetLanguageLevel = "A1"
+	}
+
+	// If request has explicit values (e.g. from registration form), override with them
+	if len(req.TargetLanguages) > 0 {
+		targetLanguages = req.TargetLanguages
+	}
+	if req.TargetLanguageLevel != "" {
+		targetLanguageLevel = req.TargetLanguageLevel
+	}
+
 	user := &models.User{}
 	err = tx.QueryRow(`
-		INSERT INTO users (username, email, password_hash, display_name, native_language, target_languages)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING id, username, email, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at`,
-		req.Username, req.Email, passwordHash, req.DisplayName, req.NativeLanguage, pq.Array(req.TargetLanguages),
-	).Scan(&user.ID, &user.Username, &user.Email, &user.DisplayName, &user.NativeLanguage,
+		INSERT INTO users (username, email, password_hash, display_name, native_language, target_language_level, target_languages)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id, username, email, display_name, native_language, target_language_level, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at`,
+		req.Username, req.Email, passwordHash, req.DisplayName, req.NativeLanguage, targetLanguageLevel, pq.Array(targetLanguages),
+	).Scan(&user.ID, &user.Username, &user.Email, &user.DisplayName, &user.NativeLanguage, &user.TargetLanguageLevel,
 		pq.Array(&user.TargetLanguages), &user.Role, &user.CreatedAt, &user.LastActiveAt, &user.SuspendedAt, &user.DeletedAt,
 		&user.Plan, &user.PlanGraceUntil, &user.PremiumSince, &user.SubscriptionID, &user.SubscriptionProvider,
 		&user.SubscriptionPlanID, &user.SubscriptionStatus, &user.NextBillingDate, &user.LastPaymentAt)
@@ -230,7 +251,7 @@ func (s *AuthService) RegisterWithInvitation(req models.RegisterRequest) (*model
 func (s *AuthService) Login(username, password string) (*models.User, error) {
 	user := &models.User{}
 	query := `
-		SELECT id, username, email, password_hash, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at
+		SELECT id, username, email, password_hash, display_name, native_language, target_language_level, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at
 		FROM users
 		WHERE username = $1 OR email = $1
 	`
@@ -242,6 +263,7 @@ func (s *AuthService) Login(username, password string) (*models.User, error) {
 		&user.PasswordHash,
 		&user.DisplayName,
 		&user.NativeLanguage,
+		&user.TargetLanguageLevel,
 		pq.Array(&user.TargetLanguages),
 		&user.Role,
 		&user.CreatedAt,
