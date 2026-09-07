@@ -87,6 +87,7 @@ describe('QA call — mobile CallScreen', () => {
     mockApi.getCaptions.mockResolvedValue({ segments: [], total: 0, hasMore: false });
     mockApi.postCaption.mockResolvedValue(segment as any);
     const { getByPlaceholderText, getByText } = render(<CallScreen route={route} navigation={navigation} />);
+    await waitFor(() => expect(mockApi.getCaptions).toHaveBeenCalled());
     await waitFor(() => expect(getByPlaceholderText('Type a caption...')).toBeTruthy());
     fireEvent.changeText(getByPlaceholderText('Type a caption...'), 'Hola');
     fireEvent.press(getByText('➤'));

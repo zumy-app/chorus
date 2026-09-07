@@ -76,6 +76,7 @@ describe('QA messaging parity — mobile', () => {
   it('send: composer sends via apiService.sendMessage and clears input (parity web)', async () => {
     const { getByPlaceholderText, getByText } = render(<ChatScreen route={route} navigation={navigation} />);
     await waitFor(() => expect(mockApi.getMessages).toHaveBeenCalled());
+    await waitFor(() => expect(mockApi.getChat).toHaveBeenCalled());
     const input = getByPlaceholderText('Type a message...');
     fireEvent.changeText(input, 'Hola');
     fireEvent.press(getByText('➤'));
