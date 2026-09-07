@@ -893,4 +893,24 @@ var extraScenarioSpecs = []scenarioSeedSpec{
 			}},
 		},
 	},
+	{
+		Slug: "academic-symposium", UnitSlug: "b2-nuanced-opinions",
+		Title: "Academic Panel Discussion", Domain: "education", Level: "B2",
+		CanDo:  "I can articulate nuanced academic viewpoints, cite evidence, and synthesize arguments at a college level.",
+		RoleName: "Dra. Valenzuela", RoleDesc: "University department chair. Formal academic register.",
+		Opening:  "Estimado colega, le damos la bienvenida al simposio. ¿Cuál es su perspectiva sobre las implicaciones del estudio socioeconómico?",
+		MaxTurns: 15, Minutes: 8,
+		Phases: []scenarioPhaseSeed{
+			{1, "Thesis", "State a formal academic thesis statement.", []string{"thesis"}, []map[string]string{
+				{"text": "Considero que es fundamental evaluar las repercusiones éticas a largo plazo.", "translation": "I consider that it is fundamental to evaluate the long-term ethical implications."},
+				{"text": "Por un lado, los datos demuestran un avance significativo; no obstante, se deben considerar los riesgos.", "translation": "On one hand, the data demonstrates significant progress; nonethless, risks must be considered."},
+			}},
+			{2, "Elaboration", "Elaborate with connectors and subjunctive structures.", []string{"elaboration"}, []map[string]string{
+				{"text": "En caso de que se apruebe la propuesta, conviene recalcar la necesidad de mayor presupuesto.", "translation": "In the event that the proposal is approved, it is worth emphasizing the need for a larger budget."},
+			}},
+			{3, "Synthesis", "Synthesize conclusions and close formal dialogue.", []string{"synthesis"}, []map[string]string{
+				{"text": "Por consiguiente, concluimos que la metodología empleada sostiene la hipótesis inicial.", "translation": "Consequently, we conclude that the methodology employed supports the initial hypothesis."},
+			}},
+		},
+	},
 }
