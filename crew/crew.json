@@ -24,6 +24,24 @@
       "description": "Audit wireframe coverage",
       "expected_output": "WireframeParityReport",
       "agent": "qa_engineer"
+    },
+    {
+      "name": "tdd_rescue_test_quality",
+      "description": "Remove hollow tests and write hard critical acceptance testRefs",
+      "expected_output": "HardTestEvidenceReport",
+      "agent": "test_engineer"
+    },
+    {
+      "name": "learning_dashboard_rescue",
+      "description": "Fix Daily Practice, Initial Test/Placement, Learn dashboard cards, and learning routes",
+      "expected_output": "LearningRescueReport",
+      "agent": "mobile_engineer"
+    },
+    {
+      "name": "sparky_chatbot_rescue",
+      "description": "Fix Sparky chatbot/deep-dive interactions and hard tests",
+      "expected_output": "SparkyInteractionReport",
+      "agent": "mobile_engineer"
     }
   ],
   "process": "sequential",

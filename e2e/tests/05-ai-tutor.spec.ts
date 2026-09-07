@@ -63,20 +63,9 @@ test.describe('AI Tutor', () => {
 
       await openGrammarAnalysis(receiverPage, testMsg)
       // Wait for grammar panel to finish (queue may delay button)
-      try { await expect(receiverPage.getByTestId('grammar-panel')).toBeVisible({ timeout: 30_000 }) } catch { console.warn('⚠️ Grammar panel not done before tutor button check — soft') }
-      // Verify the AI Tutor button is visible within the grammar panel
-      // (localized label: "🤖 AI Tutor" / "🤖 Tutor IA" / ...)
+      await expect(receiverPage.getByTestId('grammar-panel')).toBeVisible({ timeout: 30_000 })
       const tutorBtn = receiverPage.getByRole('button', { name: /🤖/ })
-      try {
-        await expect(tutorBtn).toBeVisible({ timeout: 15_000 })
-      } catch {
-        const queued = receiverPage.getByTestId('grammar-queued')
-        if (await queued.isVisible().catch(() => false)) {
-          console.warn('⚠️ AI Tutor button not yet visible but grammar queued — soft pass')
-          return
-        }
-        throw new Error('AI Tutor button not visible and not queued')
-      }
+      await expect(tutorBtn).toBeVisible({ timeout: 15_000 })
     } finally {
       await senderContext.close()
       await receiverContext.close()
@@ -87,14 +76,8 @@ test.describe('AI Tutor', () => {
     const setup = await setupTutorScenario(browser, `The weather is beautiful today. ${Date.now()}`)
 
     try {
-      // Prefer data-testid, fallback to legacy structural selector
-      try {
-        await expect(setup.receiverPage.getByTestId('ai-tutor-panel')).toBeVisible({ timeout: 10_000 })
-      } catch {
-        await expect(setup.receiverPage.locator('div.bg-gradient-to-r.from-indigo-600 span.text-white')).toBeVisible({ timeout: 10_000 })
-      }
-      const panelHeader = setup.receiverPage.getByTestId('ai-tutor-panel').or(setup.receiverPage.locator('div.bg-gradient-to-r.from-indigo-600').first())
-      await expect(panelHeader.first()).toBeVisible()
+      await expect(setup.receiverPage.getByTestId('ai-tutor-panel')).toBeVisible({ timeout: 15_000 })
+      await expect(setup.receiverPage.getByTestId('ai-tutor-panel')).toBeVisible()
     } finally {
       await setup.senderContext.close()
       await setup.receiverContext.close()
@@ -105,25 +88,10 @@ test.describe('AI Tutor', () => {
     const setup = await setupTutorScenario(browser, `She speaks three languages fluently. ${Date.now()}`)
 
     try {
-      // The panel auto-runs 'breakdown' action on mount.
-      // Verify either the localized "Grammar Breakdown" label or loading indicator appears.
-      // The request can resolve in a few milliseconds (offline fallback) or take longer
-      // (real AI provider), so poll for whichever state shows up first.
-      // Note: .first() is required — isVisible() throws a strict-mode violation when
-      // the text locator matches several elements (older messages, panel header, etc.).
       const breakdownLabel = setup.receiverPage.locator('text=/📖/').first()
       const loadingIndicator = setup.receiverPage.locator('text=/analyz|analiz/i').first()
-
-      await expect
-        .poll(
-          async () => {
-            const labelVisible = await breakdownLabel.isVisible().catch(() => false)
-            const loadingVisible = await loadingIndicator.isVisible().catch(() => false)
-            return labelVisible || loadingVisible
-          },
-          { timeout: 10_000, message: 'expected breakdown label (📖) or loading indicator to appear' },
-        )
-        .toBe(true)
+      // Hard-fail: either label or loading must appear — no .catch swallow
+      await expect.poll(async () => (await breakdownLabel.isVisible()) || (await loadingIndicator.isVisible()), { timeout: 10_000, message: 'expected breakdown label (📖) or loading indicator' }).toBe(true)
     } finally {
       await setup.senderContext.close()
       await setup.receiverContext.close()
@@ -134,11 +102,10 @@ test.describe('AI Tutor', () => {
     const setup = await setupTutorScenario(browser, `I am studying grammar every day. ${Date.now()}`)
 
     try {
-      // Prefer data-testid, fallback to legacy class selector
-      const assistantMessage = setup.receiverPage.getByTestId('ai-tutor-message').first().or(setup.receiverPage.locator('.bg-white.border.border-indigo-100').first())
+      const assistantMessage = setup.receiverPage.getByTestId('ai-tutor-message').first()
       await expect(assistantMessage).toBeVisible({ timeout: 45_000 })
       const content = await assistantMessage.textContent()
-      expect(content).toBeTruthy()
+      expect(content, 'AI breakdown must have content').toBeTruthy()
       expect(content!.length).toBeGreaterThan(5)
     } finally {
       await setup.senderContext.close()
@@ -150,22 +117,13 @@ test.describe('AI Tutor', () => {
     const setup = await setupTutorScenario(browser, `They have been working on the project. ${Date.now()}`)
 
     try {
-      const assistantMessage = setup.receiverPage.getByTestId('ai-tutor-message').first().or(setup.receiverPage.locator('.bg-white.border.border-indigo-100').first())
+      const assistantMessage = setup.receiverPage.getByTestId('ai-tutor-message').first()
       await expect(assistantMessage).toBeVisible({ timeout: 45_000 })
-      // Action buttons — try data-testid container then legacy class
-      const actionButtons = setup.receiverPage.locator('[data-testid="ai-tutor-panel"] .bg-indigo-50').or(setup.receiverPage.locator('.bg-indigo-50.text-indigo-700'))
-      // Soft: if no buttons yet due to AI fallback, warn not fail
-      try {
-        await expect(actionButtons.first()).toBeVisible({ timeout: 10_000 })
-      } catch {
-        console.warn('⚠️ No suggested action buttons visible (AI fallback) — soft pass')
-      }
+      const actionButtons = setup.receiverPage.locator('[data-testid="ai-tutor-panel"] .bg-indigo-50')
+      await expect(actionButtons.first()).toBeVisible({ timeout: 10_000 })
       const examplesBtn = setup.receiverPage.getByRole('button', { name: /exam|ejempl/i }).first()
       const flashcardsBtn = setup.receiverPage.getByRole('button', { name: /flashcard|tarjeta/i }).first()
-      const examplesVisible = await examplesBtn.isVisible().catch(() => false)
-      const flashcardsVisible = await flashcardsBtn.isVisible().catch(() => false)
-      if (!examplesVisible && !flashcardsVisible) console.warn('⚠️ No Examples/Flashcards button visible — soft pass')
-      else expect(examplesVisible || flashcardsVisible).toBeTruthy()
+      await expect(examplesBtn.or(flashcardsBtn).first()).toBeVisible({ timeout: 10_000 })
     } finally {
       await setup.senderContext.close()
       await setup.receiverContext.close()
@@ -176,18 +134,15 @@ test.describe('AI Tutor', () => {
     const setup = await setupTutorScenario(browser, `The book is on the table. ${Date.now()}`)
 
     try {
-      const assistantMessage = setup.receiverPage.getByTestId('ai-tutor-message').first().or(setup.receiverPage.locator('.bg-white.border.border-indigo-100').first())
+      const assistantMessage = setup.receiverPage.getByTestId('ai-tutor-message').first()
       await expect(assistantMessage).toBeVisible({ timeout: 45_000 })
       const examplesBtn = setup.receiverPage.getByRole('button', { name: /exam|ejempl/i }).first()
-      await expect(examplesBtn).toBeVisible({ timeout: 5_000 })
-      const messagesBefore = await setup.receiverPage.getByTestId('ai-tutor-message').count().catch(() => 0).then(async c => c || await setup.receiverPage.locator('.bg-white.border.border-indigo-100').count())
+      await expect(examplesBtn).toBeVisible({ timeout: 10_000 })
+      const messagesBefore = await setup.receiverPage.getByTestId('ai-tutor-message').count()
       await examplesBtn.click()
-      const nextLocator = setup.receiverPage.getByTestId('ai-tutor-message').nth(messagesBefore).or(setup.receiverPage.locator('.bg-white.border.border-indigo-100').nth(messagesBefore))
+      const nextLocator = setup.receiverPage.getByTestId('ai-tutor-message').nth(messagesBefore)
       await expect(nextLocator).toBeVisible({ timeout: 45_000 })
-      const newMessage = nextLocator
-      const content = await newMessage.textContent()
-      expect(content).toBeTruthy()
-      expect(content!.length).toBeGreaterThan(5)
+      expect(await nextLocator.textContent()).toBeTruthy()
     } finally {
       await setup.senderContext.close()
       await setup.receiverContext.close()
@@ -198,14 +153,13 @@ test.describe('AI Tutor', () => {
     const setup = await setupTutorScenario(browser, `My sister lives in Madrid. ${Date.now()}`)
 
     try {
-      const assistantMessage = setup.receiverPage.getByTestId('ai-tutor-message').first().or(setup.receiverPage.locator('.bg-white.border.border-indigo-100').first())
+      const assistantMessage = setup.receiverPage.getByTestId('ai-tutor-message').first()
       await expect(assistantMessage).toBeVisible({ timeout: 45_000 })
       const flashcardsBtn = setup.receiverPage.getByRole('button', { name: /flashcard|tarjeta/i }).first()
-      await expect(flashcardsBtn).toBeVisible({ timeout: 5_000 })
-      const messagesBefore = await setup.receiverPage.getByTestId('ai-tutor-message').count().catch(() => 0).then(async c => c || await setup.receiverPage.locator('.bg-white.border.border-indigo-100').count())
+      await expect(flashcardsBtn).toBeVisible({ timeout: 10_000 })
+      const messagesBefore = await setup.receiverPage.getByTestId('ai-tutor-message').count()
       await flashcardsBtn.click()
-      const nextLocator = setup.receiverPage.getByTestId('ai-tutor-message').nth(messagesBefore).or(setup.receiverPage.locator('.bg-white.border.border-indigo-100').nth(messagesBefore))
-      await expect(nextLocator).toBeVisible({ timeout: 45_000 })
+      await expect(setup.receiverPage.getByTestId('ai-tutor-message').nth(messagesBefore)).toBeVisible({ timeout: 45_000 })
     } finally {
       await setup.senderContext.close()
       await setup.receiverContext.close()
@@ -216,17 +170,13 @@ test.describe('AI Tutor', () => {
     const setup = await setupTutorScenario(browser, `I enjoy reading books in the evening. ${Date.now()}`)
 
     try {
-      const assistantMessage = setup.receiverPage.getByTestId('ai-tutor-message').first().or(setup.receiverPage.locator('.bg-white.border.border-indigo-100').first())
-      await expect(assistantMessage).toBeVisible({ timeout: 45_000 })
-      const panelForm = setup.receiverPage.getByTestId('ai-tutor-form').or(setup.receiverPage.locator('div.bg-white.border.border-indigo-200 form'))
-      const questionInput = setup.receiverPage.getByTestId('ai-tutor-input').or(panelForm.locator('input[type="text"]'))
-      await expect(questionInput.first()).toBeVisible()
-      await questionInput.first().fill('What tense is used in this sentence?')
-      const messagesBefore = await setup.receiverPage.getByTestId('ai-tutor-message').count().catch(() => 0).then(async c => c || await setup.receiverPage.locator('.bg-white.border.border-indigo-100').count())
-      const submitBtn = setup.receiverPage.getByTestId('ai-tutor-submit').or(panelForm.locator('button[type="submit"]'))
-      await submitBtn.first().click()
-      const nextLocator = setup.receiverPage.getByTestId('ai-tutor-message').nth(messagesBefore).or(setup.receiverPage.locator('.bg-white.border.border-indigo-100').nth(messagesBefore))
-      await expect(nextLocator).toBeVisible({ timeout: 45_000 })
+      await expect(setup.receiverPage.getByTestId('ai-tutor-message').first()).toBeVisible({ timeout: 45_000 })
+      const questionInput = setup.receiverPage.getByTestId('ai-tutor-input')
+      await expect(questionInput).toBeVisible({ timeout: 10_000 })
+      await questionInput.fill('What tense is used in this sentence?')
+      const messagesBefore = await setup.receiverPage.getByTestId('ai-tutor-message').count()
+      await setup.receiverPage.getByTestId('ai-tutor-submit').click()
+      await expect(setup.receiverPage.getByTestId('ai-tutor-message').nth(messagesBefore)).toBeVisible({ timeout: 45_000 })
     } finally {
       await setup.senderContext.close()
       await setup.receiverContext.close()
@@ -237,15 +187,9 @@ test.describe('AI Tutor', () => {
     const setup = await setupTutorScenario(browser, `Close tutor test. ${Date.now()}`)
 
     try {
-      const panel = setup.receiverPage.getByTestId('ai-tutor-panel').or(setup.receiverPage.locator('div.bg-gradient-to-r.from-indigo-600 span.text-white'))
-      await expect(panel.first()).toBeVisible({ timeout: 10_000 })
-      const closeBtn = setup.receiverPage.getByTestId('ai-tutor-close').or(setup.receiverPage.locator('div.bg-gradient-to-r.from-indigo-600 button').filter({ hasText: '×' }))
-      await closeBtn.first().click()
-      await expect(setup.receiverPage.getByTestId('ai-tutor-panel')).not.toBeVisible({ timeout: 5_000 }).catch(async () => {
-        await expect(setup.receiverPage.locator('div.bg-gradient-to-r.from-indigo-600 span.text-white')).not.toBeVisible({ timeout: 5_000 })
-      })
-    } catch {
-      console.warn('⚠️ Could not verify AI Tutor panel close behavior (Ollama may be unavailable)')
+      await expect(setup.receiverPage.getByTestId('ai-tutor-panel')).toBeVisible({ timeout: 15_000 })
+      await setup.receiverPage.getByTestId('ai-tutor-close').click()
+      await expect(setup.receiverPage.getByTestId('ai-tutor-panel')).not.toBeVisible({ timeout: 10_000 })
     } finally {
       await setup.senderContext.close()
       await setup.receiverContext.close()

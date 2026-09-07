@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus — Breaking Language Barriers</title>
+<!-- Fonts -->
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788756204834&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YWM1Y2NkNWU5MGQwMWI0ZTg5ZTk5MGNiNzliEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&amp;family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-tertiary-fixed": "#002113",
+            "secondary-fixed-dim": "#d0bcff",
+            "on-secondary-fixed": "#23005c",
+            "on-secondary-container": "#fffbff",
+            "on-primary-container": "#eeefff",
+            "inverse-primary": "#b4c5ff",
+            "surface": "#f8f9ff",
+            "outline": "#737686",
+            "tertiary-container": "#007d55",
+            "on-primary-fixed": "#00174b",
+            "tertiary": "#006242",
+            "inverse-on-surface": "#eaf1ff",
+            "on-surface": "#0b1c30",
+            "on-error-container": "#93000a",
+            "primary-fixed-dim": "#b4c5ff",
+            "on-background": "#0b1c30",
+            "on-surface-variant": "#434655",
+            "on-tertiary-fixed-variant": "#005236",
+            "primary-fixed": "#dbe1ff",
+            "on-secondary-fixed-variant": "#5516be",
+            "on-primary-fixed-variant": "#003ea8",
+            "error-container": "#ffdad6",
+            "secondary-container": "#8455ef",
+            "primary-container": "#2563eb",
+            "surface-variant": "#d3e4fe",
+            "surface-container-lowest": "#ffffff",
+            "surface-container": "#e5eeff",
+            "secondary-fixed": "#e9ddff",
+            "primary": "#004ac6",
+            "surface-bright": "#f8f9ff",
+            "tertiary-fixed-dim": "#4edea3",
+            "outline-variant": "#c3c6d7",
+            "on-primary": "#ffffff",
+            "surface-container-low": "#eff4ff",
+            "tertiary-fixed": "#6ffbbe",
+            "error": "#ba1a1a",
+            "inverse-surface": "#213145",
+            "secondary": "#6b38d4",
+            "surface-tint": "#0053db",
+            "on-tertiary": "#ffffff",
+            "background": "#f8f9ff",
+            "surface-container-high": "#dce9ff",
+            "on-error": "#ffffff",
+            "on-secondary": "#ffffff",
+            "surface-dim": "#cbdbf5",
+            "surface-container-highest": "#d3e4fe",
+            "on-tertiary-container": "#bdffdb"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "stack-lg": "24px",
+            "stack-sm": "8px",
+            "stack-md": "16px",
+            "unit": "4px",
+            "gutter-mobile": "12px",
+            "margin-mobile": "16px"
+          },
+          "fontFamily": {
+            "label-sm": ["Inter"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "body-md": ["Be Vietnam Pro"],
+            "translation-text": ["Be Vietnam Pro"],
+            "headline-sm": ["Plus Jakarta Sans"],
+            "body-sm": ["Be Vietnam Pro"],
+            "label-md": ["Inter"],
+            "headline-lg": ["Plus Jakarta Sans"],
+            "body-lg": ["Be Vietnam Pro"]
+          },
+          "fontSize": {
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .ai-bubble-glow {
+      box-shadow: 0 0 16px -2px rgba(107, 56, 212, 0.15);
+    }
+    @keyframes pulse-soft {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.85; transform: scale(1.02); }
+    }
+    .animate-pulse-soft {
+      animation: pulse-soft 3s ease-in-out infinite;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body-md antialiased min-h-screen selection:bg-secondary-fixed selection:text-on-secondary-fixed pb-28">
+<!-- TOP APP BAR -->
+<header class="sticky top-0 z-40 bg-surface shadow-sm transition-colors w-full">
+<div class="flex justify-between items-center px-margin-mobile py-stack-sm w-full max-w-lg mx-auto">
+<div class="flex items-center gap-2">
+<div class="w-9 h-9 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-headline-sm font-bold shadow-sm ring-2 ring-primary-fixed">
+          C
+        </div>
+<span class="font-headline-md text-headline-md font-bold text-primary tracking-tight">Chorus</span>
+</div>
+<div class="flex items-center gap-2">
+<!-- Streak/XP Fire Counter -->
+<div class="flex items-center gap-1 bg-surface-container-low px-2.5 py-1 rounded-full border border-surface-variant">
+<span class="material-symbols-outlined text-primary text-base" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<span class="font-label-md text-label-md text-on-surface font-semibold">1,420 XP</span>
+</div>
+<!-- Log In / Invited Link -->
+<a class="font-label-sm text-label-sm text-primary hover:bg-surface-container-high px-2.5 py-1.5 rounded-full transition-colors font-medium" href="#login">
+          Log in
+        </a>
+</div>
+</div>
+</header>
+<main class="max-w-lg mx-auto px-margin-mobile flex flex-col gap-6 pt-4">
+<!-- HERO SECTION -->
+<section class="flex flex-col gap-4 text-left">
+<!-- Tag badge -->
+<div class="inline-flex items-center gap-1.5 self-start bg-secondary-fixed px-3 py-1 rounded-full text-on-secondary-fixed">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<span class="font-label-sm text-label-sm font-semibold">Linguist Flow 2.0 Beta</span>
+</div>
+<!-- Main Headline -->
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight font-extrabold">
+        Breaking Language Barriers. <br/>
+<span class="text-primary bg-clip-text">One message at a time.</span>
+</h1>
+<!-- Compelling Subhead -->
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+        Master Spanish through instinctive messaging, sound-packed cultural stickers, and live Madrid market audio roleplays with real-time feedback.
+      </p>
+<!-- Exclusive Early Perks Banner -->
+<div class="bg-surface-container-lowest border border-secondary-fixed-dim rounded-xl p-3.5 shadow-sm ai-bubble-glow flex items-start gap-3 relative overflow-hidden">
+<div class="w-2 h-full absolute left-0 top-0 bg-secondary"></div>
+<div class="p-2 rounded-lg bg-secondary-fixed text-secondary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-xl">card_giftcard</span>
+</div>
+<div class="flex flex-col gap-0.5">
+<span class="font-label-md text-label-md text-on-surface font-bold">Waitlist Perks: Free Chorus PRO Trial</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Includes exclusive <strong class="text-on-surface font-semibold">Madrid Street Talk</strong> sound stickers &amp; unlimited roleplay credits.</p>
+</div>
+</div>
+<!-- Instant Waitlist Form -->
+<div class="bg-surface-container-lowest p-4 rounded-xl border border-surface-container-high shadow-sm flex flex-col gap-3" id="waitlist-form">
+<form class="flex flex-col gap-2.5" onsubmit="event.preventDefault(); document.getElementById('success-state').classList.remove('hidden');">
+<label class="font-label-sm text-label-sm text-on-surface-variant font-medium" for="email-input">Claim your private beta invitation</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-outline text-lg">mail</span>
+<input class="w-full bg-surface-container-low border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary-fixed text-on-surface pl-10 pr-3.5 py-3 rounded-lg font-body-md text-body-md transition-all outline-none" id="email-input" placeholder="you@polyglot.com" required="" type="email"/>
+</div>
+<button class="w-full bg-primary hover:bg-primary-container text-on-primary py-3.5 px-4 rounded-lg font-headline-sm text-headline-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 duration-150 transition-all font-semibold" type="submit">
+<span>Get Early Access</span>
+<span class="material-symbols-outlined text-lg">rocket_launch</span>
+</button>
+</form>
+<!-- Form Microcopy -->
+<div class="flex items-center gap-2 pt-1">
+<div class="flex -space-x-2 overflow-hidden shrink-0">
+<div class="inline-block h-6 w-6 rounded-full ring-2 ring-surface-container-lowest bg-surface-variant flex items-center justify-center text-[10px] font-bold text-primary">ES</div>
+<div class="inline-block h-6 w-6 rounded-full ring-2 ring-surface-container-lowest bg-secondary-fixed flex items-center justify-center text-[10px] font-bold text-secondary">IT</div>
+<div class="inline-block h-6 w-6 rounded-full ring-2 ring-surface-container-lowest bg-tertiary-fixed flex items-center justify-center text-[10px] font-bold text-tertiary">FR</div>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant leading-tight">
+            Join <span class="font-semibold text-on-surface">14,820+</span> polyglots &amp; learners. Next batch drops Tuesday.
+          </p>
+</div>
+<!-- Success Toast Mock -->
+<div class="hidden p-3 rounded-lg bg-tertiary-container text-on-tertiary flex items-center gap-2 transition-all" id="success-state">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="font-label-md text-label-md">You're #14,821! Watch your inbox this Tuesday.</span>
+</div>
+</div>
+</section>
+<!-- LIVE CHAT MOCKUP PREVIEW -->
+<section class="flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider font-bold">Living Dialogue Engine</span>
+<span class="font-label-sm text-label-sm text-secondary font-semibold flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span> Live Audio Active
+        </span>
+</div>
+<!-- Chat Container -->
+<div class="bg-surface-container-low p-3.5 rounded-xl border border-surface-container-high flex flex-col gap-3 shadow-inner">
+<!-- Incoming partner message -->
+<div class="flex items-end gap-2 max-w-[85%]">
+<div class="w-7 h-7 rounded-full bg-surface-container-highest flex items-center justify-center text-xs font-bold text-on-surface-variant ring-1 ring-outline-variant shrink-0">
+            MC
+          </div>
+<div class="flex flex-col gap-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Mateo (Madrid)</span>
+<div class="bg-surface-container-lowest p-3 rounded-2xl rounded-bl-sm border border-outline-variant shadow-sm text-on-surface font-body-sm text-body-sm">
+              ¿Vienes al Rastro este domingo? Te invito a unas cañas si llegas antes de las dos 🍻
+            </div>
+</div>
+</div>
+<!-- AI Tier Translation Helper -->
+<div class="ml-9 max-w-[85%] bg-surface-container-lowest border-l-4 border-secondary rounded-r-xl p-2.5 shadow-sm flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-secondary font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">auto_awesome</span> Instant Insight
+            </span>
+<button class="font-label-sm text-label-sm text-primary hover:underline">Grammar breakdown</button>
+</div>
+<p class="font-translation-text text-translation-text text-on-surface-variant">
+            "Coming to El Rastro flea market this Sunday? Beers are on me if you make it before two."
+          </p>
+<div class="flex gap-1.5 mt-0.5">
+<span class="bg-secondary-fixed text-on-secondary-fixed text-[10px] font-semibold px-2 py-0.5 rounded-full">Slang: 'Cañas' (Draft beers)</span>
+</div>
+</div>
+<!-- Outgoing user message -->
+<div class="flex items-end justify-end gap-2 self-end max-w-[85%]">
+<div class="flex flex-col items-end gap-1">
+<div class="bg-primary text-on-primary p-3 rounded-2xl rounded-br-sm shadow-sm font-body-sm text-body-sm">
+              ¡Claro que sí! Ya tengo ganas de ver los vinilos viejos.
+            </div>
+<span class="font-label-sm text-label-sm text-tertiary flex items-center gap-1 font-medium">
+<span class="material-symbols-outlined text-xs">done_all</span> 98% Natural Flow
+            </span>
+</div>
+</div>
+</div>
+</section>
+<!-- INTERACTIVE FEATURE DEMOS (Bento Style Cards) -->
+<section class="flex flex-col gap-4">
+<div class="flex flex-col gap-1">
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">Engineered for Street Fluency</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Skip dry textbook drill sheets. Learn the cultural context native speakers actually use.</p>
+</div>
+<!-- Feature Card 1: Cultural Voice Stickers & Smart Emojis -->
+<div class="bg-surface-container-lowest p-4 rounded-xl border border-surface-container-high shadow-sm flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="p-2 rounded-lg bg-secondary-fixed text-secondary">
+<span class="material-symbols-outlined text-xl">volume_up</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold text-base">Cultural Audio Stickers</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Tap to trigger authentic localized cadence</p>
+</div>
+</div>
+<span class="bg-secondary-container text-on-secondary-container font-label-sm text-label-sm px-2 py-0.5 rounded-full font-semibold">Sound On</span>
+</div>
+<!-- Interactive Sticker Tray Grid -->
+<div class="grid grid-cols-3 gap-2 pt-1">
+<!-- Sticker 1 -->
+<button class="bg-surface-container-low hover:bg-surface-container p-2.5 rounded-xl border border-outline-variant flex flex-col items-center gap-1 text-center transition-all active:scale-95" onclick="this.classList.toggle('ring-2'); this.classList.toggle('ring-secondary');">
+<span class="text-2xl">👀</span>
+<span class="font-headline-sm text-headline-sm text-xs font-bold text-on-surface">¡Ojo!</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant text-[10px]">"Heads up / Watch out"</span>
+<div class="flex items-center gap-0.5 text-secondary text-[10px] font-semibold mt-1">
+<span class="material-symbols-outlined text-xs">graphic_eq</span> 0.8s
+            </div>
+</button>
+<!-- Sticker 2 -->
+<button class="bg-surface-container-low hover:bg-surface-container p-2.5 rounded-xl border border-outline-variant flex flex-col items-center gap-1 text-center transition-all active:scale-95" onclick="this.classList.toggle('ring-2'); this.classList.toggle('ring-secondary');">
+<span class="text-2xl">🤙</span>
+<span class="font-headline-sm text-headline-sm text-xs font-bold text-on-surface">No Pasa Nada</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant text-[10px]">"No biggie / All good"</span>
+<div class="flex items-center gap-0.5 text-secondary text-[10px] font-semibold mt-1">
+<span class="material-symbols-outlined text-xs">graphic_eq</span> 1.2s
+            </div>
+</button>
+<!-- Sticker 3 -->
+<button class="bg-surface-container-low hover:bg-surface-container p-2.5 rounded-xl border border-outline-variant flex flex-col items-center gap-1 text-center transition-all active:scale-95" onclick="this.classList.toggle('ring-2'); this.classList.toggle('ring-secondary');">
+<span class="text-2xl">🤌</span>
+<span class="font-headline-sm text-headline-sm text-xs font-bold text-on-surface">Che Vuoi</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant text-[10px]">Tap-to-learn gesture</span>
+<div class="flex items-center gap-0.5 text-secondary text-[10px] font-semibold mt-1">
+<span class="material-symbols-outlined text-xs">graphic_eq</span> 0.9s
+            </div>
+</button>
+</div>
+<p class="font-label-sm text-label-sm text-outline text-center">Tap any sticker to preview native Spanish audio inflection</p>
+</div>
+<!-- Feature Card 2: Live Market Scenario Roleplay -->
+<div class="bg-surface-container-lowest p-4 rounded-xl border border-surface-container-high shadow-sm flex flex-col gap-3 relative overflow-hidden">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="p-2 rounded-lg bg-tertiary-fixed text-tertiary">
+<span class="material-symbols-outlined text-xl">storefront</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold text-base">Live Scenario Roleplay</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Mercado de San Miguel • Madrid</p>
+</div>
+</div>
+<span class="bg-tertiary-container text-on-tertiary font-label-sm text-label-sm px-2.5 py-1 rounded-full font-bold flex items-center gap-1">
+            +50 XP
+          </span>
+</div>
+<!-- Scenario Context Box -->
+<div class="bg-surface-container-low rounded-xl p-3 flex flex-col gap-2">
+<div class="flex items-center justify-between text-xs text-on-surface-variant">
+<span class="font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-sm text-tertiary">mic</span> Your Turn to Speak:
+            </span>
+<span class="text-tertiary font-semibold">Objective: Order 200g of Jamón Ibérico</span>
+</div>
+<div class="bg-surface-container-lowest p-3 rounded-lg border border-outline-variant flex items-center justify-between">
+<span class="font-body-sm text-body-sm text-on-surface font-medium italic">
+              "Póngame doscientos gramos del de bellota, por favor."
+            </span>
+<button class="w-8 h-8 rounded-full bg-primary-container text-on-primary flex items-center justify-center shrink-0 ml-2 shadow hover:bg-primary">
+<span class="material-symbols-outlined text-base">volume_up</span>
+</button>
+</div>
+<!-- Pronunciation Score Metre -->
+<div class="flex flex-col gap-1.5 pt-1">
+<div class="flex justify-between items-center text-xs">
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">Pronunciation Resonance</span>
+<span class="font-label-sm text-label-sm text-tertiary font-bold">96% Native Precision</span>
+</div>
+<div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
+<div class="bg-tertiary h-full rounded-full w-[96%] transition-all duration-700"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Feature Card 3: AI Chat Mining & Flashcards -->
+<div class="bg-surface-container-lowest p-4 rounded-xl border border-surface-container-high shadow-sm flex flex-col gap-3">
+<div class="flex items-center gap-2">
+<div class="p-2 rounded-lg bg-primary-fixed text-primary">
+<span class="material-symbols-outlined text-xl">psychology</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold text-base">Automatic Chat Mining</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Chats transform into spaced-repetition memory cards</p>
+</div>
+</div>
+<!-- Flashcard preview -->
+<div class="bg-gradient-to-br from-surface-container-low to-surface-container p-3.5 rounded-xl border border-surface-container-high flex flex-col gap-2">
+<div class="flex justify-between items-center">
+<span class="bg-secondary-fixed text-on-secondary-fixed text-[10px] font-bold px-2 py-0.5 rounded-full">Spaced Repetition • Review in 4h</span>
+<span class="material-symbols-outlined text-outline text-sm">bookmark</span>
+</div>
+<div class="flex justify-between items-baseline">
+<span class="font-headline-md text-headline-md text-primary font-bold text-lg">aprovechar</span>
+<span class="font-label-md text-label-md text-on-surface-variant">verb</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface">"To make the most of / to take advantage of an opportunity"</p>
+<div class="text-xs text-on-surface-variant bg-surface-container-lowest p-2 rounded-lg border border-outline-variant">
+            Mined from: <span class="text-primary italic">"¡Hay que aprovechar el buen tiempo!"</span>
+</div>
+</div>
+</div>
+</section>
+<!-- TESTIMONIAL / SOCIAL PROOF STRIP -->
+<section class="bg-surface-container-low p-4 rounded-xl flex flex-col gap-3 border border-surface-container-high">
+<div class="flex items-center gap-1 text-primary">
+<span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<blockquote class="font-body-sm text-body-sm text-on-surface italic">
+        "Chorus is the only app where I stopped feeling anxious about texting in Spanish. The sound stickers and Madrid roleplay gave me the actual nerve to order tapas in Malasaña without stammering."
+      </blockquote>
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-xs">
+          ER
+        </div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Elena Rostova</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Beta Cohort #1 • Madrid resident</span>
+</div>
+</div>
+</section>
+<!-- FAQ MINI ACCORDION -->
+<section class="flex flex-col gap-2 mb-4">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold text-base mb-1">Frequently Asked</h3>
+<div class="bg-surface-container-lowest border border-surface-container-high rounded-lg p-3">
+<details class="group cursor-pointer">
+<summary class="font-label-md text-label-md text-on-surface font-semibold flex justify-between items-center list-none">
+<span>When does the private beta launch?</span>
+<span class="material-symbols-outlined text-base transition-transform group-open:rotate-180">expand_more</span>
+</summary>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-2 pt-2 border-t border-surface-container">
+            Invites are rolled out weekly on Tuesdays. The next cohort of 500 waitlist participants will receive login credentials directly via email.
+          </p>
+</details>
+</div>
+<div class="bg-surface-container-lowest border border-surface-container-high rounded-lg p-3">
+<details class="group cursor-pointer">
+<summary class="font-label-md text-label-md text-on-surface font-semibold flex justify-between items-center list-none">
+<span>Is Chorus suitable for complete beginners?</span>
+<span class="material-symbols-outlined text-base transition-transform group-open:rotate-180">expand_more</span>
+</summary>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-2 pt-2 border-t border-surface-container">
+            Yes. Our smart translation scaffolding and phonetic voice stickers are calibrated to adapt automatically from A1 to C1 fluency levels.
+          </p>
+</details>
+</div>
+</section>
+</main>
+<!-- BOTTOM STICKY FLOATING CTA BAR -->
+<div class="fixed bottom-0 left-0 right-0 z-50 p-3 bg-surface/90 backdrop-blur-md border-none shadow-lg">
+<div class="max-w-lg mx-auto flex items-center justify-between gap-3">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">Batch #4 closing soon</span>
+<span class="font-label-md text-label-md text-on-surface font-bold">14,820 polyglots waiting</span>
+</div>
+<a class="bg-primary hover:bg-primary-container text-on-primary px-5 py-2.5 rounded-full font-headline-sm text-headline-sm text-sm font-semibold flex items-center gap-1.5 shadow-md active:scale-95 duration-150 transition-all shrink-0" href="#waitlist-form">
+<span>Join Waitlist</span>
+<span class="material-symbols-outlined text-base">arrow_forward</span>
+</a>
+</div>
+</div>
+</body></html>

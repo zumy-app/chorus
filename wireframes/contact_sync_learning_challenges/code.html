@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus - Guardrailed Contact Sync &amp; Learning Challenge Invites</title>
+<!-- Fonts -->
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788757997723&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YWMzZTU3YzZmNDMwMmE5YTRlNjE2MThhNjQxEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&amp;family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Theme Configuration -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "outline": "#737686",
+            "surface-tint": "#0053db",
+            "tertiary-container": "#007d55",
+            "secondary-fixed": "#e9ddff",
+            "primary-fixed": "#dbe1ff",
+            "surface-variant": "#d3e4fe",
+            "surface-container-highest": "#d3e4fe",
+            "on-tertiary": "#ffffff",
+            "on-primary-fixed": "#00174b",
+            "on-surface-variant": "#434655",
+            "secondary-fixed-dim": "#d0bcff",
+            "on-surface": "#0b1c30",
+            "on-background": "#0b1c30",
+            "inverse-primary": "#b4c5ff",
+            "surface-container": "#e5eeff",
+            "on-primary": "#ffffff",
+            "tertiary-fixed-dim": "#4edea3",
+            "on-tertiary-fixed-variant": "#005236",
+            "error": "#ba1a1a",
+            "on-tertiary-fixed": "#002113",
+            "on-tertiary-container": "#bdffdb",
+            "surface-container-high": "#dce9ff",
+            "on-secondary-container": "#fffbff",
+            "primary-fixed-dim": "#b4c5ff",
+            "secondary-container": "#8455ef",
+            "on-secondary-fixed": "#23005c",
+            "background": "#f8f9ff",
+            "surface-container-low": "#eff4ff",
+            "inverse-surface": "#213145",
+            "tertiary-fixed": "#6ffbbe",
+            "primary": "#004ac6",
+            "on-secondary": "#ffffff",
+            "on-secondary-fixed-variant": "#5516be",
+            "primary-container": "#2563eb",
+            "surface-dim": "#cbdbf5",
+            "surface-bright": "#f8f9ff",
+            "on-error": "#ffffff",
+            "inverse-on-surface": "#eaf1ff",
+            "on-primary-fixed-variant": "#003ea8",
+            "tertiary": "#006242",
+            "on-primary-container": "#eeefff",
+            "secondary": "#6b38d4",
+            "surface-container-lowest": "#ffffff",
+            "outline-variant": "#c3c6d7",
+            "on-error-container": "#93000a",
+            "error-container": "#ffdad6",
+            "surface": "#f8f9ff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "stack-sm": "8px",
+            "margin-mobile": "16px",
+            "gutter-mobile": "12px",
+            "unit": "4px",
+            "stack-lg": "24px",
+            "stack-md": "16px"
+          },
+          "fontFamily": {
+            "body-sm": ["Be Vietnam Pro"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "label-sm": ["Inter"],
+            "headline-sm": ["Plus Jakarta Sans"],
+            "headline-lg": ["Plus Jakarta Sans"],
+            "body-lg": ["Be Vietnam Pro"],
+            "label-md": ["Inter"],
+            "body-md": ["Be Vietnam Pro"],
+            "translation-text": ["Be Vietnam Pro"]
+          },
+          "fontSize": {
+            "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface antialiased min-h-screen flex justify-center selection:bg-primary selection:text-on-primary">
+<!-- Main Phone Wrapper (Centered for Mobile Experience) -->
+<div class="w-full max-w-md bg-background min-h-screen flex flex-col relative pb-12">
+<!-- Top App Navigation / Focused Journey Bar -->
+<header class="sticky top-0 z-40 bg-surface/95 backdrop-blur-md px-margin-mobile py-stack-md flex items-center gap-3 shadow-sm">
+<button aria-label="Go back" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container text-on-surface-variant transition-colors active:scale-95" type="button">
+<span class="material-symbols-outlined text-[22px]" data-icon="arrow_back">arrow_back</span>
+</button>
+<div class="flex-1">
+<h1 class="font-headline-sm text-headline-sm text-on-surface leading-tight">Find Friends &amp; Study Buddies</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1">Connect your address book with educational privacy</p>
+</div>
+<div class="flex items-center justify-center w-8 h-8 rounded-full bg-surface-container text-primary">
+<span class="material-symbols-outlined text-[20px]" data-icon="shield">shield</span>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 px-margin-mobile py-stack-md flex flex-col gap-stack-lg">
+<!-- Educational Permission & Privacy Guarantee Banner -->
+<section class="bg-surface-container-lowest rounded-xl p-4 shadow-sm border border-surface-container flex gap-3 relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-secondary-container"></div>
+<div class="w-9 h-9 rounded-full bg-secondary-fixed flex items-center justify-center text-secondary shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[20px]" data-icon="verified_user">verified_user</span>
+</div>
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-label-md text-on-surface">Zero Spam Guarantee</span>
+<span class="bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm px-2 py-0.5 rounded-full font-medium">Safe Sync</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+            We only surface contacts studying complementary languages or learning your target language. No dating solicitations, no phone number sharing.
+          </p>
+</div>
+</section>
+<!-- Section: Contacts Already on Chorus -->
+<section class="flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Friends on Chorus</h2>
+<span class="bg-primary-container text-on-primary-container font-label-sm text-label-sm px-2 py-0.5 rounded-full font-bold">3 found</span>
+</div>
+<span class="font-label-sm text-label-sm text-primary flex items-center gap-1 font-semibold cursor-pointer">
+            Sync again
+            <span class="material-symbols-outlined text-[16px]" data-icon="sync">sync</span>
+</span>
+</div>
+<!-- Contact Cards Bento Cluster -->
+<div class="flex flex-col gap-3">
+<!-- Contact 1: Elena Vance -->
+<article class="bg-surface-container-lowest rounded-xl p-3.5 shadow-sm border border-surface-container flex flex-col gap-3 transition-all hover:border-primary-fixed">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center font-headline-sm text-headline-sm text-primary font-bold overflow-hidden border border-outline-variant/40">
+                    EV
+                  </div>
+<span class="absolute -bottom-1 -right-1 bg-primary text-on-primary font-label-sm text-label-sm px-1.5 py-0.2 rounded-full ring-2 ring-surface-container-lowest font-bold">
+                    A2
+                  </span>
+</div>
+<div>
+<h3 class="font-label-md text-label-md text-on-surface">Elena Vance</h3>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Learning: <strong class="text-on-surface font-semibold">ES</strong></span>
+<span class="text-outline-variant">•</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Native: <strong class="text-on-surface font-semibold">EN</strong></span>
+</div>
+</div>
+</div>
+<!-- Streak Badge -->
+<div class="flex items-center gap-1 bg-surface-container-low px-2 py-1 rounded-full text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px] text-tertiary" data-icon="local_fire_department" data-weight="fill" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<span class="font-label-sm text-label-sm font-semibold">7d streak</span>
+</div>
+</div>
+<!-- Insight / AI Micro Context -->
+<div class="bg-surface-container-low/60 rounded-lg p-2.5 flex items-center justify-between border-l-2 border-secondary-container">
+<p class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-secondary" data-icon="auto_awesome">auto_awesome</span>
+                Studying travel conversations today
+              </p>
+<button class="bg-primary-container text-on-primary-container hover:bg-primary font-label-md text-label-md px-3.5 py-1.5 rounded-lg font-semibold transition-transform active:scale-95 shadow-sm">
+                Practice Together
+              </button>
+</div>
+</article>
+<!-- Contact 2: Marcus Aurel -->
+<article class="bg-surface-container-lowest rounded-xl p-3.5 shadow-sm border border-surface-container flex flex-col gap-3 transition-all hover:border-primary-fixed">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center font-headline-sm text-headline-sm text-secondary font-bold overflow-hidden border border-outline-variant/40">
+                    MA
+                  </div>
+<span class="absolute -bottom-1 -right-1 bg-secondary text-on-secondary font-label-sm text-label-sm px-1.5 py-0.2 rounded-full ring-2 ring-surface-container-lowest font-bold">
+                    B1
+                  </span>
+</div>
+<div>
+<h3 class="font-label-md text-label-md text-on-surface">Marcus Aurel</h3>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Learning: <strong class="text-on-surface font-semibold">ES</strong></span>
+<span class="text-outline-variant">•</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Native: <strong class="text-on-surface font-semibold">EN</strong></span>
+</div>
+</div>
+</div>
+<!-- Shared Goal Pill -->
+<span class="bg-tertiary-fixed/40 text-on-tertiary-fixed-variant font-label-sm text-label-sm px-2.5 py-1 rounded-full font-medium">
+                Medical Vocab
+              </span>
+</div>
+<div class="bg-surface-container-low/60 rounded-lg p-2.5 flex items-center justify-between border-l-2 border-primary">
+<p class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-primary" data-icon="fitness_center">fitness_center</span>
+                Matched curriculum goals
+              </p>
+<button class="bg-primary text-on-primary hover:bg-primary/90 font-label-md text-label-md px-4 py-1.5 rounded-lg font-semibold transition-transform active:scale-95 shadow-sm">
+                Challenge
+              </button>
+</div>
+</article>
+<!-- Contact 3: Chloe Zhao -->
+<article class="bg-surface-container-lowest rounded-xl p-3.5 shadow-sm border border-secondary-fixed/50 flex flex-col gap-3 relative overflow-hidden bg-gradient-to-r from-surface-container-lowest to-surface-container-low/40">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="w-12 h-12 rounded-full bg-secondary-fixed flex items-center justify-center font-headline-sm text-headline-sm text-secondary font-bold overflow-hidden border border-secondary-fixed-dim">
+                    CZ
+                  </div>
+<span class="absolute -bottom-1 -right-1 bg-tertiary text-on-tertiary font-label-sm text-label-sm px-1.5 py-0.2 rounded-full ring-2 ring-surface-container-lowest font-bold">
+                    Tandem
+                  </span>
+</div>
+<div>
+<div class="flex items-center gap-1.5">
+<h3 class="font-label-md text-label-md text-on-surface">Chloe Zhao</h3>
+<span class="material-symbols-outlined text-[16px] text-primary" data-icon="check_circle" data-weight="fill" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Native: <strong class="text-on-surface font-semibold">ES (Madrid)</strong></span>
+<span class="text-outline-variant">•</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Learning: <strong class="text-on-surface font-semibold">EN</strong></span>
+</div>
+</div>
+</div>
+<span class="bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm px-2 py-0.5 rounded-full font-semibold">
+                Mutual Match
+              </span>
+</div>
+<div class="bg-surface-container-lowest rounded-lg p-2.5 flex items-center justify-between border border-secondary-fixed">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] text-secondary" data-icon="swap_horiz">swap_horiz</span>
+<span class="font-body-sm text-body-sm text-on-surface font-medium">Perfect Tandem Match</span>
+</div>
+<button class="bg-secondary-container text-on-secondary-container hover:bg-secondary font-label-md text-label-md px-4 py-1.5 rounded-lg font-semibold transition-transform active:scale-95 shadow-sm">
+                Pair Up
+              </button>
+</div>
+</article>
+</div>
+</section>
+<!-- Section: Structured Challenge Invites (Anti-spam referral mechanic) -->
+<section class="flex flex-col gap-3">
+<div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[20px]" data-icon="sports_esports">sports_esports</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Invite with a 3-Minute Challenge</h2>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+            Skip generic invite SMS. Send a fun interactive scenario that earns both of you points.
+          </p>
+</div>
+<div class="grid grid-cols-1 gap-3">
+<!-- Challenge Card A -->
+<div class="bg-surface-container-lowest rounded-xl p-4 border border-surface-container shadow-sm flex flex-col justify-between gap-3 relative overflow-hidden group hover:border-primary transition-all">
+<div class="flex items-start justify-between gap-2">
+<div class="flex gap-3">
+<div class="w-10 h-10 rounded-xl bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed shrink-0">
+<span class="material-symbols-outlined text-[22px]" data-icon="restaurant">restaurant</span>
+</div>
+<div>
+<div class="flex items-center gap-1.5">
+<span class="bg-tertiary-fixed/60 text-on-tertiary-fixed font-label-sm text-label-sm px-2 py-0.5 rounded-full font-bold">+50 XP each</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">3 mins</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface font-bold mt-1">3-Min Speed Drill: Ordering Tapas in Madrid</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Simulate ordering at a crowded bar in La Latina with live AI feedback.</p>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-surface-container-low">
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-tertiary" data-icon="bolt">bolt</span>
+                Instant preview link included
+              </span>
+<button class="bg-primary-container text-on-primary-container font-label-md text-label-md px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1 hover:bg-primary transition-colors active:scale-95">
+                Send Challenge
+                <span class="material-symbols-outlined text-[16px]" data-icon="send">send</span>
+</button>
+</div>
+</div>
+<!-- Challenge Card B -->
+<div class="bg-surface-container-lowest rounded-xl p-4 border border-surface-container shadow-sm flex flex-col justify-between gap-3 relative overflow-hidden group hover:border-secondary transition-all">
+<div class="flex items-start justify-between gap-2">
+<div class="flex gap-3">
+<div class="w-10 h-10 rounded-xl bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed shrink-0">
+<span class="material-symbols-outlined text-[22px]" data-icon="flash_on">flash_on</span>
+</div>
+<div>
+<div class="flex items-center gap-1.5">
+<span class="bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm px-2 py-0.5 rounded-full font-bold">+50 XP each</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">Head-to-head</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface font-bold mt-1">Vocabulary Showdown: Top 30 Everyday Verbs</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Fast-paced dual conjugation duel. Friend doesn't need an account to try.</p>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-surface-container-low">
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-secondary" data-icon="verified">verified</span>
+                Web micro-app enabled
+              </span>
+<button class="bg-secondary-container text-on-secondary-container font-label-md text-label-md px-3.5 py-1.5 rounded-lg font-semibold flex items-center gap-1 hover:bg-secondary transition-colors active:scale-95">
+                Send Challenge
+                <span class="material-symbols-outlined text-[16px]" data-icon="send">send</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Section: Uninvited Friends & Directory Search -->
+<section class="flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Other Address Book Contacts</h2>
+<span class="font-label-sm text-label-sm text-on-surface-variant">142 total</span>
+</div>
+<!-- Search Field -->
+<div class="relative">
+<span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]" data-icon="search">search</span>
+</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-lowest border border-outline-variant/60 rounded-xl font-body-sm text-body-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all shadow-sm" placeholder="Search by name or email..." type="text"/>
+</div>
+<!-- Smart Filter Toggle -->
+<div class="bg-surface-container-lowest rounded-xl p-3 border border-surface-container flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]" data-icon="filter_alt">filter_alt</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface">Language signals only</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Only show friends interested in languages</p>
+</div>
+</div>
+<!-- Native styled switch -->
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<!-- Sample Uninvited Contacts -->
+<div class="bg-surface-container-lowest rounded-xl divide-y divide-surface-container border border-surface-container shadow-sm">
+<div class="p-3.5 flex items-center justify-between hover:bg-surface-container-low/30 transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center font-label-md text-label-md font-bold text-on-surface-variant">
+                DK
+              </div>
+<div>
+<p class="font-label-md text-label-md text-on-surface">Daniel Kim</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">dan.kim@company.io • Has Spanish study apps</p>
+</div>
+</div>
+<button class="font-label-md text-label-md text-primary hover:bg-surface-container px-3 py-1 rounded-lg transition-colors font-semibold">
+              Invite
+            </button>
+</div>
+<div class="p-3.5 flex items-center justify-between hover:bg-surface-container-low/30 transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center font-label-md text-label-md font-bold text-on-surface-variant">
+                SJ
+              </div>
+<div>
+<p class="font-label-md text-label-md text-on-surface">Sarah Jenkins</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">+1 (555) 304-2911 • Madrid travel list</p>
+</div>
+</div>
+<button class="font-label-md text-label-md text-primary hover:bg-surface-container px-3 py-1 rounded-lg transition-colors font-semibold">
+              Invite
+            </button>
+</div>
+<div class="p-3.5 flex items-center justify-between hover:bg-surface-container-low/30 transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center font-label-md text-label-md font-bold text-on-surface-variant">
+                LR
+              </div>
+<div>
+<p class="font-label-md text-label-md text-on-surface">Lucas Rossi</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">lucas.r@polyglot.org • Polyglot club member</p>
+</div>
+</div>
+<button class="font-label-md text-label-md text-primary hover:bg-surface-container px-3 py-1 rounded-lg transition-colors font-semibold">
+              Invite
+            </button>
+</div>
+</div>
+</section>
+<!-- Bottom Privacy Trust Banner -->
+<footer class="mt-2 text-center flex flex-col items-center gap-1.5 text-on-surface-variant">
+<div class="flex items-center gap-1.5 text-label-sm font-label-sm">
+<span class="material-symbols-outlined text-[16px] text-tertiary" data-icon="lock" data-weight="fill" style="font-variation-settings: 'FILL' 1;">lock</span>
+<span>End-to-End Cryptographic Contact Matching</span>
+</div>
+<p class="font-label-sm text-label-sm text-outline max-w-xs">
+          Raw phone numbers never leave your device unhashed. Unmatched contacts are immediately discarded from memory.
+        </p>
+</footer>
+</main>
+</div>
+</body></html>

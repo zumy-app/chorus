@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus - Live Dialogue &amp; Speech Practice</title>
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788762228214&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YWM0ODZmNTFhYzMwNzc5YTA2YWZmMGE3MTBlEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "inverse-primary": "#b4c5ff",
+            "inverse-on-surface": "#eaf1ff",
+            "primary": "#004ac6",
+            "surface": "#f8f9ff",
+            "tertiary-container": "#007d55",
+            "surface-variant": "#d3e4fe",
+            "on-error-container": "#93000a",
+            "on-surface-variant": "#434655",
+            "tertiary": "#006242",
+            "error-container": "#ffdad6",
+            "on-tertiary": "#ffffff",
+            "on-secondary-fixed-variant": "#5516be",
+            "on-secondary-fixed": "#23005c",
+            "secondary": "#6b38d4",
+            "secondary-fixed": "#e9ddff",
+            "error": "#ba1a1a",
+            "surface-container": "#e5eeff",
+            "secondary-fixed-dim": "#d0bcff",
+            "inverse-surface": "#213145",
+            "tertiary-fixed": "#6ffbbe",
+            "on-primary-container": "#eeefff",
+            "surface-bright": "#f8f9ff",
+            "on-primary-fixed": "#00174b",
+            "primary-fixed": "#dbe1ff",
+            "background": "#f8f9ff",
+            "surface-container-highest": "#d3e4fe",
+            "surface-container-high": "#dce9ff",
+            "on-surface": "#0b1c30",
+            "on-error": "#ffffff",
+            "surface-container-low": "#eff4ff",
+            "on-secondary-container": "#fffbff",
+            "surface-tint": "#0053db",
+            "tertiary-fixed-dim": "#4edea3",
+            "primary-fixed-dim": "#b4c5ff",
+            "on-primary-fixed-variant": "#003ea8",
+            "on-tertiary-fixed": "#002113",
+            "secondary-container": "#8455ef",
+            "surface-container-lowest": "#ffffff",
+            "primary-container": "#2563eb",
+            "surface-dim": "#cbdbf5",
+            "on-tertiary-container": "#bdffdb",
+            "outline-variant": "#c3c6d7",
+            "on-secondary": "#ffffff",
+            "outline": "#737686",
+            "on-background": "#0b1c30",
+            "on-primary": "#ffffff",
+            "on-tertiary-fixed-variant": "#005236"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "margin-mobile": "16px",
+            "stack-lg": "24px",
+            "stack-md": "16px",
+            "gutter-mobile": "12px",
+            "stack-sm": "8px",
+            "unit": "4px"
+          },
+          "fontFamily": {
+            "headline-sm": ["Plus Jakarta Sans"],
+            "translation-text": ["Be Vietnam Pro"],
+            "body-sm": ["Be Vietnam Pro"],
+            "body-md": ["Be Vietnam Pro"],
+            "label-sm": ["Inter"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "headline-lg": ["Plus Jakarta Sans"],
+            "label-md": ["Inter"],
+            "body-lg": ["Be Vietnam Pro"]
+          },
+          "fontSize": {
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+            "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Outlined';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 20px;
+      line-height: 1;
+      display: inline-block;
+      text-transform: none;
+      letter-spacing: normal;
+      word-wrap: normal;
+      white-space: nowrap;
+      direction: ltr;
+      vertical-align: middle;
+      font-feature-settings: 'liga';
+      -webkit-font-smoothing: antialiased;
+    }
+    @keyframes wavePulse {
+      0%, 100% { height: 6px; }
+      50% { height: 26px; }
+    }
+    .wave-bar:nth-child(1) { animation: wavePulse 1s ease-in-out infinite 0.1s; }
+    .wave-bar:nth-child(2) { animation: wavePulse 1s ease-in-out infinite 0.3s; }
+    .wave-bar:nth-child(3) { animation: wavePulse 1s ease-in-out infinite 0.15s; }
+    .wave-bar:nth-child(4) { animation: wavePulse 1s ease-in-out infinite 0.45s; }
+    .wave-bar:nth-child(5) { animation: wavePulse 1s ease-in-out infinite 0.25s; }
+    .wave-bar:nth-child(6) { animation: wavePulse 1s ease-in-out infinite 0.5s; }
+    .wave-bar:nth-child(7) { animation: wavePulse 1s ease-in-out infinite 0.2s; }
+    .wave-bar:nth-child(8) { animation: wavePulse 1s ease-in-out infinite 0.35s; }
+    .wave-bar:nth-child(9) { animation: wavePulse 1s ease-in-out infinite 0.1s; }
+    .wave-bar:nth-child(10) { animation: wavePulse 1s ease-in-out infinite 0.4s; }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body-md antialiased min-h-screen flex flex-col justify-between selection:bg-surface-variant selection:text-primary pb-32">
+<!-- TOP APP BAR & EXERCISE HEADER (Task-focused drill with close action, bottom bar suppressed per Semantic Shell rules) -->
+<header class="sticky top-0 z-40 bg-surface shadow-[0px_4px_12px_rgba(0,0,0,0.05)] w-full px-margin-mobile py-2.5 flex flex-col gap-2">
+<div class="flex items-center justify-between w-full">
+<!-- Close / Pause Task Flow -->
+<button class="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center text-on-surface-variant hover:opacity-80 active:scale-95 transition-all" title="Pause session">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+<!-- Step Counter & Phase Header -->
+<div class="flex flex-col items-center">
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface tracking-tight">Step 3 of 5</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">Customization: Milk &amp; Sugar</span>
+</div>
+<!-- XP Badge & Copilot Indicator -->
+<div class="flex items-center gap-1.5">
+<div class="flex items-center gap-1 bg-surface-container-lowest px-2.5 py-1 rounded-full shadow-[0px_2px_6px_rgba(0,0,0,0.04)]">
+<span class="material-symbols-outlined text-[#f59e0b]" data-icon="bolt" data-weight="fill" style="font-variation-settings: 'FILL' 1;">bolt</span>
+<span class="font-label-md text-label-md font-bold text-primary">+25 XP</span>
+</div>
+</div>
+</div>
+<!-- Interactive Progress Bar and Sparky Copilot Strip -->
+<div class="flex items-center gap-3 pt-0.5">
+<div class="flex-1 h-2 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary-container rounded-full transition-all duration-500 ease-out" style="width: 60%;"></div>
+</div>
+<!-- Sparky Copilot Active Indicator -->
+<div class="flex items-center gap-1 bg-surface-container-low text-secondary px-2 py-0.5 rounded-full ring-1 ring-secondary/20">
+<span class="material-symbols-outlined text-secondary" data-icon="smart_toy" data-weight="fill" style="font-variation-settings: 'FILL' 1; font-size: 14px;">smart_toy</span>
+<span class="font-label-sm text-label-sm font-semibold">Sparky Active</span>
+</div>
+</div>
+</header>
+<!-- MAIN SCENARIO CANVAS -->
+<main class="flex-1 w-full max-w-md mx-auto px-margin-mobile pt-3 flex flex-col gap-3.5">
+<!-- 1. INTERACTIVE VISUAL CONTEXT / STAGE BAR & DYNAMIC TICKET -->
+<section class="bg-surface-container-lowest rounded-xl p-3 shadow-[0px_4px_12px_rgba(0,0,0,0.05)] flex flex-col gap-2.5">
+<!-- Mini Scene Stage Banner -->
+<div class="flex items-center justify-between gap-3">
+<div class="flex items-center gap-2.5">
+<div class="relative w-12 h-12 rounded-xl overflow-hidden shadow-sm flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="A warm, bright contemporary coffee shop interior in Valencia with soft morning sunlight streaming through wide glass windows. A smiling Spanish male barista named Mateo wears a dark linen apron and prepares an espresso machine surrounded by gleaming ceramic cups and artisan pastry displays. The aesthetic is clean, modern humanist with soft blue and ivory tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCCFxSBiFetbp67tvL5tag4X4OXDQ7-TX_hbNbUxZiQLd2bon_qpI8HNshwUG1h0AHG6Hbi4fnr76VCMiCE_CKWTMagFIISj5xkLRyKY3sGR9WicfxNRiL9z63Fm1Khsto2FidzNLrZ6gAC5bBkgTMF0N010IqJDqFl6eX15AV7ZaRXnhvHJ_rnCXME__k8LeEm1PBqyLXgWMqHpF3esqd6XXzKe3ezFKM3FYo9Td6t8Kx1O8Z8qB9T"/>
+<span class="absolute bottom-0 right-0 w-3 h-3 bg-tertiary-container rounded-full ring-2 ring-surface-container-lowest"></span>
+</div>
+<div>
+<div class="flex items-center gap-1.5">
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface">Mateo</span>
+<span class="font-label-sm text-label-sm bg-surface-container px-1.5 py-0.5 rounded text-primary font-semibold">Barista</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-primary" data-icon="location_on" style="font-size: 13px;">location_on</span>
+              Café de la Plaza • Madrid
+            </p>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-tertiary font-semibold bg-surface-container px-2 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined" data-icon="restaurant_menu" style="font-size: 14px;">restaurant_menu</span> Order Slip
+        </span>
+</div>
+<!-- Dynamic Order Summary Ticket -->
+<div class="bg-surface-container-low rounded-lg p-2 flex items-center justify-between gap-1.5 overflow-x-auto text-nowrap">
+<div class="flex items-center gap-1 bg-surface-container-lowest px-2 py-1 rounded-md shadow-sm">
+<span class="material-symbols-outlined text-tertiary" data-icon="check_circle" data-weight="fill" style="font-variation-settings: 'FILL' 1; font-size: 15px;">check_circle</span>
+<span class="font-label-sm text-label-sm text-on-surface font-medium">Café con leche</span>
+</div>
+<div class="flex items-center gap-1 bg-primary-fixed px-2 py-1 rounded-md ring-1 ring-primary/30">
+<span class="material-symbols-outlined text-primary animate-spin" data-icon="progress_activity" style="font-size: 14px;">progress_activity</span>
+<span class="font-label-sm text-label-sm text-on-primary-fixed font-bold">Milk type choice</span>
+</div>
+<div class="flex items-center gap-1 bg-surface-container-low text-outline px-2 py-1 rounded-md border border-outline-variant/40">
+<span class="material-symbols-outlined text-outline" data-icon="radio_button_unchecked" style="font-size: 14px;">radio_button_unchecked</span>
+<span class="font-label-sm text-label-sm font-normal">Breakfast item</span>
+</div>
+</div>
+</section>
+<!-- 2. DIALOGUE THREAD -->
+<section class="flex flex-col gap-3">
+<!-- AI Barista Incoming Speech Bubble -->
+<div class="flex items-start gap-2.5 max-w-[92%]">
+<div class="w-8 h-8 rounded-full bg-primary-fixed text-primary flex items-center justify-center font-headline-sm text-label-md font-bold flex-shrink-0 mt-1">
+          M
+        </div>
+<div class="flex flex-col gap-1">
+<div class="bg-surface-container-lowest rounded-2xl rounded-tl-sm p-3.5 shadow-[0px_4px_12px_rgba(0,0,0,0.05)] border border-surface-container">
+<div class="flex items-start justify-between gap-2">
+<p class="font-body-md text-body-md font-medium text-on-surface leading-snug">
+                ¡Buenas tardes! Con gusto. ¿Qué tipo de leche prefiere? Tenemos de <strong class="text-primary font-bold">avena</strong>, <strong class="text-primary font-bold">soja</strong> y <strong class="text-primary font-bold">sin lactosa</strong>.
+              </p>
+<!-- Audio replay button -->
+<button class="w-7 h-7 rounded-full bg-surface-container-low flex items-center justify-center text-primary hover:bg-primary-fixed active:scale-95 transition-all flex-shrink-0" title="Replay Mateo's audio">
+<span class="material-symbols-outlined" data-icon="volume_up">volume_up</span>
+</button>
+</div>
+<!-- Dual line translation pill -->
+<div class="mt-2.5 pt-2 border-t border-surface-container-high/60 flex items-center justify-between">
+<p class="font-translation-text text-translation-text text-on-surface-variant italic">
+                “Good afternoon! With pleasure. What kind of milk do you prefer? We have oat, soy, and lactose-free.”
+              </p>
+<button class="ml-2 text-primary hover:opacity-80 flex items-center flex-shrink-0 font-label-sm text-label-sm">
+<span class="material-symbols-outlined" data-icon="translate" style="font-size: 15px;">translate</span>
+</button>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-outline px-1.5">Mateo • Just now</span>
+</div>
+</div>
+<!-- Live Speech Input & Pronunciation Feedback Card (Outgoing Interactive User Card) -->
+<div class="flex flex-col items-end gap-1.5 self-end max-w-[94%] w-full">
+<div class="w-full bg-surface-container-lowest rounded-2xl rounded-tr-sm p-3.5 shadow-[0px_4px_12px_rgba(0,0,0,0.05)] border-l-4 border-l-secondary border-t border-r border-b border-surface-container">
+<!-- Audio Waveform Live Visualizer State -->
+<div class="flex items-center justify-between pb-2 mb-2 border-b border-surface-container-low">
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-error animate-pulse"></span>
+<span class="font-label-sm text-label-sm font-semibold text-error uppercase tracking-wider">Recorded Voice Input</span>
+</div>
+<!-- Real-time audio waveform animation bars -->
+<div class="flex items-center gap-1 h-6 px-2 bg-surface-container-low rounded-full">
+<span class="wave-bar w-1 bg-primary rounded-full"></span>
+<span class="wave-bar w-1 bg-primary rounded-full"></span>
+<span class="wave-bar w-1 bg-secondary rounded-full"></span>
+<span class="wave-bar w-1 bg-primary rounded-full"></span>
+<span class="wave-bar w-1 bg-tertiary rounded-full"></span>
+<span class="wave-bar w-1 bg-primary rounded-full"></span>
+<span class="wave-bar w-1 bg-primary rounded-full"></span>
+<span class="wave-bar w-1 bg-secondary rounded-full"></span>
+<span class="wave-bar w-1 bg-primary rounded-full"></span>
+<span class="wave-bar w-1 bg-primary rounded-full"></span>
+</div>
+</div>
+<!-- Spoken Transcript with target highlight -->
+<div class="flex items-start justify-between gap-2">
+<p class="font-body-md text-body-md text-on-surface font-medium leading-normal">
+              “Quisiera con <span class="bg-surface-variant text-primary font-semibold px-1 rounded">leche de avena</span>, por favor.”
+            </p>
+<button class="w-6 h-6 rounded-full bg-surface-container text-primary flex items-center justify-center flex-shrink-0" title="Listen to your recording">
+<span class="material-symbols-outlined" data-icon="play_arrow" style="font-size: 16px;">play_arrow</span>
+</button>
+</div>
+<!-- Real-time Phonetic & Fluency Feedback Badge -->
+<div class="mt-2.5 bg-surface-container-low rounded-xl p-2 flex items-center gap-2">
+<div class="w-7 h-7 rounded-full bg-tertiary-fixed text-tertiary flex items-center justify-center font-label-md font-bold flex-shrink-0">
+              96%
+            </div>
+<div class="flex-1">
+<div class="flex items-center gap-1">
+<span class="font-label-sm text-label-sm font-bold text-tertiary">Native Intonation!</span>
+<span class="material-symbols-outlined text-tertiary" data-icon="verified" data-weight="fill" style="font-variation-settings: 'FILL' 1; font-size: 13px;">verified</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant">
+                Great cadence &amp; soft vowel linking on <strong class="text-on-surface">"avena"</strong>.
+              </p>
+</div>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-outline px-1.5">You • Speech recognized</span>
+</div>
+</section>
+<!-- 3. SCAFFOLDING & CHUNK NUDGES (Sparky's Assistant) -->
+<section class="flex flex-col gap-2">
+<div class="flex items-center justify-between px-0.5">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-secondary" data-icon="psychology" style="font-size: 18px;">psychology</span>
+<span class="font-label-md text-label-md font-bold text-on-surface">Sparky's Chunk Suggestions</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Tap to insert</span>
+</div>
+<!-- Quick-response chunk chips with translation subtext -->
+<div class="grid grid-cols-1 gap-1.5">
+<!-- Selected Active Chunk -->
+<button class="flex items-center justify-between p-2.5 rounded-xl bg-primary-container text-on-primary-container shadow-sm border border-primary text-left transition-transform active:scale-[0.99]">
+<div class="flex flex-col">
+<span class="font-body-md text-body-md font-semibold text-white">Con leche de avena</span>
+<span class="font-label-sm text-label-sm text-primary-fixed-dim">With oat milk</span>
+</div>
+<div class="flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full text-white font-label-sm text-label-sm font-semibold">
+<span class="material-symbols-outlined text-white" data-icon="check" style="font-size: 14px;">check</span>
+            Selected
+          </div>
+</button>
+<!-- Unselected Chunk Option 1 -->
+<button class="flex items-center justify-between p-2.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container-low border border-surface-container-highest text-left transition-all active:scale-[0.99]">
+<div class="flex flex-col">
+<span class="font-body-md text-body-md font-semibold text-on-surface">Leche entera normal</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Regular whole milk</span>
+</div>
+<span class="material-symbols-outlined text-outline" data-icon="add" style="font-size: 18px;">add</span>
+</button>
+<!-- Unselected Chunk Option 2 -->
+<button class="flex items-center justify-between p-2.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container-low border border-surface-container-highest text-left transition-all active:scale-[0.99]">
+<div class="flex flex-col">
+<span class="font-body-md text-body-md font-semibold text-on-surface">¿Tiene algún costo extra?</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Does it have an extra charge?</span>
+</div>
+<span class="material-symbols-outlined text-outline" data-icon="add" style="font-size: 18px;">add</span>
+</button>
+</div>
+</section>
+<!-- 4. REAL-TIME 'AI DEEP DIVE' PILL (Expandable Grammar Insight) -->
+<section class="bg-secondary-fixed/40 border border-secondary-fixed-dim rounded-xl p-3 flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5 text-secondary">
+<span class="material-symbols-outlined" data-icon="auto_awesome" data-weight="fill" style="font-variation-settings: 'FILL' 1; font-size: 16px;">auto_awesome</span>
+<span class="font-label-md text-label-md font-bold">Grammar Insight</span>
+</div>
+<button class="flex items-center gap-0.5 text-secondary font-label-sm text-label-sm font-semibold hover:underline">
+<span>Why "Quisiera" vs "Quiero"</span>
+<span class="material-symbols-outlined" data-icon="expand_more" style="font-size: 16px;">expand_more</span>
+</button>
+</div>
+<p class="font-translation-text text-translation-text text-on-surface-variant">
+        Using subjunctive <em>quisiera</em> (“I would like”) sounds gentler and more natural in cafés than the direct indicative <em>quiero</em> (“I want”).
+      </p>
+</section>
+</main>
+<!-- 5. BOTTOM INTERACTION DOCK (Fixed & Optimized for one-handed speech flow) -->
+<footer class="fixed bottom-0 left-0 w-full z-50 bg-surface-container-lowest/95 backdrop-blur-md shadow-[0px_-8px_20px_rgba(0,0,0,0.06)] px-margin-mobile pt-3 pb-5">
+<div class="max-w-md mx-auto flex flex-col gap-2.5">
+<!-- Input Action Cluster: Voice, Hint, and CTA -->
+<div class="flex items-center justify-between gap-3">
+<!-- Hint Button with XP Deduction Warning -->
+<button class="flex flex-col items-center justify-center bg-surface-container-low hover:bg-surface-variant text-on-surface-variant px-3 py-2 rounded-xl border border-surface-container active:scale-95 transition-all">
+<div class="flex items-center gap-0.5">
+<span class="material-symbols-outlined text-secondary" data-icon="lightbulb">lightbulb</span>
+<span class="font-label-md text-label-md font-bold text-on-surface">Hint</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline">-5 XP</span>
+</button>
+<!-- Big Animated Speech Recording Button with Glowing Ring -->
+<div class="relative flex items-center justify-center">
+<!-- Outer Pulsing Halo -->
+<div class="absolute -inset-2 bg-primary/20 rounded-full animate-ping opacity-75"></div>
+<div class="absolute -inset-1 bg-primary/30 rounded-full"></div>
+<button class="relative w-16 h-16 rounded-full bg-primary-container text-on-primary flex items-center justify-center shadow-lg hover:opacity-90 active:scale-90 transition-all duration-200">
+<span class="material-symbols-outlined text-white" data-icon="mic" data-weight="fill" style="font-variation-settings: 'FILL' 1; font-size: 30px;">mic</span>
+</button>
+</div>
+<!-- Confirm / Send Order Button -->
+<button class="flex-1 bg-primary-container hover:bg-primary text-white font-label-md text-label-md font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all">
+<span>Send Order</span>
+<span class="material-symbols-outlined" data-icon="send">send</span>
+</button>
+</div>
+<!-- Secondary Voice Prompt Indicator & Manual Switch -->
+<div class="flex items-center justify-center gap-2 pt-0.5 text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined" data-icon="touch_app" style="font-size: 14px;">touch_app</span>
+<span>Hold mic to re-speak or</span>
+<button class="text-primary font-bold hover:underline flex items-center gap-0.5">
+<span class="material-symbols-outlined" data-icon="keyboard" style="font-size: 14px;">keyboard</span>
+          type text
+        </button>
+</div>
+</div>
+</footer>
+</body></html>

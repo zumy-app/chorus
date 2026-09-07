@@ -190,144 +190,124 @@ test.describe('QA marketplace + learn hub — route parity', () => {
   })
 })
 
-// ── Browser — mocked E2E flows (no real backend required) ────────────────────
+// ── Browser — real E2E flows exercising the React app (no setContent) ──────
+// These tests render the REAL frontend via page.goto() and intercept ONLY the
+// network layer. Mocks are used to CONTROL the backend response (deterministic
+// scenarios/drills), not to fake the UI. If the component, route, or wiring
+// breaks, these tests FAIL hard — no console.warn soft-pass.
 
-test.describe('QA mocked browser flows — Spanish scenarios + drills', () => {
-  test('Spanish scenarios list, opening line + translation, chunk, hint, send AI reply', async ({ page }) => {
-    // Mock auth so App does not redirect to /login
+test.describe('QA real browser flows — Spanish scenarios + drills (real UI)', () => {
+  test('Spanish scenarios list renders real Spanish data', async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem('accessToken', 'qa-token')
       localStorage.setItem('refreshToken', 'qa-refresh')
     })
-
-    // Intercept API
-    await page.route('**/api/v1/learning/scenarios*', async (route) => {
+    await page.route('**/api/v1/learning/scenarios*', async route => {
       const url = route.request().url()
-      if (url.includes('/scenarios/es-cafe/start') || url.includes('/start')) {
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { run: { id: 'run1', currentPhaseOrdinal: 1, scaffoldLevel: 'guided', currentPhase: { ordinal: 1, title: 'Greeting', learnerGoal: 'Greet' } }, aiResponse: { aiMessage: 'Hola. ¿Qué te gustaría pedir hoy?', translation: 'Hello. What would you like to order today?', suggestedChunks: [{ text: 'Hola, buenos días.', translation: 'Hello, good morning.' }, { text: 'Quisiera un café', translation: 'I would like a coffee' }] } } }) })
-      } else if (url.includes('/scenario-runs/run1/message')) {
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { aiMessage: '¡Hola! Bienvenido. ¿Qué te gustaría pedir hoy?', translation: 'Hello! Welcome.', suggestedChunks: [{ text: '¿Cuánto cuesta?', translation: 'How much?' }], phaseComplete: true, runCompleted: false } }) })
-      } else if (url.includes('/scenario-runs/run1/hint')) {
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: [{ text: '¿Cuánto cuesta?', translation: 'How much does it cost?' }] }) })
-      } else if (route.request().method() === 'GET') {
+      if (route.request().method() === 'GET' && !url.includes('/start') && !url.includes('/hint') && !url.includes('/message')) {
         await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: spanishScenarios }) })
-      } else {
-        await route.continue()
+        return
       }
+      await route.continue()
     })
-
-    // Use page.setContent with a minimal mock UI that proves the contract
-    await page.setContent(`
-      <div>
-        <h1>Real-World Scenarios</h1>
-        <button data-testid="scenario-es-cafe">Pedir café en una cafetería</button>
-        <div data-testid="opening">Hola. ¿Qué te gustaría pedir hoy?</div>
-        <div data-testid="translation">Hello. What would you like to order today?</div>
-        <button data-testid="chunk">Quisiera un café</button>
-        <button data-testid="hint">💡</button>
-        <div data-testid="hint-result">¿Cuánto cuesta?</div>
-        <input placeholder="Escribe en español..." value="Quisiera un café por favor" />
-        <div data-testid="ai-reply">¡Hola! Bienvenido. ¿Qué te gustaría pedir hoy?</div>
-        <div data-testid="ai-translation">Hello! Welcome.</div>
-      </div>
-    `)
-
-    await expect(page.getByText('Pedir café en una cafetería')).toBeVisible()
-    await expect(page.getByTestId('opening')).toContainText('Hola. ¿Qué te gustaría pedir hoy?')
-    await expect(page.getByTestId('translation')).toContainText('Hello. What would you like to order')
-    await expect(page.getByTestId('chunk')).toContainText('Quisiera un café')
-    await expect(page.getByTestId('hint-result')).toContainText('¿Cuánto cuesta?')
-    await expect(page.getByPlaceholder('Escribe en español...')).toHaveValue(/Quisiera/)
-    await expect(page.getByTestId('ai-reply')).toContainText('Bienvenido')
-    await expect(page.getByTestId('ai-translation')).toContainText('Hello')
-  })
-
-  test('daily drills — vocab due, SRS session start/answer, streak recovery', async ({ page }) => {
-    await page.route('**/api/v1/learning/dashboard*', async (route) => {
+    await page.route('**/api/v1/learning/dashboard*', async route => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(dashboardMock) })
     })
-    await page.route('**/api/v1/learning/sessions/start', async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { session: { id: 'sess1', plannedItemCount: 2 }, items: [{ id: 'i1', prompt: { text: 'Yo ____ cansado.', choices: ['estoy', 'soy'] } }, { id: 'i2', prompt: { text: 'Translate: good morning' } }] } }) })
+    await page.route('**/api/v1/users/me', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'u1', nativeLanguage: 'en', targetLanguages: ['es'] }) })
     })
-    await page.route('**/api/v1/learning/sessions/**/items/**/answer', async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { correct: true, feedback: { message: '¡Excelente!' } } }) })
-    })
-    await page.route('**/api/v1/learning/streak/recover', async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { recovered: true } }) })
-    })
-    await page.route('**/api/v1/learning/vocabulary/mined*', async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: [{ id: 'm1', surfaceText: 'desayuno', translation: 'breakfast' }] }) })
-    })
-
-    await page.setContent(`
-      <div>
-        <h1>Your Learning Path</h1>
-        <div data-testid="daily-goal">6 / 10</div>
-        <div data-testid="streak">7 Days</div>
-        <div data-testid="vocab-due">Due: 5 words</div>
-        <div data-testid="vocab-total">30 words</div>
-        <div data-testid="srs-queue">SRS: interleaved</div>
-        <button data-testid="start-session">Start</button>
-        <div data-testid="cloze">Yo ____ cansado.</div>
-        <button>estoy</button>
-        <div>¡Excelente!</div>
-        <div data-testid="mined">desayuno</div>
-        <button>Save</button>
-        <button data-testid="streak-recover">Recover</button>
-        <div>Streak recovered!</div>
-      </div>
-    `)
-
-    await expect(page.getByText('Your Learning Path')).toBeVisible()
-    await expect(page.getByTestId('daily-goal')).toContainText('6 / 10')
-    await expect(page.getByTestId('streak')).toContainText('7')
-    await expect(page.getByTestId('vocab-due')).toContainText('5')
-    await expect(page.getByTestId('vocab-total')).toContainText('30')
-    await expect(page.getByTestId('srs-queue')).toContainText('SRS')
-    await expect(page.getByTestId('cloze')).toContainText('Yo ____ cansado.')
-    await expect(page.getByText('¡Excelente!')).toBeVisible()
-    await expect(page.getByTestId('mined')).toContainText('desayuno')
-    await expect(page.getByTestId('streak-recover')).toBeVisible()
+    await page.goto('/learn/scenarios')
+    await expect(page.getByText('Pedir café en una cafetería')).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText('Comprar en el mercado')).toBeVisible()
+    // CEFR badges and can-do must render from real component, not setContent
+    await expect(page.getByText('A1').first()).toBeVisible()
+    await expect(page.getByText('A2').first()).toBeVisible()
+    await expect(page.getByText('Pedir una bebida')).toBeVisible()
   })
 
-  test('marketplace + learn hub navigation reachable', async ({ page }) => {
-    await page.route('**/api/v1/teachers/browse*', async (route) => {
+  test('Scenario roleplay shows opening line + translation + chunk + hint + send', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('accessToken', 'qa-token')
+      localStorage.setItem('refreshToken', 'qa-refresh')
+    })
+    await page.route('**/api/v1/**', async route => {
+      const url = route.request().url(); const m = route.request().method()
+      if (url.includes('/users/me')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'u1', nativeLanguage: 'en', targetLanguages: ['es'] }) })
+      if (url.includes('/learning/dashboard')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(dashboardMock) })
+      if (m === 'POST' && url.includes('es-cafe')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { run: { id: 'run1', currentPhaseOrdinal: 1, scaffoldLevel: 'guided', currentPhase: { ordinal: 1, title: 'Greeting', learnerGoal: 'Greet the barista' } }, aiResponse: { aiMessage: 'Hola. ¿Qué te gustaría pedir hoy?', translation: 'Hello. What would you like to order today?', suggestedChunks: [{ text: 'Hola, buenos días.', translation: 'Hello, good morning.' }, { text: 'Quisiera un café', translation: 'I would like a coffee' }] } } }) })
+      if (m === 'GET' && url.includes('es-cafe')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { id: 'es-cafe', title: 'Pedir café en una cafetería', cefrLevel: 'A1', canDoStatement: 'Pedir una bebida', aiRoleName: 'Barista', estimatedMinutes: 5, phases: [{ ordinal: 1, title: 'Greeting', learnerGoal: 'Greet the barista', requiredIntents: ['greet'], chunkBank: [] }] } }) })
+      if (m === 'GET' && url.includes('/learning/scenarios')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: spanishScenarios }) })
+      if (url.includes('/scenario-runs') && url.includes('/message') && m === 'POST') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { aiMessage: '¡Hola! Bienvenido. ¿Qué te gustaría pedir hoy?', translation: 'Hello! Welcome.', suggestedChunks: [{ text: '¿Cuánto cuesta?', translation: 'How much?' }], phaseComplete: true, runCompleted: false } }) })
+      if (url.includes('/hint') && m === 'POST') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: [{ text: '¿Cuánto cuesta?', translation: 'How much does it cost?' }] }) })
+      return route.continue()
+    })
+
+    await page.goto('/learn/scenarios/es-cafe')
+    // Real component must render opening line + translation from API
+    await expect(page.getByText('Hola. ¿Qué te gustaría pedir hoy?')).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText('Hello. What would you like to order today?')).toBeVisible()
+    // Suggested chunk appears via Show suggestions
+    await page.getByText('Show suggestions').click()
+    await expect(page.getByText('Quisiera un café')).toBeVisible()
+    // Hint lightbulb fetches and shows chunk
+    await page.getByLabel('Hint').click()
+    await expect(page.getByText('¿Cuánto cuesta?').first()).toBeVisible({ timeout: 10_000 })
+    // Send message and verify optimistic user bubble + AI reply with translation
+    const composer = page.getByPlaceholder('Escribe en español...')
+    await expect(composer).toBeVisible()
+    await composer.fill('Quisiera un café por favor')
+    await page.getByLabel('Send').click()
+    await expect(page.getByText('Quisiera un café por favor')).toBeVisible()
+    await expect(page.getByText('¡Hola! Bienvenido. ¿Qué te gustaría pedir hoy?')).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText('Hello! Welcome.')).toBeVisible()
+  })
+
+  test('Daily drills session renders cloze, accepts answer, shows feedback', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('accessToken', 'qa-token')
+      localStorage.setItem('refreshToken', 'qa-refresh')
+    })
+    await page.route('**/api/v1/learning/dashboard*', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(dashboardMock) })
+    })
+    await page.route('**/api/v1/learning/sessions/start', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { session: { id: 'sess1', plannedItemCount: 2, mode: 'daily', status: 'in_progress' }, items: [{ id: 'i1', itemType: 'vocabulary', activityType: 'cued_recall', promptType: 'cued_recall', prompt: { text: 'Yo ____ cansado.', choices: ['estoy', 'soy'] } }, { id: 'i2', itemType: 'vocabulary', activityType: 'free_recall', promptType: 'free_recall', prompt: { text: 'Translate: good morning', source: 'good morning' } }] } }) })
+    })
+    await page.route('**/api/v1/learning/sessions/sess1/items/i1/answer', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { correct: true, quality: 4, feedback: { message: '¡Excelente!', correctAnswer: 'estoy' }, nextItem: { id: 'i2', prompt: { text: 'Translate: good morning' } } } }) })
+    })
+    await page.route('**/api/v1/users/me', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'u1', nativeLanguage: 'en', targetLanguages: ['es'] }) })
+    })
+    await page.goto('/learn/session?mode=daily')
+    // Real LessonSession component must render cloze prompt
+    await expect(page.getByText('Yo ____ cansado.')).toBeVisible({ timeout: 15_000 })
+    await page.getByText('estoy').click()
+    // Feedback must come from API and be rendered (hard-fail if missing)
+    await expect(page.getByText('¡Excelente!')).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByRole('button', { name: 'Continue' })).toBeVisible()
+  })
+
+  test('Marketplace + learn hub navigation uses real routes and renders real tutors', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('accessToken', 'qa-token')
+      localStorage.setItem('refreshToken', 'qa-refresh')
+    })
+    await page.route('**/api/v1/teachers/browse*', async route => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ tutors: [{ userId: 't1', displayName: 'María García', languages: ['es'], ratingAvg: 4.9, rateCents: 2000, verified: true }], total: 1, hasMore: false }) })
     })
-    await page.route('**/api/v1/teachers/trial-credits*', async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ dashboard: { credits: 1, nextGrantAt: new Date().toISOString() } }) })
+    await page.route('**/api/v1/users/me', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'u1', nativeLanguage: 'en', targetLanguages: ['es'] }) })
     })
-
-    await page.setContent(`
-      <div>
-        <nav>
-          <a href="/learn">Learn</a>
-          <a href="/learn/scenarios">Scenarios</a>
-          <a href="/learn/vocabulary">Vocabulary</a>
-          <a href="/learn/roadmap">Roadmap</a>
-          <a href="/learn/real-talk">Real Talk</a>
-          <a href="/learn/session">Session</a>
-          <a href="/tutors">Tutors</a>
-          <a href="/tutors/t1">Tutor Profile</a>
-          <a href="/tutors/t1/confirm">Confirm Booking</a>
-          <a href="/trial-credits">Trial Credits</a>
-          <a href="/teacher/dashboard">Teacher Dashboard</a>
-          <a href="/teacher/payouts">Payouts</a>
-        </nav>
-        <div data-testid="browse">María García</div>
-        <div data-testid="tutor-profile">María García — Native Spanish tutor</div>
-        <button>Book Trial</button>
-        <div>Trial Credits: 1</div>
-        <div>Earnings Overview</div>
-      </div>
-    `)
-
-    for (const href of ['/learn', '/learn/scenarios', '/learn/vocabulary', '/learn/roadmap', '/learn/real-talk', '/learn/session', '/tutors', '/tutors/t1', '/trial-credits', '/teacher/dashboard', '/teacher/payouts']) {
-      await expect(page.locator(`a[href="${href}"]`)).toBeVisible()
-    }
-    await expect(page.getByTestId('browse')).toContainText('María García')
-    await expect(page.getByText('Book Trial')).toBeVisible()
-    await expect(page.getByText('Trial Credits: 1')).toBeVisible()
-    await expect(page.getByText('Earnings Overview')).toBeVisible()
+    await page.route('**/api/v1/learning/dashboard*', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(dashboardMock) })
+    })
+    // Verify browse page renders real tutor card from API, not setContent
+    await page.goto('/tutors')
+    await expect(page.getByText('María García')).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText(/4\.9/)).toBeVisible()
+    // Learn hub must be reachable and show Find a Tutor bridge
+    await page.goto('/learn')
+    await expect(page.getByText(/Your Learning Path|Fluency|Your Roadmap/i).first()).toBeVisible({ timeout: 10_000 })
   })
 })

@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus - Study Pods Hub</title>
+<!-- Fonts -->
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788757997723&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YWMzZTVjZGM2ZDAwNTc2MDJlNzQ2MDYyZWUzEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "outline": "#737686",
+            "surface-tint": "#0053db",
+            "tertiary-container": "#007d55",
+            "secondary-fixed": "#e9ddff",
+            "primary-fixed": "#dbe1ff",
+            "surface-variant": "#d3e4fe",
+            "surface-container-highest": "#d3e4fe",
+            "on-tertiary": "#ffffff",
+            "on-primary-fixed": "#00174b",
+            "on-surface-variant": "#434655",
+            "secondary-fixed-dim": "#d0bcff",
+            "on-surface": "#0b1c30",
+            "on-background": "#0b1c30",
+            "inverse-primary": "#b4c5ff",
+            "surface-container": "#e5eeff",
+            "on-primary": "#ffffff",
+            "tertiary-fixed-dim": "#4edea3",
+            "on-tertiary-fixed-variant": "#005236",
+            "error": "#ba1a1a",
+            "on-tertiary-fixed": "#002113",
+            "on-tertiary-container": "#bdffdb",
+            "surface-container-high": "#dce9ff",
+            "on-secondary-container": "#fffbff",
+            "primary-fixed-dim": "#b4c5ff",
+            "secondary-container": "#8455ef",
+            "on-secondary-fixed": "#23005c",
+            "background": "#f8f9ff",
+            "surface-container-low": "#eff4ff",
+            "inverse-surface": "#213145",
+            "tertiary-fixed": "#6ffbbe",
+            "primary": "#004ac6",
+            "on-secondary": "#ffffff",
+            "on-secondary-fixed-variant": "#5516be",
+            "primary-container": "#2563eb",
+            "surface-dim": "#cbdbf5",
+            "surface-bright": "#f8f9ff",
+            "on-error": "#ffffff",
+            "inverse-on-surface": "#eaf1ff",
+            "on-primary-fixed-variant": "#003ea8",
+            "tertiary": "#006242",
+            "on-primary-container": "#eeefff",
+            "secondary": "#6b38d4",
+            "surface-container-lowest": "#ffffff",
+            "outline-variant": "#c3c6d7",
+            "on-error-container": "#93000a",
+            "error-container": "#ffdad6",
+            "surface": "#f8f9ff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "stack-sm": "8px",
+            "margin-mobile": "16px",
+            "gutter-mobile": "12px",
+            "unit": "4px",
+            "stack-lg": "24px",
+            "stack-md": "16px"
+          },
+          "fontFamily": {
+            "body-sm": ["Be Vietnam Pro"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "label-sm": ["Inter"],
+            "headline-sm": ["Plus Jakarta Sans"],
+            "headline-lg": ["Plus Jakarta Sans"],
+            "body-lg": ["Be Vietnam Pro"],
+            "label-md": ["Inter"],
+            "body-md": ["Be Vietnam Pro"],
+            "translation-text": ["Be Vietnam Pro"]
+          },
+          "fontSize": {
+            "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      line-height: 1;
+      display: inline-block;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      display: none;
+    }
+    .custom-scroll {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .ai-smart-glow {
+      box-shadow: 0 0 16px -2px rgba(132, 85, 239, 0.18);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body-md antialiased selection:bg-primary-fixed selection:text-on-primary-fixed min-h-screen flex justify-center">
+<!-- Main Mobile App Frame -->
+<div class="w-full max-w-md bg-background min-h-screen flex flex-col pb-28 relative shadow-xl overflow-x-hidden">
+<!-- Top Navigation Anchor (Shared Component: TopAppBar with Pod Context) -->
+<header class="sticky top-0 z-40 flex justify-between items-center w-full px-margin-mobile py-stack-sm bg-surface/95 backdrop-blur-md shadow-sm">
+<div class="flex items-center gap-2">
+<div class="relative flex items-center justify-center">
+<div class="w-9 h-9 rounded-full bg-primary-fixed flex items-center justify-center text-primary font-bold overflow-hidden ring-2 ring-surface-container-lowest">
+<span class="font-headline-sm text-headline-sm text-primary">C</span>
+</div>
+<span class="absolute -bottom-1 -right-1 bg-tertiary-container text-on-tertiary font-label-sm text-label-sm px-1 rounded-full text-[10px] leading-tight font-bold">A1</span>
+</div>
+<div>
+<span class="font-headline-md text-headline-md font-bold text-primary tracking-tight">Chorus</span>
+<div class="flex items-center gap-1">
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-tertiary-fixed-dim"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">Study Pods</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-1.5">
+<button aria-label="Search Pods" class="w-9 h-9 flex items-center justify-center rounded-xl bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high transition-colors active:scale-95">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</button>
+<button aria-label="Filter CEFR Goals" class="w-9 h-9 flex items-center justify-center rounded-xl bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high transition-colors active:scale-95">
+<span class="material-symbols-outlined text-[20px]">tune</span>
+</button>
+<div class="flex items-center gap-1 bg-surface-container-low px-2.5 py-1.5 rounded-xl border border-outline-variant/30">
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<span class="font-label-md text-label-md font-bold text-primary">7d</span>
+</div>
+</div>
+</header>
+<!-- Sub-header Tab Bar: Pod Switcher & Anti-Dating Badge -->
+<div class="px-margin-mobile pt-stack-sm pb-stack-sm flex items-center justify-between">
+<div class="flex items-center gap-2">
+<button class="bg-primary text-on-primary px-3.5 py-1.5 rounded-full font-label-md text-label-md font-semibold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[16px]">group</span>
+<span>My Pods (1)</span>
+</button>
+<button class="bg-surface-container-lowest text-on-surface-variant border border-outline-variant/40 px-3.5 py-1.5 rounded-full font-label-md text-label-md font-medium hover:bg-surface-container transition-colors active:scale-95">
+<span>Explore Pods</span>
+</button>
+</div>
+<!-- Safe Learning Flag -->
+<div class="flex items-center gap-1 bg-surface-container px-2 py-1 rounded-lg">
+<span class="material-symbols-outlined text-tertiary text-[14px]" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+<span class="font-label-sm text-label-sm text-tertiary font-bold tracking-tight">AI Moderated</span>
+</div>
+</div>
+<!-- Active Cohort Section (Pedagogical Hub Canvas) -->
+<main class="px-margin-mobile space-y-stack-md mt-1">
+<!-- Active Pod Banner & Live Cohort Status -->
+<section class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm border border-outline-variant/30 relative overflow-hidden">
+<div class="absolute -right-8 -top-8 w-32 h-32 bg-primary-fixed/30 rounded-full blur-2xl pointer-events-none"></div>
+<div class="flex items-start justify-between mb-3 relative z-10">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm px-2 py-0.5 rounded-md font-bold uppercase tracking-wider">Active Cohort</span>
+<div class="flex items-center gap-1 bg-tertiary-fixed/30 text-on-tertiary-fixed-variant px-2 py-0.5 rounded-md">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
+<span class="font-label-sm text-label-sm font-semibold">3/5 practicing now</span>
+</div>
+</div>
+<h1 class="font-headline-sm text-headline-sm text-on-surface font-bold">A1 Spanish Coffee Break</h1>
+</div>
+<div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[24px]">coffee</span>
+</div>
+</div>
+<!-- Current Can-Do Objective -->
+<div class="bg-surface-container-low rounded-xl p-3 border border-outline-variant/30 mb-3.5">
+<div class="flex items-center gap-1.5 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-[16px] text-primary">flag</span>
+<span class="font-label-sm text-label-sm font-semibold uppercase tracking-wider">CEFR Can-Do Milestone</span>
+</div>
+<p class="font-body-md text-body-md font-semibold text-on-surface">Order Food &amp; Drink in Madrid with polite subjunctive requests</p>
+</div>
+<!-- Daily Group Mission Card -->
+<div class="bg-primary/5 rounded-xl p-3.5 border border-primary/15">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: 'FILL' 1;">task_alt</span>
+<span class="font-label-md text-label-md font-bold text-primary">Daily Group Mission</span>
+</div>
+<span class="font-label-sm text-label-sm font-bold text-primary bg-primary-fixed px-2 py-0.5 rounded-full">2/3 Complete</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface mb-2.5">
+            "Translate &amp; Order 3 breakfast items before midnight"
+          </p>
+<!-- Progress Bar -->
+<div class="w-full bg-surface-container rounded-full h-2 overflow-hidden mb-2">
+<div class="bg-tertiary h-2 rounded-full transition-all duration-500" style="width: 66%;"></div>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+              Ends in 4h 18m
+            </span>
+<span class="text-tertiary font-bold">+50 Shared Pod XP</span>
+</div>
+</div>
+<!-- Cohort Avatars (Focus on Study Roles, Anti-Dating Strict Anonymous/Pedagogical Badges) -->
+<div class="mt-3.5 pt-3 border-t border-outline-variant/20 flex items-center justify-between">
+<div class="flex items-center -space-x-2">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary font-bold text-xs flex items-center justify-center ring-2 ring-surface-container-lowest" title="Elena (Grammar Lead)">
+              E
+            </div>
+<div class="w-8 h-8 rounded-full bg-secondary text-on-secondary font-bold text-xs flex items-center justify-center ring-2 ring-surface-container-lowest" title="Alex (Vocab Scout)">
+              A
+            </div>
+<div class="w-8 h-8 rounded-full bg-tertiary-container text-on-tertiary font-bold text-xs flex items-center justify-center ring-2 ring-surface-container-lowest" title="Mateo (Phonetics Coach)">
+              M
+            </div>
+<div class="w-8 h-8 rounded-full bg-surface-container-highest text-on-surface-variant font-medium text-xs flex items-center justify-center ring-2 ring-surface-container-lowest" title="Member Offline">
+              S
+            </div>
+<div class="w-8 h-8 rounded-full bg-surface-container border border-dashed border-outline text-outline text-xs flex items-center justify-center ring-2 ring-surface-container-lowest">
+<span class="material-symbols-outlined text-[14px]">person_add</span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">1 open seat remaining</span>
+</div>
+</section>
+<!-- In-Pod Collaborative Sandbox: Live Micro-Feed -->
+<section class="space-y-stack-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[20px]">forum</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Collaborative Sandbox</h2>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Live Pedagogical Thread</span>
+</div>
+<!-- Prompt Card -->
+<div class="bg-surface-container-low rounded-xl p-3 border border-outline-variant/25">
+<div class="flex items-center gap-2 mb-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-secondary">psychology</span>
+<span class="font-label-sm text-label-sm font-semibold uppercase tracking-wider">Step 3 Prompt: Order your hot beverage</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface">Post your audio or text order using conditional or polite query phrases.</p>
+</div>
+<!-- Thread Entry 1: Elena Audio Snippet -->
+<div class="bg-surface-container-lowest p-3.5 rounded-2xl border border-outline-variant/30 shadow-sm space-y-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 rounded-full bg-primary text-on-primary font-bold text-xs flex items-center justify-center">E</div>
+<span class="font-label-md text-label-md font-bold text-on-surface">Elena</span>
+<span class="bg-surface-container text-primary font-label-sm text-label-sm px-1.5 py-0.2 rounded font-semibold">Pod Mentor</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">12m ago</span>
+</div>
+<div class="bg-surface-container-low p-2.5 rounded-xl flex items-center justify-between">
+<div class="flex items-center gap-3">
+<button class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center active:scale-95">
+<span class="material-symbols-outlined text-[18px]">play_arrow</span>
+</button>
+<div>
+<p class="font-body-sm text-body-sm font-medium text-on-surface">"Para mí, un cortado templado..."</p>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Audio snippet • 0:04</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-tertiary text-[20px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</div>
+<!-- Thread Entry 2: Alex's Submission & Sparky AI Peer Review (Matches Design Guidance) -->
+<div class="bg-surface-container-lowest p-3.5 rounded-2xl border border-outline-variant/30 shadow-sm space-y-2.5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 rounded-full bg-secondary text-on-secondary font-bold text-xs flex items-center justify-center">A</div>
+<span class="font-label-md text-label-md font-bold text-on-surface">Alex</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Target: Breakfast Order</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">2m ago</span>
+</div>
+<!-- Outgoing Style Bubble in Community Stream -->
+<div class="bg-surface-container-low rounded-xl p-3 border-l-4 border-secondary">
+<p class="font-body-md text-body-md text-on-surface font-medium">"Quisiera un café con leche de avena y tostada con tomate, por favor."</p>
+<p class="font-translation-text text-translation-text text-on-surface-variant mt-1 italic">I would like an oat milk latte and toast with tomato, please.</p>
+</div>
+<!-- Sparky AI Feedback Glow Box -->
+<div class="ai-smart-glow bg-secondary-fixed/30 border border-secondary/30 rounded-xl p-3 relative">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-1.5">
+<div class="w-5 h-5 rounded-md bg-secondary text-on-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+</div>
+<span class="font-label-sm text-label-sm font-bold text-secondary">Sparky AI Learning Guard</span>
+</div>
+<span class="bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm px-2 py-0.5 rounded-full font-bold">+15 XP to Pod</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface mt-2 font-medium">
+<span class="text-tertiary font-bold">✓ Perfect grammar!</span> The conditional form <span class="bg-surface-container-lowest px-1.5 py-0.5 rounded text-primary font-semibold">quisiera</span> is especially natural and courteous in cafes.
+            </p>
+<div class="mt-2 pt-2 border-t border-secondary/20 flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Shared Pod Milestone updated (2/3 items)</span>
+<button class="font-label-sm text-label-sm text-secondary font-bold flex items-center gap-0.5 hover:underline">
+                Hear Native Audio
+                <span class="material-symbols-outlined text-[14px]">volume_up</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Quick Interaction Bar for Active Pod -->
+<div class="bg-surface-container-lowest rounded-2xl p-2.5 border border-outline-variant/30 flex items-center gap-2 shadow-sm">
+<button aria-label="Microphone record" class="w-9 h-9 rounded-xl bg-surface-container flex items-center justify-center text-on-surface-variant active:scale-95">
+<span class="material-symbols-outlined text-[20px]">mic</span>
+</button>
+<input class="flex-1 bg-surface-container-low border-0 rounded-xl px-3 py-2 text-on-surface font-body-sm text-body-sm focus:ring-2 focus:ring-primary placeholder:text-outline" placeholder="Practice your order in Spanish..." type="text"/>
+<button class="bg-primary text-on-primary px-3.5 py-2 rounded-xl font-label-md text-label-md font-bold flex items-center gap-1 active:scale-95 transition-all">
+<span>Post</span>
+<span class="material-symbols-outlined text-[16px]">send</span>
+</button>
+</div>
+</section>
+<!-- Browse Discoverable Pods Section (CEFR + Goals strictly, Anti-dating) -->
+<section class="space-y-stack-sm pt-2">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Discover Study Pods</h2>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Cohorts capped at 5 learners for intensive practice</p>
+</div>
+<span class="bg-surface-container text-on-surface-variant font-label-sm text-label-sm px-2.5 py-1 rounded-full font-semibold">CEFR Aligned</span>
+</div>
+<!-- Filter Pill Chips -->
+<div class="flex items-center gap-2 overflow-x-auto custom-scroll py-1">
+<button class="bg-primary text-on-primary font-label-sm text-label-sm font-semibold px-3 py-1 rounded-full shrink-0">All Goals</button>
+<button class="bg-surface-container-lowest border border-outline-variant/30 text-on-surface-variant font-label-sm text-label-sm font-medium px-3 py-1 rounded-full shrink-0 hover:bg-surface-container">A1-A2 Survival</button>
+<button class="bg-surface-container-lowest border border-outline-variant/30 text-on-surface-variant font-label-sm text-label-sm font-medium px-3 py-1 rounded-full shrink-0 hover:bg-surface-container">B1 Professional</button>
+<button class="bg-surface-container-lowest border border-outline-variant/30 text-on-surface-variant font-label-sm text-label-sm font-medium px-3 py-1 rounded-full shrink-0 hover:bg-surface-container">Culture &amp; Food</button>
+</div>
+<!-- Pod Card 1: Madrid Travelers (A1-A2) -->
+<div class="bg-surface-container-lowest rounded-2xl p-4 border border-outline-variant/30 shadow-sm hover:border-primary/40 transition-colors space-y-3">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-10 h-10 rounded-xl bg-primary-fixed/50 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[22px]">flight_takeoff</span>
+</div>
+<div>
+<div class="flex items-center gap-1.5">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Madrid Travelers</h3>
+<span class="bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm font-bold px-1.5 py-0.2 rounded">A1-A2</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Focus: Travel Logistics &amp; Real-time Navigation</p>
+</div>
+</div>
+<span class="bg-error-container/40 text-error font-label-sm text-label-sm px-2 py-0.5 rounded-full font-bold">1 spot left</span>
+</div>
+<div class="bg-surface-container-low rounded-xl p-2.5 space-y-1 text-on-surface">
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-sm text-label-sm font-semibold uppercase">
+<span class="material-symbols-outlined text-[14px]">track_changes</span>
+              Target Curriculum
+            </div>
+<p class="font-body-sm text-body-sm">Metro navigation, airport transfers &amp; hotel check-ins in central Madrid.</p>
+</div>
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center gap-2">
+<div class="flex items-center -space-x-1.5">
+<div class="w-6 h-6 rounded-full bg-surface-container-high text-[10px] font-bold flex items-center justify-center ring-2 ring-surface-container-lowest">L</div>
+<div class="w-6 h-6 rounded-full bg-surface-container text-[10px] font-bold flex items-center justify-center ring-2 ring-surface-container-lowest">R</div>
+<div class="w-6 h-6 rounded-full bg-secondary-fixed text-[10px] font-bold flex items-center justify-center ring-2 ring-surface-container-lowest">D</div>
+<div class="w-6 h-6 rounded-full bg-primary-fixed text-[10px] font-bold flex items-center justify-center ring-2 ring-surface-container-lowest">K</div>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">4/5 Members</span>
+</div>
+<button class="bg-primary text-on-primary px-4 py-1.5 rounded-xl font-label-md text-label-md font-semibold hover:bg-primary-container active:scale-95 transition-all shadow-sm">
+              Join Pod
+            </button>
+</div>
+</div>
+<!-- Pod Card 2: Tech & Startup Spanish (B1) -->
+<div class="bg-surface-container-lowest rounded-2xl p-4 border border-outline-variant/30 shadow-sm hover:border-primary/40 transition-colors space-y-3">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-10 h-10 rounded-xl bg-secondary-fixed/50 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[22px]">terminal</span>
+</div>
+<div>
+<div class="flex items-center gap-1.5">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Tech &amp; Startup Spanish</h3>
+<span class="bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm font-bold px-1.5 py-0.2 rounded">B1</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Focus: Professional &amp; Tech Terminology</p>
+</div>
+</div>
+<span class="bg-surface-container text-on-surface-variant font-label-sm text-label-sm px-2 py-0.5 rounded-full font-medium">3/5 Seats</span>
+</div>
+<div class="bg-surface-container-low rounded-xl p-2.5 space-y-1 text-on-surface">
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-sm text-label-sm font-semibold uppercase">
+<span class="material-symbols-outlined text-[14px]">track_changes</span>
+              Target Curriculum
+            </div>
+<p class="font-body-sm text-body-sm">Pitching ideas, sprint retrospectives &amp; software terminology across LATAM.</p>
+</div>
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center gap-2">
+<div class="flex items-center -space-x-1.5">
+<div class="w-6 h-6 rounded-full bg-tertiary-fixed text-[10px] font-bold flex items-center justify-center ring-2 ring-surface-container-lowest">N</div>
+<div class="w-6 h-6 rounded-full bg-primary-fixed text-[10px] font-bold flex items-center justify-center ring-2 ring-surface-container-lowest">P</div>
+<div class="w-6 h-6 rounded-full bg-surface-container text-[10px] font-bold flex items-center justify-center ring-2 ring-surface-container-lowest">J</div>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">3/5 Members</span>
+</div>
+<button class="bg-primary text-on-primary px-4 py-1.5 rounded-xl font-label-md text-label-md font-semibold hover:bg-primary-container active:scale-95 transition-all shadow-sm">
+              Join Pod
+            </button>
+</div>
+</div>
+<!-- Pod Card 3: Gastronomy & Tapas Crawl (A2) -->
+<div class="bg-surface-container-lowest rounded-2xl p-4 border border-outline-variant/30 shadow-sm hover:border-primary/40 transition-colors space-y-3">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-10 h-10 rounded-xl bg-tertiary-fixed/50 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[22px]">restaurant</span>
+</div>
+<div>
+<div class="flex items-center gap-1.5">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Gastronomy &amp; Tapas Crawl</h3>
+<span class="bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm font-bold px-1.5 py-0.2 rounded">A2</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Focus: Ordering, Ingredients &amp; Dialects</p>
+</div>
+</div>
+<span class="bg-surface-container text-on-surface-variant font-label-sm text-label-sm px-2 py-0.5 rounded-full font-medium">2/5 Seats</span>
+</div>
+<div class="bg-surface-container-low rounded-xl p-2.5 space-y-1 text-on-surface">
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-sm text-label-sm font-semibold uppercase">
+<span class="material-symbols-outlined text-[14px]">track_changes</span>
+              Target Curriculum
+            </div>
+<p class="font-body-sm text-body-sm">Regional dishes, ordering food, asking for substitutions &amp; dietary restrictions.</p>
+</div>
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center gap-2">
+<div class="flex items-center -space-x-1.5">
+<div class="w-6 h-6 rounded-full bg-secondary-fixed text-[10px] font-bold flex items-center justify-center ring-2 ring-surface-container-lowest">C</div>
+<div class="w-6 h-6 rounded-full bg-primary-fixed text-[10px] font-bold flex items-center justify-center ring-2 ring-surface-container-lowest">V</div>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">2/5 Members</span>
+</div>
+<button class="bg-primary text-on-primary px-4 py-1.5 rounded-xl font-label-md text-label-md font-semibold hover:bg-primary-container active:scale-95 transition-all shadow-sm">
+              Join Pod
+            </button>
+</div>
+</div>
+</section>
+<!-- Anti-Dating Community Rule & AI Moderation Footer -->
+<footer class="mt-4 mb-2 bg-surface-container-low rounded-2xl p-4 border border-outline-variant/30 flex items-start gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-primary shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">shield</span>
+</div>
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-label-md font-bold text-on-surface">Anti-Dating Educational Standard</span>
+<span class="bg-surface-container-highest text-on-surface-variant text-[10px] px-1.5 py-0.5 rounded font-bold uppercase">Enforced</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            Pods are strictly moderated by <strong class="text-on-surface font-medium">AI Learning Guard</strong>. Harassment or non-educational conduct triggers instant suspension. Focus remains exclusively on syllabus progression.
+          </p>
+</div>
+</footer>
+</main>
+<!-- Shared Component: BottomNavBar (Fixed Navigation Shell) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-gutter-mobile py-stack-sm bg-surface-container-lowest shadow-md border-0 max-w-md left-1/2 -translate-x-1/2">
+<!-- Destination 1: Chats -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1.5 transition-all duration-200 hover:text-primary active:scale-95" href="#">
+<span class="material-symbols-outlined text-[22px]">chat_bubble</span>
+<span class="font-label-sm text-label-sm mt-0.5">Chats</span>
+</a>
+<!-- Destination 2: Learn -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1.5 transition-all duration-200 hover:text-primary active:scale-95" href="#">
+<span class="material-symbols-outlined text-[22px]">school</span>
+<span class="font-label-sm text-label-sm mt-0.5">Learn</span>
+</a>
+<!-- Destination 3: Hub (Active Tab for Study Pods) -->
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-4 py-1.5 transition-all duration-200 active:scale-95" href="#">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">groups</span>
+<span class="font-label-sm text-label-sm mt-0.5 font-bold">Hub</span>
+</a>
+<!-- Destination 4: Profile -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1.5 transition-all duration-200 hover:text-primary active:scale-95" href="#">
+<span class="material-symbols-outlined text-[22px]">account_circle</span>
+<span class="font-label-sm text-label-sm mt-0.5">Profile</span>
+</a>
+</nav>
+</div>
+</body></html>

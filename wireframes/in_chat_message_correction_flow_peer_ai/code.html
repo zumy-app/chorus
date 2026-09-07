@@ -1,0 +1,336 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Chorus - In-Chat Correction Flow</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&amp;family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS with configuration -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "error-container": "#ffdad6",
+            "outline-variant": "#c3c6d7",
+            "surface-container-highest": "#d3e4fe",
+            "primary-container": "#2563eb",
+            "on-primary": "#ffffff",
+            "tertiary": "#006242",
+            "secondary-container": "#8455ef",
+            "on-secondary-fixed": "#23005c",
+            "surface": "#f8f9ff",
+            "surface-dim": "#cbdbf5",
+            "background": "#f8f9ff",
+            "tertiary-fixed-dim": "#4edea3",
+            "on-secondary-fixed-variant": "#5516be",
+            "on-error": "#ffffff",
+            "on-surface-variant": "#434655",
+            "primary": "#004ac6",
+            "on-secondary": "#ffffff",
+            "secondary-fixed-dim": "#d0bcff",
+            "on-background": "#0b1c30",
+            "on-primary-fixed-variant": "#003ea8",
+            "on-surface": "#0b1c30",
+            "tertiary-container": "#007d55",
+            "primary-fixed": "#dbe1ff",
+            "on-secondary-container": "#fffbff",
+            "inverse-surface": "#213145",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-high": "#dce9ff",
+            "surface-container-low": "#eff4ff",
+            "on-tertiary-fixed-variant": "#005236",
+            "on-error-container": "#93000a",
+            "secondary": "#6b38d4",
+            "on-tertiary-container": "#bdffdb",
+            "inverse-on-surface": "#eaf1ff",
+            "tertiary-fixed": "#6ffbbe",
+            "on-primary-container": "#eeefff",
+            "on-primary-fixed": "#00174b",
+            "on-tertiary": "#ffffff",
+            "inverse-primary": "#b4c5ff",
+            "primary-fixed-dim": "#b4c5ff",
+            "error": "#ba1a1a",
+            "surface-variant": "#d3e4fe",
+            "outline": "#737686",
+            "surface-container": "#e5eeff",
+            "secondary-fixed": "#e9ddff",
+            "on-tertiary-fixed": "#002113",
+            "surface-tint": "#0053db",
+            "surface-bright": "#f8f9ff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "unit": "4px",
+            "stack-sm": "8px",
+            "margin-mobile": "16px",
+            "gutter-mobile": "12px",
+            "stack-lg": "24px",
+            "stack-md": "16px"
+          },
+          "fontFamily": {
+            "body-lg": ["Be Vietnam Pro"],
+            "translation-text": ["Be Vietnam Pro"],
+            "label-sm": ["Inter"],
+            "body-md": ["Be Vietnam Pro"],
+            "label-md": ["Inter"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "body-sm": ["Be Vietnam Pro"],
+            "headline-sm": ["Plus Jakarta Sans"],
+            "headline-lg": ["Plus Jakarta Sans"]
+          },
+          "fontSize": {
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+            "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+            "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body-md antialiased min-h-screen flex flex-col justify-between items-center selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- Outer Mobile / Responsive Container -->
+<div class="w-full max-w-md bg-surface min-h-screen flex flex-col shadow-2xl relative overflow-x-hidden pb-24">
+<!-- TOP APP BAR (From Shared Components JSON) -->
+<header class="bg-surface shadow-sm docked full-width top-0 z-30 sticky flex justify-between items-center px-margin-mobile py-stack-sm w-full">
+<div class="flex items-center gap-3">
+<button class="flex items-center justify-center p-1.5 rounded-full hover:bg-surface-container-high active:scale-95 duration-150 text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<div class="relative">
+<img class="w-10 h-10 rounded-full object-cover shadow-sm ring-2 ring-surface-container-lowest" data-alt="Close-up portrait of Sofia, a smiling bilingual woman with warm hazel eyes and dark brown wavy hair, wearing a teal sweater in a bright airy studio, modern humanist aesthetic with vibrant lighting and clean composition" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDU5MybulUo1anyslNEw_mr23ht4Z7o3MgiIYdF5qfoeziadLwhhqMKd7W_4_c5maHGkac1vzrgrO6Y15mbBZnHzlnKXXq2f-i5lHER96zSnXEi5RAqoXrgSBUa2ZrvYA9dGE90O2EwFkn9bZQFLzBaHr_AykXbp_7cloOywmQW4956DBsAOeR185r8c61EG7XWlM4r-XFCAmFrEsn1t7KF5Yxc92lgUFF8BUVMPovbrMOe_ZbDzjeJ">
+<span class="absolute bottom-0 right-0 w-3 h-3 bg-tertiary rounded-full ring-2 ring-surface"></span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface leading-tight">Sofia V.</span>
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-semibold">ES Native</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Practicing Spanish • Maya: </span>
+<span class="font-label-sm text-label-sm px-1 rounded bg-primary-fixed text-on-primary-fixed font-bold">A2</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-1"><div class="flex items-center gap-1.5 bg-secondary-fixed/50 px-2 py-1 rounded-full border border-secondary-container/30"><span class="material-symbols-outlined text-secondary text-sm" data-icon="stars" style="font-variation-settings: 'FILL' 1;">stars</span><span class="font-label-sm text-label-sm font-bold text-on-secondary-fixed">340 XP</span></div><button class="p-1.5 rounded-full text-on-surface-variant hover:bg-surface-container-high active:scale-95 duration-150 relative" aria-label="Profile"><span class="material-symbols-outlined text-xl" data-icon="account_circle">account_circle</span></button></div>
+</header>
+<!-- Context Banner: Active Study Session -->
+<section class="bg-surface-container-low px-margin-mobile py-2 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-sm" data-icon="auto_awesome">auto_awesome</span>
+<span class="font-label-sm text-label-sm text-on-surface font-medium">Bilingual Tandem Mode • Sparky AI Active</span>
+</div>
+<div class="flex items-center gap-1 bg-surface-container-lowest px-2 py-0.5 rounded-full shadow-sm">
+<span class="material-symbols-outlined text-tertiary-container text-xs" data-icon="local_fire_department" data-weight="fill" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<span class="font-label-sm text-label-sm font-bold text-tertiary-container">7 Day Streak</span>
+</div>
+</section>
+<!-- Chat Stream Canvas -->
+<main class="flex-1 px-margin-mobile py-4 flex flex-col gap-4 overflow-y-auto">
+<!-- Date Divider -->
+<div class="flex items-center justify-center my-1">
+<span class="bg-surface-container px-3 py-1 rounded-full font-label-sm text-label-sm text-on-surface-variant font-medium">Today, 2:42 PM</span>
+</div>
+<!-- Partner Incoming Message -->
+<div class="flex items-start gap-2 max-w-[85%]">
+<img class="w-7 h-7 rounded-full object-cover mt-1" data-alt="Small circular avatar profile photo of Sofia looking friendly and inviting against a neutral backdrop, brightly lit modern edtech style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWHNiIm-0_ZUzQZ8t2l5Mhv1yKFX2dXq1XvWn7svP2RQMFnCV07OXVgs0cQj7cNT2cnprLgvNYD8C7nTv8PoruYis6dvg7HkgILJsFVnV4FaYVNLMLij-bFwLOSOYazY1EXHUjyDAxtFAfoRvz7LIuT0Nv8gx-TFsUBpX2Fu8_vlc0CzrNcUkKOxn6ICkQi0tBiedht5a-2gmAFntiVbs25zJqj2Z1Rw8rTE38pKDKScL0A4Zf0qaK">
+<div class="flex flex-col gap-1">
+<div class="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+<p class="font-body-md text-body-md text-on-surface">¡Hola Maya! ¿Tienes planes para el almuerzo hoy?</p>
+</div>
+<!-- Translation Helper Sub-bubble -->
+<div class="flex items-center gap-1.5 px-2">
+<span class="material-symbols-outlined text-outline text-xs" data-icon="translate">translate</span>
+<span class="font-translation-text text-translation-text text-on-surface-variant text-xs">Hi Maya! Do you have plans for lunch today?</span>
+</div>
+</div>
+</div>
+<!-- User Outgoing Message Container (With Peer & AI Correction) -->
+<div class="flex flex-col items-end gap-2 max-w-[96%] self-end">
+<!-- Original Outgoing Bubble -->
+<div class="bg-primary text-on-primary rounded-2xl rounded-tr-sm px-4 py-3 shadow-sm flex flex-col gap-1 w-fit">
+<p class="font-body-md text-body-md text-on-primary">Yo tengo hambre y quiero comer un poco sopa.</p>
+<div class="flex items-center justify-end gap-1.5 mt-0.5">
+<span class="font-label-sm text-label-sm text-primary-fixed-dim text-[10px]">2:45 PM</span>
+<span class="material-symbols-outlined text-primary-fixed-dim text-xs" data-icon="done_all">done_all</span>
+</div>
+</div>
+<!-- Interactive Correction Card (Embedded Directly Below Message) -->
+<div class="w-full bg-surface-container-lowest border-2 border-secondary-container/40 rounded-2xl p-3.5 shadow-md flex flex-col gap-3 relative overflow-hidden transition-all duration-200">
+<!-- Subtle Accent Background Glow -->
+<div class="absolute -right-8 -top-8 w-24 h-24 bg-secondary-container/10 rounded-full blur-xl pointer-events-none"></div>
+<!-- Card Header: Collaborators -->
+<div class="flex items-center justify-between border-b border-surface-container pb-2.5">
+<div class="flex items-center gap-2">
+<div class="relative">
+<img class="w-6 h-6 rounded-full object-cover" data-alt="Micro avatar of Sofia showing thoughtful and helpful expression in a high resolution portrait format" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmU6zCM3zvA-h1V_PxxriBkIggbqruoFjmO8tXFyYQ7NXEJ5GGFKGK095-SN2ExU1_pxduko2FfhBKPCuniVbYsPWgsIc7Fs6ejPmuoyfSEb2zS6Sad8lSMgsSYUrxvHc3WX0sve2lb4v22lfbpY-zd4uKOYMk2mmzWi_yypek1d7jGTBaV6iWOCCJnNFpbL047SbBxv3Nff68LssJdu6oS-3NGHYsL46Rg-UHPduUifS98WiMlHVU">
+<span class="absolute -bottom-1 -right-1 bg-secondary text-on-secondary rounded-full p-0.5 text-[8px] flex items-center justify-center">
+<span class="material-symbols-outlined text-[10px]" data-icon="edit">edit</span>
+</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="font-label-md text-label-md text-on-surface">Sofia corrected your Spanish</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Preposition omission</span>
+</div>
+</div>
+<div class="flex items-center gap-1 bg-secondary-fixed text-on-secondary-fixed px-2 py-0.5 rounded-full">
+<span class="material-symbols-outlined text-xs text-secondary" data-icon="verified" data-weight="fill" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span class="font-label-sm text-label-sm font-semibold">Verified by AI</span>
+</div>
+</div>
+<!-- Diff & Inline Strike-through View -->
+<div class="bg-surface-container-low rounded-xl p-3 flex flex-col gap-2">
+<span class="font-label-sm text-label-sm text-outline font-semibold tracking-wider">CORRECTION DIFF</span>
+<div class="font-body-md text-body-md leading-relaxed text-on-surface">
+              Yo tengo hambre y quiero comer 
+              <span class="line-through bg-error-container text-on-error-container px-1.5 py-0.5 rounded font-medium mx-1">un poco</span>
+<span class="bg-tertiary-fixed text-on-tertiary-fixed px-1.5 py-0.5 rounded font-bold mx-1 border border-tertiary/20">un poco de</span>
+              sopa.
+            </div>
+</div>
+<!-- Partner & AI Insight Note -->
+<div class="border-l-4 border-secondary pl-3 py-1 bg-surface-container-low/60 rounded-r-lg flex flex-col gap-1">
+<div class="flex items-center gap-1.5 text-secondary">
+<span class="material-symbols-outlined text-sm" data-icon="lightbulb">lightbulb</span>
+<span class="font-label-md text-label-md font-bold text-secondary">Why this works</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-snug">
+              In Spanish, <span class="font-semibold text-on-surface">"un poco"</span> requires the preposition <span class="font-semibold text-secondary">"de"</span> when modifying uncountable or mass nouns like <em class="italic">sopa, agua, café</em>.
+            </p>
+</div>
+<!-- Native Pronunciation Audio Player -->
+<button class="flex items-center justify-between w-full bg-surface-container px-3 py-2 rounded-xl hover:bg-surface-container-high transition-colors text-left group active:scale-[0.99]">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-base" data-icon="volume_up">volume_up</span>
+</div>
+<span class="font-label-md text-label-md text-primary font-semibold">Listen to native cadence (Sofia)</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline group-hover:text-primary transition-colors">0:03</span>
+</button>
+<!-- 1-Tap Quick Actions -->
+<div class="flex flex-col gap-2 pt-1">
+<div class="grid grid-cols-2 gap-2">
+<button class="flex items-center justify-center gap-1.5 py-2 px-3 bg-primary text-on-primary rounded-xl font-label-md text-label-md font-bold shadow-sm hover:bg-primary/90 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-sm" data-icon="check_circle">check_circle</span>
+<span class="">Accept &amp; Update</span>
+</button>
+<button class="flex items-center justify-center gap-1.5 py-2 px-3 bg-tertiary text-on-tertiary rounded-xl font-label-md text-label-md font-bold shadow-sm hover:bg-tertiary-container active:scale-95 transition-all">
+<span class="material-symbols-outlined text-sm" data-icon="bookmark_add">bookmark_add</span>
+<span class="">Save to SRS (+10 XP)</span>
+</button>
+</div>
+<button class="w-full flex items-center justify-center gap-1.5 py-1.5 text-secondary hover:bg-secondary-fixed/40 rounded-lg font-label-sm text-label-sm font-semibold transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="smart_toy">smart_toy</span>
+<span class="">Ask Sparky AI for 2 similar example sentences</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Inline Educational Milestone Toast -->
+<div class="bg-surface-container-high border border-outline-variant/30 rounded-xl p-3 flex items-center justify-between mt-2 shadow-sm">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-full bg-secondary text-on-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-lg" data-icon="military_tech">military_tech</span>
+</div>
+<div>
+<h4 class="font-label-md text-label-md font-bold text-on-surface">Grammar Instinct Level 3</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant">3 of 5 prepositions mastered this week</p>
+</div>
+</div>
+<div class="w-12 h-2 bg-surface-container-lowest rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-3/5"></div>
+</div>
+</div>
+</main>
+<!-- Floating Trigger / Helper Sheet Header ("Suggest Correction" Sheet - Live preview of Sofia's side) -->
+<section class="mx-margin-mobile mb-3 bg-surface-container-lowest rounded-2xl border-2 border-primary-container/20 shadow-xl overflow-hidden">
+<!-- Modal Title Bar -->
+<div class="bg-surface-container-low px-4 py-2.5 flex items-center justify-between border-b border-surface-container">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="draw">draw</span>
+<span class="font-headline-sm text-sm font-bold text-on-surface">Suggest Correction for Maya</span>
+</div>
+<span class="font-label-sm text-label-sm bg-primary-fixed text-on-primary-fixed px-2 py-0.5 rounded-full font-bold">Partner Tool</span>
+</div>
+<div class="p-3.5 flex flex-col gap-3">
+<!-- Original text snippet -->
+<div class="flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-outline font-semibold">ORIGINAL MESSAGE (DRAG TO HIGHLIGHT)</label>
+<div class="p-2.5 bg-surface-container rounded-xl font-body-sm text-body-sm flex items-center justify-between">
+<span class="">Yo tengo hambre y quiero comer <span class="bg-error-container/80 text-on-error-container px-1 py-0.5 rounded font-medium border border-error/30 cursor-pointer">un poco|</span> sopa.</span>
+<span class="material-symbols-outlined text-outline-variant text-sm" data-icon="content_cut">content_cut</span>
+</div>
+</div>
+<!-- Suggested Revision input -->
+<div class="flex flex-col gap-1">
+<div class="flex justify-between items-center">
+<label class="font-label-sm text-label-sm text-outline font-semibold">YOUR SUGGESTION</label>
+<button class="flex items-center gap-1 font-label-sm text-label-sm text-secondary font-bold hover:underline">
+<span class="material-symbols-outlined text-xs" data-icon="magic_button">magic_button</span>
+<span class="">AI Polish Fix</span>
+</button>
+</div>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-xl px-3 py-2 font-body-md text-body-md text-tertiary font-semibold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" type="text" value="un poco de">
+</div>
+<!-- Quick Tags -->
+<div class="flex flex-wrap gap-1.5">
+<span class="font-label-sm text-label-sm bg-secondary-fixed text-on-secondary-fixed px-2.5 py-1 rounded-full font-semibold cursor-pointer border border-secondary-container/30">#Prepositions</span>
+<span class="font-label-sm text-label-sm bg-surface-container text-on-surface-variant px-2.5 py-1 rounded-full font-medium hover:bg-surface-container-high cursor-pointer">#NounAgreement</span>
+<span class="font-label-sm text-label-sm bg-surface-container text-on-surface-variant px-2.5 py-1 rounded-full font-medium hover:bg-surface-container-high cursor-pointer">#VerbTense</span>
+</div>
+<!-- Action Button -->
+<button class="w-full bg-primary text-on-primary py-2 rounded-xl font-label-md text-label-md font-bold flex items-center justify-center gap-1.5 shadow-sm hover:bg-primary-container active:scale-[0.98] transition-all">
+<span class="material-symbols-outlined text-sm" data-icon="send">send</span>
+<span class="">Send Helpful Correction</span>
+</button>
+</div>
+</section>
+<!-- Chat Interactive Bottom Composer -->
+<div class="bg-surface px-margin-mobile py-2 sticky bottom-14 z-20 flex items-center gap-2 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
+<button class="p-2 rounded-full text-secondary hover:bg-secondary-fixed/50 active:scale-95 transition-all" title="Ask AI for phrase suggestion">
+<span class="material-symbols-outlined" data-icon="smart_toy">smart_toy</span>
+</button>
+<div class="flex-1 bg-surface-container-low rounded-2xl flex items-center px-3 py-1.5 border border-outline-variant/30 focus-within:border-primary">
+<input class="w-full bg-transparent text-on-surface font-body-sm text-body-sm focus:outline-none placeholder:text-outline" placeholder="Reply in Spanish or English..." type="text">
+<button class="p-1 text-outline hover:text-primary">
+<span class="material-symbols-outlined text-lg" data-icon="mic">mic</span>
+</button>
+</div>
+<button class="w-9 h-9 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-md active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-sm" data-icon="send">send</span>
+</button>
+</div>
+<!-- BOTTOM NAVBAR (From Shared Components JSON) -->
+<!-- Destination 4: Learn, Chats (ACTIVE), Hub, Profile -->
+<nav class="fixed bottom-0 w-full max-w-md z-50 flex justify-around items-center px-4 py-2 bg-surface shadow-lg"><a class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-5 py-1 hover:bg-surface-container-highest transition-all active:scale-90 duration-200 shadow-sm" href="#chats"><span class="material-symbols-outlined text-2xl" data-icon="chat_bubble" style="font-variation-settings: 'FILL' 1;">chat_bubble</span><span class="font-label-sm text-label-sm font-semibold">Chats</span></a><a class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-all active:scale-90 duration-200" href="#hub"><span class="material-symbols-outlined text-2xl" data-icon="explore">explore</span><span class="font-label-sm text-label-sm">Hub</span></a><a class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-all active:scale-90 duration-200" href="#learn"><span class="material-symbols-outlined text-2xl" data-icon="school">school</span><span class="font-label-sm text-label-sm">Learn</span></a></nav>
+</div>
+
+
+</body></html>

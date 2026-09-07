@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus - Scenario Briefing</title>
+<!-- Fonts -->
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788762228214&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YWM0ODZlNDNjMzEwNTc2MDJlNzQ2MDYyZWUzEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "inverse-primary": "#b4c5ff",
+            "inverse-on-surface": "#eaf1ff",
+            "primary": "#004ac6",
+            "surface": "#f8f9ff",
+            "tertiary-container": "#007d55",
+            "surface-variant": "#d3e4fe",
+            "on-error-container": "#93000a",
+            "on-surface-variant": "#434655",
+            "tertiary": "#006242",
+            "error-container": "#ffdad6",
+            "on-tertiary": "#ffffff",
+            "on-secondary-fixed-variant": "#5516be",
+            "on-secondary-fixed": "#23005c",
+            "secondary": "#6b38d4",
+            "secondary-fixed": "#e9ddff",
+            "error": "#ba1a1a",
+            "surface-container": "#e5eeff",
+            "secondary-fixed-dim": "#d0bcff",
+            "inverse-surface": "#213145",
+            "tertiary-fixed": "#6ffbbe",
+            "on-primary-container": "#eeefff",
+            "surface-bright": "#f8f9ff",
+            "on-primary-fixed": "#00174b",
+            "primary-fixed": "#dbe1ff",
+            "background": "#f8f9ff",
+            "surface-container-highest": "#d3e4fe",
+            "surface-container-high": "#dce9ff",
+            "on-surface": "#0b1c30",
+            "on-error": "#ffffff",
+            "surface-container-low": "#eff4ff",
+            "on-secondary-container": "#fffbff",
+            "surface-tint": "#0053db",
+            "tertiary-fixed-dim": "#4edea3",
+            "primary-fixed-dim": "#b4c5ff",
+            "on-primary-fixed-variant": "#003ea8",
+            "on-tertiary-fixed": "#002113",
+            "secondary-container": "#8455ef",
+            "surface-container-lowest": "#ffffff",
+            "primary-container": "#2563eb",
+            "surface-dim": "#cbdbf5",
+            "on-tertiary-container": "#bdffdb",
+            "outline-variant": "#c3c6d7",
+            "on-secondary": "#ffffff",
+            "outline": "#737686",
+            "on-background": "#0b1c30",
+            "on-primary": "#ffffff",
+            "on-tertiary-fixed-variant": "#005236"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "margin-mobile": "16px",
+            "stack-lg": "24px",
+            "stack-md": "16px",
+            "gutter-mobile": "12px",
+            "stack-sm": "8px",
+            "unit": "4px"
+          },
+          "fontFamily": {
+            "headline-sm": ["Plus Jakarta Sans"],
+            "translation-text": ["Be Vietnam Pro"],
+            "body-sm": ["Be Vietnam Pro"],
+            "body-md": ["Be Vietnam Pro"],
+            "label-sm": ["Inter"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "headline-lg": ["Plus Jakarta Sans"],
+            "label-md": ["Inter"],
+            "body-lg": ["Be Vietnam Pro"]
+          },
+          "fontSize": {
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+            "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background antialiased flex flex-col min-h-screen selection:bg-surface-variant selection:text-primary">
+<!-- Mobile Canvas Frame Wrapper -->
+<div class="w-full max-w-md mx-auto min-h-screen flex flex-col bg-surface relative pb-28">
+<!-- Top App Navigation (Linear/Task Mode - Shell Filter Rule: Bottom Bar Suppressed for Focused Flow) -->
+<header class="sticky top-0 z-40 bg-surface/90 backdrop-blur-md px-margin-mobile py-stack-sm flex items-center justify-between shadow-[0px_4px_12px_rgba(0,0,0,0.03)]">
+<div class="flex items-center gap-3">
+<button aria-label="Go back" class="w-9 h-9 flex items-center justify-center rounded-full bg-surface-container-lowest text-on-surface shadow-sm active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[20px]" data-icon="arrow_back">arrow_back</span>
+</button>
+<div>
+<div class="flex items-center gap-1.5">
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight">El Café De La Latina</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px] text-tertiary" data-icon="location_on">location_on</span>
+            Madrid, Spain · Practice Lab
+          </p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<!-- Streak Chip -->
+<div class="flex items-center gap-1 bg-surface-container-lowest px-2 py-1 rounded-full shadow-sm">
+<span class="material-symbols-outlined text-[16px] text-[#ea580c]" data-icon="local_fire_department" data-weight="fill" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<span class="font-label-md text-label-md text-on-surface">14d</span>
+</div>
+<!-- Audio Guidance Toggle -->
+<button aria-label="Toggle Audio Assistance" class="w-9 h-9 rounded-full bg-surface-container-lowest text-primary flex items-center justify-center shadow-sm active:scale-95 transition-all" id="audioToggleBtn">
+<span class="material-symbols-outlined text-[20px]" data-icon="volume_up">volume_up</span>
+</button>
+</div>
+</header>
+<!-- Main Scrollable Content -->
+<main class="flex-1 px-margin-mobile py-stack-md flex flex-col gap-5">
+<!-- Meta Badges Bar -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<!-- CEFR Badge -->
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high text-primary font-label-md text-label-md">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+            A1 Practical Can-Do
+          </span>
+<!-- Difficulty Pill -->
+<span class="px-2.5 py-1 rounded-full bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm">
+            Beginner High
+          </span>
+</div>
+<!-- Estimated Time & XP Reward -->
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="schedule">schedule</span>
+            3 mins
+          </span>
+<span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-surface-container text-primary font-label-md text-label-md">
+            +45 XP
+          </span>
+</div>
+</div>
+<!-- Section 1: Scenario Overview Card (High-End Asymmetric Glass-Styled Bento) -->
+<section class="rounded-xl overflow-hidden bg-surface-container-lowest shadow-[0px_4px_12px_rgba(0,0,0,0.05)] border border-surface-container-low">
+<div class="relative h-44 w-full overflow-hidden">
+<div class="w-full h-full bg-cover bg-center" data-alt="A warm and inviting modern Spanish coffee bar in La Latina Madrid with wooden counters, clean ceramic tile details, an artisanal espresso machine, sunlit cafe seating, and fresh morning pastries displayed in soft natural lighting creating an approachable contemporary language learning atmosphere." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDXZ9Pz0CtOBwOqnxV8-VHdDm5DBheu5oSPyM42fz7R6m1ntawNL1shiGtaydTXdYi8hvNw8Yrqyt1_3CSRZes9lnTSMifY8355sOBveTQhnKhUxjKrewXSUi9oJHxkjo928tIE5UHr6EhCz1rTUjesxxtsPFFe4ShsUDHfmElamDkrqGMa6BwB1AHV69hlTX4-MoXODXcCIode57FRKUBODaDJIvDK-IZF3To5xfTgCz8TTMtebCvG')">
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent"></div>
+<div class="absolute bottom-3 left-4 right-4 text-on-tertiary">
+<span class="font-label-sm text-label-sm bg-primary/80 backdrop-blur-md px-2 py-0.5 rounded text-on-primary font-medium tracking-wide">
+              REAL-WORLD CONVERSATION
+            </span>
+<h2 class="font-headline-sm text-headline-sm text-on-tertiary mt-1 drop-shadow-sm">
+              Morning Espresso &amp; Toast
+            </h2>
+</div>
+</div>
+<div class="p-4 space-y-3">
+<div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">SCENARIO GOAL</span>
+<p class="font-body-md text-body-md text-on-surface font-semibold">
+              Order coffee &amp; custom breakfast in natural Spanish
+            </p>
+</div>
+<div class="p-3 bg-surface-container-low rounded-lg space-y-1.5">
+<div class="flex items-center gap-1.5 text-primary">
+<span class="material-symbols-outlined text-[16px]" data-icon="task_alt">task_alt</span>
+<span class="font-label-md text-label-md">Target Can-Do Objectives</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+              Ask for items, specify milk preferences (oat, whole), and request the bill politely.
+            </p>
+</div>
+</div>
+</section>
+<!-- Section 2: AI Character Card (Mateo) -->
+<section class="bg-surface-container-lowest rounded-xl p-4 shadow-[0px_4px_12px_rgba(0,0,0,0.05)] border border-surface-container-low space-y-3.5">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<div class="relative">
+<img class="w-13 h-13 rounded-full object-cover shadow-sm ring-2 ring-primary/20" data-alt="A friendly approachable young male barista named Mateo with kind eyes and an inviting warm expression standing in front of a coffee shop counter wearing an apron with authentic warm daylight studio lighting and a clean modern aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDswngRfytOqI5FQem1oWPPUzzbbHXkXI_fnKeL2p0SXdBbOa2m9pZd9999kFhRAK1PjiNJwiRXTqUi_8sGOJQ52D4BI1aGMb0Zky1AsPTU663Aw5hDlCa_HwrZjK2e-Ze2Qeqgj-M8-lbghAL-vXkYMRrFhGwresTfksBtxrQ9w5kVJpxuUS1sS9-Od4powNneigozTWRJfBQAfs45sFjMzaOBtl95x6suG7iBiyAHY_tXPfYE8Z-P"/>
+<span class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-tertiary rounded-full ring-2 ring-surface-container-lowest" title="AI Ready"></span>
+</div>
+<div>
+<div class="flex items-center gap-1.5">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Mateo</h3>
+<span class="material-symbols-outlined text-[16px] text-primary" data-icon="verified" data-weight="fill" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Barista at Café Central · La Latina</p>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm">
+            Madrid Accent
+          </span>
+</div>
+<!-- Character Attributes Bento Grid -->
+<div class="grid grid-cols-2 gap-2 pt-1">
+<!-- Warmth Metric -->
+<div class="bg-surface-container-low p-2.5 rounded-lg flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-[#e11d48]" data-icon="favorite" data-weight="fill" style="font-variation-settings: 'FILL' 1;">favorite</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Warmth</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">Supportive</span>
+</div>
+<!-- Native Speed Selector -->
+<div class="bg-surface-container-low p-2 rounded-lg flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant pl-1">Speed</span>
+<div class="flex bg-surface-container-lowest p-0.5 rounded-full shadow-inner" id="speedContainer">
+<button class="speed-btn px-2 py-0.5 rounded-full font-label-sm text-label-sm text-on-surface bg-surface-container-high transition-all" onclick="selectSpeed(this, '0.8x')">0.8x</button>
+<button class="speed-btn px-2 py-0.5 rounded-full font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface transition-all" onclick="selectSpeed(this, '1.0x')">1.0x</button>
+</div>
+</div>
+</div>
+<p class="font-translation-text text-translation-text text-on-surface-variant italic">
+          "¡Hola! Te recomiendo el café con leche y una tostada con tomate recién hecha."
+        </p>
+</section>
+<!-- Section 3: Essential Formulaic Chunk Bank (Prep Deck) -->
+<section class="space-y-2.5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-primary" data-icon="psychology">psychology</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Formulaic Chunk Bank</h3>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Tap to preview sound</span>
+</div>
+<div class="grid grid-cols-1 gap-2">
+<!-- Chunk 1 -->
+<div class="chunk-card group flex items-center justify-between p-3 rounded-xl bg-surface-container-lowest border-l-4 border-l-secondary shadow-[0px_2px_8px_rgba(0,0,0,0.03)] hover:shadow-md transition-all cursor-pointer" onclick="triggerAudioRipple(this)">
+<div class="space-y-0.5">
+<div class="flex items-center gap-2">
+<span class="font-body-md text-body-md text-on-surface font-semibold">Quisiera un café con leche...</span>
+</div>
+<p class="font-translation-text text-translation-text text-on-surface-variant">I would like a latte / white coffee...</p>
+</div>
+<button aria-label="Listen audio chunk" class="w-8 h-8 rounded-full bg-surface-container-high text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-on-primary transition-colors flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]" data-icon="volume_up">volume_up</span>
+</button>
+</div>
+<!-- Chunk 2 -->
+<div class="chunk-card group flex items-center justify-between p-3 rounded-xl bg-surface-container-lowest border-l-4 border-l-secondary shadow-[0px_2px_8px_rgba(0,0,0,0.03)] hover:shadow-md transition-all cursor-pointer" onclick="triggerAudioRipple(this)">
+<div class="space-y-0.5">
+<div class="flex items-center gap-2">
+<span class="font-body-md text-body-md text-on-surface font-semibold">¿Tiene leche de avena?</span>
+</div>
+<p class="font-translation-text text-translation-text text-on-surface-variant">Do you have oat milk?</p>
+</div>
+<button aria-label="Listen audio chunk" class="w-8 h-8 rounded-full bg-surface-container-high text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-on-primary transition-colors flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]" data-icon="volume_up">volume_up</span>
+</button>
+</div>
+<!-- Chunk 3 -->
+<div class="chunk-card group flex items-center justify-between p-3 rounded-xl bg-surface-container-lowest border-l-4 border-l-secondary shadow-[0px_2px_8px_rgba(0,0,0,0.03)] hover:shadow-md transition-all cursor-pointer" onclick="triggerAudioRipple(this)">
+<div class="space-y-0.5">
+<div class="flex items-center gap-2">
+<span class="font-body-md text-body-md text-on-surface font-semibold">Para tomar aquí / Para llevar</span>
+</div>
+<p class="font-translation-text text-translation-text text-on-surface-variant">For here / To go</p>
+</div>
+<button aria-label="Listen audio chunk" class="w-8 h-8 rounded-full bg-surface-container-high text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-on-primary transition-colors flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]" data-icon="volume_up">volume_up</span>
+</button>
+</div>
+<!-- Chunk 4 -->
+<div class="chunk-card group flex items-center justify-between p-3 rounded-xl bg-surface-container-lowest border-l-4 border-l-secondary shadow-[0px_2px_8px_rgba(0,0,0,0.03)] hover:shadow-md transition-all cursor-pointer" onclick="triggerAudioRipple(this)">
+<div class="space-y-0.5">
+<div class="flex items-center gap-2">
+<span class="font-body-md text-body-md text-on-surface font-semibold">¿Cuánto es? / La cuenta, por favor</span>
+</div>
+<p class="font-translation-text text-translation-text text-on-surface-variant">How much is it? / The bill, please</p>
+</div>
+<button aria-label="Listen audio chunk" class="w-8 h-8 rounded-full bg-surface-container-high text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-on-primary transition-colors flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]" data-icon="volume_up">volume_up</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Section 4: Challenge Mode Selector -->
+<section class="space-y-2.5">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Select Practice Mode</h3>
+<div class="grid grid-cols-1 gap-2.5" id="modeSelectorGroup">
+<!-- Guided Mode Option (Selected by Default) -->
+<div class="mode-card p-3.5 rounded-xl bg-surface-container-lowest border-2 border-primary shadow-sm cursor-pointer transition-all flex items-start gap-3" id="mode-guided" onclick="selectMode('guided')">
+<div class="mt-0.5 text-primary flex-shrink-0">
+<span class="material-symbols-outlined text-[22px]" data-icon="radio_button_checked">radio_button_checked</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-[16px] leading-5 text-on-surface font-bold">Guided Mode</span>
+<span class="px-2 py-0.5 rounded-full bg-tertiary-container text-on-tertiary font-label-sm text-label-sm">Recommended</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+                Visual scaffolding, real-time chunk hints, and instant syntax suggestions.
+              </p>
+</div>
+</div>
+<!-- Pro Mode Option -->
+<div class="mode-card p-3.5 rounded-xl bg-surface-container-lowest border-2 border-transparent shadow-sm cursor-pointer transition-all flex items-start gap-3 hover:border-outline-variant" id="mode-pro" onclick="selectMode('pro')">
+<div class="mt-0.5 text-on-surface-variant flex-shrink-0">
+<span class="material-symbols-outlined text-[22px]" data-icon="radio_button_unchecked">radio_button_unchecked</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-[16px] leading-5 text-on-surface font-bold">Pro Mode</span>
+<span class="px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm">+20 XP Bonus</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+                Natural immersion. Voice-only replies with all hints hidden until the feedback wrap.
+              </p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Fixed Bottom Action Bar -->
+<div class="fixed bottom-0 left-0 w-full z-50 bg-surface-container-lowest/95 backdrop-blur-md px-margin-mobile pt-3 pb-6 shadow-[0px_-4px_16px_rgba(0,0,0,0.06)] max-w-md mx-auto right-0">
+<div class="space-y-1.5">
+<button class="w-full h-13 py-3 px-6 rounded-full bg-primary-container hover:bg-primary text-on-primary font-headline-sm text-headline-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/25 active:scale-95 transition-all">
+<span>Start Scenario Roleplay</span>
+<span class="material-symbols-outlined text-[20px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<div class="flex items-center justify-center gap-1.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-[15px] text-tertiary" data-icon="mic">mic</span>
+<span class="font-label-sm text-label-sm">Voice &amp; text input supported · Instant feedback</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Interactive Scripts -->
+<script>
+    function selectSpeed(btn, val) {
+      const parent = document.getElementById('speedContainer');
+      const buttons = parent.querySelectorAll('.speed-btn');
+      buttons.forEach(b => {
+        b.classList.remove('bg-surface-container-high', 'text-on-surface');
+        b.classList.add('text-on-surface-variant');
+      });
+      btn.classList.add('bg-surface-container-high', 'text-on-surface');
+      btn.classList.remove('text-on-surface-variant');
+    }
+
+    function selectMode(mode) {
+      const guidedCard = document.getElementById('mode-guided');
+      const proCard = document.getElementById('mode-pro');
+
+      if (mode === 'guided') {
+        guidedCard.classList.remove('border-transparent');
+        guidedCard.classList.add('border-primary');
+        guidedCard.querySelector('.material-symbols-outlined').textContent = 'radio_button_checked';
+        guidedCard.querySelector('.material-symbols-outlined').parentElement.className = 'mt-0.5 text-primary flex-shrink-0';
+
+        proCard.classList.remove('border-primary');
+        proCard.classList.add('border-transparent');
+        proCard.querySelector('.material-symbols-outlined').textContent = 'radio_button_unchecked';
+        proCard.querySelector('.material-symbols-outlined').parentElement.className = 'mt-0.5 text-on-surface-variant flex-shrink-0';
+      } else {
+        proCard.classList.remove('border-transparent');
+        proCard.classList.add('border-primary');
+        proCard.querySelector('.material-symbols-outlined').textContent = 'radio_button_checked';
+        proCard.querySelector('.material-symbols-outlined').parentElement.className = 'mt-0.5 text-primary flex-shrink-0';
+
+        guidedCard.classList.remove('border-primary');
+        guidedCard.classList.add('border-transparent');
+        guidedCard.querySelector('.material-symbols-outlined').textContent = 'radio_button_unchecked';
+        guidedCard.querySelector('.material-symbols-outlined').parentElement.className = 'mt-0.5 text-on-surface-variant flex-shrink-0';
+      }
+    }
+
+    function triggerAudioRipple(card) {
+      const button = card.querySelector('button');
+      button.classList.add('scale-110', 'bg-primary', 'text-on-primary');
+      setTimeout(() => {
+        button.classList.remove('scale-110');
+      }, 300);
+    }
+
+    const audioToggle = document.getElementById('audioToggleBtn');
+    if (audioToggle) {
+      audioToggle.addEventListener('click', () => {
+        const icon = audioToggle.querySelector('.material-symbols-outlined');
+        if (icon.textContent === 'volume_up') {
+          icon.textContent = 'volume_off';
+          audioToggle.classList.add('text-outline');
+        } else {
+          icon.textContent = 'volume_up';
+          audioToggle.classList.remove('text-outline');
+        }
+      });
+    }
+  </script>
+</body></html>

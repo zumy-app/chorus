@@ -354,3 +354,52 @@ describe('QA learn hub', () => {
     expect(mockNavigate).toHaveBeenCalledWith('LessonSession', expect.objectContaining({ mode: 'quick_drill' }));
   });
 });
+
+describe('P1 Mobile navigation — hard tab wiring (not just file contains)', () => {
+  it('MainTabs exposes 13 screens and Market/Learn tabs navigate without crash', async () => {
+    const fs = require('fs');
+    const path = require('path');
+    const tabsPath = path.resolve(__dirname, '../../components/MainTabs.tsx');
+    const content = fs.readFileSync(tabsPath, 'utf-8');
+    const required = ['BrowseTutors', 'TutorProfile', 'ConfirmBooking', 'TrialCredits', 'TeacherDashboard', 'Payouts', 'Learn', 'Scenarios', 'ScenarioRoleplay', 'VocabularyReview', 'LessonSession', 'LearningRoadmap', 'RealTalkHub', 'MarketplaceTab', 'LearnTab'];
+    for (const s of required) expect(content).toContain(s);
+    // Hard navigate check: LearnScreen -> Scenarios -> Roleplay
+    const { getByText, getAllByText } = render(<LearnScreen />);
+    await waitFor(() => getByText('Your Learning Path'));
+    fireEvent.press(getAllByText('Scenarios')[0]);
+    expect(mockNavigate).toHaveBeenCalledWith('Scenarios');
+    mockNavigate.mockClear();
+    const { getByText: g2 } = render(<ScenariosScreen navigation={{ navigate: mockNavigate, goBack: mockGoBack }} />);
+    await waitFor(() => g2('Pedir café en una cafetería'));
+    fireEvent.press(g2('Pedir café en una cafetería'));
+    expect(mockNavigate).toHaveBeenCalledWith('ScenarioRoleplay', { scenarioId: 'es-cafe' });
+  });
+
+  it('BrowseTutors -> TutorProfile -> ConfirmBooking wiring does not throw', async () => {
+    const { getByText } = render(<BrowseTutorsScreen />);
+    await waitFor(() => getByText('María García'));
+    // Card press navigates to profile (Book Trial is inside card, but card press is primary)
+    fireEvent.press(getByText('María García'));
+    expect(mockNavigate).toHaveBeenCalled();
+    mockNavigate.mockClear();
+    mockRouteParams = { userId: 't1' };
+    const { getByText: gp, getAllByText: gpAll } = render(<TutorProfileScreen /> as any);
+    await waitFor(() => gp('María García'));
+    // TutorProfile has single Book Trial button
+    fireEvent.press(gpAll('Book Trial')[0] || gp('Book Trial'));
+    expect(mockNavigate).toHaveBeenCalledWith('ConfirmBooking', expect.anything());
+  });
+
+  it('LessonSession wrong answer is not graded as correct (mobile negative)', async () => {
+    mockRouteParams = { mode: 'daily' };
+    api.startSession.mockResolvedValueOnce({
+      session: { id: 'sess1', plannedItemCount: 1, mode: 'daily', status: 'in_progress' },
+      items: [{ id: 'i1', itemType: 'vocabulary', activityType: 'cued_recall', promptType: 'cued_recall', prompt: { text: 'Yo ____ cansado.', choices: ['estoy', 'soy'] } }],
+    });
+    api.answerSessionItem.mockResolvedValueOnce({ correct: false, quality: 1, feedback: { message: 'Not quite' }, nextItem: null });
+    const { getByText } = render(<LessonSessionScreen navigation={{ navigate: mockNavigate, goBack: mockGoBack }} />);
+    await waitFor(() => getByText('Yo ____ cansado.'));
+    fireEvent.press(getByText('soy'));
+    await waitFor(() => getByText('Not quite'));
+  });
+});

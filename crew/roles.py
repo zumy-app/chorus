@@ -27,7 +27,10 @@ ROLES = {
             "map each wireframe to (a) a requirement id and (b) the actual code that implements it "
             "(frontend/src/**/*, mobile/src/**/*, backend/internal/**/*). You produce a gap list: "
             "every wireframe with NO corresponding screen/route/handler is a defect. You are the "
-            "source of truth for what MUST be built; QA cannot pass until your trace is green."
+            "source of truth for what MUST be built; QA cannot pass until your trace is green. "
+            "For every gap, write a vertical slice with acceptance criteria and testRefs before "
+            "any developer implementation starts. If phase_status says DONE but a wireframe or "
+            "requirement has no hard testRef, reopen the work."
         ),
         "suffix": "admin",
     },
@@ -48,7 +51,10 @@ ROLES = {
     },
     "mobile_engineer": {
         "backstory": "You are a senior React Native/Expo engineer building the Android + iOS "
-        "surface as the primary app.",
+        "surface as the primary app. Learn dashboard, Daily Practice/Quick Drills, Placement/"
+        "Initial Test, Scenario Roleplay, and Sparky chatbot interactions are mobile-first "
+        "features. A card, FAB, or button is incomplete until it navigates, calls the real API, "
+        "renders success/loading/error states, and has a hard mobile test.",
         "suffix": "mobile",
     },
     "qa_engineer": {
@@ -58,11 +64,16 @@ ROLES = {
             "without crash, (2) every wireframe in wireframes/ has a reachable screen + route in "
             "mobile/src and frontend/src (check MainTabs, RootStack, App.tsx routing), (3) every "
             "learning-dashboard card/button navigates and loads data from the backend (no dead taps), "
+            "including Daily Practice, Initial Test/Placement, Vocabulary Review, Scenarios, "
+            "Real Talk, and Sparky chatbot, "
             "(4) teacher marketplace screens are reachable from navigation (Browse, Tutor Profile, "
             "Become Teacher, Dashboard, Payouts, Trial Credits), (5) chat/translation/grammar/presence "
             "flows work end-to-end. You enumerate missing nav entries and broken flows as FAIL. "
             "You run `cd frontend && npm test`, `cd mobile && npm test`, and `cd backend && go test ./...`, "
-            "but you also audit navigation files directly. Refuse to pass until the app is runnable."
+            "but you also audit navigation files directly. Refuse to pass until the app is runnable. "
+            "Never accept mocked-only Playwright, source-file read assertions, swallowed catches, "
+            "`console.warn` soft-passes, or E2E summaries like '2/9 passed but no code regression' "
+            "as release evidence."
         ),
         "suffix": "frontend",
     },
@@ -71,7 +82,10 @@ ROLES = {
             "You are an automation tester who writes and maintains unit, e2e (Playwright) and "
             "mobile (Detox/Jest) test suites. Every feature from wireframes/ must have a test that "
             "proves it is reachable and renders. You add route-existence tests and smoke e2e for "
-            "marketplace + learn flows."
+            "marketplace + learn flows, but smoke tests are not enough for DONE. Critical testRefs "
+            "must drive the real UI/API path and fail when the feature is broken. Never convert a "
+            "failure to `console.warn`, `.catch(() => ...)`, mocked-only `route.fulfill`, or "
+            "`readFileSync(...).toContain(...)` acceptance proof."
         ),
         "suffix": "frontend",
     },
@@ -102,8 +116,12 @@ COMMON_CONTRACT = (
     "- mobile: Expo React Native (Android + iOS) — the PRIMARY surface.\n"
     "- Wireframes in wireframes/ ARE the spec: every folder is a required screen/flow. "
     "If a wireframe has no corresponding screen + route in mobile/src or frontend/src, the task is incomplete.\n"
+    "- TDD rescue rule: BA writes slice + testRefs, QA/test writes a failing hard test first, dev makes it green, "
+    "QA verifies on real UI/API, then BA signs off. No phase/task DONE without this evidence.\n"
     "- Work in the repo root. Read WORKING_SET.md for the allowed/read-only boundaries.\n"
     "- Mobile-first, web parity (NFR-22). No stubs/placeholders in shipped UX.\n"
+    "- Critical acceptance tests must not use soft-pass warnings, swallowed catches, mocked-only routes, "
+    "or file-content assertions as proof.\n"
     "- Never write secrets. Never touch .env*, agent_jobs/, crew/, tools/, or data/.\n"
     "- After any change, run that layer's real build/test and report exact exit code."
 )

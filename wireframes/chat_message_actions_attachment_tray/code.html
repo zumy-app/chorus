@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus - Chat with Message Actions &amp; Attachment Tray</title>
+<!-- Fonts -->
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788756204834&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YWM2MzUwMzk1ZmYwNTNiNzMzMDJiMjY3ZjlmEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "error-container": "#ffdad6",
+            "outline-variant": "#c3c6d7",
+            "surface-container-highest": "#d3e4fe",
+            "primary-container": "#2563eb",
+            "on-primary": "#ffffff",
+            "tertiary": "#006242",
+            "secondary-container": "#8455ef",
+            "on-secondary-fixed": "#23005c",
+            "surface": "#f8f9ff",
+            "surface-dim": "#cbdbf5",
+            "background": "#f8f9ff",
+            "tertiary-fixed-dim": "#4edea3",
+            "on-secondary-fixed-variant": "#5516be",
+            "on-error": "#ffffff",
+            "on-surface-variant": "#434655",
+            "primary": "#004ac6",
+            "on-secondary": "#ffffff",
+            "secondary-fixed-dim": "#d0bcff",
+            "on-background": "#0b1c30",
+            "on-primary-fixed-variant": "#003ea8",
+            "on-surface": "#0b1c30",
+            "tertiary-container": "#007d55",
+            "primary-fixed": "#dbe1ff",
+            "on-secondary-container": "#fffbff",
+            "inverse-surface": "#213145",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-high": "#dce9ff",
+            "surface-container-low": "#eff4ff",
+            "on-tertiary-fixed-variant": "#005236",
+            "on-error-container": "#93000a",
+            "secondary": "#6b38d4",
+            "on-tertiary-container": "#bdffdb",
+            "inverse-on-surface": "#eaf1ff",
+            "tertiary-fixed": "#6ffbbe",
+            "on-primary-container": "#eeefff",
+            "on-primary-fixed": "#00174b",
+            "on-tertiary": "#ffffff",
+            "inverse-primary": "#b4c5ff",
+            "primary-fixed-dim": "#b4c5ff",
+            "error": "#ba1a1a",
+            "surface-variant": "#d3e4fe",
+            "outline": "#737686",
+            "surface-container": "#e5eeff",
+            "secondary-fixed": "#e9ddff",
+            "on-tertiary-fixed": "#002113",
+            "surface-tint": "#0053db",
+            "surface-bright": "#f8f9ff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "unit": "4px",
+            "stack-sm": "8px",
+            "margin-mobile": "16px",
+            "gutter-mobile": "12px",
+            "stack-lg": "24px",
+            "stack-md": "16px"
+          },
+          "fontFamily": {
+            "body-lg": ["Be Vietnam Pro"],
+            "translation-text": ["Be Vietnam Pro"],
+            "label-sm": ["Inter"],
+            "body-md": ["Be Vietnam Pro"],
+            "label-md": ["Inter"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "body-sm": ["Be Vietnam Pro"],
+            "headline-sm": ["Plus Jakarta Sans"],
+            "headline-lg": ["Plus Jakarta Sans"]
+          },
+          "fontSize": {
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+            "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+            "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .material-symbols-fill {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .ambient-card-shadow {
+      box-shadow: 0 10px 25px -5px rgba(11, 28, 48, 0.08), 0 8px 10px -6px rgba(11, 28, 48, 0.05);
+    }
+    .purple-smart-glow {
+      box-shadow: 0 0 16px 2px rgba(132, 85, 239, 0.18);
+    }
+    .frosted-overlay {
+      background-color: rgba(248, 249, 255, 0.72);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    /* Hide scrollbar for smooth visual aesthetic */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body-md min-h-screen flex justify-center items-center antialiased select-none p-0 md:p-6">
+<!-- Mobile Screen Canvas Wrapper (Optimized for one-handed linguist chat) -->
+<div class="w-full max-w-[420px] h-[920px] max-h-screen bg-surface-container-low flex flex-col relative overflow-hidden shadow-2xl rounded-none md:rounded-[36px] border border-outline-variant/30">
+<!-- 1. Header Navigation Bar -->
+<header class="bg-surface-container-lowest/90 backdrop-blur-md z-30 px-margin-mobile py-2.5 flex items-center justify-between shadow-sm sticky top-0">
+<div class="flex items-center gap-2">
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition-colors active:scale-95">
+<span class="material-symbols-outlined text-[22px]">arrow_back</span>
+</button>
+<!-- Sofia Avatar & Status Indicator -->
+<div class="relative">
+<img class="w-10 h-10 rounded-full object-cover ring-2 ring-primary/20" data-alt="A candid profile photo of Sofia V., a friendly 26-year-old native Spanish speaker from Madrid with warm brown eyes and natural smile, wearing a subtle indigo linen shirt against a soft blurred city cafe background in bright high-key morning light." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB1m2DrgwlHZWBjsyZcA_YHKb0GajO_QPXY37xgSUPI0vXcXLfKTV2foEddzepyjsmFxbxrjuK3rsGBxoFLN-t_SMnQghmRry1dw8e4c0CI8YPCpx2UD5uvO6-x19xt5kSkqiSAgE4R-TKYwwfe27wlfmzzRg0ddSssQF1Vd3xeWhq8a4cV9dP0HGpTUow6gPWoz3jZquHh0s68gJnBFO8cozEf45tYOp-LoAulzdQUzDQa-U9ypKvH"/>
+<span class="absolute bottom-0 right-0 w-3 h-3 bg-tertiary-fixed-dim rounded-full ring-2 ring-surface-container-lowest"></span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="font-headline-sm text-base font-bold text-on-surface tracking-tight leading-snug">Sofia V.</span>
+<!-- CEFR Level Badge -->
+<span class="px-1.5 py-0.5 rounded-full bg-secondary-container/10 border border-secondary-container/20 text-secondary font-label-sm text-[10px] font-semibold">
+              Native ES
+            </span>
+</div>
+<div class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary-container animate-pulse"></span>
+<span class="font-label-sm text-outline text-[11px]">Madrid • active now</span>
+</div>
+</div>
+</div>
+<!-- Quick Action Icons -->
+<div class="flex items-center gap-1">
+<button class="w-9 h-9 rounded-full flex items-center justify-center text-primary hover:bg-surface-container transition-colors active:scale-95" title="Start Audio Call">
+<span class="material-symbols-outlined text-[20px]">call</span>
+</button>
+<button class="w-9 h-9 rounded-full flex items-center justify-center text-primary hover:bg-surface-container transition-colors active:scale-95" title="Start Video Session">
+<span class="material-symbols-outlined text-[20px]">videocam</span>
+</button>
+<button class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition-colors active:scale-95" title="More Options">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</header>
+<!-- Pinned Message Banner -->
+<div class="bg-surface-container-lowest px-margin-mobile py-2 flex items-center justify-between shadow-sm z-20 border-b border-surface-container">
+<div class="flex items-center gap-2 overflow-hidden pr-2">
+<div class="w-6 h-6 rounded-full bg-secondary-fixed flex items-center justify-center text-secondary shrink-0">
+<span class="material-symbols-outlined text-[14px]">keep</span>
+</div>
+<div class="truncate">
+<p class="font-label-sm text-on-surface truncate">
+<span class="font-semibold text-primary">Sofia:</span> ¡No olvides traer los apuntes mañana! 
+            <span class="text-on-surface-variant text-[10px] italic">(Don't forget to bring notes tomorrow!)</span>
+</p>
+</div>
+</div>
+<button class="text-outline-variant hover:text-on-surface-variant transition-colors p-1" title="Unpin message">
+<span class="material-symbols-outlined text-[16px]">close</span>
+</button>
+</div>
+<!-- 2. Chat Stream Canvas (Background Layer + Active Focused Target State) -->
+<div class="flex-1 relative overflow-y-auto no-scrollbar p-margin-mobile space-y-4">
+<!-- Timeline pill -->
+<div class="flex justify-center my-1">
+<span class="px-3 py-1 bg-surface-container-high/60 rounded-full font-label-sm text-on-surface-variant text-[11px]">
+          Today • Conversation Drill #14
+        </span>
+</div>
+<!-- Historical Incoming Bubble (Dimmed Contextual) -->
+<div class="flex flex-col items-start max-w-[82%] space-y-1">
+<div class="bg-surface-container-lowest border border-outline-variant/40 rounded-2xl rounded-tl-sm p-3.5 ambient-card-shadow">
+<div class="flex items-center justify-between gap-2 mb-1">
+<span class="font-label-sm text-[10px] text-primary font-bold">Sofia • A2 Partner</span>
+<span class="font-label-sm text-[10px] text-outline">16:42</span>
+</div>
+<p class="font-body-md text-on-surface">¡Hola! Ya terminé mi clase de literatura en la facultad. Estuvo intensa.</p>
+<div class="mt-2 pt-2 border-t border-surface-container text-on-surface-variant font-translation-text text-xs flex items-center gap-1.5">
+<span class="material-symbols-outlined text-secondary text-[14px]">translate</span>
+<span>Hi! I just finished my literature class at faculty. It was intense.</span>
+</div>
+</div>
+</div>
+<!-- Outgoing Bubble (Dimmed Contextual) -->
+<div class="flex flex-col items-end max-w-[82%] ml-auto space-y-1">
+<div class="bg-primary-container text-on-primary rounded-2xl rounded-tr-sm p-3.5 shadow-sm">
+<p class="font-body-md text-white">¡Qué bien! Yo acabo de repasar las flashcards del metro.</p>
+<div class="flex items-center justify-end gap-1 mt-1 font-label-sm text-[10px] text-primary-fixed/80">
+<span>16:44</span>
+<span class="material-symbols-outlined text-[13px]">done_all</span>
+</div>
+</div>
+</div>
+<!-- OUTGOING CORRECTION PROMPT PILL -->
+<div class="flex justify-end pr-2">
+<div class="inline-flex items-center gap-1.5 bg-tertiary-container/10 border border-tertiary-fixed-dim/40 px-2.5 py-1 rounded-full text-tertiary font-label-sm text-[11px]">
+<span class="material-symbols-outlined text-[13px]">check_circle</span>
+<span>Grammar score: 98% • Native flow</span>
+</div>
+</div>
+<!-- FROSTED BACKDROP OVERLAY FOR ACTIVE LONG-PRESS STATE -->
+<div class="absolute inset-0 frosted-overlay z-30 transition-opacity duration-300"></div>
+<!-- THE FOCUSED ACTIVE TARGET MESSAGE (Elevated above frosted blur) -->
+<div class="relative z-40 my-2 pt-8">
+<!-- Floating Quick Reaction Emoji Pill -->
+<div class="absolute -top-4 left-4 z-50 bg-surface-container-lowest rounded-full px-3 py-1.5 flex items-center gap-3 shadow-xl border border-outline-variant/30 animate-in fade-in zoom-in duration-200">
+<button class="hover:scale-125 active:scale-95 transition-transform text-lg" title="Heart">❤️</button>
+<button class="hover:scale-125 active:scale-95 transition-transform text-lg" title="Laugh">😂</button>
+<button class="hover:scale-125 active:scale-95 transition-transform text-lg" title="Surprised">😮</button>
+<button class="hover:scale-125 active:scale-95 transition-transform text-lg" title="Clap">👏</button>
+<!-- Chorus Learning Unique Reactions -->
+<div class="h-4 w-px bg-outline-variant/50"></div>
+<button class="hover:scale-110 active:scale-95 transition-transform flex items-center gap-1 bg-secondary-fixed px-2 py-0.5 rounded-full" title="Smart Insight">
+<span class="text-sm">🧠</span>
+<span class="font-label-sm text-[10px] font-bold text-secondary">+5 XP</span>
+</button>
+<button class="hover:scale-110 active:scale-95 transition-transform flex items-center gap-1 bg-surface-container px-2 py-0.5 rounded-full" title="Madrid Slang">
+<span class="text-sm">🇪🇸</span>
+<span class="font-label-sm text-[10px] font-semibold text-on-surface-variant">Slang</span>
+</button>
+</div>
+<!-- Highlighted Focused Bubble with AI Smart Purple Accent Glow -->
+<div class="max-w-[90%] bg-surface-container-lowest border-l-4 border-l-secondary rounded-2xl rounded-tl-sm p-4 purple-smart-glow shadow-2xl relative">
+<!-- Incoming message meta -->
+<div class="flex items-center justify-between gap-2 mb-1.5">
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-xs font-bold text-primary">Sofia V.</span>
+<span class="bg-secondary-fixed/50 text-on-secondary-fixed text-[10px] font-semibold px-1.5 py-0.2 rounded">B2 Target</span>
+</div>
+<span class="font-label-sm text-[11px] text-outline">16:48</span>
+</div>
+<!-- Original Text -->
+<p class="font-body-md text-on-surface font-medium text-[15px] leading-relaxed">
+            ¿Nos vemos en la plaza a las siete o prefieres más tarde?
+          </p>
+<!-- Interactive Word-by-word / translation helper box -->
+<div class="mt-3 p-2.5 rounded-xl bg-surface-container-low border border-secondary/20">
+<div class="flex items-center justify-between text-secondary mb-1">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[15px]">auto_awesome</span>
+<span class="font-label-sm text-[11px] font-bold uppercase tracking-wider">AI Instant In-Bubble</span>
+</div>
+<span class="font-label-sm text-[10px] text-outline cursor-pointer hover:text-primary">Hide translation</span>
+</div>
+<p class="font-translation-text text-on-surface-variant text-[13px] leading-snug">
+              "See you in the square at seven or do you prefer later?"
+            </p>
+</div>
+</div>
+<!-- Long-Press iOS / WhatsApp Contextual Action Tray -->
+<div class="mt-2.5 w-[250px] bg-surface-container-lowest/95 backdrop-blur-md rounded-2xl shadow-2xl border border-outline-variant/30 overflow-hidden divide-y divide-surface-container">
+<button class="w-full px-3.5 py-2.5 flex items-center justify-between text-left hover:bg-surface-container transition-colors active:bg-surface-container-high group">
+<span class="font-body-sm font-medium text-on-surface text-[13px]">Reply</span>
+<span class="material-symbols-outlined text-outline group-hover:text-primary text-[18px]">arrow_back</span>
+</button>
+<button class="w-full px-3.5 py-2.5 flex items-center justify-between text-left hover:bg-surface-container transition-colors active:bg-surface-container-high group">
+<span class="font-body-sm font-medium text-on-surface text-[13px]">Pin</span>
+<span class="material-symbols-outlined text-outline group-hover:text-primary text-[18px]">keep</span>
+</button>
+<button class="w-full px-3.5 py-2.5 flex items-center justify-between text-left hover:bg-surface-container transition-colors active:bg-surface-container-high group">
+<span class="font-body-sm font-medium text-on-surface text-[13px]">Copy Text &amp; Gloss</span>
+<span class="material-symbols-outlined text-outline group-hover:text-primary text-[18px]">content_copy</span>
+</button>
+<button class="w-full px-3.5 py-2.5 flex items-center justify-between text-left hover:bg-surface-container transition-colors active:bg-surface-container-high group">
+<span class="font-body-sm font-medium text-on-surface text-[13px]">Forward</span>
+<span class="material-symbols-outlined text-outline group-hover:text-primary text-[18px]">forward</span>
+</button>
+<!-- Chorus Learning Special Action -->
+<button class="w-full px-3.5 py-2.5 flex items-center justify-between text-left bg-secondary-fixed/20 hover:bg-secondary-fixed/40 transition-colors active:bg-secondary-fixed/60 group">
+<div class="flex items-center gap-1.5">
+<span class="font-body-sm font-semibold text-secondary text-[13px]">Suggest Edit</span>
+<span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+</div>
+<span class="material-symbols-outlined text-secondary text-[18px]">edit</span>
+</button>
+<!-- Chorus AI Deep Dive -->
+<button class="w-full px-3.5 py-2.5 flex items-center justify-between text-left hover:bg-surface-container transition-colors active:bg-surface-container-high group">
+<span class="font-body-sm font-semibold text-primary text-[13px]">AI Deep Dive (A1-C2)</span>
+<span class="material-symbols-outlined text-primary text-[18px]">auto_awesome</span>
+</button>
+<!-- Destructive Action -->
+<button class="w-full px-3.5 py-2.5 flex items-center justify-between text-left hover:bg-error-container/40 transition-colors active:bg-error-container group">
+<span class="font-body-sm font-medium text-error text-[13px]">Delete</span>
+<span class="material-symbols-outlined text-error text-[18px]">delete</span>
+</button>
+</div>
+</div>
+</div>
+<!-- 3. Bottom Interface: Rich Attachment Picker Tray & Quoted Draft Bar -->
+<div class="bg-surface-container-lowest border-t border-outline-variant/30 z-40 rounded-t-[28px] shadow-[0_-8px_30px_rgba(0,0,0,0.12)] flex flex-col">
+<!-- Drag Handle for Modal Feel -->
+<div class="w-full flex justify-center pt-2.5 pb-1">
+<div class="w-10 h-1 bg-outline-variant/60 rounded-full"></div>
+</div>
+<!-- Quoted Reply Preview Box -->
+<div class="mx-margin-mobile mb-2 p-2 bg-surface-container-low border-l-4 border-primary rounded-xl flex items-center justify-between gap-2 shadow-xs">
+<div class="flex items-center gap-2 overflow-hidden">
+<span class="material-symbols-outlined text-primary text-[18px] shrink-0">reply</span>
+<div class="truncate">
+<p class="font-label-sm text-primary font-bold text-[11px] leading-tight">Replying to Sofia</p>
+<p class="font-body-sm text-on-surface-variant text-xs truncate">"¿Nos vemos en la plaza a las siete o prefieres más tarde?"</p>
+</div>
+</div>
+<button class="w-6 h-6 rounded-full hover:bg-surface-container flex items-center justify-center text-outline transition-colors shrink-0">
+<span class="material-symbols-outlined text-[16px]">close</span>
+</button>
+</div>
+<!-- Input Message Bar -->
+<div class="px-margin-mobile pb-2.5 flex items-center gap-2">
+<div class="flex-1 bg-surface-container-low rounded-2xl px-3.5 py-2 flex items-center gap-2 border border-outline-variant/30 focus-within:border-primary transition-all">
+<button class="text-primary hover:text-primary-container transition-colors active:scale-95" title="Learning Vocabulary Assistant">
+<span class="material-symbols-outlined text-[20px]">smart_toy</span>
+</button>
+<input class="w-full bg-transparent border-0 p-0 text-sm font-body-md text-on-surface placeholder:text-outline-variant focus:ring-0 focus:outline-none" placeholder="Type your response in Spanish..." type="text" value="¡A las siete me viene genial! En Sol..."/>
+<button class="text-outline-variant hover:text-on-surface-variant transition-colors" title="Speech to text drill">
+<span class="material-symbols-outlined text-[20px]">mic</span>
+</button>
+</div>
+<!-- Send Button -->
+<button class="w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-md hover:bg-primary-container transition-all active:scale-90 shrink-0">
+<span class="material-symbols-outlined text-[19px]">send</span>
+</button>
+</div>
+<!-- Attachment Tray Title & Category Header -->
+<div class="px-margin-mobile pt-1 pb-2 flex items-center justify-between">
+<span class="font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider">Share Media &amp; Learning Tools</span>
+<span class="font-label-sm text-[11px] text-secondary font-medium">Quick Attachment</span>
+</div>
+<!-- Grid of 6 Rich Attachment Action Tiles -->
+<div class="px-margin-mobile pb-5 grid grid-cols-3 gap-2.5">
+<!-- Tile 1: Camera -->
+<button class="flex flex-col items-center justify-center p-3 rounded-2xl bg-surface-container-low hover:bg-surface-container transition-all active:scale-95 border border-outline-variant/20 group">
+<div class="w-11 h-11 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-1.5 group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[22px]">photo_camera</span>
+</div>
+<span class="font-label-sm text-xs font-semibold text-on-surface">Camera</span>
+<span class="font-label-sm text-[10px] text-outline">Capture now</span>
+</button>
+<!-- Tile 2: Photos & Videos -->
+<button class="flex flex-col items-center justify-center p-3 rounded-2xl bg-surface-container-low hover:bg-surface-container transition-all active:scale-95 border border-outline-variant/20 group">
+<div class="w-11 h-11 rounded-full bg-secondary/10 text-secondary flex items-center justify-center mb-1.5 group-hover:bg-secondary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[22px]">photo_library</span>
+</div>
+<span class="font-label-sm text-xs font-semibold text-on-surface">Gallery</span>
+<span class="font-label-sm text-[10px] text-outline">Media files</span>
+</button>
+<!-- Tile 3: Document / Homework -->
+<button class="flex flex-col items-center justify-center p-3 rounded-2xl bg-surface-container-low hover:bg-surface-container transition-all active:scale-95 border border-outline-variant/20 group">
+<div class="w-11 h-11 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center mb-1.5 group-hover:bg-tertiary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[22px]">description</span>
+</div>
+<span class="font-label-sm text-xs font-semibold text-on-surface">Homework</span>
+<span class="font-label-sm text-[10px] text-outline">PDF &amp; Essays</span>
+</button>
+<!-- Tile 4: Audio / Voice Memo -->
+<button class="flex flex-col items-center justify-center p-3 rounded-2xl bg-surface-container-low hover:bg-surface-container transition-all active:scale-95 border border-outline-variant/20 group">
+<div class="w-11 h-11 rounded-full bg-error/10 text-error flex items-center justify-center mb-1.5 group-hover:bg-error group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[22px]">mic</span>
+</div>
+<span class="font-label-sm text-xs font-semibold text-on-surface">Pronunciation</span>
+<span class="font-label-sm text-[10px] text-outline">Audio memo</span>
+</button>
+<!-- Tile 5: Location / Landmark -->
+<button class="flex flex-col items-center justify-center p-3 rounded-2xl bg-surface-container-low hover:bg-surface-container transition-all active:scale-95 border border-outline-variant/20 group">
+<div class="w-11 h-11 rounded-full bg-primary-container/10 text-primary-container flex items-center justify-center mb-1.5 group-hover:bg-primary-container group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[22px]">location_on</span>
+</div>
+<span class="font-label-sm text-xs font-semibold text-on-surface">Meetup Spot</span>
+<span class="font-label-sm text-[10px] text-outline">Madrid center</span>
+</button>
+<!-- Tile 6: Learning Card / SRS Deck (Chorus Signature Tool) -->
+<button class="flex flex-col items-center justify-center p-3 rounded-2xl bg-surface-container-low hover:bg-surface-container transition-all active:scale-95 border border-secondary/30 relative group overflow-hidden">
+<div class="absolute top-1 right-1 bg-secondary text-white font-label-sm text-[8px] font-bold px-1 rounded-sm">SRS</div>
+<div class="w-11 h-11 rounded-full bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center mb-1.5 group-hover:bg-secondary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[22px]">style</span>
+</div>
+<span class="font-label-sm text-xs font-semibold text-on-surface">Deck Flashcard</span>
+<span class="font-label-sm text-[10px] text-secondary font-medium">Send drill</span>
+</button>
+</div>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,223 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Chorus - Welcome Checklist</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-container": "#eeefff",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-container": "#fffbff",
+                        "surface-container-low": "#eff4ff",
+                        "on-tertiary": "#ffffff",
+                        "outline-variant": "#c3c6d7",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "on-surface": "#0b1c30",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed": "#00174b",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "tertiary-fixed": "#6ffbbe",
+                        "primary-fixed": "#dbe1ff",
+                        "primary-container": "#2563eb",
+                        "surface-container": "#e5eeff",
+                        "secondary-container": "#8455ef",
+                        "surface-container-high": "#dce9ff",
+                        "primary": "#004ac6",
+                        "inverse-surface": "#213145",
+                        "error": "#ba1a1a",
+                        "on-background": "#0b1c30",
+                        "on-tertiary-fixed": "#002113",
+                        "surface-tint": "#0053db",
+                        "surface": "#f8f9ff",
+                        "on-secondary-fixed-variant": "#5516be",
+                        "on-primary": "#ffffff",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-error": "#ffffff",
+                        "secondary-fixed": "#e9ddff",
+                        "tertiary": "#006242",
+                        "error-container": "#ffdad6",
+                        "surface-container-highest": "#d3e4fe",
+                        "surface-variant": "#d3e4fe",
+                        "on-tertiary-container": "#bdffdb",
+                        "on-surface-variant": "#434655",
+                        "secondary": "#6b38d4",
+                        "surface-bright": "#f8f9ff",
+                        "secondary-fixed-dim": "#d0bcff",
+                        "outline": "#737686",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "on-error-container": "#93000a",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "background": "#f8f9ff",
+                        "surface-dim": "#cbdbf5",
+                        "inverse-primary": "#b4c5ff",
+                        "on-secondary-fixed": "#23005c",
+                        "tertiary-container": "#007d55"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "gutter-mobile": "12px",
+                        "stack-sm": "8px",
+                        "stack-lg": "24px",
+                        "unit": "4px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "body-sm": ["Be Vietnam Pro"],
+                        "label-md": ["Inter"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "translation-text": ["Be Vietnam Pro"],
+                        "body-md": ["Be Vietnam Pro"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "label-sm": ["Inter"],
+                        "body-lg": ["Be Vietnam Pro"]
+                    },
+                    "fontSize": {
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+            font-family: theme('fontFamily.body-md');
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="antialiased min-h-screen pb-24 md:pb-0">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky bg-surface dark:bg-background shadow-[0px_4px_12px_rgba(0,0,0,0.05)] z-40">
+<div class="flex justify-between items-center px-margin-mobile py-stack-sm w-full max-w-4xl mx-auto">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container-high border-2 border-surface flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">person</span>
+</div>
+<h1 class="font-headline-md text-headline-sm md:text-headline-md text-primary dark:text-primary-fixed-dim font-bold tracking-tight">Chorus</h1>
+</div>
+<div class="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded-full">
+<span class="material-symbols-outlined text-secondary text-sm" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<span class="font-label-md text-label-md text-on-surface">92 XP</span>
+</div>
+</div>
+</header>
+<main class="max-w-xl mx-auto px-margin-mobile py-stack-lg">
+<div class="mb-8 text-center space-y-2">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Welcome to Chorus!</h2>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-sm mx-auto">Let's get you set up to start speaking right away. Complete these quick steps.</p>
+</div>
+<div class="w-full bg-surface-container-lowest rounded-xl shadow-[0px_8px_24px_rgba(0,0,0,0.08)] p-6 mb-8 border border-surface-container relative overflow-hidden">
+<div class="absolute top-0 left-0 w-full h-1 bg-surface-container">
+<div class="h-full bg-tertiary-container w-1/4 transition-all duration-500 rounded-r-full"></div>
+</div>
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Your Journey</h3>
+<span class="font-label-md text-label-md text-tertiary-container bg-tertiary-container/10 px-3 py-1 rounded-full">1 of 4 completed</span>
+</div>
+<div class="space-y-4">
+<!-- Step 1: Completed -->
+<div class="flex gap-4 items-start p-4 bg-surface-bright rounded-lg border border-surface-container opacity-60">
+<div class="flex-shrink-0 w-8 h-8 rounded-full bg-tertiary-container flex items-center justify-center text-on-tertiary">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div class="flex-1">
+<h4 class="font-label-md text-label-md text-on-surface line-through">Create Account</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">You're in! Welcome to the community.</p>
+</div>
+</div>
+<!-- Step 2: Active -->
+<div class="flex gap-4 items-start p-4 bg-primary-fixed/20 rounded-lg border-2 border-primary-container relative overflow-hidden transform transition-transform hover:scale-[1.02]">
+<div class="absolute -right-4 -top-4 w-16 h-16 bg-primary-container/10 rounded-full blur-xl"></div>
+<div class="flex-shrink-0 w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary">
+<span class="font-label-md text-label-md">2</span>
+</div>
+<div class="flex-1">
+<h4 class="font-label-md text-label-md text-on-surface">Take Placement Test</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1 mb-3">Find out your current level so we can match you perfectly.</p>
+<button class="w-full bg-primary-container text-on-primary font-label-md text-label-md py-2.5 px-4 rounded-full hover:opacity-90 transition-opacity active:scale-95 flex items-center justify-center gap-2">
+                            Start Test
+                            <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Step 3: Locked -->
+<div class="flex gap-4 items-start p-4 bg-surface-bright rounded-lg border border-surface-container opacity-80">
+<div class="flex-shrink-0 w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center text-on-surface-variant">
+<span class="font-label-md text-label-md">3</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-center">
+<h4 class="font-label-md text-label-md text-on-surface">Say Hello to a Partner</h4>
+<span class="material-symbols-outlined text-outline-variant text-sm">lock</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">We'll find someone learning your native language.</p>
+</div>
+</div>
+<!-- Step 4: Locked -->
+<div class="flex gap-4 items-start p-4 bg-surface-bright rounded-lg border border-surface-container opacity-80">
+<div class="flex-shrink-0 w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center text-on-surface-variant">
+<span class="font-label-md text-label-md">4</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-center">
+<h4 class="font-label-md text-label-md text-on-surface">Post a Learning Goal</h4>
+<span class="material-symbols-outlined text-outline-variant text-sm">lock</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Share what you want to achieve with the community.</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-xl bg-surface-container-lowest dark:bg-inverse-surface shadow-[0px_-4px_12px_rgba(0,0,0,0.05)] md:hidden">
+<div class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 pb-safe">
+<a class="flex flex-col items-center justify-center bg-primary-container dark:bg-primary-container text-on-primary-container rounded-full px-4 py-1 active:scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">school</span>
+<span class="font-label-sm text-label-sm mt-1">Learn</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant p-2 hover:bg-surface-variant/50 dark:hover:bg-surface-variant/20 rounded-full active:scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">chat_bubble</span>
+<span class="font-label-sm text-label-sm mt-1">Chats</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant p-2 hover:bg-surface-variant/50 dark:hover:bg-surface-variant/20 rounded-full active:scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">auto_awesome</span>
+<span class="font-label-sm text-label-sm mt-1">Hub</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant p-2 hover:bg-surface-variant/50 dark:hover:bg-surface-variant/20 rounded-full active:scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-sm text-label-sm mt-1">Profile</span>
+</a>
+</div>
+</nav>
+</body></html>

@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus - Post-Call Learning Summary &amp; Vocab Harvester</title>
+<!-- Google Fonts: Plus Jakarta Sans & Be Vietnam Pro & Inter -->
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788756204834&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YWM2MzdkZGIyYjYwMzZjN2QwNjg5MTE1Y2I1EgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&amp;family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "error-container": "#ffdad6",
+            "outline-variant": "#c3c6d7",
+            "surface-container-highest": "#d3e4fe",
+            "primary-container": "#2563eb",
+            "on-primary": "#ffffff",
+            "tertiary": "#006242",
+            "secondary-container": "#8455ef",
+            "on-secondary-fixed": "#23005c",
+            "surface": "#f8f9ff",
+            "surface-dim": "#cbdbf5",
+            "background": "#f8f9ff",
+            "tertiary-fixed-dim": "#4edea3",
+            "on-secondary-fixed-variant": "#5516be",
+            "on-error": "#ffffff",
+            "on-surface-variant": "#434655",
+            "primary": "#004ac6",
+            "on-secondary": "#ffffff",
+            "secondary-fixed-dim": "#d0bcff",
+            "on-background": "#0b1c30",
+            "on-primary-fixed-variant": "#003ea8",
+            "on-surface": "#0b1c30",
+            "tertiary-container": "#007d55",
+            "primary-fixed": "#dbe1ff",
+            "on-secondary-container": "#fffbff",
+            "inverse-surface": "#213145",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-high": "#dce9ff",
+            "surface-container-low": "#eff4ff",
+            "on-tertiary-fixed-variant": "#005236",
+            "on-error-container": "#93000a",
+            "secondary": "#6b38d4",
+            "on-tertiary-container": "#bdffdb",
+            "inverse-on-surface": "#eaf1ff",
+            "tertiary-fixed": "#6ffbbe",
+            "on-primary-container": "#eeefff",
+            "on-primary-fixed": "#00174b",
+            "on-tertiary": "#ffffff",
+            "inverse-primary": "#b4c5ff",
+            "primary-fixed-dim": "#b4c5ff",
+            "error": "#ba1a1a",
+            "surface-variant": "#d3e4fe",
+            "outline": "#737686",
+            "surface-container": "#e5eeff",
+            "secondary-fixed": "#e9ddff",
+            "on-tertiary-fixed": "#002113",
+            "surface-tint": "#0053db",
+            "surface-bright": "#f8f9ff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "2xl": "1rem",
+            "3xl": "1.5rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "unit": "4px",
+            "stack-sm": "8px",
+            "margin-mobile": "16px",
+            "gutter-mobile": "12px",
+            "stack-lg": "24px",
+            "stack-md": "16px"
+          },
+          "fontFamily": {
+            "body-lg": ["Be Vietnam Pro"],
+            "translation-text": ["Be Vietnam Pro"],
+            "label-sm": ["Inter"],
+            "body-md": ["Be Vietnam Pro"],
+            "label-md": ["Inter"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "body-sm": ["Be Vietnam Pro"],
+            "headline-sm": ["Plus Jakarta Sans"],
+            "headline-lg": ["Plus Jakarta Sans"]
+          },
+          "fontSize": {
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+            "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+            "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .material-symbols-filled {
+      font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .ai-border-glow {
+      box-shadow: 0 0 16px -2px rgba(132, 85, 239, 0.18);
+    }
+    /* Hide scrollbar for horizontal chip bars */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface antialiased min-h-screen font-body-md flex justify-center selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- Mobile Container Shell (One-Handed Flow) -->
+<main class="w-full max-w-md bg-surface-bright min-h-screen flex flex-col relative pb-36 shadow-xl border-x border-surface-container-high/30">
+<!-- Top Sticky Context Bar / Dismissable Call Header -->
+<header class="sticky top-0 z-30 bg-surface/90 backdrop-blur-md px-margin-mobile py-stack-md flex items-center justify-between shadow-sm transition-all">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">phone_iphone</span>
+</div>
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface">Call Summary</span>
+</div>
+<button class="px-4 py-1.5 rounded-full bg-surface-container-highest hover:bg-surface-container-high text-primary font-label-md text-label-md active:scale-95 transition-all" onclick="alert('Session saved to profile history!')">
+        Done
+      </button>
+</header>
+<div class="px-margin-mobile flex flex-col gap-stack-md pt-2">
+<!-- Partner Meta Card (Sofia & Call Stats) -->
+<section class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm flex items-center justify-between border border-surface-container">
+<div class="flex items-center gap-3">
+<div class="relative">
+<img class="w-13 h-13 rounded-full object-cover ring-2 ring-primary-fixed w-[52px] h-[52px]" data-alt="Close-up portrait of a warm smiling Latina language tutor with brown hair and friendly eyes against a bright airy modern room with subtle emerald and fluency blue tones, creating a welcoming and safe language learning environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC31AbB2S-aLoRAFm4HSc-2HuOhIK3rPE-KepWToyMLnMWQbbjwTsi0IHEXwUCe-ieNYFiXlbiZDmH1bOpu8JaGaTr-P-ofK6ujhbtJtC_DJknokdZxQsEZftrHehYHtFcA8VYnsp2zxJQcQZsfmI1C-VtW_MZJxGFGoMvBkaxyJJW9QhjXhbU5ClWthVZf7XiVXYfDyvTsP4vauxe2IhOa3GZbfEt-rjer5c0UCYAmMzu0iQusP0yD"/>
+<span class="absolute -bottom-1 -right-1 bg-tertiary-container text-on-tertiary-container text-[10px] font-label-sm px-1.5 py-0.5 rounded-full ring-2 ring-white">
+              ES
+            </span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<h2 class="font-headline-sm text-headline-sm font-bold text-on-surface leading-tight">Sofia V.</h2>
+<span class="material-symbols-outlined text-primary text-[18px] material-symbols-filled">verified</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-[16px] text-tertiary">mic</span>
+              18 mins 42 secs • Audio Practice
+            </p>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm font-bold">
+<span class="material-symbols-outlined text-[14px]">school</span>
+            B1 Immersion
+          </span>
+</div>
+</section>
+<!-- Language Speaking Ratio Banner & Celebration -->
+<section class="bg-surface-container-lowest rounded-3xl p-5 shadow-sm border border-surface-container flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface">Language Balance</span>
+<span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+</div>
+<!-- XP Chip -->
+<div class="inline-flex items-center gap-1 bg-surface-container-low border border-tertiary/20 text-tertiary font-label-md text-label-md px-2.5 py-1 rounded-full shadow-sm">
+<span class="material-symbols-outlined text-tertiary text-[16px] material-symbols-filled">local_fire_department</span>
+<span>+35 XP</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+          Maya reached her 60%+ conversational immersion target!
+        </p>
+<!-- Segmented Speaking Ratio Progress Bar -->
+<div class="w-full flex flex-col gap-1.5 pt-1">
+<div class="w-full h-3.5 bg-surface-container-high rounded-full overflow-hidden flex p-0.5 shadow-inner">
+<div class="h-full bg-primary-container rounded-l-full transition-all duration-700 ease-out" style="width: 65%;"></div>
+<div class="h-full bg-outline-variant/60 rounded-r-full transition-all duration-700 ease-out ml-0.5" style="width: 35%;"></div>
+</div>
+<div class="flex justify-between items-center text-label-md font-label-md pt-1">
+<div class="flex items-center gap-1.5 text-primary">
+<span class="w-2.5 h-2.5 rounded-full bg-primary-container"></span>
+<span class="font-bold">65% Spanish</span>
+<span class="text-on-surface-variant font-body-sm font-normal">(12m 10s)</span>
+</div>
+<div class="flex items-center gap-1.5 text-on-surface-variant">
+<span class="w-2.5 h-2.5 rounded-full bg-outline-variant"></span>
+<span class="font-medium">35% English</span>
+<span class="font-normal text-outline">(6m 32s)</span>
+</div>
+</div>
+</div>
+<!-- Fluency Metrics Bento Grid -->
+<div class="grid grid-cols-3 gap-2.5 pt-2">
+<div class="bg-surface-container-low/80 p-3 rounded-2xl flex flex-col border border-surface-container-high/60">
+<div class="flex items-center gap-1 text-primary">
+<span class="material-symbols-outlined text-[16px]">speed</span>
+<span class="font-label-sm text-label-sm font-semibold uppercase tracking-wider text-outline">Cadence</span>
+</div>
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface mt-1">88%</span>
+<span class="font-label-sm text-label-sm text-tertiary font-medium">Fluid Flow</span>
+</div>
+<div class="bg-surface-container-low/80 p-3 rounded-2xl flex flex-col border border-surface-container-high/60">
+<div class="flex items-center gap-1 text-secondary">
+<span class="material-symbols-outlined text-[16px]">auto_fix_high</span>
+<span class="font-label-sm text-label-sm font-semibold uppercase tracking-wider text-outline">Grammar</span>
+</div>
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface mt-1">91%</span>
+<span class="font-label-sm text-label-sm text-primary font-medium">Clean Form</span>
+</div>
+<div class="bg-surface-container-low/80 p-3 rounded-2xl flex flex-col border border-surface-container-high/60">
+<div class="flex items-center gap-1 text-tertiary">
+<span class="material-symbols-outlined text-[16px]">translate</span>
+<span class="font-label-sm text-label-sm font-semibold uppercase tracking-wider text-outline">Lexicon</span>
+</div>
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface mt-1">142</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">Spoken Words</span>
+</div>
+</div>
+</section>
+<!-- The Vocab Harvester Section (Call-to-SRS Pipeline) -->
+<section class="flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-secondary text-[20px] material-symbols-filled">bookmark_heart</span>
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">Harvested Vocab</h3>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">6 context-rich terms detected from Sofia</p>
+</div>
+<button class="text-primary font-label-md text-label-md hover:underline font-semibold flex items-center gap-1 bg-surface-container px-2.5 py-1 rounded-full" id="toggleSelectAllBtn" onclick="toggleSelectAll()">
+<span class="material-symbols-outlined text-[16px]">done_all</span>
+<span id="selectAllLabel">Select All (6)</span>
+</button>
+</div>
+<!-- Vocabulary Cards Collection -->
+<div class="flex flex-col gap-3">
+<!-- Vocab Card 1: Aprovechar -->
+<article class="vocab-card bg-surface-container-lowest rounded-2xl p-4 border border-surface-container shadow-sm hover:border-secondary transition-all flex flex-col gap-2.5 relative ai-border-glow">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface tracking-tight">aprovechar</span>
+<span class="font-label-sm text-label-sm italic text-outline bg-surface-container-low px-2 py-0.5 rounded">verb</span>
+<span class="bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm px-2 py-0.5 rounded-full font-bold">B1</span>
+</div>
+<label class="cursor-pointer">
+<input checked="" class="vocab-checkbox w-5 h-5 text-primary-container rounded border-outline-variant focus:ring-primary focus:ring-offset-0 transition" onchange="updateSelectedCount()" type="checkbox"/>
+</label>
+</div>
+<p class="font-body-md text-body-md font-medium text-primary">
+              “to take advantage of / to make the most of”
+            </p>
+<!-- Call In-Context Quote (AI Insights Tier) -->
+<div class="bg-surface-container-low rounded-xl p-3 border-l-4 border-secondary-container flex flex-col gap-1">
+<div class="flex items-center justify-between text-on-surface-variant">
+<span class="font-label-sm text-label-sm flex items-center gap-1 text-secondary font-semibold">
+<span class="material-symbols-outlined text-[14px]">record_voice_over</span>
+                  Sofia spoken context (08:14)
+                </span>
+<button class="text-primary hover:text-primary-fixed-variant" title="Play audio snippet">
+<span class="material-symbols-outlined text-[18px]">volume_up</span>
+</button>
+</div>
+<blockquote class="font-body-sm text-body-sm text-on-surface italic">
+                "¿Pudiste <strong class="text-secondary font-semibold">aprovechar</strong> el buen tiempo este fin de semana?"
+              </blockquote>
+<p class="font-translation-text text-translation-text text-on-surface-variant text-xs">
+                Translation: "Were you able to make the most of the nice weather this weekend?"
+              </p>
+</div>
+</article>
+<!-- Vocab Card 2: Hacer falta -->
+<article class="vocab-card bg-surface-container-lowest rounded-2xl p-4 border border-surface-container shadow-sm hover:border-secondary transition-all flex flex-col gap-2.5">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface tracking-tight">hacer falta</span>
+<span class="font-label-sm text-label-sm italic text-outline bg-surface-container-low px-2 py-0.5 rounded">idiom</span>
+<span class="bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm px-2 py-0.5 rounded-full font-bold">A2</span>
+</div>
+<label class="cursor-pointer">
+<input checked="" class="vocab-checkbox w-5 h-5 text-primary-container rounded border-outline-variant focus:ring-primary focus:ring-offset-0 transition" onchange="updateSelectedCount()" type="checkbox"/>
+</label>
+</div>
+<p class="font-body-md text-body-md font-medium text-primary">
+              “to be needed / necessary”
+            </p>
+<div class="bg-surface-container-low rounded-xl p-3 border-l-4 border-secondary-container flex flex-col gap-1">
+<div class="flex items-center justify-between text-on-surface-variant">
+<span class="font-label-sm text-label-sm flex items-center gap-1 text-secondary font-semibold">
+<span class="material-symbols-outlined text-[14px]">record_voice_over</span>
+                  Sofia spoken context (14:02)
+                </span>
+<button class="text-primary hover:text-primary-fixed-variant" title="Play audio snippet">
+<span class="material-symbols-outlined text-[18px]">volume_up</span>
+</button>
+</div>
+<blockquote class="font-body-sm text-body-sm text-on-surface italic">
+                "No <strong class="text-secondary font-semibold">hace falta</strong> que vengas tan temprano mañana."
+              </blockquote>
+<p class="font-translation-text text-translation-text text-on-surface-variant text-xs">
+                Translation: "There's no need for you to come so early tomorrow."
+              </p>
+</div>
+</article>
+<!-- Vocab Card 3: Alrededor de -->
+<article class="vocab-card bg-surface-container-lowest rounded-2xl p-4 border border-surface-container shadow-sm hover:border-secondary transition-all flex flex-col gap-2.5">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface tracking-tight">alrededor de</span>
+<span class="font-label-sm text-label-sm italic text-outline bg-surface-container-low px-2 py-0.5 rounded">prep.</span>
+<span class="bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm px-2 py-0.5 rounded-full font-bold">A2</span>
+</div>
+<label class="cursor-pointer">
+<input checked="" class="vocab-checkbox w-5 h-5 text-primary-container rounded border-outline-variant focus:ring-primary focus:ring-offset-0 transition" onchange="updateSelectedCount()" type="checkbox"/>
+</label>
+</div>
+<p class="font-body-md text-body-md font-medium text-primary">
+              “around / roughly / approximately”
+            </p>
+<div class="bg-surface-container-low rounded-xl p-3 border-l-4 border-secondary-container flex flex-col gap-1">
+<div class="flex items-center justify-between text-on-surface-variant">
+<span class="font-label-sm text-label-sm flex items-center gap-1 text-secondary font-semibold">
+<span class="material-symbols-outlined text-[14px]">record_voice_over</span>
+                  Sofia spoken context (16:45)
+                </span>
+<button class="text-primary hover:text-primary-fixed-variant" title="Play audio snippet">
+<span class="material-symbols-outlined text-[18px]">volume_up</span>
+</button>
+</div>
+<blockquote class="font-body-sm text-body-sm text-on-surface italic">
+                "Quedamos <strong class="text-secondary font-semibold">alrededor de</strong> las ocho en la plaza."
+              </blockquote>
+<p class="font-translation-text text-translation-text text-on-surface-variant text-xs">
+                Translation: "Let's meet around eight in the square."
+              </p>
+</div>
+</article>
+<!-- Collapsed Additional Items Drawer -->
+<div class="bg-surface-container-low/50 rounded-2xl p-3.5 border border-dashed border-outline-variant flex items-center justify-between cursor-pointer hover:bg-surface-container-high transition-colors" onclick="alert('Showing 3 more captured idioms: \'echar una mano\', \'por si acaso\', and \'darse cuenta\'!')">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-semibold text-on-surface">3 more words captured (B1-B2)</span>
+<span class="font-label-sm text-label-sm text-outline">echar una mano, por si acaso, darse cuenta</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant">chevron_right</span>
+</div>
+</div>
+</section>
+<!-- Live Notes & Teacher Highlights -->
+<section class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm border border-surface-container flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary-container text-[20px]">sticky_note_2</span>
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">Sofia's Live Notes</h3>
+</div>
+<span class="font-label-sm text-label-sm text-outline">Auto-transcribed</span>
+</div>
+<div class="flex flex-col gap-2.5">
+<!-- Note 1 -->
+<div class="p-3 bg-surface rounded-xl border border-surface-container flex items-start gap-2.5">
+<span class="material-symbols-outlined text-tertiary text-[18px] mt-0.5">check_circle</span>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-semibold text-on-surface">Great use of Subjunctive!</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                "When discussing your plans, you naturally used <em>'cuando tenga tiempo'</em>. Perfect reflexive conjugation."
+              </p>
+</div>
+</div>
+<!-- Note 2 with Correction Chip -->
+<div class="p-3 bg-surface rounded-xl border border-surface-container flex items-start gap-2.5">
+<span class="material-symbols-outlined text-error text-[18px] mt-0.5">tips_and_updates</span>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="font-label-md text-label-md font-semibold text-on-surface">Pronunciation Tip: 'rr' rolling</span>
+<span class="bg-error-container text-on-error-container font-label-sm text-label-sm px-1.5 py-0.5 rounded font-semibold">Micro-Drill</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+                Practice tongue placement on <em>"alrededor"</em> and <em>"ferrocarril"</em> before our next session on Thursday.
+              </p>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Bottom Persistent Action Tray (SRS Syncer & Scheduler) -->
+<div class="fixed bottom-0 max-w-md w-full z-40 bg-surface-bright/95 backdrop-blur-md p-4 flex flex-col gap-2.5 shadow-2xl border-t border-surface-container-high">
+<!-- Primary SRS Push Button -->
+<button class="w-full bg-primary hover:bg-primary-container active:scale-[0.98] transition-all text-on-primary py-3.5 px-5 rounded-2xl font-headline-sm text-headline-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-primary/25" id="srsSubmitBtn" onclick="saveToSRS()">
+<span class="material-symbols-outlined text-[22px]">auto_stories</span>
+<span id="srsBtnText">Add 6 Cards to Daily SRS Queue (+30 XP)</span>
+</button>
+<!-- Secondary Follow-up Booking Button -->
+<button class="w-full bg-surface-container hover:bg-surface-container-highest active:scale-[0.98] transition-all text-primary py-2.5 px-4 rounded-xl font-label-md text-label-md font-bold flex items-center justify-center gap-2" onclick="scheduleNextCall()">
+<span class="material-symbols-outlined text-[18px]">calendar_add_on</span>
+        Schedule Next Session with Sofia
+      </button>
+</div>
+</main>
+<!-- Interactive JavaScript for micro-interactions -->
+<script>
+    let allSelected = true;
+
+    function updateSelectedCount() {
+      const checkboxes = document.querySelectorAll('.vocab-checkbox');
+      let count = 0;
+      checkboxes.forEach(cb => {
+        if (cb.checked) count++;
+      });
+
+      // Update button labels
+      const srsBtn = document.getElementById('srsBtnText');
+      const selectAllLabel = document.getElementById('selectAllLabel');
+      
+      if (srsBtn) {
+        if (count === 0) {
+          srsBtn.textContent = "Select Words to Add to SRS";
+        } else {
+          srsBtn.textContent = `Add ${count} Cards to Daily SRS Queue (+${count * 5} XP)`;
+        }
+      }
+
+      if (selectAllLabel) {
+        selectAllLabel.textContent = count === checkboxes.length ? "Deselect All" : "Select All (6)";
+      }
+      allSelected = (count === checkboxes.length);
+    }
+
+    function toggleSelectAll() {
+      const checkboxes = document.querySelectorAll('.vocab-checkbox');
+      allSelected = !allSelected;
+      checkboxes.forEach(cb => {
+        cb.checked = allSelected;
+      });
+      updateSelectedCount();
+    }
+
+    function saveToSRS() {
+      const checkboxes = document.querySelectorAll('.vocab-checkbox:checked');
+      if (checkboxes.length === 0) {
+        alert('Please select at least 1 harvested vocabulary card to add to your spaced repetition queue!');
+        return;
+      }
+      alert(`🎉 Success! Added ${checkboxes.length} contextual flashcards to your SRS deck with audio clips and call timestamps.`);
+    }
+
+    function scheduleNextCall() {
+      alert('Opening calendar slots with Sofia for Thursday and Friday afternoons...');
+    }
+  </script>
+</body></html>

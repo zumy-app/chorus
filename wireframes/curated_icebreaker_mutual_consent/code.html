@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus - Safe Icebreaker &amp; Mutual Consent Flow</title>
+<!-- Google Fonts -->
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788757997723&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YWMzZTU4OTZjMjYwNmYxYzE1NGNhMDQ0NTEwEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "outline": "#737686",
+            "surface-tint": "#0053db",
+            "tertiary-container": "#007d55",
+            "secondary-fixed": "#e9ddff",
+            "primary-fixed": "#dbe1ff",
+            "surface-variant": "#d3e4fe",
+            "surface-container-highest": "#d3e4fe",
+            "on-tertiary": "#ffffff",
+            "on-primary-fixed": "#00174b",
+            "on-surface-variant": "#434655",
+            "secondary-fixed-dim": "#d0bcff",
+            "on-surface": "#0b1c30",
+            "on-background": "#0b1c30",
+            "inverse-primary": "#b4c5ff",
+            "surface-container": "#e5eeff",
+            "on-primary": "#ffffff",
+            "tertiary-fixed-dim": "#4edea3",
+            "on-tertiary-fixed-variant": "#005236",
+            "error": "#ba1a1a",
+            "on-tertiary-fixed": "#002113",
+            "on-tertiary-container": "#bdffdb",
+            "surface-container-high": "#dce9ff",
+            "on-secondary-container": "#fffbff",
+            "primary-fixed-dim": "#b4c5ff",
+            "secondary-container": "#8455ef",
+            "on-secondary-fixed": "#23005c",
+            "background": "#f8f9ff",
+            "surface-container-low": "#eff4ff",
+            "inverse-surface": "#213145",
+            "tertiary-fixed": "#6ffbbe",
+            "primary": "#004ac6",
+            "on-secondary": "#ffffff",
+            "on-secondary-fixed-variant": "#5516be",
+            "primary-container": "#2563eb",
+            "surface-dim": "#cbdbf5",
+            "surface-bright": "#f8f9ff",
+            "on-error": "#ffffff",
+            "inverse-on-surface": "#eaf1ff",
+            "on-primary-fixed-variant": "#003ea8",
+            "tertiary": "#006242",
+            "on-primary-container": "#eeefff",
+            "secondary": "#6b38d4",
+            "surface-container-lowest": "#ffffff",
+            "outline-variant": "#c3c6d7",
+            "on-error-container": "#93000a",
+            "error-container": "#ffdad6",
+            "surface": "#f8f9ff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "stack-sm": "8px",
+            "margin-mobile": "16px",
+            "gutter-mobile": "12px",
+            "unit": "4px",
+            "stack-lg": "24px",
+            "stack-md": "16px"
+          },
+          "fontFamily": {
+            "body-sm": ["Be Vietnam Pro"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "label-sm": ["Inter"],
+            "headline-sm": ["Plus Jakarta Sans"],
+            "headline-lg": ["Plus Jakarta Sans"],
+            "body-lg": ["Be Vietnam Pro"],
+            "label-md": ["Inter"],
+            "body-md": ["Be Vietnam Pro"],
+            "translation-text": ["Be Vietnam Pro"]
+          },
+          "fontSize": {
+            "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body-md antialiased min-h-screen flex flex-col justify-between">
+<!-- Mobile Wrapper with Safe Constraints -->
+<div class="w-full max-w-md mx-auto bg-surface min-h-screen flex flex-col relative shadow-sm pb-36">
+<!-- Top Context Navigation (Focused Flow: Suppressed Bottom Bar per Hierarchy Rules) -->
+<header class="sticky top-0 z-40 flex items-center justify-between px-margin-mobile py-stack-md bg-surface/95 backdrop-blur-md">
+<div class="flex items-center gap-3">
+<button aria-label="Go Back" class="w-9 h-9 rounded-full flex items-center justify-center bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors active:scale-95" type="button">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<div>
+<div class="flex items-center gap-1.5">
+<h1 class="font-headline-sm text-headline-sm text-on-surface tracking-tight">Connect with Sofia M.</h1>
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Active peer learner matching</p>
+</div>
+</div>
+<!-- Syllabus Match Pill -->
+<div class="flex items-center gap-1 bg-tertiary-fixed text-on-tertiary-fixed px-2.5 py-1 rounded-full shadow-sm">
+<span class="material-symbols-outlined text-[14px]" data-icon="auto_awesome" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<span class="font-label-md text-label-md font-bold">98% Match</span>
+</div>
+</header>
+<main class="flex-1 px-margin-mobile space-y-5 pt-2">
+<!-- Academic Snapshot Bento Card (Anti-Dating Pedagogy Framing) -->
+<section class="bg-surface-container-lowest rounded-xl p-4 shadow-sm border border-surface-container-high relative overflow-hidden">
+<!-- Top subtle accent bar for learning focus -->
+<div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-secondary"></div>
+<div class="flex items-start gap-3.5 pt-1">
+<!-- Profile Avatar with Online & Level Badge -->
+<div class="relative shrink-0">
+<img class="w-14 h-14 rounded-full object-cover ring-2 ring-surface-container" data-alt="A friendly, authentic studio portrait of a young female university student named Sofia with warm eyes, wearing an olive academic casual sweater against a clean neutral modern classroom backdrop with soft daylight lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDWa9mtcnrHeciJrdZnmn_KsLlyGJw3XCzhI2bUZRO17Ir0nRHGJn_LR9U-rracPlgrDDA_bzuBz76U_uwvhjoAOu3qmrCpw3NOHeOcb-OgJZE-xil5ruEObpc3ZnJVqpAMzah3VfB7WWYDUqlX_N9I5p8K7Qzmm1AsEvBA_tQ2k-C8Z5_bLSi_yUcLKa5VZvJVm3kF9iF0C5uE_EALSO1ZoNjLQlf2nWm2-qcLbIQPobQPJslJtQqs"/>
+<span class="absolute bottom-0 right-0 w-4 h-4 bg-tertiary-container border-2 border-surface-container-lowest rounded-full" title="Online now"></span>
+<span class="absolute -top-1 -right-1 bg-secondary text-on-secondary font-label-sm text-label-sm px-1.5 py-0.2 rounded-full font-bold shadow-sm">A2</span>
+</div>
+<!-- Academic Bio Details -->
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<div>
+<span class="font-headline-sm text-headline-sm text-on-surface">Sofia M.</span>
+<span class="font-label-sm text-label-sm text-outline ml-1.5">Madrid, ES</span>
+</div>
+<!-- Streak Counter -->
+<div class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface">
+<span class="material-symbols-outlined text-primary text-[15px]" data-icon="local_fire_department" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<span class="font-label-md text-label-md font-bold">14d</span>
+</div>
+</div>
+<!-- Language Exchange Matrix -->
+<div class="flex items-center gap-2 mt-2">
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm text-on-surface-variant bg-surface-container-low px-2 py-0.5 rounded">
+<span class="font-semibold text-primary">NATIVE</span> ES
+              </span>
+<span class="material-symbols-outlined text-[14px] text-outline" data-icon="sync_alt">sync_alt</span>
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm text-on-surface-variant bg-surface-container-low px-2 py-0.5 rounded">
+<span class="font-semibold text-secondary">LEARNING</span> EN
+              </span>
+</div>
+</div>
+</div>
+<!-- Academic Alignment Badges (Anti-Dating Guardrail Anchor) -->
+<div class="mt-4 pt-3 border-t border-surface-container flex flex-col gap-2">
+<div class="flex items-center gap-2 text-on-surface">
+<div class="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary text-[16px]" data-icon="menu_book">menu_book</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface">
+<span class="font-semibold text-on-surface">Target Unit:</span> Mastering Unit 1: Cafetería &amp; Travel
+            </p>
+</div>
+<div class="flex items-center gap-2 text-on-surface">
+<div class="w-6 h-6 rounded-lg bg-tertiary-container/10 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-tertiary text-[16px]" data-icon="handshake">handshake</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+              Both practicing A1 food ordering &amp; travel vocabulary
+            </p>
+</div>
+</div>
+<!-- Trust & Verification Footer Chips -->
+<div class="mt-3 bg-surface-container-low p-2 rounded-lg flex items-center justify-between text-on-surface-variant">
+<div class="flex items-center gap-1.5 font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-tertiary text-[16px]" data-icon="verified_user" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+<span>Verified Student</span>
+</div>
+<span class="text-outline-variant">•</span>
+<span class="font-label-sm text-label-sm">Placement Passed</span>
+<span class="text-outline-variant">•</span>
+<span class="font-label-sm text-label-sm font-medium text-tertiary">Safe Peer Certified</span>
+</div>
+</section>
+<!-- Mutual Consent & Safety Protection Guardrail Banner -->
+<section class="rounded-xl p-3.5 bg-surface-container-high border-l-4 border-secondary flex items-start gap-3 shadow-sm">
+<div class="w-8 h-8 rounded-full bg-secondary text-on-secondary flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[18px]" data-icon="security" style="font-variation-settings: 'FILL' 1;">security</span>
+</div>
+<div>
+<div class="flex items-center gap-1.5">
+<h2 class="font-label-md text-label-md font-bold text-on-surface">Mutual Consent Mode Active</h2>
+<span class="bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm px-1.5 py-0.5 rounded">Safe Exchange</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+            Personal contact info and unmoderated social topics are protected until both learners complete 3 educational practice exchanges.
+          </p>
+</div>
+</section>
+<!-- Curated Pedagogical Icebreakers (No Unmoderated Free-Text Entry) -->
+<section class="space-y-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[20px]" data-icon="quiz">quiz</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Curated Icebreakers</h3>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Select 1 pedagogical prompt</span>
+</div>
+<div class="space-y-2.5" id="icebreaker-group">
+<!-- Option 1: Selected State Default -->
+<label class="block cursor-pointer relative">
+<input checked="" class="peer sr-only" name="icebreaker_choice" type="radio" value="option_1"/>
+<div class="p-3.5 rounded-xl border-2 border-primary bg-surface-container-lowest peer-checked:bg-surface-container-low peer-checked:border-primary shadow-sm transition-all duration-200 relative">
+<div class="flex items-start justify-between gap-3">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="font-label-sm text-label-sm uppercase tracking-wider bg-primary/10 text-primary font-bold px-2 py-0.5 rounded">
+                      Can-Do Prompt
+                    </span>
+<span class="font-label-sm text-label-sm text-outline">Unit 1 Cafetería</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface font-semibold">
+                    “¡Hola! ¿Cómo se pide una tortilla poco hecha en Madrid?”
+                  </p>
+<p class="font-translation-text text-translation-text text-on-surface-variant mt-1 italic">
+                    Practicing Unit 1 Food Ordering &amp; authentic local culinary customs.
+                  </p>
+</div>
+<div class="w-6 h-6 rounded-full border-2 border-primary bg-primary flex items-center justify-center shrink-0 text-on-primary">
+<span class="material-symbols-outlined text-[16px]" data-icon="check" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+</div>
+</div>
+</label>
+<!-- Option 2: Roleplay Invite -->
+<label class="block cursor-pointer relative">
+<input class="peer sr-only" name="icebreaker_choice" type="radio" value="option_2"/>
+<div class="p-3.5 rounded-xl border border-outline-variant bg-surface-container-lowest peer-checked:bg-surface-container-low peer-checked:border-primary peer-checked:border-2 shadow-sm transition-all duration-200 relative hover:border-primary/50">
+<div class="flex items-start justify-between gap-3">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="font-label-sm text-label-sm uppercase tracking-wider bg-secondary-fixed text-on-secondary-fixed font-bold px-2 py-0.5 rounded">
+                      Roleplay Invite
+                    </span>
+<span class="font-label-sm text-label-sm text-outline">3 min activity</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface">
+                    “Would you like to do a 3-minute café ordering roleplay together?”
+                  </p>
+<p class="font-translation-text text-translation-text text-on-surface-variant mt-1">
+                    Interactive back-and-forth: You take the customer role, Sofia plays the barista.
+                  </p>
+</div>
+<div class="w-6 h-6 rounded-full border border-outline-variant flex items-center justify-center shrink-0"></div>
+</div>
+</div>
+</label>
+<!-- Option 3: Grammar Curiosity -->
+<label class="block cursor-pointer relative">
+<input class="peer sr-only" name="icebreaker_choice" type="radio" value="option_3"/>
+<div class="p-3.5 rounded-xl border border-outline-variant bg-surface-container-lowest peer-checked:bg-surface-container-low peer-checked:border-primary peer-checked:border-2 shadow-sm transition-all duration-200 relative hover:border-primary/50">
+<div class="flex items-start justify-between gap-3">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="font-label-sm text-label-sm uppercase tracking-wider bg-tertiary-fixed text-on-tertiary-fixed font-bold px-2 py-0.5 rounded">
+                      Grammar Curiosity
+                    </span>
+<span class="font-label-sm text-label-sm text-outline">Practical Usage</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface">
+                    “Can you help me understand when to use ‘para llevar’ vs ‘aquí’?”
+                  </p>
+<p class="font-translation-text text-translation-text text-on-surface-variant mt-1">
+                    Clear question asking for immediate feedback on Spanish prepositional phrasing.
+                  </p>
+</div>
+<div class="w-6 h-6 rounded-full border border-outline-variant flex items-center justify-center shrink-0"></div>
+</div>
+</div>
+</label>
+</div>
+</section>
+<!-- Audio Pronunciation Icebreaker Preview (Optional voice snippet) -->
+<section class="bg-surface-container-low rounded-xl p-4 border border-surface-container-high">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[20px]" data-icon="mic">mic</span>
+<span class="font-label-md text-label-md text-on-surface font-bold">Audio Warmup Snippet (Optional)</span>
+</div>
+<span class="font-label-sm text-label-sm bg-surface-container-lowest px-2 py-0.5 rounded text-on-surface-variant font-medium">Max 3 sec</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-3">
+          Add an authentic spoken greeting to showcase pronunciation willingness:
+        </p>
+<!-- Audio Interactive Module -->
+<div class="bg-surface-container-lowest p-3 rounded-lg flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-3">
+<button class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow hover:opacity-90 active:scale-95 transition-all" id="voice-rec-btn" type="button">
+<span class="material-symbols-outlined" data-icon="mic">mic</span>
+</button>
+<div>
+<p class="font-label-md text-label-md font-semibold text-on-surface">Spanish: ¡Hola, mucho gusto!</p>
+<p class="font-label-sm text-label-sm text-outline">Tap microphone to record 3s audio</p>
+</div>
+</div>
+<button class="text-primary hover:text-surface-tint text-sm font-medium flex items-center gap-0.5" title="Play pronunciation guide" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="volume_up">volume_up</span>
+<span class="font-label-sm text-label-sm font-bold">Guide</span>
+</button>
+</div>
+</section>
+<!-- Safety & Community Pledge Link -->
+<div class="pt-1 pb-4 text-center">
+<a class="inline-flex items-center gap-1.5 font-label-md text-label-md text-primary hover:underline" href="#safe-learning-pledge">
+<span class="material-symbols-outlined text-[16px]" data-icon="policy">policy</span>
+<span>Review Chorus Community Guidelines &amp; Safe Learning Pledge</span>
+</a>
+</div>
+</main>
+<!-- Bottom Action Bar (Fixed at Base) -->
+<div class="fixed bottom-0 left-0 w-full z-50 bg-surface-container-lowest/95 backdrop-blur-lg border-t border-surface-container p-margin-mobile">
+<div class="max-w-md mx-auto flex flex-col gap-2">
+<button class="w-full bg-primary hover:bg-surface-tint text-on-primary font-headline-sm text-headline-sm py-3 px-6 rounded-xl flex items-center justify-center gap-2 shadow-md active:scale-98 transition-all" id="send-icebreaker-btn" type="button">
+<span>Send Educational Icebreaker</span>
+<span class="bg-white/20 text-on-primary font-label-sm text-label-sm px-2 py-0.5 rounded-full font-bold">+25 XP</span>
+<span class="material-symbols-outlined text-[20px]" data-icon="send">send</span>
+</button>
+<p class="font-label-sm text-label-sm text-center text-outline">
+          Sofia has 24 hours to accept your practice invitation.
+        </p>
+</div>
+</div>
+</div>
+<!-- Interactive Radio Button Script for Dynamic Highlighting -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const radios = document.querySelectorAll('input[name="icebreaker_choice"]');
+      
+      radios.forEach(radio => {
+        radio.addEventListener('change', () => {
+          document.querySelectorAll('#icebreaker-group label').forEach(label => {
+            const card = label.querySelector('div.rounded-xl');
+            const checkIconContainer = label.querySelector('div.rounded-full.border');
+            
+            if (label.querySelector('input').checked) {
+              card.className = "p-3.5 rounded-xl border-2 border-primary bg-surface-container-low shadow-sm transition-all duration-200 relative";
+              checkIconContainer.className = "w-6 h-6 rounded-full border-2 border-primary bg-primary flex items-center justify-center shrink-0 text-on-primary";
+              checkIconContainer.innerHTML = '<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: \'FILL\' 1;" data-icon="check">check</span>';
+            } else {
+              card.className = "p-3.5 rounded-xl border border-outline-variant bg-surface-container-lowest shadow-sm transition-all duration-200 relative hover:border-primary/50";
+              checkIconContainer.className = "w-6 h-6 rounded-full border border-outline-variant flex items-center justify-center shrink-0";
+              checkIconContainer.innerHTML = '';
+            }
+          });
+        });
+      });
+
+      // Voice record micro-interaction
+      const voiceBtn = document.getElementById('voice-rec-btn');
+      let isRecording = false;
+      if (voiceBtn) {
+        voiceBtn.addEventListener('click', () => {
+          isRecording = !isRecording;
+          if (isRecording) {
+            voiceBtn.classList.remove('bg-primary-container', 'text-on-primary-container');
+            voiceBtn.classList.add('bg-error', 'text-on-error', 'animate-pulse');
+          } else {
+            voiceBtn.classList.remove('bg-error', 'text-on-error', 'animate-pulse');
+            voiceBtn.classList.add('bg-primary-container', 'text-on-primary-container');
+          }
+        });
+      }
+    });
+  </script>
+</body></html>

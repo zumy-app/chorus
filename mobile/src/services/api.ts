@@ -121,6 +121,7 @@ const apiService = {
   searchMedia: client.search.media,
   searchChats: client.search.chats,
   searchContacts: client.search.contacts,
+  grammarLearn: client.grammar.learn,
   blockUser: client.moderation.block,
   unblockUser: client.moderation.unblock,
   getBlocked: client.moderation.getBlocked,

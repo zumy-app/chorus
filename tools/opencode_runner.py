@@ -18,8 +18,18 @@ import tempfile
 import time
 from typing import Any
 
-from crewai.tools import BaseTool
-from pydantic import BaseModel, Field
+try:
+    from crewai.tools import BaseTool
+    from pydantic import BaseModel, Field
+except ModuleNotFoundError:
+    class BaseModel:  # type: ignore[no-redef]
+        pass
+
+    class BaseTool:  # type: ignore[no-redef]
+        pass
+
+    def Field(default=..., description: str = ""):  # type: ignore[no-redef]
+        return default
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 JOBS_DIR = os.path.join(REPO_ROOT, "agent_jobs")
@@ -153,6 +163,11 @@ def _wrap_task(task_prompt: str) -> str:
         "Your job is to make the requested code changes and verify them.\n"
         "Follow the working-set guardrails in WORKING_SET.md when one exists.\n"
         "Run the project's own test/build commands to confirm your changes.\n"
+        "For QA/test work, critical acceptance tests must drive real UI/API behavior. "
+        "Do not count console.warn soft-passes, swallowed catches, mocked-only routes, "
+        "or source-file read assertions as proof that a feature works.\n"
+        "If any required command, acceptance test, device check, or hard assertion fails, "
+        "report that as a failure instead of claiming completion.\n"
         "Report precisely: what you changed, which commands you ran, and the "
         "exact pass/fail + exit code for each.\n\n"
         "## Task\n\n"

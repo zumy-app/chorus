@@ -1,13 +1,11 @@
-<!DOCTYPE html>
-
-<html lang="en"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>Chorus - Trust &amp; Safety</title>
-<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788158188199&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YTUyNWQ3NDdkYTYwNTIyYWEzNTY5MzE1MWU1EgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
 <script id="tailwind-config">
       tailwind.config = {
         darkMode: "class",
@@ -111,7 +109,12 @@
         .toggle-checkbox:checked { right: 0; border-color: #2563eb; }
         .toggle-checkbox:checked + .toggle-label { background-color: #2563eb; }
     </style>
-</head>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
 <body class="font-body-md text-on-surface bg-surface min-h-screen">
 <header class="bg-surface dark:bg-background w-full top-0 sticky shadow-sm shadow-[0px_4px_12px_rgba(0,0,0,0.05)] z-40">
 <div class="flex justify-between items-center px-margin-mobile py-stack-sm w-full max-w-3xl mx-auto">
@@ -153,7 +156,7 @@
 <p class="font-body-sm text-body-sm text-on-surface-variant">Require identity or social verification to initiate chats. Drastically reduces spam and fake accounts.</p>
 </div>
 <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in mt-1">
-<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-surface-variant appearance-none cursor-pointer z-10 transition-all duration-300 checked:right-0 checked:border-primary-container" id="toggle1" name="toggle1" type="checkbox"/>
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-surface-variant appearance-none cursor-pointer z-10 transition-all duration-300 checked:right-0 checked:border-primary-container" id="toggle1" name="toggle1" type="checkbox">
 <label class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-variant cursor-pointer transition-colors duration-300" for="toggle1"></label>
 </div>
 </div>
@@ -166,7 +169,7 @@
 <p class="font-body-sm text-body-sm text-on-surface-variant">Hides your profile picture from unverified strangers and applies strict conversational filters.</p>
 </div>
 <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in mt-1">
-<input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-surface-variant appearance-none cursor-pointer z-10 transition-all duration-300" id="toggle2" name="toggle2" type="checkbox"/>
+<input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-surface-variant appearance-none cursor-pointer z-10 transition-all duration-300" id="toggle2" name="toggle2" type="checkbox">
 <label class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-variant cursor-pointer transition-colors duration-300" for="toggle2"></label>
 </div>
 </div>
@@ -181,7 +184,7 @@
 <p class="font-body-sm text-body-sm text-on-surface-variant">Automatically flags and filters incoming messages that deviate significantly from language learning contexts.</p>
 </div>
 <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in mt-1">
-<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-surface-variant appearance-none cursor-pointer z-10 transition-all duration-300 checked:right-0 checked:border-primary-container" id="toggle3" name="toggle3" type="checkbox"/>
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-surface-variant appearance-none cursor-pointer z-10 transition-all duration-300 checked:right-0 checked:border-primary-container" id="toggle3" name="toggle3" type="checkbox">
 <label class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-variant cursor-pointer transition-colors duration-300" for="toggle3"></label>
 </div>
 </div>

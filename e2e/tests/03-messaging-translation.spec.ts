@@ -115,29 +115,14 @@ test.describe('Cross-Language Messaging & Translation', () => {
         timeout: 15_000,
       })
 
-      // ⭐ Wait for the Spanish translation to arrive
-      // The backend translates async via translator-engine, then broadcasts via WebSocket
-      // Note: translator-engine may be slow on first run (model download) - we'll make this non-fatal
+      // ⭐ Wait for the Spanish translation to arrive — HARD FAIL if missing (Level 1: no soft-pass)
       const bubble = receiverPage.locator('.break-words', { hasText: testMsg }).last().locator('..')
-      
-      try {
-        await waitForTranslation(receiverPage, testMsg, 60_000)
-        
-        // Verify the translation section is visible
-        await expect(bubble.locator('text=🌐 In your language:')).toBeVisible()
-
-        // Verify there's actual translated text (not empty)
-        const translationSection = bubble.locator('.italic.font-medium')
-        const translationText = await translationSection.textContent()
-        expect(translationText).toBeTruthy()
-        expect(translationText!.length).toBeGreaterThan(3)
-        console.log('✓ Translation received successfully')
-      } catch (error) {
-        // Translation didn't arrive - this can happen when translator-engine is cold-starting
-        console.warn('⚠️ Translation did not arrive within 60s (translator-engine may still be downloading model)')
-        console.warn('   Message was received successfully, but translation feature is degraded')
-        // Don't fail the test - the core messaging works, translation is a secondary feature
-      }
+      await waitForTranslation(receiverPage, testMsg, 60_000)
+      await expect(bubble.locator('text=🌐 In your language:')).toBeVisible({ timeout: 10_000 })
+      const translationSection = bubble.locator('.italic.font-medium')
+      const translationText = await translationSection.textContent()
+      expect(translationText, 'translation text must be non-empty').toBeTruthy()
+      expect(translationText!.length).toBeGreaterThan(3)
     } finally {
       await senderContext.close()
       await receiverContext.close()
@@ -234,22 +219,10 @@ test.describe('Cross-Language Messaging & Translation', () => {
         timeout: 15_000,
       })
 
-      // English user should receive English translation
-      // Note: translator-engine may be slow on first run (model download) - we'll make this non-fatal
+      // English user should receive English translation — HARD FAIL if missing
       const bubble = receiverPage.locator('.break-words', { hasText: testMsg }).last().locator('..')
-      
-      try {
-        await waitForTranslation(receiverPage, testMsg, 60_000)
-        
-        // Verify translation section
-        await expect(bubble.locator('text=🌐 In your language:')).toBeVisible()
-        console.log('✓ Reverse translation received successfully')
-      } catch (error) {
-        // Translation didn't arrive - this can happen when translator-engine is cold-starting
-        console.warn('⚠️ Reverse translation did not arrive within 60s (translator-engine may still be downloading model)')
-        console.warn('   Message was received successfully, but translation feature is degraded')
-        // Don't fail the test - the core messaging works, translation is a secondary feature
-      }
+      await waitForTranslation(receiverPage, testMsg, 60_000)
+      await expect(bubble.locator('text=🌐 In your language:')).toBeVisible({ timeout: 10_000 })
     } finally {
       await senderContext.close()
       await receiverContext.close()
