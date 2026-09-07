@@ -31,6 +31,9 @@ export default function ChatScreen({ route, navigation }: any) {
   const [translateAsType, setTranslateAsType] = useState(false);
   const [deepDiveVisible, setDeepDiveVisible] = useState(false);
   const [sparkyInput, setSparkyInput] = useState('');
+  const [sparkyMessages, setSparkyMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
+  const [sparkyLoading, setSparkyLoading] = useState(false);
+  const [sparkyError, setSparkyError] = useState('');
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [pinned, setPinned] = useState<any[]>([]);
   const [pinnedOpen, setPinnedOpen] = useState(false);
@@ -561,6 +564,13 @@ export default function ChatScreen({ route, navigation }: any) {
                   Ask Sparky about any message for grammar help and practice ideas.
                 </Text>
               </View>
+              {sparkyMessages.map((m, i) => (
+                <View key={i} testID={m.role === 'user' ? 'sparky-user-message' : 'sparky-assistant-message'} style={[m.role === 'user' ? { alignSelf: 'flex-end', backgroundColor: COLOR.primary, padding: 10, borderRadius: 12, maxWidth: '85%', marginTop: 8 } : styles.sheetTutorBubble, { marginTop: 8 }]}>
+                  <Text style={m.role === 'user' ? { color: '#fff' } : styles.sheetTutorText}>{m.content}</Text>
+                </View>
+              ))}
+              {sparkyLoading && <Text testID="sparky-loading" style={styles.typingText}>Sparky is typing…</Text>}
+              {sparkyError ? <Text testID="sparky-error" style={{ color: 'red', fontSize: 12 }}>{sparkyError}</Text> : null}
             </View>
             <View style={styles.sheetInputRow}>
               <TextInput
@@ -570,10 +580,35 @@ export default function ChatScreen({ route, navigation }: any) {
                 placeholder="Ask Sparky..."
                 placeholderTextColor={COLOR.onSurfaceVariant}
                 multiline
+                testID="sparky-input"
               />
               <TouchableOpacity
-                style={[styles.sheetSend, !sparkyInput.trim() && styles.sendButtonDisabled]}
-                disabled={!sparkyInput.trim()}>
+                testID="sparky-send"
+                accessibilityLabel="Send"
+                style={[styles.sheetSend, (!sparkyInput.trim() || sparkyLoading) && styles.sendButtonDisabled]}
+                disabled={!sparkyInput.trim() || sparkyLoading}
+                onPress={async () => {
+                  const query = sparkyInput.trim();
+                  if (!query || sparkyLoading) return;
+                  const contextText = messages[0]?.text || query;
+                  const lang = currentUser?.targetLanguages?.[0] || 'es';
+                  const nativeLang = currentUser?.nativeLanguage || 'en';
+                  setSparkyInput('');
+                  setSparkyError('');
+                  setSparkyMessages(prev => [...prev, { role: 'user', content: query }]);
+                  setSparkyLoading(true);
+                  try {
+                    const res: any = await (apiService as any).grammarLearn(contextText, lang, nativeLang, 'custom', query);
+                    const content = res?.content || 'Done';
+                    setSparkyMessages(prev => [...prev, { role: 'assistant', content }]);
+                  } catch (e: any) {
+                    const msg = e?.response?.data?.error || e?.message || 'Failed to get answer';
+                    setSparkyError(msg);
+                    setSparkyMessages(prev => [...prev, { role: 'assistant', content: msg }]);
+                  } finally {
+                    setSparkyLoading(false);
+                  }
+                }}>
                 <Text style={styles.sheetSendText}>➤</Text>
               </TouchableOpacity>
             </View>

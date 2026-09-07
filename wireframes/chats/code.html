@@ -1,11 +1,9 @@
-<!DOCTYPE html>
-
-<html class="light" lang="en"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 <title>Fluency Messenger - Chats</title>
 <!-- Tailwind CSS -->
-<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788152794930&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1OTFjZjlhYTBmMmYwNmYxYzNlYWM4MTMyNTg1EgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <!-- Tailwind Config from Brand Anchors -->
 <script id="tailwind-config">
         tailwind.config = {
@@ -102,12 +100,12 @@
         }
     </script>
 <!-- Google Fonts -->
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet">
 <!-- Material Symbols Outlined -->
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
 <style>
         /* Base styles */
         body {
@@ -144,20 +142,24 @@
 <body class="bg-background text-on-background font-body-md min-h-screen flex flex-col relative pb-[100px] pt-[64px]">
 <!-- TopAppBar Component (from JSON) -->
 <header class="fixed top-0 w-full z-50 bg-surface dark:bg-on-background shadow-sm dark:shadow-none transition-transform duration-200">
-<div class="flex items-center justify-between px-margin-mobile h-16 w-full">
-<!-- Leading Avatar -->
-<button aria-label="User Profile" class="w-10 h-10 rounded-full overflow-hidden elevation-1 transition-transform duration-200 active:scale-95 flex-shrink-0">
-<img class="w-full h-full object-cover" data-alt="A clean, modern headshot of a young professional smiling naturally. They are outdoors with a soft-focus background of a sunny urban park, conveying approachability and learning readiness. Warm natural lighting emphasizes the human connection in the language learning app interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBi8_d8eAlV7pNmMmbcOpUXrO0uFR4Kvx55_Zf8jKDuYhcO27xE2mEshEJ_TrXW3dYoQqJzlIXyA-v81zBzOVIS_F-kjLM12VIPM7PN5pKGSKJ06COe7sduQX9QOhqDnJlxr6rQkO8FfW_Km7Q57v3miBU8vtk7b2kycnLBHdL-i6N7me3XINbSXFZeHXIz1BSF8pReqfsIFOgLxLHG8M1TbF3ReUSNEBObTmzqQPLC4dLURbV9DZV_"/>
-</button>
-<!-- Headline / Brand -->
-<h1 class="font-headline-sm text-headline-sm text-primary dark:text-primary-fixed-dim truncate px-4">
-                Fluency Messenger
-            </h1>
-<!-- Trailing Icon -->
-<button aria-label="Translate Action" class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-variant/20 transition-transform duration-200 active:scale-95 flex-shrink-0">
-<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">translate</span>
-</button>
+<div class="flex items-center justify-between px-margin-mobile h-16 w-full"><!-- Headline / Brand -->
+<div class="flex items-center gap-2 min-w-0">
+  <h1 class="font-headline-sm text-headline-sm text-primary dark:text-primary-fixed-dim truncate">
+    Fluency Messenger
+  </h1>
 </div>
+<!-- Trailing Items: XP Pill & Profile Button -->
+<div class="flex items-center gap-3 flex-shrink-0">
+  <!-- XP Badge / Pill -->
+  <div class="inline-flex items-center gap-1.5 bg-orange-50 text-orange-700 px-3 py-1 rounded-full font-label-md text-label-md border border-orange-200/50 shadow-sm">
+    <span class="material-symbols-outlined text-[16px] text-[#FF9800]" style="font-variation-settings: 'FILL' 1;">bolt</span>
+    <span class="font-bold">1,420 XP</span>
+  </div>
+  <!-- Circular Profile Avatar Button -->
+  <button aria-label="User Profile" class="w-10 h-10 rounded-full overflow-hidden elevation-1 transition-transform duration-200 active:scale-95 flex-shrink-0 border-2 border-surface-container-high">
+    <img class="w-full h-full object-cover" data-alt="User Profile Photo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBi8_d8eAlV7pNmMmbcOpUXrO0uFR4Kvx55_Zf8jKDuYhcO27xE2mEshEJ_TrXW3dYoQqJzlIXyA-v81zBzOVIS_F-kjLM12VIPM7PN5pKGSKJ06COe7sduQX9QOhqDnJlxr6rQkO8FfW_Km7Q57v3miBU8vtk7b2kycnLBHdL-i6N7me3XINbSXFZeHXIz1BSF8pReqfsIFOgLxLHG8M1TbF3ReUSNEBObTmzqQPLC4dLURbV9DZV_">
+  </button>
+</div></div>
 </header>
 <!-- Main Content Area -->
 <main class="flex-1 flex flex-col w-full max-w-3xl mx-auto px-margin-mobile gap-stack-lg mt-stack-md pb-stack-lg">
@@ -165,7 +167,7 @@
 <div class="relative w-full elevation-1 rounded-xl overflow-hidden bg-surface-container-lowest">
 <div class="flex items-center px-4 py-3 gap-3 focus-within:ring-2 focus-within:ring-primary rounded-xl transition-shadow duration-200">
 <span class="material-symbols-outlined text-outline">search</span>
-<input class="flex-1 bg-transparent border-none p-0 text-body-md font-body-md text-on-surface placeholder:text-outline focus:ring-0 focus:outline-none" placeholder="Search chats or languages..." type="text"/>
+<input class="flex-1 bg-transparent border-none p-0 text-body-md font-body-md text-on-surface placeholder:text-outline focus:ring-0 focus:outline-none" placeholder="Search chats or languages..." type="text">
 <button class="text-primary opacity-0 focus:opacity-100 transition-opacity">
 <span class="material-symbols-outlined text-[20px]">mic</span>
 </button>
@@ -199,7 +201,7 @@
 <!-- Avatar with Status -->
 <div class="relative flex-shrink-0">
 <div class="w-14 h-14 rounded-full overflow-hidden bg-surface-variant elevation-1">
-<img class="w-full h-full object-cover" data-alt="Portrait of an energetic Spanish language tutor, a woman in her 30s with expressive features. She is in a vibrant, sunlit studio with colorful books in the background. High-key lighting, modern and crisp aesthetic, tailored for a friendly learning app avatar." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4aAgmCuJ3oELyoVZ66Hu7ox6j7Ilz_k2X_FUbFV6pautzW5UGRN1RvxMzvsfaBoEoAtvbZBHFwDllX-uQOpjOnUtDr-9SRKLC-wDPHF1RhuZOMNn0sQB6XO0vXTNxbfGGtJ1sKI0MQDi5mGfFCWiZo4uasqVGGtA95gQGfF3xRfjspXU5tdZnJDub6AISJqj3Jv1myIDX-AnAbvJpwkexaLVExEj_6WD2AfX_Q761a6gEh8T5niCB"/>
+<img class="w-full h-full object-cover" data-alt="Portrait of an energetic Spanish language tutor, a woman in her 30s with expressive features. She is in a vibrant, sunlit studio with colorful books in the background. High-key lighting, modern and crisp aesthetic, tailored for a friendly learning app avatar." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4aAgmCuJ3oELyoVZ66Hu7ox6j7Ilz_k2X_FUbFV6pautzW5UGRN1RvxMzvsfaBoEoAtvbZBHFwDllX-uQOpjOnUtDr-9SRKLC-wDPHF1RhuZOMNn0sQB6XO0vXTNxbfGGtJ1sKI0MQDi5mGfFCWiZo4uasqVGGtA95gQGfF3xRfjspXU5tdZnJDub6AISJqj3Jv1myIDX-AnAbvJpwkexaLVExEj_6WD2AfX_Q761a6gEh8T5niCB">
 </div>
 <div class="absolute -bottom-1 -right-1 bg-surface rounded-full p-[2px]">
 <div class="w-4 h-4 bg-[#FF9800] rounded-full flex items-center justify-center text-white border border-surface shadow-sm">
@@ -262,7 +264,7 @@
 <!-- Avatar with Status -->
 <div class="relative flex-shrink-0">
 <div class="w-14 h-14 rounded-full overflow-hidden bg-surface-variant elevation-1">
-<img class="w-full h-full object-cover" data-alt="A casual portrait of a young French man sitting at a Parisian cafe terrace. He is looking at the camera with a relaxed smile. The lighting is soft and natural, typical of an overcast European afternoon. Clean, modern aesthetic suitable for a social learning app." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8_m8va8OGSmKAqKZel1Aj-hkH7qVr6NRB-Vupyc_5gFEKrfhkqo6yumUsC9h-gkUA7T1AcVfbNj44zbpEyHnDeMa0f2GbwOvD5txT_VvTZhjg9Yv6gxNxbxCATrZEQy-bT99x3VgEiZYUsKE4nVNdx3LMV1udO7ws8Cu8wUH7oDGQ6RI-8cLxEm8HKjcaGJWxnxQMk_UKTHCsYVks_1_fr85QvI6pBtEncc4YljObHuyQ0cf0uKx8"/>
+<img class="w-full h-full object-cover" data-alt="A casual portrait of a young French man sitting at a Parisian cafe terrace. He is looking at the camera with a relaxed smile. The lighting is soft and natural, typical of an overcast European afternoon. Clean, modern aesthetic suitable for a social learning app." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8_m8va8OGSmKAqKZel1Aj-hkH7qVr6NRB-Vupyc_5gFEKrfhkqo6yumUsC9h-gkUA7T1AcVfbNj44zbpEyHnDeMa0f2GbwOvD5txT_VvTZhjg9Yv6gxNxbxCATrZEQy-bT99x3VgEiZYUsKE4nVNdx3LMV1udO7ws8Cu8wUH7oDGQ6RI-8cLxEm8HKjcaGJWxnxQMk_UKTHCsYVks_1_fr85QvI6pBtEncc4YljObHuyQ0cf0uKx8">
 </div>
 <div class="absolute -bottom-1 -right-1 bg-surface rounded-full p-[2px]">
 <div class="w-4 h-4 bg-tertiary-container rounded-full flex items-center justify-center text-on-tertiary-container border border-surface shadow-sm">
@@ -327,23 +329,21 @@
 <!-- BottomNavBar Component (from JSON) -->
 <!-- Displayed on mobile, active state on 'Chats' based on page intent -->
 <nav class="fixed bottom-0 w-full z-50 rounded-t-xl bg-surface-container dark:bg-inverse-surface shadow-[0px_-4px_12px_rgba(0,0,0,0.05)] md:hidden">
-<div class="flex justify-around items-center h-20 px-4 pb-safe w-full">
-<!-- Tab 1: Chats (ACTIVE) -->
+<div class="flex justify-around items-center h-20 px-4 pb-safe w-full"><!-- Tab 1: Chats (ACTIVE) -->
 <a aria-label="Chats" class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container dark:bg-primary-fixed-dim dark:text-on-primary-fixed-variant rounded-full px-5 py-1 transition-all duration-300 ease-out active:scale-90" href="#">
 <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">chat</span>
 <span class="font-label-md text-label-md mt-1">Chats</span>
 </a>
-<!-- Tab 2: Learn (INACTIVE) -->
+<!-- Tab 2: Hub (INACTIVE) -->
+<a aria-label="Hub" class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-5 py-1 hover:bg-surface-container-high dark:hover:bg-surface-variant/10 transition-all duration-300 ease-out active:scale-90 rounded-full" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">explore</span>
+<span class="font-label-md text-label-md mt-1">Hub</span>
+</a>
+<!-- Tab 3: Learn (INACTIVE) -->
 <a aria-label="Learn" class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-5 py-1 hover:bg-surface-container-high dark:hover:bg-surface-variant/10 transition-all duration-300 ease-out active:scale-90 rounded-full" href="#">
 <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">school</span>
 <span class="font-label-md text-label-md mt-1">Learn</span>
-</a>
-<!-- Tab 3: Profile (INACTIVE) -->
-<a aria-label="Profile" class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-5 py-1 hover:bg-surface-container-high dark:hover:bg-surface-variant/10 transition-all duration-300 ease-out active:scale-90 rounded-full" href="#">
-<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">person</span>
-<span class="font-label-md text-label-md mt-1">Profile</span>
-</a>
-</div>
+</a></div>
 </nav>
 <!-- Safe area spacing for iOS -->
 <style>
@@ -351,4 +351,6 @@
             padding-bottom: env(safe-area-inset-bottom, 0px);
         }
     </style>
+
+
 </body></html>

@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { grammarAPI } from '../services/api'
+import { useStore } from '../store'
 
 interface DeepDiveSheetProps {
   message?: {
@@ -10,10 +12,44 @@ interface DeepDiveSheetProps {
   onClose: () => void
 }
 
+type SparkyChatMessage = { role: 'user' | 'assistant'; content: string }
+
 export default function DeepDiveSheet({ message, onClose }: DeepDiveSheetProps) {
   const { t } = useTranslation()
+  const user = useStore(s => s.user)
+  const language = (user as any)?.targetLanguages?.[0] || (message as any)?.language || 'es'
+  const nativeLanguage = (user as any)?.nativeLanguage || 'en'
   const [sparkyInput, setSparkyInput] = useState('')
+  const [sparkyMessages, setSparkyMessages] = useState<SparkyChatMessage[]>([])
+  const [sparkyLoading, setSparkyLoading] = useState(false)
+  const [sparkyError, setSparkyError] = useState('')
+  const messagesEndRef = useRef<HTMLDivElement>(null)
   const analysis = message?.analysis
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [sparkyMessages, sparkyLoading])
+
+  const handleSparkySend = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    const query = sparkyInput.trim()
+    if (!query || sparkyLoading) return
+    const contextText = message?.text || query
+    setSparkyInput('')
+    setSparkyError('')
+    setSparkyMessages(prev => [...prev, { role: 'user', content: query }])
+    setSparkyLoading(true)
+    try {
+      const result = await grammarAPI.learn(contextText, language, nativeLanguage, 'custom', query)
+      setSparkyMessages(prev => [...prev, { role: 'assistant', content: result.content || t('grammar.aiError') }])
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || err?.message || t('grammar.aiError')
+      setSparkyError(msg)
+      setSparkyMessages(prev => [...prev, { role: 'assistant', content: msg }])
+    } finally {
+      setSparkyLoading(false)
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end md:justify-center items-center bg-on-background/40 backdrop-blur-[2px] p-0 md:p-4">
@@ -101,35 +137,48 @@ export default function DeepDiveSheet({ message, onClose }: DeepDiveSheetProps) 
           </div>
 
           {/* Contextual tutor chat */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3" data-testid="sparky-chat">
             <h3 className="font-label-md text-label-md text-on-surface-variant">{t('grammar.askSparkyAboutThis')}</h3>
             <div className="bg-surface-container-low p-3 rounded-2xl rounded-bl-sm self-start max-w-[85%]">
               <p className="font-body-sm text-body-sm text-on-surface">{t('grammar.sparkySubtitle')}</p>
             </div>
+            {sparkyMessages.map((m, i) => (
+              <div key={i} data-testid={m.role === 'user' ? 'sparky-user-message' : 'sparky-assistant-message'} className={m.role === 'user' ? 'bg-primary text-on-primary p-3 rounded-2xl rounded-br-sm self-end max-w-[85%]' : 'bg-surface-container-low p-3 rounded-2xl rounded-bl-sm self-start max-w-[85%]'}>
+                <p className="font-body-sm text-body-sm whitespace-pre-wrap">{m.content}</p>
+              </div>
+            ))}
+            {sparkyLoading && <p data-testid="sparky-loading" className="font-label-sm text-label-sm text-secondary italic">Sparky is typing…</p>}
+            {sparkyError && <p data-testid="sparky-error" className="font-label-sm text-label-sm text-error">{sparkyError}</p>}
+            <div ref={messagesEndRef} />
           </div>
         </div>
 
         {/* Tutor input */}
-        <div className="p-4 bg-surface-container-lowest border-t border-outline-variant">
+        <form onSubmit={handleSparkySend} className="p-4 bg-surface-container-lowest border-t border-outline-variant">
           <div className="flex items-end gap-2">
             <div className="relative flex-1">
               <textarea
                 value={sparkyInput}
                 onChange={(e) => setSparkyInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSparkySend() } }}
                 placeholder={t('grammar.askSparky')}
                 rows={1}
+                data-testid="sparky-input"
                 className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-2.5 pl-4 pr-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary resize-none"
               />
             </div>
             <button
-              disabled={!sparkyInput.trim()}
+              type="submit"
+              onClick={handleSparkySend}
+              disabled={!sparkyInput.trim() || sparkyLoading}
+              data-testid="sparky-send"
               className="bg-secondary text-white w-10 h-10 rounded-full flex items-center justify-center shadow-sm hover:bg-secondary-container transition-colors disabled:opacity-40 shrink-0"
               aria-label={t('common.send')}
             >
               <span className="material-symbols-outlined text-[20px]">send</span>
             </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   )

@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus - Scenario Pack Browser &amp; Library Hub</title>
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788762228214&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YWM1ODIwNTk5NGQwNTc2MDJlNzQ2MDYyZWUzEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&amp;family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-container-low": "#eff4ff",
+            "on-tertiary-fixed": "#002113",
+            "tertiary": "#006242",
+            "surface-container-high": "#dce9ff",
+            "inverse-primary": "#b4c5ff",
+            "on-secondary-container": "#fffbff",
+            "on-tertiary-container": "#bdffdb",
+            "on-background": "#0b1c30",
+            "secondary-fixed-dim": "#d0bcff",
+            "on-surface": "#0b1c30",
+            "surface": "#f8f9ff",
+            "surface-container-highest": "#d3e4fe",
+            "surface-tint": "#0053db",
+            "on-tertiary": "#ffffff",
+            "on-secondary": "#ffffff",
+            "on-primary": "#ffffff",
+            "primary-fixed-dim": "#b4c5ff",
+            "secondary-container": "#8455ef",
+            "error-container": "#ffdad6",
+            "on-secondary-fixed-variant": "#5516be",
+            "error": "#ba1a1a",
+            "surface-container-lowest": "#ffffff",
+            "on-primary-fixed-variant": "#003ea8",
+            "tertiary-fixed-dim": "#4edea3",
+            "primary": "#004ac6",
+            "surface-dim": "#cbdbf5",
+            "on-tertiary-fixed-variant": "#005236",
+            "surface-container": "#e5eeff",
+            "secondary-fixed": "#e9ddff",
+            "primary-fixed": "#dbe1ff",
+            "outline": "#737686",
+            "inverse-surface": "#213145",
+            "on-surface-variant": "#434655",
+            "on-secondary-fixed": "#23005c",
+            "on-primary-container": "#eeefff",
+            "tertiary-fixed": "#6ffbbe",
+            "on-primary-fixed": "#00174b",
+            "surface-variant": "#d3e4fe",
+            "tertiary-container": "#007d55",
+            "surface-bright": "#f8f9ff",
+            "inverse-on-surface": "#eaf1ff",
+            "on-error-container": "#93000a",
+            "on-error": "#ffffff",
+            "primary-container": "#2563eb",
+            "outline-variant": "#c3c6d7",
+            "background": "#f8f9ff",
+            "secondary": "#6b38d4"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "stack-lg": "24px",
+            "stack-md": "16px",
+            "gutter-mobile": "12px",
+            "stack-sm": "8px",
+            "margin-mobile": "16px",
+            "unit": "4px"
+          },
+          "fontFamily": {
+            "body-md": ["Be Vietnam Pro"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "label-sm": ["Inter"],
+            "translation-text": ["Be Vietnam Pro"],
+            "body-lg": ["Be Vietnam Pro"],
+            "headline-lg": ["Plus Jakarta Sans"],
+            "body-sm": ["Be Vietnam Pro"],
+            "headline-sm": ["Plus Jakarta Sans"],
+            "label-md": ["Inter"]
+          },
+          "fontSize": {
+            "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+            "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+            "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .material-symbols-outlined.fill-icon {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    /* Hide scrollbars for clean chip scrolling */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface antialiased min-h-screen font-body-md text-body-md selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- Mobile Shell Wrapper -->
+<div class="max-w-md mx-auto min-h-screen bg-background relative flex flex-col pb-28">
+<!-- Top App Bar (Shared Component: TopAppBar with roleplay discovery customizations) -->
+<header class="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 bg-surface dark:bg-inverse-surface shadow-sm dark:shadow-none px-margin-mobile py-stack-sm flex items-center justify-between transition-colors duration-150">
+<div class="flex items-center gap-2">
+<button aria-label="Back" class="p-1 rounded-full text-primary dark:text-inverse-primary hover:bg-surface-container dark:hover:bg-surface-container-high active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-headline-sm" data-icon="arrow_back">arrow_back</span>
+</button>
+<div>
+<span class="block text-label-sm font-label-sm text-primary font-semibold tracking-wider uppercase">Catalog</span>
+<h1 class="text-headline-sm font-headline-sm font-bold text-on-surface leading-tight">Real-World Scenarios</h1>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<!-- XP Streak Badge -->
+<div class="flex items-center gap-1 bg-surface-container-low px-2.5 py-1 rounded-full border border-primary-fixed">
+<span class="material-symbols-outlined text-sm text-secondary fill-icon" data-icon="bolt">bolt</span>
+<span class="text-label-md font-label-md text-primary font-bold">1,420 XP</span>
+</div>
+<button aria-label="Search Scenarios" class="p-2 rounded-full text-on-surface-variant hover:bg-surface-container active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-xl" data-icon="search">search</span>
+</button>
+<button aria-label="Filter" class="p-2 rounded-full text-on-surface-variant hover:bg-surface-container active:scale-95 transition-all relative" type="button">
+<span class="material-symbols-outlined text-xl" data-icon="tune">tune</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary"></span>
+</button>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 px-margin-mobile pt-20 space-y-stack-lg">
+<!-- CEFR Level Selector Filter Pills -->
+<section class="overflow-x-auto no-scrollbar -mx-margin-mobile px-margin-mobile pt-1">
+<div class="flex items-center gap-2 w-max">
+<button class="px-3.5 py-1.5 rounded-full text-label-md font-label-md bg-surface-container-lowest text-on-surface-variant border border-outline-variant hover:bg-surface-container active:scale-95 transition-all shadow-sm">
+            All (28)
+          </button>
+<!-- Active Selection (A1 Beginner & A2 Elementary focus) -->
+<button class="px-3.5 py-1.5 rounded-full text-label-md font-label-md bg-primary text-on-primary font-semibold shadow-md active:scale-95 transition-all flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary-fixed-dim"></span>
+            A1 Beginner (8)
+          </button>
+<button class="px-3.5 py-1.5 rounded-full text-label-md font-label-md bg-primary-fixed text-on-primary-fixed font-semibold border border-primary active:scale-95 transition-all">
+            A2 Elementary (10)
+          </button>
+<button class="px-3.5 py-1.5 rounded-full text-label-md font-label-md bg-surface-container-lowest text-on-surface-variant border border-outline-variant hover:bg-surface-container active:scale-95 transition-all">
+            B1 Intermediate (7)
+          </button>
+<button class="px-3.5 py-1.5 rounded-full text-label-md font-label-md bg-surface-container-lowest text-on-surface-variant border border-outline-variant hover:bg-surface-container active:scale-95 transition-all">
+            B2 Advanced (3)
+          </button>
+</div>
+</section>
+<!-- Spotlight Hero Card: El Café De La Latina -->
+<section aria-label="Spotlight of the Week" class="relative rounded-xl overflow-hidden bg-surface-container-lowest shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-surface-container-high transition-all">
+<!-- Visual Accent Image & Header Backdrop -->
+<div class="relative h-44 w-full overflow-hidden bg-primary-container">
+<img class="w-full h-full object-cover mix-blend-overlay opacity-80" data-alt="A sunlit, bustling traditional Spanish café in the historic La Latina district of Madrid. Wooden marble-topped counter, polished espresso machines, warm golden morning light streaming through vintage arched windows, creating an authentic European cultural ambiance with soft tones of deep navy, ochre, and warm porcelain." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWSWID13b4cGsFrS8G_pEoS_X7UQ526MbuEsyuOjJsdU5J9rf3VaRRcHLD7GLpveWd-6owbaKMQWPBM1szbhygbKAvvAX176G1kVmVsS8Z8GCgnqbLSX885mW0sZtqfaOti-HrZTjnbRi1om8Be_3Yp2DDWe7AGqXyFsUmoLXQIdwJDQQL8b6Nh5Q0_sqtJrYn-W-rhecqhG5v8VFtp2D8Fk2mP0qPUcmjpPSZxwhEV376RgzTtL06"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-transparent to-black/30"></div>
+<!-- Spotlight Pill -->
+<div class="absolute top-3 left-3 flex items-center gap-1.5 bg-on-background/80 backdrop-blur-md px-2.5 py-1 rounded-full text-on-primary">
+<span class="material-symbols-outlined text-sm text-tertiary-fixed-dim fill-icon" data-icon="star">star</span>
+<span class="text-label-sm font-label-sm font-semibold tracking-wide">SPOTLIGHT OF THE WEEK</span>
+</div>
+<!-- Madrid Accent Pill -->
+<div class="absolute top-3 right-3 flex items-center gap-1 bg-surface-container-lowest/90 backdrop-blur-md px-2.5 py-1 rounded-full text-on-surface shadow-sm">
+<span class="text-label-sm font-label-sm">🇪🇸</span>
+<span class="text-label-sm font-label-sm font-medium text-primary">Madrid Accent</span>
+</div>
+</div>
+<!-- Hero Content Body -->
+<div class="p-4 pt-1 space-y-3 relative">
+<!-- Floating Interlocutor Avatar overlapping header -->
+<div class="flex items-end justify-between -mt-9">
+<div class="flex items-center gap-2.5 bg-surface-container-lowest p-1 rounded-xl shadow-sm border border-surface-container">
+<div class="w-11 h-11 rounded-lg bg-surface-container-highest overflow-hidden relative flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="Close-up portrait of Mateo, a friendly young Spanish barista in Madrid, wearing a clean navy apron over a linen shirt, smiling warmly against the cozy warm background of an artisan espresso coffee shop." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDimydiRcTj4pCP1b5qR2SiolgEcGxtrWnhG4B8uhF5VG0lXpXe3WEFKci2-HVHJ8xgvhfDpFQA9DR8LmmGIyYOKXoTIt6nRJsiiSF7A6HtADHnA9D_7L6oAgbt2PWj-96haZvEeokADauOCEUSLfoUU6AESBe3Z7Dl1BrQXBhuOTlOr7GpOJouA8i3adXbILs6bE8540moaoQPuLwFgxsA_zr-9vGA_tuinNcM5EXB6rcPcK2FoE4W"/>
+<span class="absolute bottom-0 right-0 w-3 h-3 bg-tertiary rounded-full border-2 border-surface-container-lowest"></span>
+</div>
+<div class="pr-2">
+<div class="text-label-md font-label-md font-bold text-on-surface leading-tight">Mateo</div>
+<div class="text-label-sm font-label-sm text-on-surface-variant">Barista • La Latina</div>
+</div>
+</div>
+<!-- Mastered Badge -->
+<div class="flex items-center gap-1 bg-tertiary/10 text-tertiary px-2.5 py-1 rounded-full border border-tertiary/20">
+<span class="material-symbols-outlined text-sm fill-icon" data-icon="check_circle">check_circle</span>
+<span class="text-label-sm font-label-sm font-bold">100% Mastered</span>
+</div>
+</div>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="px-2 py-0.5 rounded text-label-sm font-label-sm font-bold bg-primary-fixed text-on-primary-fixed">A1 Can-Do</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="schedule">schedule</span> 4 mins
+              </span>
+</div>
+<h2 class="text-headline-sm font-headline-sm font-bold text-on-surface">El Café De La Latina, Madrid</h2>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-0.5">
+              Order café con leche, ask for tostada con tomate, and request the check like a local.
+            </p>
+</div>
+<!-- Step Progress Breakdown Mini-Grid -->
+<div class="bg-surface-container-low p-2.5 rounded-lg border border-surface-container">
+<div class="flex items-center justify-between text-label-sm font-label-sm text-on-surface-variant mb-1.5">
+<span>Task Milestones</span>
+<span class="font-bold text-tertiary">5 of 5 Complete</span>
+</div>
+<!-- 5-segmented indicator -->
+<div class="grid grid-cols-5 gap-1">
+<div class="h-1.5 rounded-full bg-tertiary"></div>
+<div class="h-1.5 rounded-full bg-tertiary"></div>
+<div class="h-1.5 rounded-full bg-tertiary"></div>
+<div class="h-1.5 rounded-full bg-tertiary"></div>
+<div class="h-1.5 rounded-full bg-tertiary"></div>
+</div>
+</div>
+<!-- CTA Buttons -->
+<div class="grid grid-cols-2 gap-2 pt-1">
+<button class="flex items-center justify-center gap-1.5 bg-primary text-on-primary font-label-md text-label-md py-2.5 px-3 rounded-lg shadow-sm hover:bg-primary/90 active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-base fill-icon" data-icon="mic">mic</span>
+<span>Replay Voice (+20)</span>
+</button>
+<button class="flex items-center justify-center gap-1 bg-surface-container-lowest text-primary border border-primary/30 font-label-md text-label-md py-2.5 px-3 rounded-lg hover:bg-surface-container-low active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-base" data-icon="auto_stories">auto_stories</span>
+<span>View Minings</span>
+</button>
+</div>
+</div>
+</section>
+<!-- TRACK 1: Daily Madrid Life (A1-A2) -->
+<section class="space-y-3">
+<div class="flex items-baseline justify-between">
+<div>
+<div class="flex items-center gap-1.5">
+<span class="text-headline-sm font-headline-sm font-bold text-on-surface">Daily Madrid Life</span>
+<span class="px-2 py-0.2 rounded-full text-label-sm font-label-sm font-bold bg-primary-fixed text-on-primary-fixed">A1–A2</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Essential social interactions across neighborhood hubs</p>
+</div>
+<span class="text-label-sm font-label-sm font-semibold text-primary">2/4 Done</span>
+</div>
+<div class="space-y-3">
+<!-- Scenario Card 1: Mastered Coffee & Toast -->
+<div class="bg-surface-container-lowest p-3.5 rounded-xl border border-outline-variant/40 shadow-sm flex flex-col gap-3">
+<div class="flex items-start justify-between">
+<div class="flex gap-3">
+<div class="relative w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="Close up photography of fresh artisanal sourdough bread toast with grated tomato, olive oil, and a ceramic cup of café con leche on a Madrid restaurant wooden table." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAA_PwiwpQsAWTfBhehC9JWfnKZ04aSnKoRYxmA0fHPVKXbMyF9U9nm0E7rLk7OMo9Gcc2UZ9T-VObRvsDitOPkLJtiqssb8tpgGSEWMolJ1VxmRIsh59na1SFUvTEIESP6C6vRhIFqLgYaIORfJPVJEwcUgH42ahdgi_jVRGjncdOwDBYY0ra-oHThrj4-0ms-xGrtdmVc9Vmy-W27pbOhhENc6A0GQga2BlThFz3fBmfbLyFe_Jfz"/>
+<div class="absolute bottom-0 inset-x-0 bg-black/50 text-center py-0.2">
+<span class="text-[9px] text-white font-bold">5/5</span>
+</div>
+</div>
+<div>
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="text-label-sm font-label-sm px-1.5 py-0.2 rounded bg-tertiary-fixed text-on-tertiary-fixed font-semibold">Mastered 98%</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">A1</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">• 3 mins</span>
+</div>
+<h3 class="text-label-md font-label-md font-bold text-on-surface mt-0.5">Café de la Latina: Morning Coffee &amp; Toast</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant text-xs mt-0.5 line-clamp-1">Ordering specific dairy options &amp; breakfast combos</p>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between pt-1 border-t border-surface-container text-label-sm font-label-sm">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm text-primary fill-icon" data-icon="record_voice_over">record_voice_over</span>
+<span>Pro Voice</span>
+</div>
+<span>•</span>
+<span class="text-tertiary font-medium">Completed</span>
+</div>
+<button class="text-primary font-label-md text-label-md hover:underline active:scale-95 flex items-center gap-0.5" type="button">
+                Practice Pro Mode
+                <span class="material-symbols-outlined text-sm" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Scenario Card 2: IN PROGRESS - Mercado San Miguel -->
+<div class="bg-surface-container-lowest p-3.5 rounded-xl border-2 border-primary shadow-[0_4px_12px_rgba(0,83,219,0.08)] flex flex-col gap-3 relative overflow-hidden">
+<div class="absolute top-0 right-0 bg-primary text-on-primary text-[10px] font-bold px-2.5 py-0.5 rounded-bl-lg tracking-wider">
+              IN PROGRESS
+            </div>
+<div class="flex gap-3 pr-12">
+<div class="relative w-12 h-12 rounded-lg bg-surface-container flex-shrink-0 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Colorful produce and tapas stall inside historic covered market Mercado de San Miguel Madrid, fresh ripe avocados, oranges, and cured jamón hanging under ambient lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBnXE1CLVt8AEr9wibSZoDFDqOHsrEptFbgFkqQ6Cymv2-R1QE_CUYakfbWf4EJi3cWtKI53Sdaa_lmpb_5kzMP36Li-vVYKB9sheQyO6fvtPCxG55CSRzkwX5xcxm1LeAvEeTC-pzgG1igPu2Cp57H0nFXae_Ru0dFh4c8xm_uNB5RZFQJxVVMAlVT3vqbRN29UBJ8q1qgT20yRX0pLoYa2AXuGTlXvMxceFgqcqWxV-dGYpZhKVod"/>
+<div class="absolute bottom-0 right-0 w-3 h-3 bg-primary-container rounded-full border-2 border-surface-container-lowest"></div>
+</div>
+<div>
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="text-label-sm font-label-sm px-1.5 py-0.2 rounded bg-primary-fixed text-on-primary-fixed font-bold">A1 Can-Do</span>
+<span class="text-label-sm font-label-sm text-secondary font-bold">+45 XP</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">• 4 mins</span>
+</div>
+<h3 class="text-headline-sm font-headline-sm text-base font-bold text-on-surface mt-0.5">Mercado San Miguel: Fresh Fruit &amp; Tapas by Weight</h3>
+<div class="mt-1 flex items-center gap-1.5 text-xs text-on-surface-variant bg-surface-container-low p-1.5 rounded-md">
+<span class="material-symbols-outlined text-sm text-primary" data-icon="flag">flag</span>
+<span class="font-medium text-on-surface">Can-do: Ask for prices, weigh produce &amp; request ripe avocados</span>
+</div>
+</div>
+</div>
+<!-- Interlocutor Mini Badge & Progress Bar -->
+<div class="space-y-2 pt-1 border-t border-surface-container">
+<div class="flex items-center justify-between text-label-sm font-label-sm">
+<div class="flex items-center gap-2">
+<span class="w-6 h-6 rounded-full bg-surface-container-high flex items-center justify-center text-[11px] font-bold text-primary">CV</span>
+<span class="text-on-surface-variant">Carlos • Fruit Vendor</span>
+</div>
+<span class="font-bold text-primary">Step 2 of 4 (50%)</span>
+</div>
+<div class="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full transition-all duration-300" style="width: 50%"></div>
+</div>
+</div>
+<!-- Card Action Button -->
+<button class="w-full flex items-center justify-center gap-2 bg-primary text-on-primary py-2.5 px-4 rounded-lg font-label-md text-label-md font-semibold active:scale-98 shadow-sm hover:bg-primary/90 transition-all" type="button">
+<span class="material-symbols-outlined text-lg fill-icon" data-icon="play_arrow">play_arrow</span>
+<span>Resume (Step 3: Ask for Half Kilo)</span>
+</button>
+</div>
+<!-- Scenario Card 3: LOCKED - Bar El Tigre -->
+<div class="bg-surface-container-lowest/75 p-3.5 rounded-xl border border-outline-variant/30 shadow-none flex flex-col gap-2.5 opacity-80">
+<div class="flex items-start justify-between">
+<div class="flex gap-3">
+<div class="w-12 h-12 rounded-lg bg-surface-container-highest flex items-center justify-center flex-shrink-0 text-on-surface-variant">
+<span class="material-symbols-outlined text-2xl" data-icon="lock">lock</span>
+</div>
+<div>
+<div class="flex items-center gap-1.5">
+<span class="text-label-sm font-label-sm px-1.5 py-0.2 rounded bg-surface-container text-on-surface-variant font-medium">A2 Elementary</span>
+<span class="text-label-sm font-label-sm text-secondary font-bold">+50 XP</span>
+</div>
+<h3 class="text-label-md font-label-md font-bold text-on-surface mt-0.5">Bar El Tigre: Ordering Tapas &amp; Handling Allergies</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant text-xs mt-0.5">Specify gluten-free sidra pairings in a chaotic crowd</p>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between text-label-sm font-label-sm pt-1 border-t border-surface-container/60">
+<span class="text-on-surface-variant italic flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="info">info</span>
+                Unlocks after completing Mercado San Miguel
+              </span>
+<span class="text-on-surface-variant font-semibold">Locked</span>
+</div>
+</div>
+<!-- Scenario Card 4: Metro Gran Vía -->
+<div class="bg-surface-container-lowest p-3.5 rounded-xl border border-outline-variant/40 shadow-sm flex flex-col gap-3">
+<div class="flex items-start justify-between">
+<div class="flex gap-3">
+<div class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Madrid Gran Vía underground Metro station platform with modern turnstiles, sleek red and blue signage, and commuter train arriving, high contrast realistic urban transport lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCyB8wNZIsxogcV5dWJTefwhhTLFScwiCvhB9LgcSpErBbkX1v7wdLSmhb9Yy637I4lmf38WsjXpjlmMQcZFwDNmVAzsSh1wyiBEpa3vHO442KZBraeJQcv7pc48UxQ0jKzzQNcdZox89XoTW-xUyOIftx7KDbXNBUIJBxbD_kb72JZwGfWXf32elPjsdh1Hz0aBf73s0B9uz_gTSnEFhpcUk5zgVRAqxkzLVKn3LOzpolDrb0kZA3"/>
+</div>
+<div>
+<div class="flex items-center gap-1.5">
+<span class="text-label-sm font-label-sm px-1.5 py-0.2 rounded bg-surface-container-high text-primary font-bold">A2 Up Next</span>
+<span class="text-label-sm font-label-sm text-secondary font-bold">+40 XP</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">• 3 mins</span>
+</div>
+<h3 class="text-label-md font-label-md font-bold text-on-surface mt-0.5">Metro Gran Vía: Transit Card &amp; Airport Line</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant text-xs mt-0.5">Reloading Tarjeta Multi at the machine &amp; asking booth attendant</p>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between pt-1 border-t border-surface-container text-label-sm font-label-sm">
+<div class="flex items-center gap-1.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-sm" data-icon="support_agent">support_agent</span>
+<span>Interlocutor: Javier (Station Staff)</span>
+</div>
+<button class="text-primary font-label-md text-label-md font-semibold hover:underline active:scale-95" type="button">
+                Preview Scenario
+              </button>
+</div>
+</div>
+</div>
+</section>
+<!-- TRACK 2: Travel & Emergency Survival (A2-B1) -->
+<section class="space-y-3 pb-6">
+<div class="flex items-baseline justify-between">
+<div>
+<div class="flex items-center gap-1.5">
+<span class="text-headline-sm font-headline-sm font-bold text-on-surface">Travel &amp; Emergency Survival</span>
+<span class="px-2 py-0.2 rounded-full text-label-sm font-label-sm font-bold bg-secondary-fixed text-on-secondary-fixed">A2–B1</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">High-stakes roleplays for urgent logistics and troubleshooting</p>
+</div>
+<span class="text-label-sm font-label-sm font-semibold text-primary">0/2 Done</span>
+</div>
+<div class="space-y-3">
+<!-- Hotel Check-in Trouble -->
+<div class="bg-surface-container-lowest p-3.5 rounded-xl border border-outline-variant/40 shadow-sm flex flex-col gap-3">
+<div class="flex items-start justify-between">
+<div class="flex gap-3">
+<div class="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+<img class="w-full h-full object-cover" data-alt="Interior of an elegant boutique hotel lobby in Madrid Santo Domingo area with polished warm ambient lighting, marble front desk counter, and soft background details." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDF5aCGSQGe4nORZ2L__vkSI3VHl1NW7f6W1TJFP9-4ZrPDBrQfCcA4p9V9gwnEsbpobph4OSqlYUa9r6JFDsdK-fnCBWhFFDWgJ2p5PbV3cwg6qjp9QdPzHj2pTen8VYMGxdNdlCIixIG26ECFsAVCWIBsEoP2_zixN9-hOCtbMVUYhx8aLd3R8dLTrJFliI9YOmsNhj9pcq-TpH3rS2Y2qV9vt77OBK40U5y5RFiZxrgugBeH7G_T"/>
+</div>
+<div>
+<div class="flex items-center gap-1.5">
+<span class="text-label-sm font-label-sm px-1.5 py-0.2 rounded bg-secondary-fixed text-on-secondary-fixed font-bold">B1 Immersive</span>
+<span class="text-label-sm font-label-sm text-secondary font-bold">+50 XP</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">• 5 mins</span>
+</div>
+<h3 class="text-label-md font-label-md font-bold text-on-surface mt-0.5">Hotel Santo Domingo: Late Check-in &amp; Keycard Trouble</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant text-xs mt-0.5">Explain reservation mix-up and resolve deactivated door keycard</p>
+</div>
+</div>
+</div>
+<!-- Interlocutor Lucía -->
+<div class="bg-surface-container-low p-2 rounded-lg flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 rounded-full bg-secondary text-on-secondary flex items-center justify-center text-xs font-bold">L</div>
+<div>
+<span class="text-label-sm font-label-sm font-bold text-on-surface block leading-tight">Lucía</span>
+<span class="text-[10px] text-on-surface-variant">Night Concierge • Fluent Madrid Dialect</span>
+</div>
+</div>
+<div class="flex items-center gap-1 text-[11px] text-primary font-medium bg-surface-container-lowest px-2 py-0.5 rounded border border-primary/20">
+<span class="material-symbols-outlined text-xs" data-icon="speed">speed</span>
+                Adaptive AI
+              </div>
+</div>
+<div class="flex items-center gap-2 pt-1">
+<button class="flex-1 flex items-center justify-center gap-1.5 bg-primary text-on-primary py-2 px-3 rounded-lg font-label-md text-label-md font-semibold active:scale-95 shadow-sm" type="button">
+<span class="material-symbols-outlined text-base" data-icon="play_arrow">play_arrow</span>
+                Start Practice
+              </button>
+<button aria-label="Audio intro preview" class="p-2 bg-surface-container rounded-lg text-on-surface-variant hover:text-primary active:scale-95" type="button">
+<span class="material-symbols-outlined text-lg" data-icon="volume_up">volume_up</span>
+</button>
+</div>
+</div>
+<!-- Farmacia de Guardia -->
+<div class="bg-surface-container-lowest p-3.5 rounded-xl border border-outline-variant/40 shadow-sm flex flex-col gap-3">
+<div class="flex items-start justify-between">
+<div class="flex gap-3">
+<div class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A classic Spanish green cross illuminated pharmacy sign in a quiet Madrid neighborhood street corner at dusk, glowing softly against historic stone architecture." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDxQkrdgxf75-_hMvdWowtrIva8eOJcPh3PgLOd75jBtPoRp9SMsG5RkFohhsrqGFlpOWl-IXMw7y3094wE0-YGThSZBrwHp0kDBtiIyuRmLzMSL9q23Jzs3U5a8lbbUPrIO3fHl0Jewz5e8i-FP_IDZkoT_yfG4kUsQCsDY5AIK7m7xBpI8G5IZeWGJR6rFZJglgpcok5ZM90IkAG8h-walZ_2HkCLov_qrToQu_pycTgEs7lJdwy8"/>
+</div>
+<div>
+<div class="flex items-center gap-1.5">
+<span class="text-label-sm font-label-sm px-1.5 py-0.2 rounded bg-surface-container-high text-on-surface font-bold">A2 Essential</span>
+<span class="text-label-sm font-label-sm text-secondary font-bold">+35 XP</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">• 3 mins</span>
+</div>
+<h3 class="text-label-md font-label-md font-bold text-on-surface mt-0.5">Farmacia de Guardia: Explaining Headache &amp; Dosage</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant text-xs mt-0.5">Describe pain symptoms, ask for ibuprofen without a prescription</p>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between pt-1 border-t border-surface-container text-label-sm font-label-sm">
+<div class="flex items-center gap-1.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-sm" data-icon="medical_services">medical_services</span>
+<span>Interlocutor: Elena (Pharmacist)</span>
+</div>
+<button class="text-primary font-label-md text-label-md font-semibold hover:underline active:scale-95" type="button">
+                Start Practice
+              </button>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar (Shared Component: BottomNavBar, Scenarios Tab Active) -->
+<nav aria-label="Main Navigation" class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-margin-mobile py-stack-sm max-w-md mx-auto bg-surface-container-lowest dark:bg-inverse-surface shadow-[0_-4px_12px_rgba(0,0,0,0.05)] dark:shadow-none transition-colors duration-150">
+<!-- Destination 1: Practice -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant px-3 py-1.5 hover:bg-surface-container dark:hover:bg-surface-container-high active:scale-95 transition-all" href="#practice">
+<span class="material-symbols-outlined text-2xl" data-icon="chat_bubble">chat_bubble</span>
+<span class="text-label-sm font-label-sm mt-0.5">Practice</span>
+</a>
+<!-- Destination 2: Scenarios (ACTIVE) -->
+<a aria-current="page" class="flex flex-col items-center justify-center bg-primary-container dark:bg-primary text-on-primary-container dark:text-on-primary rounded-xl px-3 py-1.5 active:scale-95 transition-all" href="#scenarios">
+<span class="material-symbols-outlined text-2xl fill-icon" data-icon="theater_comedy">theater_comedy</span>
+<span class="text-label-sm font-label-sm font-bold mt-0.5">Scenarios</span>
+</a>
+<!-- Destination 3: Review -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant px-3 py-1.5 hover:bg-surface-container dark:hover:bg-surface-container-high active:scale-95 transition-all" href="#review">
+<span class="material-symbols-outlined text-2xl" data-icon="school">school</span>
+<span class="text-label-sm font-label-sm mt-0.5">Review</span>
+</a>
+<!-- Destination 4: Profile -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant px-3 py-1.5 hover:bg-surface-container dark:hover:bg-surface-container-high active:scale-95 transition-all" href="#profile">
+<span class="material-symbols-outlined text-2xl" data-icon="person">person</span>
+<span class="text-label-sm font-label-sm mt-0.5">Profile</span>
+</a>
+</nav>
+</div>
+<script>
+    // Lightweight interactive feedback for filter pills
+    document.querySelectorAll('section.overflow-x-auto button').forEach(button => {
+      button.addEventListener('click', () => {
+        // Toggle visual feedback state
+        document.querySelectorAll('section.overflow-x-auto button').forEach(b => {
+          b.classList.remove('bg-primary', 'text-on-primary');
+          b.classList.add('bg-surface-container-lowest', 'text-on-surface-variant');
+        });
+        button.classList.remove('bg-surface-container-lowest', 'text-on-surface-variant');
+        button.classList.add('bg-primary', 'text-on-primary');
+      });
+    });
+  </script>
+</body></html>

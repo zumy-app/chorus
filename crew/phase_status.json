@@ -407,7 +407,7 @@
     {
       "id": 4,
       "name": "Teacher Marketplace + Monetization + Release",
-      "status": "DONE",
+      "status": "IN_PROGRESS",
       "tasks": [
         {
           "id": "12.1",
@@ -541,6 +541,59 @@
           "status": "DONE",
           "updated_at": 1788295998.3424783,
           "note": "Fixing Spanish daily drills.\nScanning drills wiring for Spanish target.\nFixed `FIX-DRILL` (Spanish daily drills):\n\n- `backend/internal/handlers/learning.go:119` `GetDashboard` now seeds `es` vocab (`EnsureSeeded`) before aggregating, so `vocabulary.dueToday/total` non-zero for fresh Spanish learners.\n- `backend/internal/services/seed_queue.go:236` corrected `INSERT` param mapping (`isChunk`/`cefr`/`lexicalID`/`unitID` misaligned) — seed cards now persist with correct `is_chunk`, `cefr_level`, `c"
+        },
+        {
+          "id": "RESCUE-TEST-QUALITY",
+          "name": "TDD rescue: replace hollow QA/E2E tests with hard critical acceptance tests for C-01/C-04/C-05",
+          "status": "PENDING",
+          "role": "test_engineer",
+          "testRefs": [
+            "e2e/tests/20-comprehensive-two-user.spec.ts",
+            "e2e/tests/23-marketplace-e2e.spec.ts",
+            "e2e/tests/24-teacher-apply.spec.ts",
+            "e2e/acceptance/tests/p0-features.ts"
+          ],
+          "note": "Remove legacy Gmail fixtures, console.warn soft-passes, swallowed critical failures, mocked-only acceptance proof, and fs.readFileSync acceptance assertions."
+        },
+        {
+          "id": "RESCUE-LEARN-MOBILE",
+          "name": "Learning dashboard rescue: Daily Practice, Initial Test/Placement, Scenario Roleplay, Vocabulary, Real Talk, and Streak flows must work mobile-first",
+          "status": "PENDING",
+          "role": "mobile_engineer",
+          "testRefs": [
+            "mobile/src/screens/__tests__/learning.test.tsx",
+            "e2e/tests/21-learning-journey.spec.ts",
+            "e2e/acceptance/tests/p0-features.ts"
+          ],
+          "note": "Every LearnScreen card/button must navigate, call the real API, and render loading/success/error states."
+        },
+        {
+          "id": "RESCUE-SPARKY",
+          "name": "Sparky chatbot rescue: mobile Chat and Scenario Roleplay interactions must send, load, respond, and show retryable errors",
+          "status": "PENDING",
+          "role": "mobile_engineer",
+          "testRefs": [
+            "mobile/src/screens/__tests__/learning.test.tsx",
+            "mobile/src/screens/__tests__/qa-functional.test.tsx",
+            "e2e/tests/05-ai-tutor.spec.ts",
+            "e2e/tests/20-comprehensive-two-user.spec.ts"
+          ],
+          "note": "Sparky FAB/sheet/input/send must append user text, call grammar/learning API, show loading, render assistant response, and expose an error state."
+        },
+        {
+          "id": "RESCUE-GATE",
+          "name": "QA release rescue gate: audit, wireframe parity, backend/frontend/mobile tests, and AVD/device parity when available",
+          "status": "PENDING",
+          "role": "qa_engineer",
+          "testRefs": [
+            "python orchestrator.py --audit",
+            "cd e2e/acceptance && npm run acceptance:green",
+            "deploy/ci/verify-wireframe-parity.sh",
+            "cd backend && go build ./... && go vet ./... && go test ./...",
+            "cd frontend && npm test && npm run build",
+            "cd mobile && npx tsc --noEmit && npm test"
+          ],
+          "note": "This task cannot be DONE while any deterministic gate is red. The acceptance runner must execute real test cases and fail green mode on any unmet TC."
         }
       ],
       "gate": "marketplace + payouts + auto-promotion + Go/No-Go"

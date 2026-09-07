@@ -28,6 +28,8 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from crew import state as st  # noqa: E402
+from crew.gates import run_full_gate as run_deterministic_full_gate  # noqa: E402
+from crew.gates import run_static_contract_gate, run_task_gate  # noqa: E402
 from crew.roles import render_task  # noqa: E402
 from tools.opencode_runner import OpencodeRunnerTool  # noqa: E402
 
@@ -92,55 +94,15 @@ REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 
 def verify(state: dict, task_id: str, role: str = "backend_engineer") -> dict:
-    """Run the affected surface's gate deterministically and report PASS/FAIL.
-
-    Only the commands for the surface the task touched are run (targeted, fast).
-    The FULL multi-surface gate is what the phase-boundary check runs; per-task we
-    need a fast signal so the loop stays responsive.
-    """
-    # Targeted checks by role: only the surface(s) that role can change.
-    checks = {
-        "frontend_engineer": ["cd frontend && npm test"],
-        "mobile_engineer": ["cd mobile && npm test"],
-        "sre": ["docker compose -f docker-compose.prod.yml config --quiet"],
-        "backend_engineer": ["cd backend && go test ./..."],
-        "general": [],  # design/review: no build gate
-    }
-    cmd_list = checks.get(role, ["cd frontend && npm test"])
-    # Backend tasks can also surface in shared packages; always also run frontend
-    # if it is the shared contract, but keep it light.
-    if role == "backend_engineer":
-        cmd_list += ["cd frontend && npm test"]
-
-    stdout_lines: list[str] = []
-    stderr_lines: list[str] = []
-    failures: list[str] = []
-    for cmd in cmd_list:
-        code, out, err = _run_command(cmd)
-        stdout_lines.append(f"$ {cmd}\n{out.strip()}")
-        if err.strip():
-            stderr_lines.append(f"$ {cmd}\n{err.strip()}")
-        if code != 0:
-            failures.append(f"$ {cmd}\n{err.strip() or out.strip()}")
-
-    if failures:
-        ok = False
-        summary = "FAIL\n" + "\n".join(failures)
-    else:
-        ok = True
-        summary = "PASS\n" + "\n".join(stdout_lines)
-
-    return {
-        "job_id": f"verify_{task_id}",
-        "ok": ok,
-        "error": None,
-        "stdout": "\n".join(stdout_lines)[-8000:],
-        "stderr": "\n".join(stderr_lines)[-8000:],
-        "exit_code": 0 if ok else 1,
-        "elapsed": 0.0,
-        "summary": summary[-2500:],
-        "files_changed": [],
-    }
+    """Run the affected surface's deterministic gate and report PASS/FAIL."""
+    task_name = task_id
+    for phase in state.get("phases", []):
+        for task in phase.get("tasks", []):
+            if task.get("id") == task_id:
+                task_name = task.get("name", task_id)
+                role = task.get("role", role)
+                break
+    return run_task_gate(task_id, task_name, role).to_result(f"verify_{task_id}")
 
 
 def _run_command(cmd: str) -> tuple[int, str, str]:
@@ -170,6 +132,10 @@ def phase_plans(state: dict) -> dict | None:
     prompt = (
         "You are the product manager. Read REQUIREMENTS_MASTER.md (Section for the active "
         "phase), WORKING_SET.md, and skim the codebase to confirm the backlog is accurate. "
+        "Also run `python orchestrator.py --audit` mentally against the current files: any "
+        "soft-pass E2E, external Gmail fixture, mocked-only acceptance proof, missing Learn "
+        "Dashboard/Daily Practice/Placement/Sparky contract, or wireframe GAP means the phase "
+        "is NOT done even if phase_status.json says DONE. "
         "List the CURRENT phase's pending tasks in priority order and flag any that look "
         "already done or are actually out of scope. Return a concise prioritized list and, "
         "for each task, 2-3 concrete files/endpoints to touch."
@@ -196,7 +162,7 @@ def escalate(state: dict, task_id: str, reason: str) -> None:
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ESCALATION.md")
     with open(path, "a", encoding="utf-8") as f:
         f.write(f"\n## Escalation {time.strftime('%Y-%m-%d %H:%M')} — task {task_id}\n{reason}\n")
-    log(f"! Escalated task {task_id}. See crew/ESCALATION.md")
+    log(f"! Escalated task {task_id}. See ESCALATION.md")
 
 
 def human_gate(state: dict, label: str) -> bool:
@@ -230,15 +196,29 @@ def route_role(task: dict, phase_id: int) -> str:
 
     Fall back to the phase's default DEV_ROLE when the task is ambiguous.
     """
+    explicit = task.get("role")
+    if explicit:
+        return explicit
     name = task["name"].lower()
-    if any(k in name for k in ("qa ", "qa-", "functional", "wireframe", "gap audit", "traceability")):
-        return "qa_engineer" if "qa" in name else "analyst"
+    if any(k in name for k in ("test quality", "acceptance", "test-first", "failing tests", "tdd")):
+        return "test_engineer"
+    if any(k in name for k in ("qa ", "qa-", "qa:", "functional suite", "release gate", "go/no-go")):
+        return "qa_engineer"
+    if any(k in name for k in ("gap audit", "traceability", "ba signoff", "sign-off")):
+        return "analyst"
+    if "wireframe parity" in name and any(k in name for k in ("wiring", "routes", "screens", "implement", "remaining")):
+        if "frontend" in name:
+            return "frontend_engineer"
+        return "mobile_engineer"
     if "analyst" in name:
         return "analyst"
     if any(k in name for k in ("docker", "compose", "load balancer", "lb", "deploy",
                                "infra", "ci", "observability", "prometheus", "grafana")):
         return "sre"
-    if any(k in name for k in ("mobile", "react native", "expo", "android", "ios")):
+    if any(k in name for k in ("mobile", "react native", "expo", "android", "ios",
+                               "learning dashboard", "learnscreen", "daily practice",
+                               "quick drill", "quick drills", "drill", "placement",
+                               "initial test", "sparky", "scenario roleplay")):
         return "mobile_engineer"
     if any(k in name for k in ("emoji", "home button", "back", "admin", "copy",
                                "settings", "chat language", "writing assistant",
@@ -270,8 +250,11 @@ def run_task(state: dict, task_id: str, dry_run: bool) -> None:
     prompt = (
         f"You are the {dev_role} role. Implement this task: {task['name']} (id {task_id}).{extra_qa}\n"
         "Read REQUIREMENTS_MASTER.md for the exact requirement, then the relevant code, then "
-        "make minimal focused changes under WORKING_SET.md's ALLOWED paths. After editing, run "
-        "that layer's build/test and report exit code. Give a short summary of what changed."
+        "make minimal focused changes under WORKING_SET.md's ALLOWED paths. Use TDD: first "
+        "prove the missing behavior with a failing testRef, then make it green. Critical "
+        "acceptance tests must drive real UI/API behavior; do not use console.warn soft-pass "
+        "fallbacks, source-file read assertions, or swallowed catches as proof. After editing, "
+        "run that layer's build/test and report exit code. Give a short summary of what changed."
     )
 
     if dry_run:
@@ -299,8 +282,9 @@ def run_task(state: dict, task_id: str, dry_run: bool) -> None:
         fix_prompt = (
             f"Verification failed for task {task_id} ({task['name']}). QA output:\n"
             f"{(v.get('summary') or v.get('stderr') or '')[:2500]}\n\n"
-            "Fix the build/test failure. Read the actual error, correct the code, re-run the "
-            "same command until it exits 0. Report the final exit code."
+            "Fix the real failure. If the gate complains about hollow tests, replace them with "
+            "hard assertions instead of weakening the gate. Re-run the same command until it "
+            "exits 0. Report the final exit code."
         )
         fix = run_bridge(fix_prompt, suffix=dev_role, job=f"fix_{task_id}_{attempt}")
         if not fix.get("ok"):
@@ -331,25 +315,7 @@ def run_task(state: dict, task_id: str, dry_run: bool) -> None:
 
 def full_gate(state: dict) -> dict:
     """Run the FULL multi-surface gate at the phase boundary (slow, authoritative)."""
-    checks = [
-        "cd backend && go build ./... && go test ./...",
-        "cd frontend && npm test",
-        "cd mobile && npm test",
-    ]
-    failures: list[str] = []
-    stdout_lines: list[str] = []
-    for cmd in checks:
-        code, out, err = _run_command(cmd)
-        stdout_lines.append(f"$ {cmd}\n{out.strip()}")
-        if code != 0:
-            failures.append(f"$ {cmd}\n{err.strip() or out.strip()}")
-    ok = not failures
-    return {
-        "ok": ok,
-        "summary": ("FULL_GATE PASS\n" + "\n".join(stdout_lines)) if ok
-                   else ("FULL_GATE FAIL\n" + "\n".join(failures)),
-        "stderr": "\n".join(failures)[-8000:],
-    }
+    return run_deterministic_full_gate(run_commands=True).to_result("full_gate")
 
 
 def advance(state: dict, dry_run: bool) -> None:
@@ -380,9 +346,15 @@ def main() -> int:
     ap.add_argument("--only", dest="only", default=None, help="run a single task id")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--no-plan", action="store_true", help="skip the re-plan step")
+    ap.add_argument("--audit", action="store_true", help="run the fast static TDD/wireframe contract audit")
     args = ap.parse_args()
 
     state = st.load()
+    if args.audit:
+        gate = run_static_contract_gate()
+        print(gate.summary(8000), flush=True)
+        return 0 if gate.ok else 1
+
     if args.phase is not None:
         state["current_phase"] = args.phase
         st.save(state)

@@ -48,5 +48,5 @@
 ### PHASE 4 (Marketplace + monetization + release)
 - ALLOWED: `backend/internal/handlers/**`, `backend/internal/services/**`,
   `backend/internal/database/postgres.go`, `backend/internal/models/**`, `frontend/src/**`,
-  `mobile/src/**`, `packages/shared/src/**`, `deploy/**`, `.github/workflows/**`,
-  `docker-compose.prod.yml`, `docs/**`
+  `mobile/src/**`, `mobile/detox.config.js`, `mobile/e2e/**`, `packages/shared/src/**`,
+  `deploy/**`, `.github/workflows/**`, `e2e/**`, `docker-compose.prod.yml`, `docs/**`

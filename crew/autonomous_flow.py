@@ -32,12 +32,13 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from crewai import Agent, Crew, Task, Process
 from crewai.flow.flow import Flow, listen, start
 from dotenv import load_dotenv
 
+from crew.gates import run_full_gate, run_task_gate
 from crew.models import GapAnalysis, TaskResult, WireframeParityReport, ReleaseGateCheck
 from tools.opencode_runner import OpencodeRunnerTool
 
@@ -153,13 +154,18 @@ Read crew/autonomous_plan.md for the full phase plan. Your task is section {task
 1. Read the relevant wireframes in wireframes/ directory.
 2. Read REQUIREMENTS_MASTER.md for the requirement context.
 3. Inspect existing code before making changes.
-4. Implement the feature across backend (Go), frontend (React/TS), and mobile (Expo RN) as needed.
-5. Write tests for the feature.
-6. Run the affected layer's build and tests:
+4. Use TDD: write or update the failing testRef before implementation, then make it green.
+5. Implement the feature across backend (Go), frontend (React/TS), and mobile (Expo RN) as needed.
+6. Critical acceptance tests must drive the real UI/API path. Do not use console.warn soft-passes,
+   swallowed catches, mocked-only routes, or source-file assertions as DONE evidence.
+7. Learn dashboard, Daily Practice/Quick Drills, Initial Test/Placement, Scenario Roleplay, and
+   Sparky chatbot are mobile-first launch-blocking flows.
+8. Write tests for the feature.
+9. Run the affected layer's build and tests:
    - Backend: cd backend && go build ./... && go test ./...
    - Frontend: cd frontend && npm test && npm run build
    - Mobile: cd mobile && npm test
-7. Report: files changed, commands run, exact exit codes, and a summary.
+10. Report: files changed, commands run, exact exit codes, and a summary.
 
 ## Constraints
 - Never write secrets or touch .env* files.
@@ -229,13 +235,16 @@ class AutonomousBuildFlow(Flow):
             log(f"\n--- Task {task["id"]}: {task["name"]} ---")
             result = delegate_to_agent(task, phase_id, dry_run=dry_run)
             results.append({"task_id": task["id"], "result": result})
+            gate = run_task_gate(task["id"], task["name"], task.get("role", "backend_engineer"))
+            results[-1]["gate"] = gate.summary()
 
-            if result.get("ok", False):
-                mark_task_done(task["id"], result.get("summary", ""))
+            if result.get("ok", False) and gate.ok:
+                mark_task_done(task["id"], (result.get("summary", "") + "\n\n" + gate.summary())[:2000])
                 log(f"Task {task["id"]} DONE")
             else:
-                mark_task_failed(task["id"], result.get("stderr", result.get("summary", "")))
-                log(f"Task {task["id"]} FAILED: {result.get("summary", "")[:200]}")
+                note = (result.get("stderr") or result.get("summary", "") or "") + "\n\n" + gate.summary()
+                mark_task_failed(task["id"], note)
+                log(f"Task {task["id"]} FAILED: {note[:500]}")
 
             # Save state after every task
             save_state(load_state())
@@ -243,6 +252,11 @@ class AutonomousBuildFlow(Flow):
         # Check if phase is complete
         if phase_complete(phase_id):
             log(f"\nPhase {phase_id} COMPLETE — all tasks done")
+            phase_gate = run_full_gate(run_commands=phase_id == 10)
+            if not phase_gate.ok:
+                log(f"Phase {phase_id} gate FAILED; not advancing.")
+                log(phase_gate.summary()[:1500])
+                return {"phase": phase_id, "status": "GATE_FAILED", "gate": phase_gate.summary(), "results": results}
             if phase_id < 10:
                 advance_to_phase(phase_id)
                 log(f"Advanced to Phase {phase_id + 1}")
@@ -341,14 +355,16 @@ if __name__ == "__main__":
                 if t['id'] == args.only:
                     log(f'Running single task {args.only}')
                     result = delegate_to_agent(t, p['id'])
-                    if result.get('ok', False):
-                        mark_task_done(t['id'], result.get('summary', ''))
+                    gate = run_task_gate(t['id'], t['name'], t.get('role', 'backend_engineer'))
+                    if result.get('ok', False) and gate.ok:
+                        mark_task_done(t['id'], (result.get('summary', '') + "\n\n" + gate.summary())[:2000])
                         log(f'Task {args.only} DONE')
                     else:
-                        mark_task_failed(t['id'], result.get('stderr', result.get('summary', '')))
+                        note = (result.get('stderr') or result.get('summary', '') or '') + "\n\n" + gate.summary()
+                        mark_task_failed(t['id'], note)
                         log(f'Task {args.only} FAILED')
                     save_state(load_state())
-                    sys.exit(0 if result.get('ok') else 1)
+                    sys.exit(0 if result.get('ok') and gate.ok else 1)
         log(f'Task {args.only} not found')
         sys.exit(1)
     result = run_autonomous(dry_run=args.dry_run, start_phase=args.phase)

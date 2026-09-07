@@ -269,7 +269,7 @@
     {
       "id": 10,
       "name": "QA, Testing & Final Release",
-      "status": "DONE",
+      "status": "IN_PROGRESS",
       "gate": "all tests green, performance benchmarks meet NFRs, release gate passes",
       "tasks": [
         {
@@ -303,6 +303,35 @@
           "role": "reviewer",
           "updated_at": 1788366708.2441483,
           "note": "Final release gate PASS. verify-release-gate --offline PASS, verify-support PASS, verify-perf PASS, verify-nfr PASS."
+        },
+        {
+          "id": "10.RESCUE-TEST-QUALITY",
+          "name": "TDD rescue: remove soft-pass critical E2E and require real acceptance evidence",
+          "status": "PENDING",
+          "role": "test_engineer",
+          "note": "The prior 10.2 note recorded E2E 2/9 pass as DONE. Replace hollow tests with hard C-01/C-04/C-05 acceptance proof before release."
+        },
+        {
+          "id": "10.RESCUE-LEARN-SPARKY",
+          "name": "Learning and Sparky rescue: daily practice, initial test, scenarios, and chatbot interactions must work",
+          "status": "PENDING",
+          "role": "mobile_engineer",
+          "note": "Mobile-first rescue for Learn dashboard and Sparky interactions, with hard tests and real API paths."
+        },
+        {
+          "id": "10.RESCUE-GATE",
+          "name": "Final deterministic release gate: audit + wireframe parity + backend/frontend/mobile builds/tests",
+          "status": "PENDING",
+          "role": "qa_engineer",
+          "testRefs": [
+            "python orchestrator.py --audit",
+            "cd e2e/acceptance && npm run acceptance:green",
+            "deploy/ci/verify-wireframe-parity.sh",
+            "cd backend && go build ./... && go vet ./... && go test ./...",
+            "cd frontend && npm test && npm run build",
+            "cd mobile && npx tsc --noEmit && npm test"
+          ],
+          "note": "Cannot pass while python orchestrator.py --audit, the real acceptance green runner, or any layer build/test is red."
         }
       ]
     }

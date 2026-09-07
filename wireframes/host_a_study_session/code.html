@@ -1,13 +1,11 @@
-<!DOCTYPE html>
-
-<html class="light" lang="en"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>Create Group Session - Chorus</title>
-<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788158188199&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YTUyOTc5ZDE1NmYwOTI1Yzc1YjNhMDI2Y2YyEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&amp;family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&amp;family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
 <script id="tailwind-config">
         tailwind.config = {
           darkMode: "class",
@@ -102,7 +100,12 @@
           },
         }
     </script>
-</head>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
 <body class="bg-background text-on-background antialiased min-h-screen flex flex-col font-body-md pb-24">
 <!-- Header (Suppressed standard nav due to task-focused linear flow, using a simple close header) -->
 <header class="flex justify-between items-center px-margin-mobile h-14 w-full bg-surface shadow-[0px_4px_12px_rgba(0,0,0,0.05)] sticky top-0 z-50">
@@ -124,14 +127,14 @@
 <section class="space-y-stack-md">
 <div>
 <label class="block font-label-md text-label-md text-on-surface mb-2" for="topic">Topic Title</label>
-<input class="w-full rounded-lg border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 bg-surface-bright font-body-md text-body-md py-3 px-4 transition-shadow" id="topic" placeholder="e.g., Casual French Conversation: Traveling" type="text"/>
+<input class="w-full rounded-lg border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 bg-surface-bright font-body-md text-body-md py-3 px-4 transition-shadow" id="topic" placeholder="e.g., Casual French Conversation: Traveling" type="text">
 </div>
 <div>
 <label class="block font-label-md text-label-md text-on-surface mb-2" for="description">Description (Optional)</label>
 <textarea class="w-full rounded-lg border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 bg-surface-bright font-body-md text-body-md py-3 px-4 transition-shadow resize-none" id="description" placeholder="What will be discussed?" rows="3"></textarea>
 </div>
 </section>
-<hr class="border-outline-variant/30"/>
+<hr class="border-outline-variant/30">
 <!-- Details Grid -->
 <section class="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
 <!-- CEFR Level -->
@@ -157,7 +160,7 @@
 <div>
 <label class="block font-label-md text-label-md text-on-surface mb-2" for="participants">Max Participants</label>
 <div class="relative">
-<input class="w-full rounded-lg border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 bg-surface-bright font-body-md text-body-md py-3 pl-10 pr-4 transition-shadow" id="participants" max="50" min="2" type="number" value="10"/>
+<input class="w-full rounded-lg border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 bg-surface-bright font-body-md text-body-md py-3 pl-10 pr-4 transition-shadow" id="participants" max="50" min="2" type="number" value="10">
 <div class="absolute inset-y-0 left-0 flex items-center pl-3 text-on-surface-variant pointer-events-none">
 <span class="material-symbols-outlined text-[20px]">group</span>
 </div>
@@ -167,7 +170,7 @@
 <div>
 <label class="block font-label-md text-label-md text-on-surface mb-2" for="date">Date</label>
 <div class="relative">
-<input class="w-full rounded-lg border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 bg-surface-bright font-body-md text-body-md py-3 pl-10 pr-4 transition-shadow" id="date" type="date"/>
+<input class="w-full rounded-lg border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 bg-surface-bright font-body-md text-body-md py-3 pl-10 pr-4 transition-shadow" id="date" type="date">
 <div class="absolute inset-y-0 left-0 flex items-center pl-3 text-on-surface-variant pointer-events-none">
 <span class="material-symbols-outlined text-[20px]">calendar_today</span>
 </div>
@@ -177,14 +180,14 @@
 <div>
 <label class="block font-label-md text-label-md text-on-surface mb-2" for="time">Time</label>
 <div class="relative">
-<input class="w-full rounded-lg border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 bg-surface-bright font-body-md text-body-md py-3 pl-10 pr-4 transition-shadow" id="time" type="time"/>
+<input class="w-full rounded-lg border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 bg-surface-bright font-body-md text-body-md py-3 pl-10 pr-4 transition-shadow" id="time" type="time">
 <div class="absolute inset-y-0 left-0 flex items-center pl-3 text-on-surface-variant pointer-events-none">
 <span class="material-symbols-outlined text-[20px]">schedule</span>
 </div>
 </div>
 </div>
 </section>
-<hr class="border-outline-variant/30"/>
+<hr class="border-outline-variant/30">
 <!-- Privacy Toggle -->
 <section class="flex items-center justify-between p-4 bg-surface-container-low rounded-xl border border-outline-variant/20">
 <div class="flex-1 pr-4">
@@ -192,7 +195,7 @@
 <p class="font-body-sm text-body-sm text-on-surface-variant">Anyone on Chorus can discover and join this session.</p>
 </div>
 <label class="relative inline-flex items-center cursor-pointer">
-<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<input checked="" class="sr-only peer" type="checkbox" value="">
 <div class="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-variant after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
 </label>
 </section>

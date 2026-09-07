@@ -209,3 +209,75 @@ func TestReportStats(t *testing.T) {
 		t.Fatalf("unexpected stats: %+v", stats)
 	}
 }
+
+func TestBlockStatus(t *testing.T) {
+	s, mock, cleanup := newModerationTestService(t)
+	defer cleanup()
+
+	// Viewer blocked target, target did not block viewer => blocked, not blockedBy.
+	mock.ExpectQuery(`COUNT\(\*\) FILTER \(WHERE blocker_id = \$1 AND blocked_id = \$2\) > 0`).
+		WithArgs("v1", "u2").WillReturnRows(sqlmock.NewRows([]string{"is_blocked", "blocked_by"}).AddRow(true, false))
+	status, err := s.BlockStatus(context.Background(), "v1", "u2")
+	if err != nil {
+		t.Fatalf("BlockStatus failed: %v", err)
+	}
+	if !status.Blocked || status.BlockedBy || status.Mutual {
+		t.Fatalf("unexpected status: %+v", status)
+	}
+
+	// Mutual block => blocked && blockedBy && mutual.
+	mock.ExpectQuery(`COUNT\(\*\) FILTER \(WHERE blocker_id = \$1 AND blocked_id = \$2\) > 0`).
+		WithArgs("v1", "u3").WillReturnRows(sqlmock.NewRows([]string{"is_blocked", "blocked_by"}).AddRow(true, true))
+	status, err = s.BlockStatus(context.Background(), "v1", "u3")
+	if err != nil {
+		t.Fatalf("BlockStatus failed: %v", err)
+	}
+	if !status.Blocked || !status.BlockedBy || !status.Mutual {
+		t.Fatalf("unexpected status: %+v", status)
+	}
+}
+
+func TestBlockStatus_SelfOrEmpty(t *testing.T) {
+	s, _, cleanup := newModerationTestService(t)
+	defer cleanup()
+	status, err := s.BlockStatus(context.Background(), "v1", "v1")
+	if err != nil {
+		t.Fatalf("BlockStatus(self) failed: %v", err)
+	}
+	if status.Blocked || status.BlockedBy || status.Mutual {
+		t.Fatalf("expected zero status for self, got %+v", status)
+	}
+}
+
+func TestEnrichUsers(t *testing.T) {
+	s, mock, cleanup := newModerationTestService(t)
+	defer cleanup()
+
+	users := []*models.User{
+		{ID: "u2"},
+		{ID: "u3"},
+		{ID: "v1"}, // viewer; must be skipped
+		{ID: "u4"}, // no edge with viewer
+	}
+	// Edges involving the viewer: v1->u2 (viewer blocked u2), u3->v1 (u3 blocked viewer).
+	mock.ExpectQuery(`SELECT blocker_id, blocked_id FROM blocked_users`).
+		WithArgs("v1").
+		WillReturnRows(sqlmock.NewRows([]string{"blocker_id", "blocked_id"}).
+			AddRow("v1", "u2").
+			AddRow("u3", "v1"))
+	if err := s.EnrichUsers(context.Background(), "v1", users); err != nil {
+		t.Fatalf("EnrichUsers failed: %v", err)
+	}
+	if !users[0].IsBlocked || users[0].BlockedBy {
+		t.Fatalf("u2: expected IsBlocked, got %+v", users[0])
+	}
+	if users[1].IsBlocked || !users[1].BlockedBy {
+		t.Fatalf("u3: expected BlockedBy, got %+v", users[1])
+	}
+	if users[2].IsBlocked || users[2].BlockedBy {
+		t.Fatalf("viewer should be untouched: %+v", users[2])
+	}
+	if users[3].IsBlocked || users[3].BlockedBy {
+		t.Fatalf("u4 should be untouched: %+v", users[3])
+	}
+}

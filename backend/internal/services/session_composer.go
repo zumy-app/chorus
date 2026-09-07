@@ -470,13 +470,23 @@ func nextStageForCard(card *VocabularyCard) int {
 }
 
 func vocabItemPayload(card *VocabularyCard, q models.SessionQuestion, stage int) map[string]any {
+	answer := card.Term
+	// stageRecognition ("What does this word mean?") expects the English meaning,
+	// not the Spanish term. All other stages expect the Spanish term.
+	if stage == stageRecognition || q.PromptType == "recognition" {
+		if card.Translation != "" {
+			answer = card.Translation
+		} else if card.Definition != "" {
+			answer = card.Definition
+		}
+	}
 	p := map[string]any{
 		"prompt":       q.Prompt,
 		"promptType":   q.PromptType,
 		"activityType": q.ActivityType,
 		"stage":        stage,
 		"cardId":       card.ID,
-		"answer":       card.Term,
+		"answer":       answer,
 	}
 	return p
 }

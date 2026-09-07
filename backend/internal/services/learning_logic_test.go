@@ -400,6 +400,90 @@ func TestGradeStepAnswer(t *testing.T) {
 	}
 }
 
+// ---------------------------------------------------------------------------
+// SessionComposerService — vocabItemPayload correct answer direction (P0)
+// ---------------------------------------------------------------------------
+
+func TestVocabItemPayload_RecognitionUsesTranslation(t *testing.T) {
+	card := &models.VocabularyCard{ID: "c1", Term: "hola", Translation: "hi", Definition: "hello"}
+	q := SessionQuestion{PromptType: "recognition", ActivityType: "recognition", Prompt: SessionPrompt{Text: `What does "hola" mean?`, Source: "hola", Translation: "hi"}}
+	payload := vocabItemPayload(card, q, stageRecognition)
+	if got := payload["answer"]; got != "hi" {
+		t.Fatalf("recognition payload answer=%q, want %q (Translation)", got, "hi")
+	}
+	// Grade via PracticeService must accept "hi" for recognition
+	s := &PracticeService{}
+	ok, _ := s.GradeAnswer(payload["answer"].(string), "hi", payload["promptType"].(string))
+	if !ok {
+		t.Errorf("recognition grading: answer hi should be correct for hola->hi")
+	}
+	ok, _ = s.GradeAnswer(payload["answer"].(string), "hola", payload["promptType"].(string))
+	if ok {
+		t.Errorf("recognition grading: answer hola should be incorrect when expecting hi")
+	}
+}
+
+func TestVocabItemPayload_FreeRecallUsesTerm(t *testing.T) {
+	card := &models.VocabularyCard{ID: "c2", Term: "hola", Translation: "hi"}
+	q := SessionQuestion{PromptType: "free_recall", ActivityType: "free_recall", Prompt: SessionPrompt{Text: "Type the Spanish for: hi", Source: "hi"}}
+	payload := vocabItemPayload(card, q, stageFreeRecall)
+	if got := payload["answer"]; got != "hola" {
+		t.Fatalf("free_recall payload answer=%q, want %q (Term)", got, "hola")
+	}
+	s := &PracticeService{}
+	ok, _ := s.GradeAnswer(payload["answer"].(string), "hola", payload["promptType"].(string))
+	if !ok {
+		t.Errorf("free_recall grading: hola should be correct")
+	}
+}
+
+func TestVocabItemPayload_CuedRecallUsesTerm(t *testing.T) {
+	card := &models.VocabularyCard{ID: "c3", Term: "estoy", Translation: "I am"}
+	q := SessionQuestion{PromptType: "cued_recall", ActivityType: "cued_recall", Prompt: SessionPrompt{Text: "Yo ____ cansado."}}
+	payload := vocabItemPayload(card, q, stageCuedRecall)
+	if got := payload["answer"]; got != "estoy" {
+		t.Fatalf("cued_recall payload answer=%q, want estoy", got)
+	}
+}
+
+func TestVocabItemPayload_RecognitionFallsBackToDefinition(t *testing.T) {
+	card := &models.VocabularyCard{ID: "c4", Term: "hola", Translation: "", Definition: "hello"}
+	q := SessionQuestion{PromptType: "recognition", ActivityType: "recognition", Prompt: SessionPrompt{Text: `What does "hola" mean?`}}
+	payload := vocabItemPayload(card, q, stageRecognition)
+	if got := payload["answer"]; got != "hello" {
+		t.Fatalf("recognition fallback answer=%q, want hello (Definition)", got)
+	}
+}
+
+func TestAnswerItem_RecognitionVsFreeRecall_RoundTrip(t *testing.T) {
+	// Simulate AnswerItem grading without DB: ensure payload direction is respected
+	s := &PracticeService{}
+	// recognition card
+	recCard := &models.VocabularyCard{ID: "c1", Term: "hola", Translation: "hi"}
+	recQ := SessionQuestion{PromptType: "recognition", ActivityType: "recognition", Prompt: SessionPrompt{Text: `What does "hola" mean?`}}
+	recPayload := vocabItemPayload(recCard, recQ, stageRecognition)
+	recAnswer := recPayload["answer"].(string)
+	recType := recPayload["promptType"].(string)
+	if ok, _ := s.GradeAnswer(recAnswer, "hi", recType); !ok {
+		t.Errorf("round-trip recognition: hi should grade correct vs %q", recAnswer)
+	}
+	if ok, _ := s.GradeAnswer(recAnswer, "hola", recType); ok {
+		t.Errorf("round-trip recognition: hola should grade incorrect vs %q", recAnswer)
+	}
+	// free_recall card
+	frCard := &models.VocabularyCard{ID: "c2", Term: "hola", Translation: "hi"}
+	frQ := SessionQuestion{PromptType: "free_recall", ActivityType: "free_recall", Prompt: SessionPrompt{Text: "Type Spanish for: hi"}}
+	frPayload := vocabItemPayload(frCard, frQ, stageFreeRecall)
+	frAnswer := frPayload["answer"].(string)
+	frType := frPayload["promptType"].(string)
+	if ok, _ := s.GradeAnswer(frAnswer, "hola", frType); !ok {
+		t.Errorf("round-trip free_recall: hola should grade correct vs %q", frAnswer)
+	}
+	if ok, _ := s.GradeAnswer(frAnswer, "hi", frType); ok {
+		t.Errorf("round-trip free_recall: hi should grade incorrect vs %q", frAnswer)
+	}
+}
+
 // helpers ----------------------------------------------------------------//
 
 func containsFold(haystack, needle string) bool {

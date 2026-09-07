@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -469,5 +470,41 @@ func TestDismissReportHandler_NotFound(t *testing.T) {
 
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestGetBlockStatusHandler(t *testing.T) {
+	h, mock, cleanup := newModerationHandlerForTest(t)
+	defer cleanup()
+
+	mock.ExpectQuery(`COUNT\(\*\) FILTER \(WHERE blocker_id = \$1 AND blocked_id = \$2\) > 0`).
+		WithArgs("v1", "u2").
+		WillReturnRows(sqlmock.NewRows([]string{"is_blocked", "blocked_by"}).AddRow(true, false))
+
+	w := serveModeration(t, h.GetBlockStatus, http.MethodGet, "/blocks/:userId/status", "/blocks/u2/status", "v1", nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var status models.BlockStatus
+	decodeBody(t, w, &status)
+	if !status.Blocked || status.BlockedBy || status.Mutual {
+		t.Fatalf("unexpected status: %+v", status)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+func TestGetBlockStatusHandler_Error(t *testing.T) {
+	h, mock, cleanup := newModerationHandlerForTest(t)
+	defer cleanup()
+
+	mock.ExpectQuery(`COUNT\(\*\) FILTER \(WHERE blocker_id = \$1 AND blocked_id = \$2\) > 0`).
+		WithArgs("v1", "u2").WillReturnError(errors.New("db down"))
+
+	w := serveModeration(t, h.GetBlockStatus, http.MethodGet, "/blocks/:userId/status", "/blocks/u2/status", "v1", nil)
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500, got %d: %s", w.Code, w.Body.String())
 	}
 }

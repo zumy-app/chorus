@@ -11,9 +11,15 @@ Modern CrewAI v1.15.18 architecture:
 - crew/phase_status.json    # Current build phase state
 """
 
-from crew.models import GapAnalysis, TaskResult, WireframeParityReport, ReleaseGateCheck, RequirementTrace
 from crew.state import load, save, current_phase, pending_tasks, next_task, mark_task, phase_done, advance_phase
 from crew.roles import agent_summaries
+
+try:
+    from crew.models import GapAnalysis, TaskResult, WireframeParityReport, ReleaseGateCheck, RequirementTrace
+except ModuleNotFoundError:
+    # The lightweight supervisor/audit path should not require CrewAI/Pydantic
+    # to be installed. Structured models are only needed by CrewAI flows.
+    GapAnalysis = TaskResult = WireframeParityReport = ReleaseGateCheck = RequirementTrace = None
 
 __all__ = [
     "GapAnalysis",

@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus - Scenario Mastery &amp; Personal Corpus Mining</title>
+<!-- Google Fonts & Material Symbols -->
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788762228214&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YWM0ODZiNTgxOWIwMWE2MGIzZWY3MWIwNTk4EgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&amp;family=Inter:wght@500;600&amp;family=Plus+Jakarta+Sans:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS with custom plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "inverse-primary": "#b4c5ff",
+            "inverse-on-surface": "#eaf1ff",
+            "primary": "#004ac6",
+            "surface": "#f8f9ff",
+            "tertiary-container": "#007d55",
+            "surface-variant": "#d3e4fe",
+            "on-error-container": "#93000a",
+            "on-surface-variant": "#434655",
+            "tertiary": "#006242",
+            "error-container": "#ffdad6",
+            "on-tertiary": "#ffffff",
+            "on-secondary-fixed-variant": "#5516be",
+            "on-secondary-fixed": "#23005c",
+            "secondary": "#6b38d4",
+            "secondary-fixed": "#e9ddff",
+            "error": "#ba1a1a",
+            "surface-container": "#e5eeff",
+            "secondary-fixed-dim": "#d0bcff",
+            "inverse-surface": "#213145",
+            "tertiary-fixed": "#6ffbbe",
+            "on-primary-container": "#eeefff",
+            "surface-bright": "#f8f9ff",
+            "on-primary-fixed": "#00174b",
+            "primary-fixed": "#dbe1ff",
+            "background": "#f8f9ff",
+            "surface-container-highest": "#d3e4fe",
+            "surface-container-high": "#dce9ff",
+            "on-surface": "#0b1c30",
+            "on-error": "#ffffff",
+            "surface-container-low": "#eff4ff",
+            "on-secondary-container": "#fffbff",
+            "surface-tint": "#0053db",
+            "tertiary-fixed-dim": "#4edea3",
+            "primary-fixed-dim": "#b4c5ff",
+            "on-primary-fixed-variant": "#003ea8",
+            "on-tertiary-fixed": "#002113",
+            "secondary-container": "#8455ef",
+            "surface-container-lowest": "#ffffff",
+            "primary-container": "#2563eb",
+            "surface-dim": "#cbdbf5",
+            "on-tertiary-container": "#bdffdb",
+            "outline-variant": "#c3c6d7",
+            "on-secondary": "#ffffff",
+            "outline": "#737686",
+            "on-background": "#0b1c30",
+            "on-primary": "#ffffff",
+            "on-tertiary-fixed-variant": "#005236"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "margin-mobile": "16px",
+            "stack-lg": "24px",
+            "stack-md": "16px",
+            "gutter-mobile": "12px",
+            "stack-sm": "8px",
+            "unit": "4px"
+          },
+          "fontFamily": {
+            "headline-sm": ["Plus Jakarta Sans"],
+            "translation-text": ["Be Vietnam Pro"],
+            "body-sm": ["Be Vietnam Pro"],
+            "body-md": ["Be Vietnam Pro"],
+            "label-sm": ["Inter"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "headline-lg": ["Plus Jakarta Sans"],
+            "label-md": ["Inter"],
+            "body-lg": ["Be Vietnam Pro"]
+          },
+          "fontSize": {
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+            "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    /* Ambient Glow for AI & Gems */
+    .ai-gem-glow {
+      box-shadow: 0 4px 16px -2px rgba(107, 56, 212, 0.12), 0 2px 6px -1px rgba(107, 56, 212, 0.08);
+    }
+    .hero-card-shadow {
+      box-shadow: 0 10px 25px -5px rgba(0, 74, 198, 0.08), 0 8px 10px -6px rgba(0, 74, 198, 0.04);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body-md antialiased min-h-screen flex justify-center selection:bg-surface-variant selection:text-primary">
+<!-- Mobile Viewport Container (Max 430px iPhone Pro Width) -->
+<main class="w-full max-w-[430px] min-h-screen bg-surface flex flex-col relative pb-10">
+<!-- Screen 3 Header: Task-focused Celebration Header (Suppress BottomNavBar and Global Nav as per mandate) -->
+<header class="sticky top-0 z-40 bg-surface/95 backdrop-blur-md px-margin-mobile py-stack-sm flex items-center justify-between shadow-[0px_4px_12px_rgba(0,0,0,0.03)]">
+<div class="flex items-center gap-2">
+<button aria-label="Close Scenario" class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors active:scale-95" type="button">
+<span class="material-symbols-outlined text-xl" data-icon="close">close</span>
+</button>
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight">Scenario Mastery</span>
+</div>
+<!-- Celebratory Pill Badge -->
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-md text-label-md shadow-sm">
+<span class="material-symbols-outlined text-base text-secondary" data-icon="verified" data-weight="fill" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span>Completed</span>
+</div>
+</header>
+<div class="px-margin-mobile flex flex-col gap-5 pt-3">
+<!-- SECTION 1: Celebration Hero Card -->
+<section class="relative bg-surface-container-lowest rounded-xl p-5 hero-card-shadow overflow-hidden border border-surface-container-high">
+<!-- Madrid Café Stamp Graphic Watermark -->
+<div class="absolute -right-4 -bottom-6 w-32 h-32 rounded-full border-4 border-dashed border-primary/10 flex items-center justify-center rotate-12 pointer-events-none select-none">
+<div class="text-center font-headline-sm text-[10px] text-primary/30 uppercase tracking-widest font-bold">
+            Madrid Café<br/>Certificado
+          </div>
+</div>
+<div class="relative z-10 flex flex-col gap-4">
+<!-- Top Row: Badge & Trophy Accent -->
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+<span class="material-symbols-outlined text-3xl" data-icon="local_cafe" data-weight="fill" style="font-variation-settings: 'FILL' 1;">local_cafe</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-primary uppercase font-bold tracking-wider">Café de la Latina • Madrid</span>
+<h1 class="font-headline-md text-headline-md text-on-surface leading-tight">¡Excelente! Mission Accomplished!</h1>
+</div>
+</div>
+</div>
+<!-- Score Summary Bento-styled Grid -->
+<div class="grid grid-cols-3 gap-2 pt-1">
+<!-- Accuracy -->
+<div class="bg-surface-container-low rounded-lg p-2.5 flex flex-col justify-center items-center text-center">
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-0.5">
+<span class="material-symbols-outlined text-xs text-primary" data-icon="track_changes">track_changes</span>
+                Fluency
+              </span>
+<span class="font-headline-sm text-headline-sm text-primary mt-0.5">94%</span>
+</div>
+<!-- Time Spent -->
+<div class="bg-surface-container-low rounded-lg p-2.5 flex flex-col justify-center items-center text-center">
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-0.5">
+<span class="material-symbols-outlined text-xs text-on-surface-variant" data-icon="schedule">schedule</span>
+                Time
+              </span>
+<span class="font-headline-sm text-headline-sm text-on-surface mt-0.5">2m 45s</span>
+</div>
+<!-- XP Reward -->
+<div class="bg-surface-container-low rounded-lg p-2.5 flex flex-col justify-center items-center text-center">
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-0.5">
+<span class="material-symbols-outlined text-xs text-secondary" data-icon="bolt" data-weight="fill" style="font-variation-settings: 'FILL' 1;">bolt</span>
+                Reward
+              </span>
+<span class="font-headline-sm text-headline-sm text-secondary mt-0.5">+50 XP</span>
+</div>
+</div>
+<!-- Unlocked Milestone Progress Track -->
+<div class="bg-surface-container-low/70 rounded-lg p-3 flex flex-col gap-2 border border-surface-container">
+<div class="flex justify-between items-center text-xs">
+<div class="flex items-center gap-1.5 font-label-md text-label-md text-on-surface">
+<span class="material-symbols-outlined text-tertiary-container text-base" data-icon="check_circle" data-weight="fill" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span>A1 Milestone: Order Food &amp; Drink</span>
+</div>
+<span class="font-label-md text-label-md font-bold text-tertiary-container">Unlocked 100%</span>
+</div>
+<!-- Progress Bar Track -->
+<div class="w-full h-2 rounded-full bg-outline-variant/30 overflow-hidden">
+<div class="h-full bg-tertiary-container rounded-full w-full transition-all duration-500"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 2: Audio Replay & Full Dialogue Review -->
+<section class="flex flex-col gap-2.5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="spatial_audio_off">spatial_audio_off</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Spoken Dialogue Replay</h2>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">5 Turns Replayed</span>
+</div>
+<!-- Accordion Container -->
+<div class="bg-surface-container-lowest rounded-xl border border-surface-container-high p-4 shadow-[0px_4px_12px_rgba(0,0,0,0.03)] flex flex-col gap-3.5">
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            Listen back to your vocal performance side-by-side with native phrasing.
+          </p>
+<!-- Turn 1: Barista -->
+<div class="flex items-start gap-2.5">
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center shrink-0 border border-outline-variant/40">
+<span class="material-symbols-outlined text-sm text-on-surface" data-icon="person_play">person_play</span>
+</div>
+<div class="flex-1 bg-surface-container-low rounded-xl rounded-tl-sm p-3 border border-surface-container">
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant font-semibold">Barista (Mateo)</span>
+<button aria-label="Play Barista Audio" class="flex items-center gap-1 text-primary font-label-sm text-label-sm hover:opacity-80 active:scale-95" type="button">
+<span class="material-symbols-outlined text-base" data-icon="play_circle">play_circle</span>
+<span>0:03</span>
+</button>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface">¡Hola! Buenas tardes. ¿Qué le pongo hoy?</p>
+<p class="font-translation-text text-translation-text text-on-surface-variant/80 text-xs mt-0.5 italic">Hi! Good afternoon. What can I get you today?</p>
+</div>
+</div>
+<!-- Turn 2: User Spoken Response -->
+<div class="flex items-start justify-end gap-2.5">
+<div class="flex-1 bg-primary text-on-primary rounded-xl rounded-tr-sm p-3 shadow-sm">
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-sm text-label-sm text-primary-fixed-dim font-medium">You (Spoken Audio)</span>
+<button aria-label="Replay Your Audio" class="flex items-center gap-1 text-on-primary font-label-sm text-label-sm bg-white/20 px-2 py-0.5 rounded-full hover:bg-white/30 active:scale-95" type="button">
+<span class="material-symbols-outlined text-sm" data-icon="replay" data-weight="fill" style="font-variation-settings: 'FILL' 1;">replay</span>
+<span>96% Pitch Match</span>
+</button>
+</div>
+<p class="font-body-sm text-body-sm text-on-primary">Buenas tardes. Quisiera un café con leche, por favor.</p>
+<div class="mt-1 pt-1 border-t border-white/20 flex items-center justify-between text-xs text-primary-fixed-dim">
+<span>"Good afternoon. I would like a coffee with milk, please."</span>
+</div>
+</div>
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-sm" data-icon="mic">mic</span>
+</div>
+</div>
+<!-- Turn 3: Barista Question -->
+<div class="flex items-start gap-2.5">
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center shrink-0 border border-outline-variant/40">
+<span class="material-symbols-outlined text-sm text-on-surface" data-icon="person_play">person_play</span>
+</div>
+<div class="flex-1 bg-surface-container-low rounded-xl rounded-tl-sm p-3 border border-surface-container">
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant font-semibold">Barista (Mateo)</span>
+<button aria-label="Play Barista Audio" class="flex items-center gap-1 text-primary font-label-sm text-label-sm hover:opacity-80" type="button">
+<span class="material-symbols-outlined text-base" data-icon="play_circle">play_circle</span>
+<span>0:02</span>
+</button>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface">¿Leche entera, desnatada o vegetal?</p>
+<p class="font-translation-text text-translation-text text-on-surface-variant/80 text-xs mt-0.5 italic">Whole milk, skimmed, or plant-based?</p>
+</div>
+</div>
+<!-- Turn 4: User Spoken Response -->
+<div class="flex items-start justify-end gap-2.5">
+<div class="flex-1 bg-primary text-on-primary rounded-xl rounded-tr-sm p-3 shadow-sm">
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-sm text-label-sm text-primary-fixed-dim font-medium">You (Spoken Audio)</span>
+<button aria-label="Replay Your Audio" class="flex items-center gap-1 text-on-primary font-label-sm text-label-sm bg-white/20 px-2 py-0.5 rounded-full hover:bg-white/30 active:scale-95" type="button">
+<span class="material-symbols-outlined text-sm" data-icon="replay" data-weight="fill" style="font-variation-settings: 'FILL' 1;">replay</span>
+<span>92% Clarity</span>
+</button>
+</div>
+<p class="font-body-sm text-body-sm text-on-primary">Con leche de avena, si tienen.</p>
+<div class="mt-1 pt-1 border-t border-white/20 flex items-center justify-between text-xs text-primary-fixed-dim">
+<span>"With oat milk, if you have it."</span>
+</div>
+</div>
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-sm" data-icon="mic">mic</span>
+</div>
+</div>
+<!-- Turn 5: User Spoken Wrap-up -->
+<div class="flex items-start justify-end gap-2.5">
+<div class="flex-1 bg-primary text-on-primary rounded-xl rounded-tr-sm p-3 shadow-sm">
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-sm text-label-sm text-primary-fixed-dim font-medium">You (Spoken Audio)</span>
+<button aria-label="Replay Your Audio" class="flex items-center gap-1 text-on-primary font-label-sm text-label-sm bg-white/20 px-2 py-0.5 rounded-full hover:bg-white/30 active:scale-95" type="button">
+<span class="material-symbols-outlined text-sm" data-icon="replay" data-weight="fill" style="font-variation-settings: 'FILL' 1;">replay</span>
+<span>95% Fluency</span>
+</button>
+</div>
+<p class="font-body-sm text-body-sm text-on-primary">¿Me trae la cuenta también, por favor?</p>
+<div class="mt-1 pt-1 border-t border-white/20 flex items-center justify-between text-xs text-primary-fixed-dim">
+<span>"Could you bring me the bill too, please?"</span>
+</div>
+</div>
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-sm" data-icon="mic">mic</span>
+</div>
+</div>
+<!-- Expand Toggle Prompt -->
+<div class="pt-1 flex items-center justify-center">
+<button class="text-primary font-label-md text-label-md flex items-center gap-1 py-1 hover:underline" type="button">
+<span>View Full Phonetic Analysis</span>
+<span class="material-symbols-outlined text-base" data-icon="expand_more">expand_more</span>
+</button>
+</div>
+</div>
+</section>
+<!-- SECTION 3: Mined Vocabulary to SRS Deck (Personal Corpus Mining) -->
+<section class="flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-xl" data-icon="auto_awesome" data-weight="fill" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Personal Corpus Mining</h2>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm font-semibold">3 New Gems</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+          Captured directly from your dialogue flow and scheduled in your spaced repetition deck:
+        </p>
+<!-- Gem Cards -->
+<div class="flex flex-col gap-2.5">
+<!-- Gem 1: leche de avena -->
+<div class="bg-surface-container-lowest border-l-4 border-l-secondary rounded-xl p-3.5 shadow-sm border-t border-r border-b border-surface-container-high ai-gem-glow">
+<div class="flex items-start justify-between">
+<div>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">leche de avena</span>
+<p class="font-translation-text text-translation-text text-on-surface-variant">oat milk • (noun phrase)</p>
+</div>
+<div class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-sm text-secondary" data-icon="schedule">schedule</span>
+<span>Review in 4h</span>
+</div>
+</div>
+<!-- Source sentence integration -->
+<div class="mt-2.5 pt-2 border-t border-surface-container-low flex items-center justify-between">
+<span class="text-xs text-on-surface-variant italic truncate max-w-[240px]">Source: "Con <strong class="text-secondary font-semibold">leche de avena</strong>, si tienen."</span>
+<button aria-label="Review Card" class="text-primary font-label-sm text-label-sm flex items-center gap-0.5 hover:underline" type="button">
+<span>SRS Deck</span>
+<span class="material-symbols-outlined text-xs" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Gem 2: quisiera -->
+<div class="bg-surface-container-lowest border-l-4 border-l-secondary rounded-xl p-3.5 shadow-sm border-t border-r border-b border-surface-container-high ai-gem-glow">
+<div class="flex items-start justify-between">
+<div>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">quisiera</span>
+<p class="font-translation-text text-translation-text text-on-surface-variant">courteous "I would like" • (conditional)</p>
+</div>
+<div class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-sm text-secondary" data-icon="schedule">schedule</span>
+<span>Review in 1d</span>
+</div>
+</div>
+<div class="mt-2.5 pt-2 border-t border-surface-container-low flex items-center justify-between">
+<span class="text-xs text-on-surface-variant italic truncate max-w-[240px]">Source: "Buenas tardes. <strong class="text-secondary font-semibold">Quisiera</strong> un café..."</span>
+<button aria-label="Review Card" class="text-primary font-label-sm text-label-sm flex items-center gap-0.5 hover:underline" type="button">
+<span>SRS Deck</span>
+<span class="material-symbols-outlined text-xs" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Gem 3: la cuenta -->
+<div class="bg-surface-container-lowest border-l-4 border-l-secondary rounded-xl p-3.5 shadow-sm border-t border-r border-b border-surface-container-high ai-gem-glow">
+<div class="flex items-start justify-between">
+<div>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">la cuenta</span>
+<p class="font-translation-text text-translation-text text-on-surface-variant">the bill / check • (feminine noun)</p>
+</div>
+<div class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-sm text-secondary" data-icon="schedule">schedule</span>
+<span>Review in 1d</span>
+</div>
+</div>
+<div class="mt-2.5 pt-2 border-t border-surface-container-low flex items-center justify-between">
+<span class="text-xs text-on-surface-variant italic truncate max-w-[240px]">Source: "¿Me trae <strong class="text-secondary font-semibold">la cuenta</strong> también...?"</span>
+<button aria-label="Review Card" class="text-primary font-label-sm text-label-sm flex items-center gap-0.5 hover:underline" type="button">
+<span>SRS Deck</span>
+<span class="material-symbols-outlined text-xs" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 4: Social Pod Sharing & Next Questline Challenge -->
+<section class="flex flex-col gap-3">
+<!-- Madrid Travelers Pod Share Card -->
+<div class="bg-surface-container-lowest rounded-xl p-4 border border-surface-container-high shadow-sm flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="group">group</span>
+<span class="font-label-md text-label-md text-on-surface font-bold">Madrid Travelers Pod</span>
+</div>
+<span class="font-label-sm text-label-sm text-tertiary-container font-semibold">+15 Shared XP</span>
+</div>
+<div class="flex items-center justify-between gap-2">
+<!-- Avatars Cheering -->
+<div class="flex items-center -space-x-2 overflow-hidden py-1">
+<div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs border-2 border-surface-container-lowest">
+                AL
+              </div>
+<div class="w-8 h-8 rounded-full bg-secondary text-white flex items-center justify-center font-bold text-xs border-2 border-surface-container-lowest">
+                SO
+              </div>
+<div class="w-8 h-8 rounded-full bg-tertiary text-white flex items-center justify-center font-bold text-xs border-2 border-surface-container-lowest">
+                MA
+              </div>
+<div class="w-8 h-8 rounded-full bg-surface-container-highest text-on-surface text-[10px] font-bold flex items-center justify-center border-2 border-surface-container-lowest">
+                +4
+              </div>
+</div>
+<!-- Share Button -->
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-high text-primary hover:bg-surface-variant font-label-md text-label-md flex items-center gap-1.5 active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-base" data-icon="share">share</span>
+<span>Share to Pod</span>
+</button>
+</div>
+</div>
+<!-- Next Scenario in Questline -->
+<div class="bg-surface-container-low rounded-xl p-4 border border-surface-container flex items-center justify-between gap-3">
+<div class="flex items-start gap-3">
+<div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-2xl" data-icon="restaurant">restaurant</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-primary uppercase font-bold tracking-wider">Next in Questline</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface text-sm font-semibold">Asking for the tapas menu &amp; dietary restrictions</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-xs mt-0.5">Estimated: 3 min • Scenario Practice</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant text-xl shrink-0" data-icon="chevron_right">chevron_right</span>
+</div>
+</section>
+<!-- SECTION 5: Action Buttons (Persistent Flow Anchor) -->
+<section class="pt-2 flex flex-col gap-2.5">
+<!-- Primary Action -->
+<button class="w-full py-3.5 px-6 rounded-xl bg-primary text-on-primary font-headline-sm text-headline-sm text-base flex items-center justify-center gap-2 shadow-md hover:bg-primary-tint active:scale-[0.98] transition-all" type="button">
+<span>Continue to Daily Hub (+50 XP Claimed)</span>
+<span class="material-symbols-outlined text-xl" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<!-- Secondary Action: Voice Only Pro Mode -->
+<button class="w-full py-3 px-6 rounded-xl border-2 border-primary/20 bg-surface-container-lowest text-primary font-label-md text-label-md text-sm flex items-center justify-center gap-2 hover:bg-surface-container-low active:scale-[0.98] transition-all" type="button">
+<span class="material-symbols-outlined text-lg" data-icon="mic_double">mic_double</span>
+<span>Practice Again in Pro Mode (Voice Only)</span>
+</button>
+</section>
+</div>
+</main>
+</body></html>

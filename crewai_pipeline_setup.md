@@ -1,5 +1,27 @@
 # System Instruction: Autonomous CrewAI Multi-Agent Pipeline Setup
 
+## 2026-09-03 Rescue Update
+
+The autonomous loop now fails closed. Run this before trusting any crew status:
+
+```bash
+python orchestrator.py --audit
+python orchestrator.py --dry-run --no-plan
+```
+
+`--audit` must pass before any release/phase can be called done. It rejects the exact failure modes that made the app look green while features were hollow: legacy Gmail fixtures, `console.warn` soft-passes, swallowed critical assertions, mocked-only acceptance proof, `readFileSync(...).toContain(...)` acceptance tests, missing Learn/Daily Practice/Placement/Sparky contracts, silent learner-facing failures, and acceptance runners that define tests but do not actually execute them.
+
+The full release gate now runs `cd e2e/acceptance && npm run acceptance:green` after the static contract, wireframe parity, backend, frontend, and mobile gates. Set `CHORUS_RUN_PLAYWRIGHT=1` to add the critical Playwright journeys (`20`, `21`, `23`, `24`) to the release gate when browser/device infrastructure is available.
+
+The active phase has been reopened with rescue tasks:
+
+- `RESCUE-TEST-QUALITY`
+- `RESCUE-LEARN-MOBILE`
+- `RESCUE-SPARKY`
+- `RESCUE-GATE`
+
+Do not mark any of those `DONE` by hand. Let `orchestrator.py` run the assigned specialist role and then the deterministic gate in `crew/gates.py`.
+
 **Context:**
 We are setting up a fully autonomous multi-agent software engineering loop using **CrewAI** inside our local repository: **`chorus`** (React Native/React frontend, Go backend, PostgreSQL, Redis). The objective is to replace the human manager completely. The system must ingest requirements, modify files, run the existing integration test runners, handle compilation errors, and iterate until the test suite passes flawlessly.
 

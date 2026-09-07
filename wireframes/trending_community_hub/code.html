@@ -1,13 +1,11 @@
-<!DOCTYPE html>
-
-<html lang="en"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>Chorus - Trending in the Community</title>
-<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788158188199&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YTUyODE4NzU5NTgwNzNhYzU5MDBkMDI5YThlEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
 <script id="tailwind-config">
         tailwind.config = {
           darkMode: "class",
@@ -204,7 +202,12 @@
             scrollbar-width: none;
         }
     </style>
-</head>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
 <body class="antialiased">
 <!-- TopAppBar from JSON -->
 <header class="bg-surface dark:bg-on-background shadow-sm dark:shadow-none docked full-width top-0 flex items-center justify-between px-margin-mobile w-full h-16 fixed z-50">
@@ -212,9 +215,15 @@
 <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">language</span>
 </button>
 <h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim">Chorus</h1>
-<button class="text-primary dark:text-primary-fixed-dim hover:opacity-80 transition-opacity active:scale-95 transition-transform p-2 -mr-2 rounded-full">
-<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">verified_user</span>
-</button>
+<div class="flex items-center gap-2 -mr-1">
+  <div class="flex items-center gap-1 bg-surface-container-high px-2.5 py-1 rounded-full text-primary font-label-sm text-label-sm">
+    <span class="material-symbols-outlined text-[16px]">bolt</span>
+    <span class="font-bold">450 XP</span>
+  </div>
+  <button class="relative rounded-full focus:outline-none">
+    <img class="w-9 h-9 rounded-full object-cover border border-primary/20" data-alt="User profile avatar thumbnail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBb2Gv-pqFWUmWOauDLIOx1dvnwq3hbYBGHeCHYywMFExahKP9O89aHMQJrW_ywyUukOrwjl0UAf-spJPYyK95-q_5gZj1DMGIJVn79rZPeBgn-WRUJK_tpG-5aRCmiYrzFJI7URq7h2h0TPOoIIMuXKsxMWEWJHM2syXwNuwD3i4BuOOmi8Moc2UjeYiDLg9XxQpbV-g5t_PRog3VeeT-dy_btcd0XKvQ269Vs7xIar0bSMqmIZx6J">
+  </button>
+</div>
 </header>
 <main class="w-full max-w-2xl mx-auto px-margin-mobile flex flex-col gap-stack-lg pt-stack-md">
 <!-- Header Section -->
@@ -244,7 +253,7 @@
 <!-- Header -->
 <div class="flex items-center justify-between">
 <div class="flex items-center gap-3">
-<img class="w-10 h-10 rounded-full object-cover" data-alt="A small circular avatar of a young woman with short brown hair, wearing a casual yellow sweater, smiling warmly. The style is modern, bright, and highly legible, suited for a social learning app. Soft lighting, high-key white background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBb2Gv-pqFWUmWOauDLIOx1dvnwq3hbYBGHeCHYywMFExahKP9O89aHMQJrW_ywyUukOrwjl0UAf-spJPYyK95-q_5gZj1DMGIJVn79rZPeBgn-WRUJK_tpG-5aRCmiYrzFJI7URq7h2h0TPOoIIMuXKsxMWEWJHM2syXwNuwD3i4BuOOmi8Moc2UjeYiDLg9XxQpbV-g5t_PRog3VeeT-dy_btcd0XKvQ269Vs7xIar0bSMqmIZx6J"/>
+<img class="w-10 h-10 rounded-full object-cover" data-alt="A small circular avatar of a young woman with short brown hair, wearing a casual yellow sweater, smiling warmly. The style is modern, bright, and highly legible, suited for a social learning app. Soft lighting, high-key white background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBb2Gv-pqFWUmWOauDLIOx1dvnwq3hbYBGHeCHYywMFExahKP9O89aHMQJrW_ywyUukOrwjl0UAf-spJPYyK95-q_5gZj1DMGIJVn79rZPeBgn-WRUJK_tpG-5aRCmiYrzFJI7URq7h2h0TPOoIIMuXKsxMWEWJHM2syXwNuwD3i4BuOOmi8Moc2UjeYiDLg9XxQpbV-g5t_PRog3VeeT-dy_btcd0XKvQ269Vs7xIar0bSMqmIZx6J">
 <div>
 <div class="flex items-center gap-2">
 <span class="font-label-md text-label-md text-on-surface">Elena R.</span>
@@ -327,7 +336,7 @@
 <!-- Header -->
 <div class="flex items-center justify-between">
 <div class="flex items-center gap-3">
-<img class="w-10 h-10 rounded-full object-cover" data-alt="A small circular avatar of a young man with glasses and curly dark hair, wearing a blue t-shirt. The style is modern, bright, and highly legible, suited for a social learning app. Soft lighting, high-key white background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDH6sQJ8ncFSj9GjqnLEF4pkPBuCH_nILc9wKENh-oyWNlojCZ1O2vES7EMfH_4F2r7oWMkroO4KUjULfbTYsx7xuyeCPSGTAsbBdIMInvWZ4xf6Q8STRyZ4NvK3o-qEDhThDudW9BvAoiVqOqUrSRISLrXF1Fw2gDUU6Ncw2JHyt0NO0XvdtrA0-n2gjqDz-3s_qQjytESDi-mSZbmrForMJ97AZTCnD1xnBAc1jj5vP14lEp8_McT"/>
+<img class="w-10 h-10 rounded-full object-cover" data-alt="A small circular avatar of a young man with glasses and curly dark hair, wearing a blue t-shirt. The style is modern, bright, and highly legible, suited for a social learning app. Soft lighting, high-key white background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDH6sQJ8ncFSj9GjqnLEF4pkPBuCH_nILc9wKENh-oyWNlojCZ1O2vES7EMfH_4F2r7oWMkroO4KUjULfbTYsx7xuyeCPSGTAsbBdIMInvWZ4xf6Q8STRyZ4NvK3o-qEDhThDudW9BvAoiVqOqUrSRISLrXF1Fw2gDUU6Ncw2JHyt0NO0XvdtrA0-n2gjqDz-3s_qQjytESDi-mSZbmrForMJ97AZTCnD1xnBAc1jj5vP14lEp8_McT">
 <div>
 <div class="flex items-center gap-2">
 <span class="font-label-md text-label-md text-on-surface">David K.</span>
@@ -364,31 +373,25 @@
 </main>
 <!-- BottomNavBar from JSON -->
 <nav class="fixed bottom-0 w-full z-50 rounded-t-xl shadow-lg bg-surface-container-lowest dark:bg-surface-container-lowest shadow-[0px_-4px_12px_rgba(0,0,0,0.05)] md:hidden">
-<ul class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 bg-surface-container-lowest dark:bg-surface-container-lowest">
-<li>
-<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high transition-colors active:scale-90 transition-all duration-200 p-2 rounded-xl">
-<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">school</span>
-<span class="font-label-sm text-label-sm mt-1">Learn</span>
-</button>
+<ul class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 bg-surface-container-lowest dark:bg-surface-container-lowest"><li class="">
+  <button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high transition-colors active:scale-90 transition-all duration-200 p-2 rounded-xl">
+    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">forum</span>
+    <span class="font-label-sm text-label-sm mt-1">Chats</span>
+  </button>
 </li>
-<li>
-<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high transition-colors active:scale-90 transition-all duration-200 p-2 rounded-xl">
-<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">forum</span>
-<span class="font-label-sm text-label-sm mt-1">Chats</span>
-</button>
+<li class="">
+  <button class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 hover:bg-surface-container-high transition-colors active:scale-90 transition-all duration-200">
+    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">groups</span>
+    <span class="font-label-sm text-label-sm mt-1">Hub</span>
+  </button>
 </li>
-<li>
-<button class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 hover:bg-surface-container-high transition-colors active:scale-90 transition-all duration-200">
-<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">groups</span>
-<span class="font-label-sm text-label-sm mt-1">Hub</span>
-</button>
-</li>
-<li>
-<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high transition-colors active:scale-90 transition-all duration-200 p-2 rounded-xl">
-<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">person</span>
-<span class="font-label-sm text-label-sm mt-1">Profile</span>
-</button>
-</li>
-</ul>
+<li class="">
+  <button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high transition-colors active:scale-90 transition-all duration-200 p-2 rounded-xl">
+    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">school</span>
+    <span class="font-label-sm text-label-sm mt-1">Learn</span>
+  </button>
+</li></ul>
 </nav>
+
+
 </body></html>

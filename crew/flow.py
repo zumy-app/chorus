@@ -7,24 +7,26 @@ import sys
 from datetime import datetime
 from typing import Any
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from crewai import Agent, Crew, Task, Process
 from crewai.flow.flow import Flow, listen, start
 from dotenv import load_dotenv
 
+from crew.gates import run_full_gate, run_task_gate
 from crew.models import GapAnalysis, TaskResult, WireframeParityReport, ReleaseGateCheck
 from crew.state import load as load_state
 from crew.state import save as save_state
 from crew.state import next_task as get_next_task
 from crew.state import phase_done
 from crew.state import advance_phase
+from tools.opencode_runner import OpencodeRunnerTool
 
 load_dotenv()
 
-REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
-CREW_DIR = REPO_ROOT
-STATE_PATH = os.path.join(REPO_ROOT, "crew", "phase_status.json")
+CREW_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.dirname(CREW_DIR)
+STATE_PATH = os.path.join(CREW_DIR, "phase_status.json")
 
 
 def log(msg: str) -> None:
@@ -90,41 +92,45 @@ class ChorusBuildFlow(Flow):
     stream = True
 
     def _run_crew_for_task(self, task_def: dict, agents_config: dict) -> dict:
-        """Run a single task via a Crew with the appropriate agent."""
+        """Run a single task through the implementation bridge and hard gates."""
         role = task_def.get("role", "backend_engineer")
-        agent_cfg = agents_config.get(role, agents_config["backend_engineer"])
-        agent = make_agent(role, agent_cfg)
+        suffix = {
+            "backend_engineer": "backend",
+            "frontend_engineer": "frontend",
+            "mobile_engineer": "mobile",
+            "qa_engineer": "qa",
+            "test_engineer": "test",
+            "sre": "infra",
+            "reviewer": "review",
+            "analyst": "analyst",
+            "teacher": "teacher",
+        }.get(role, "general")
 
-        task = Task(
-            description=(
-                f"Implement task {task_def["id"]}: {task_def["name"]}.\n"
-                f"Refer to wireframes/ for the spec and REQUIREMENTS_MASTER.md for requirements.\n"
-                f"Inspect existing code first. Write production code. Run tests. Report exit codes."
-            ),
-            expected_output=f"Task {task_def["id"]} complete. Files changed, tests pass, summary provided.",
-            agent=agent,
-            name=task_def["id"],
+        prompt = (
+            f"Implement task {task_def['id']}: {task_def['name']}.\n"
+            "Refer to wireframes/ for the spec, REQUIREMENTS_MASTER.md for requirements, "
+            "docs/TDD_RESCUE_SPEC.md for testRefs, and WORKING_SET.md for allowed paths.\n"
+            "Use failing-first TDD. Critical acceptance tests must drive real UI/API behavior; "
+            "do not use console.warn soft-passes, swallowed catches, mocked-only routes, or "
+            "source-file assertions as DONE evidence.\n"
+            "Inspect existing code first. Write production code. Run tests. Report exact exit codes."
         )
+        raw = OpencodeRunnerTool()._run(prompt, agent_suffix=suffix, job_id=f"crew_{task_def['id']}")
+        try:
+            delegated = json.loads(raw)
+        except json.JSONDecodeError:
+            delegated = {"ok": False, "summary": raw, "exit_code": 1}
 
-        crew = Crew(
-            agents=[agent],
-            tasks=[task],
-            process=Process.sequential,
-            verbose=True,
-            memory=True,
-            planning=True,
-            cache=True,
-        )
-
-        result = crew.kickoff()
-        raw = result.raw if hasattr(result, "raw") else str(result)
-        return {"id": task_def["id"], "result": raw, "exit_code": 0 if raw else 1}
+        gate = run_task_gate(task_def["id"], task_def["name"], role)
+        ok = bool(delegated.get("ok")) and gate.ok
+        summary = (delegated.get("summary") or "") + "\n\n" + gate.summary()
+        return {"id": task_def["id"], "result": summary, "exit_code": 0 if ok else 1}
 
     @start()
     def phase_0_foundation(self):
         """Phase 0: Foundation & Green Baseline."""
         log("=== PHASE 0: Foundation & Green Baseline ===")
-        agents_config = load_config(os.path.join(CREW_DIR, "crew", "agents.json"))
+        agents_config = load_config(os.path.join(CREW_DIR, "agents.json"))
         state = load_state()
         results = []
         for t in PHASE_TASKS[0]:
@@ -144,7 +150,7 @@ class ChorusBuildFlow(Flow):
     def phase_1_core(self, prev_result):
         """Phase 1: Launch-Blocking Core."""
         log("=== PHASE 1: Launch-Blocking Core (P0) ===")
-        agents_config = load_config(os.path.join(CREW_DIR, "crew", "agents.json"))
+        agents_config = load_config(os.path.join(CREW_DIR, "agents.json"))
         state = load_state()
         results = []
         for t in PHASE_TASKS[1]:
@@ -156,7 +162,7 @@ class ChorusBuildFlow(Flow):
     def phase_2_learning(self, prev_result):
         """Phase 2: Learning & Vocabulary."""
         log("=== PHASE 2: Learning & Vocabulary ===")
-        agents_config = load_config(os.path.join(CREW_DIR, "crew", "agents.json"))
+        agents_config = load_config(os.path.join(CREW_DIR, "agents.json"))
         results = []
         for t in PHASE_TASKS[2]:
             r = self._run_crew_for_task(t, agents_config)
@@ -167,7 +173,7 @@ class ChorusBuildFlow(Flow):
     def phase_3_scaling(self, prev_result):
         """Phase 3: Scaling & Infrastructure."""
         log("=== PHASE 3: Scaling & Infrastructure ===")
-        agents_config = load_config(os.path.join(CREW_DIR, "crew", "agents.json"))
+        agents_config = load_config(os.path.join(CREW_DIR, "agents.json"))
         results = []
         for t in PHASE_TASKS[3]:
             r = self._run_crew_for_task(t, agents_config)
@@ -178,7 +184,7 @@ class ChorusBuildFlow(Flow):
     def phase_4_marketplace(self, prev_result):
         """Phase 4: Marketplace & Production Readiness."""
         log("=== PHASE 4: Marketplace & Production Readiness ===")
-        agents_config = load_config(os.path.join(CREW_DIR, "crew", "agents.json"))
+        agents_config = load_config(os.path.join(CREW_DIR, "agents.json"))
         results = []
         for t in PHASE_TASKS[4]:
             r = self._run_crew_for_task(t, agents_config)
@@ -189,39 +195,9 @@ class ChorusBuildFlow(Flow):
     def production_release(self, prev_result):
         """Final production release gate."""
         log("=== PRODUCTION RELEASE GATE ===")
-        agents_config = load_config(os.path.join(CREW_DIR, "crew", "agents.json"))
-        tasks_config = load_config(os.path.join(CREW_DIR, "crew", "tasks.json"))
-
-        reviewer = make_agent("reviewer", agents_config["reviewer"])
-        gate_task = Task(
-            description=(
-                "Run the production release gate:\n"
-                "1. All phase tasks DONE in phase_status.json\n"
-                "2. Backend builds green (go build ./...)\n"
-                "3. Backend tests pass (go test ./...)\n"
-                "4. Frontend builds (npm run build)\n"
-                "5. Frontend tests pass (npm test)\n"
-                "6. Mobile tests pass (npm test)\n"
-                "7. Security scan passes\n"
-                "8. Go/No-Go checklist complete\n"
-                "Output structured ReleaseGateCheck."
-            ),
-            expected_output="ReleaseGateCheck with pass/fail for each check and overall verdict.",
-            agent=reviewer,
-            name="release_gate",
-        )
-
-        gate_crew = Crew(
-            agents=[reviewer],
-            tasks=[gate_task],
-            process=Process.sequential,
-            verbose=True,
-            memory=True,
-        )
-        result = gate_crew.kickoff()
-        raw = result.raw if hasattr(result, "raw") else str(result)
-        log(f"Release gate: {raw[:500]}")
-        return {"gate": "release", "result": raw, "prev": prev_result}
+        gate = run_full_gate(run_commands=True)
+        log(f"Release gate: {gate.summary()[:500]}")
+        return {"gate": "release", "result": gate.summary(), "ok": gate.ok, "prev": prev_result}
 
 
 # ---------------------------------------------------------------------------

@@ -18,5 +18,25 @@
     "description": "All phase tasks DONE, builds green, tests pass, security scan passes, Go/No-Go complete.",
     "expected_output": "ReleaseGateCheck with pass/fail for each check and overall verdict.",
     "agent": "reviewer"
+  },
+  "tdd_rescue_test_quality": {
+    "description": "Replace hollow QA evidence with hard failing-first acceptance tests. Remove legacy Gmail fixtures, console.warn soft-passes, swallowed critical failures, mocked-only acceptance proof, and fs.readFileSync acceptance assertions from C-01/C-04/C-05. Critical tests must drive the real UI/API path and fail when translation, marketplace, teacher apply, or durability is broken.",
+    "expected_output": "HardTestEvidenceReport with testRefs, red/green command output, and zero soft-pass patterns in critical tests.",
+    "agent": "test_engineer"
+  },
+  "learning_dashboard_rescue": {
+    "description": "Make the mobile-first Learn dashboard actually work: Daily Practice/Quick Drills, Initial Test/Placement, Vocabulary Review, Scenarios, Real Talk, Streak Recovery, monthly metrics, and Learn->Tutors navigation. Each tap must navigate, call the real API, and show loading/success/error states on mobile and web.",
+    "expected_output": "LearningRescueReport with files changed, APIs exercised, mobile+web tests, and device verification notes.",
+    "agent": "mobile_engineer"
+  },
+  "sparky_chatbot_rescue": {
+    "description": "Make Sparky chatbot/deep-dive interactions work in mobile Chat and scenario roleplay. The FAB/sheet/input/send flow must append the user message, call the learning/grammar API, show Sparky loading, render an assistant response, and render a retryable error state.",
+    "expected_output": "SparkyInteractionReport with hard tests proving user input, loading, assistant response, and error path.",
+    "agent": "mobile_engineer"
+  },
+  "device_release_rescue_gate": {
+    "description": "Run the deterministic release gate after the rescue work: python orchestrator.py --audit, verify-wireframe-parity.sh, backend build/vet/test, frontend build/test, mobile typecheck/test, and AVD/device parity when available. Any red check keeps the phase PENDING.",
+    "expected_output": "ReleaseGateCheck with exact commands, exit codes, failed checks, and no DONE if any check fails.",
+    "agent": "qa_engineer"
   }
 }

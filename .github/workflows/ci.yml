@@ -99,6 +99,53 @@ jobs:
         run: bash deploy/ci/verify-release-gate.sh --offline
 
   # ---------------------------------------------------------------------------
+  # 1b) Mocked E2E gate — hard-fail learning + Sparky + negative cases (PR + main)
+  #     Uses page.route + page.goto with REAL React UI and mocked API DATA.
+  #     No Docker needed; frontend preview serves on :3000. Blocks merge if green
+  #     tests were fake before (P0/P1). Required for branch protection.
+  # ---------------------------------------------------------------------------
+  e2e-mocked:
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install frontend + e2e deps
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Install e2e deps (root)
+        working-directory: e2e
+        run: npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+      - name: Start frontend preview on :3000
+        working-directory: frontend
+        run: |
+          nohup npm run preview -- --port 3000 --host 0.0.0.0 &
+          for i in $(seq 1 30); do curl -fsS http://localhost:3000 >/dev/null 2>&1 && break; sleep 1; done
+          curl -fsS http://localhost:3000 >/dev/null
+      - name: Run mocked E2E (hard-fail, no Docker)
+        working-directory: e2e
+        env:
+          E2E_SKIP_STARTUP: "true"
+          E2E_PREWARM: "false"
+          E2E_BASE_URL: http://localhost:3000
+          E2E_BACKEND_HEALTH: http://localhost:3000
+        run: npx playwright test --project=chromium tests/qa-scenarios-drills.spec.ts tests/21-learning-journey.spec.ts tests/22-negative-cases.spec.ts --reporter=list
+      - name: Upload mocked E2E report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-mocked-report
+          path: e2e/playwright-report/
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
   # 2) Security scan: govulncheck + npm audit (PR + main)
   # ---------------------------------------------------------------------------
   security:
@@ -119,7 +166,7 @@ jobs:
   # 3) Build + push dev snapshot images (main only)
   # ---------------------------------------------------------------------------
   images:
-    needs: [test, security]
+    needs: [test, security, e2e-mocked]
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_dev == 'true')
     runs-on: ubuntu-latest
     steps:
@@ -285,7 +332,7 @@ jobs:
   # 6) Notify on failure (Slack webhook, optional)
   # ---------------------------------------------------------------------------
   notify-failure:
-    needs: [test, security, deploy-dev, promote-prod]
+    needs: [test, security, e2e-mocked, deploy-dev, promote-prod]
     if: failure() && (github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     steps:

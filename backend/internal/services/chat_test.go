@@ -145,7 +145,7 @@ func TestChatGetUserChats(t *testing.T) {
 	settings := map[string]interface{}{"translationEnabled": true}
 	settingsJSON, _ := json.Marshal(settings)
 
-	mock.ExpectQuery(`SELECT DISTINCT c.id, c.type, c.name, c.created_by, c.settings, c.created_at,\s*cp.archived_at IS NOT NULL, COALESCE\(cp.is_muted, FALSE\), cp.muted_until FROM chats c INNER JOIN chat_participants cp ON c.id = cp.chat_id LEFT JOIN chat_preferences pref ON pref.chat_id = c.id AND pref.user_id = \$1 WHERE cp.user_id = \$1 ORDER BY c.created_at DESC`).
+	mock.ExpectQuery(`SELECT DISTINCT c.id, c.type, c.name, c.created_by, c.settings, c.created_at,\s*pref.archived_at IS NOT NULL, COALESCE\(pref.is_muted, FALSE\), pref.muted_until FROM chats c INNER JOIN chat_participants cp ON c.id = cp.chat_id LEFT JOIN chat_preferences pref ON pref.chat_id = c.id AND pref.user_id = \$1 WHERE cp.user_id = \$1 ORDER BY c.created_at DESC`).
 		WithArgs("user-1").
 		WillReturnRows(sqlmock.NewRows([]string{"id", "type", "name", "created_by", "settings", "created_at", "is_archived", "is_muted", "muted_until"}).
 			AddRow("chat-1", "direct", "", "creator-1", settingsJSON, time.Now(), false, false, nil).
