@@ -273,12 +273,25 @@ func (s *PlacementService) buildItemBank(ctx context.Context, targetLang, native
 
 func buildPlacementFallback() []placementItem {
 	return []placementItem{
-		{Ref: "A1-grammar-1", Type: "grammar", CEFR: "A1", Prompt: "Complete: \"Yo ____ hablando español.\"", Choices: shuffleStrings([]string{"estoy", "soy", "es", "eres"}, "A1-grammar-1"), Correct: "estoy"},
-		{Ref: "A1-grammar-2", Type: "grammar", CEFR: "A1", Prompt: "Choose the greeting:", Choices: shuffleStrings([]string{"Hola", "Adiós", "Gracias", "Por favor"}, "A1-grammar-2"), Correct: "Hola"},
-		{Ref: "A2-grammar-1", Type: "grammar", CEFR: "A2", Prompt: "Yesterday I ____ al cine.", Choices: shuffleStrings([]string{"fui", "voy", "ir", "va"}, "A2-grammar-1"), Correct: "fui"},
-		{Ref: "A2-grammar-2", Type: "grammar", CEFR: "A2", Prompt: "\"I am going to travel\" = ____ viajar.", Choices: shuffleStrings([]string{"Voy a", "Soy", "Estoy", "Voy de"}, "A2-grammar-2"), Correct: "Voy a"},
-		{Ref: "B1-grammar-1", Type: "grammar", CEFR: "B1", Prompt: "Choose: \"If I had time, I ____ travel.\"", Choices: shuffleStrings([]string{"viajaría", "viajo", "viajaré", "viajé"}, "B1-grammar-1"), Correct: "viajaría"},
-		{Ref: "B2-grammar-1", Type: "grammar", CEFR: "B2", Prompt: "Choose the more nuanced opinion opener:", Choices: shuffleStrings([]string{"Por un lado", "Es bueno", "Me gusta", "No sé"}, "B2-grammar-1"), Correct: "Por un lado"},
+		// A1: Present tense verbs, basic greetings & word order
+		{Ref: "A1-verb-1", Type: "verb_conjugation", CEFR: "A1", Prompt: "Present Tense: Complete \"Ella ____ (hablar) tres idiomas fluidamente.\"", Choices: shuffleStrings([]string{"habla", "hablo", "hablan", "hablar"}, "A1-verb-1"), Correct: "habla"},
+		{Ref: "A1-grammar-1", Type: "grammar", CEFR: "A1", Prompt: "Verb Estar vs Ser: \"Yo ____ estudiando en la biblioteca ahora mismo.\"", Choices: shuffleStrings([]string{"estoy", "soy", "es", "somos"}, "A1-grammar-1"), Correct: "estoy"},
+		{Ref: "A1-syntax-1", Type: "sentence_structure", CEFR: "A1", Prompt: "Sentence Construction: Select the correct word order:", Choices: shuffleStrings([]string{"Me gusta mucho el café", "Café el me gusta mucho", "Gusta me el café mucho", "Mucho me café gusta"}, "A1-syntax-1"), Correct: "Me gusta mucho el café"},
+
+		// A2: Preterite vs Imperfect tenses, plans & direct object pronouns
+		{Ref: "A2-verb-1", Type: "tense_distinction", CEFR: "A2", Prompt: "Preterite Tense: \"Ayer nosotros ____ (ir) a la playa todo el día.\"", Choices: shuffleStrings([]string{"fuimos", "bamos", "iremos", "fueron"}, "A2-verb-1"), Correct: "fuimos"},
+		{Ref: "A2-verb-2", Type: "tense_distinction", CEFR: "A2", Prompt: "Imperfect Tense: \"Cuando era niño, siempre ____ (vivir) en Madrid.\"", Choices: shuffleStrings([]string{"vivía", "viví", "viviré", "vivo"}, "A2-verb-2"), Correct: "vivía"},
+		{Ref: "A2-syntax-1", Type: "pronouns", CEFR: "A2", Prompt: "Object Pronoun Placement: \"¿Le diste el libro a María? Sí, ____ di ayer.\"", Choices: shuffleStrings([]string{"se lo", "le lo", "lo se", "me lo"}, "A2-syntax-1"), Correct: "se lo"},
+
+		// B1: Present Subjunctive, Conditionals & Complex Relative Clauses
+		{Ref: "B1-verb-1", Type: "subjunctive_mood", CEFR: "B1", Prompt: "Present Subjunctive: \"Dudo que ellos ____ (llegar) a tiempo a la reunión.\"", Choices: shuffleStrings([]string{"lleguen", "llegarán", "llegan", "llegaron"}, "B1-verb-1"), Correct: "lleguen"},
+		{Ref: "B1-grammar-1", Type: "conditional_clause", CEFR: "B1", Prompt: "Hypothetical Condition: \"Si tuviera suficiente dinero, ____ (comprar) una casa.\"", Choices: shuffleStrings([]string{"compraría", "compro", "compraré", "compraba"}, "B1-grammar-1"), Correct: "compraría"},
+		{Ref: "B1-syntax-1", Type: "sentence_structure", CEFR: "B1", Prompt: "Relative Clause: \"El autor ____ libro leímos dará una conferencia mañana.\"", Choices: shuffleStrings([]string{"cuyo", "que", "quien", "cual"}, "B1-syntax-1"), Correct: "cuyo"},
+
+		// B2: College/Academic Writing Level - Imperfect Subjunctive, Advanced Discourse & Syntax Nuance
+		{Ref: "B2-verb-1", Type: "imperfect_subjunctive", CEFR: "B2", Prompt: "Past Subjunctive Hypothesis: \"Si hubieras estudiado más, ____ (obtener) mejores resultados en el examen académico.\"", Choices: shuffleStrings([]string{"habrías obtenido", "obtuviste", "obtengas", "obtendrás"}, "B2-verb-1"), Correct: "habrías obtenido"},
+		{Ref: "B2-discourse-1", Type: "academic_discourse", CEFR: "B2", Prompt: "College Academic Writing: Choose the best concessive connector to synthesize contrasting arguments in an essay: \"El proyecto presenta beneficios; ____, debemos analizar los riesgos socioeconómicos a largo plazo.\"", Choices: shuffleStrings([]string{"no obstante", "así que", "porque", "entonces"}, "B2-discourse-1"), Correct: "no obstante"},
+		{Ref: "B2-syntax-1", Type: "advanced_syntax", CEFR: "B2", Prompt: "Advanced Syntactic Register: Select the sentence that demonstrates proper formal academic prose:", Choices: shuffleStrings([]string{"Es fundamental que se consideren las repercusiones éticas del estudio.", "Es bueno que piensen en las cosas éticas del estudio.", "Tienen que ver la ética del estudio siempre.", "Hay que mirar si la ética del estudio está bien."}, "B2-syntax-1"), Correct: "Es fundamental que se consideren las repercusiones éticas del estudio."},
 	}
 }
 
