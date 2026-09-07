@@ -303,6 +303,7 @@ func writeFile(absPath string, src io.Reader) error {
 // separators and unsafe characters are replaced so the stored path can never
 // traverse the upload directory.
 func sanitizeFileName(name string) string {
+	name = strings.ReplaceAll(name, "\\", "/")
 	name = filepath.Base(strings.TrimSpace(name))
 	name = fileForbiddenChars.ReplaceAllString(name, "_")
 	name = strings.Trim(name, "._")

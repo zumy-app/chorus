@@ -54,6 +54,29 @@ docker compose logs -f [service-name]
 docker compose up -d --build
 ```
 
+### Scale Chat Server Replicas (Horizontal Scaling):
+```powershell
+# Scale Go chat backend servers behind Layer 4 Load Balancer
+docker compose up -d --scale backend=3
+```
+
+### Horizontal Scaling & Layer 4 Load Balancing Controls
+
+Chorus chat servers are fully **stateless**; session runtime state and WebSocket connection routing are managed via PostgreSQL and the **Redis Connection Registry** (`ws:registry:{userId}`).
+
+#### Scaling Parameters & Environment Variables:
+- `SERVER_ID`: Unique node identifier auto-generated or assigned per chat server replica.
+- `REDIS_URL`: Redis pub/sub and registry endpoint (e.g. `redis:6379`).
+- `LB_ALGORITHM`: Load balancing strategy (`leastconn` recommended for long-lived WebSocket connections, or `least-load`).
+- `LB_MAXCONN_PER_SERVER`: Maximum connection threshold per replica before traffic shifts to adjacent instances.
+
+#### Cross-Server WebSocket Routing:
+When User A connects to Replica `backend-1` and sends a message to User B connected to Replica `backend-2`:
+1. `backend-1` stores the durable message record in PostgreSQL.
+2. `backend-1` queries Redis key `ws:registry:{userIdB}` to locate User B's serving server (`backend-2`).
+3. `backend-1` publishes targeted delivery to `backend-2` over Redis Pub/Sub channel `server:backend-2`.
+4. `backend-2` transmits the real-time payload directly to User B's open WebSocket connection.
+
 ### Run integration tests:
 ```powershell
 .\test-integration.ps1
