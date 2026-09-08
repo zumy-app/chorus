@@ -2,6 +2,8 @@
 // React 19 concurrent-mode tests need this flag for act() to flush effects.
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
+jest.setTimeout(20000);
+
 // Mocks for native modules that react-native's jest preset cannot load.
 jest.mock('react-native-screens', () => {
   const actual = jest.requireActual('react-native-screens');
