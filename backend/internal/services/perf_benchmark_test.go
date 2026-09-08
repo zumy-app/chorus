@@ -1,3 +1,5 @@
+//go:build integration || benchmark
+
 package services
 
 import (

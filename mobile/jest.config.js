@@ -1,6 +1,7 @@
 module.exports = {
   preset: 'react-native',
   setupFiles: ['./jest.setup.js'],
+  moduleDirectories: ['node_modules', '<rootDir>/node_modules', '<rootDir>/../node_modules'],
   moduleNameMapper: {
     '^@chorus/shared$': '<rootDir>/../packages/shared/src/index.ts',
     '^@babel/runtime/(.*)$': '<rootDir>/node_modules/@babel/runtime/$1',

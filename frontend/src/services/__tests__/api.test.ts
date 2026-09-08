@@ -506,4 +506,78 @@ describe('API Service', () => {
       expect(mockAxios.get).toHaveBeenCalledWith('/grammar/analyze/job-1')
     })
   })
+
+  describe('API Error Handling & Edge Cases', () => {
+    it('rejects authAPI.login on HTTP 401 Unauthorized', async () => {
+      const errorResponse = {
+        response: { status: 401, data: { error: 'Invalid credentials' } },
+      }
+      const mockAxios = createMockAxios({
+        post: vi.fn().mockRejectedValue(errorResponse),
+      })
+
+      vi.doMock('axios', () => ({
+        default: { create: vi.fn(() => mockAxios) },
+        create: vi.fn(() => mockAxios),
+      }))
+
+      const { authAPI } = await import('../../services/api')
+      await expect(authAPI.login({ username: 'baduser', password: 'wrongpassword' }))
+        .rejects.toMatchObject({ response: { status: 401 } })
+    })
+
+    it('rejects chatAPI.getChats on HTTP 500 Server Error', async () => {
+      const serverError = {
+        response: { status: 500, data: { error: 'Internal Database Error' } },
+      }
+      const mockAxios = createMockAxios({
+        get: vi.fn().mockRejectedValue(serverError),
+      })
+
+      vi.doMock('axios', () => ({
+        default: { create: vi.fn(() => mockAxios) },
+        create: vi.fn(() => mockAxios),
+      }))
+
+      const { chatAPI } = await import('../../services/api')
+      await expect(chatAPI.getChats())
+        .rejects.toMatchObject({ response: { status: 500 } })
+    })
+
+    it('rejects messageAPI.sendMessage on Network Error', async () => {
+      const networkError = new Error('Network Error')
+      ;(networkError as any).code = 'ERR_NETWORK'
+
+      const mockAxios = createMockAxios({
+        post: vi.fn().mockRejectedValue(networkError),
+      })
+
+      vi.doMock('axios', () => ({
+        default: { create: vi.fn(() => mockAxios) },
+        create: vi.fn(() => mockAxios),
+      }))
+
+      const { messageAPI } = await import('../../services/api')
+      await expect(messageAPI.sendMessage('chat-1', { text: 'Hello' }))
+        .rejects.toThrow('Network Error')
+    })
+
+    it('rejects authAPI.getMe on token expiration 401 error', async () => {
+      const expiredError = {
+        response: { status: 401, data: { error: 'Token expired' } },
+      }
+      const mockAxios = createMockAxios({
+        get: vi.fn().mockRejectedValue(expiredError),
+      })
+
+      vi.doMock('axios', () => ({
+        default: { create: vi.fn(() => mockAxios) },
+        create: vi.fn(() => mockAxios),
+      }))
+
+      const { authAPI } = await import('../../services/api')
+      await expect(authAPI.getMe())
+        .rejects.toMatchObject({ response: { status: 401 } })
+    })
+  })
 })
