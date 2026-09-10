@@ -138,7 +138,7 @@ test.describe('@C-05 @marketplace @become-teacher', () => {
         const data = await res.json()
         const tutors = data.tutors || data.data || []
         // While pending, bob should NOT appear (soft — if already approved from prior run, may appear)
-        const bobFound = tutors.some((t: any) => (t.displayName||'').toLowerCase().includes('bob') || (t.email||'').includes('bob.dev'))
+        const bobFound = tutors.some((t: any) => (t.displayName||'').toLowerCase().includes('bob') || (t.email||'').includes('bob.es-en'))
         if (bobFound) console.warn('⚠️ C-05-04 bob found in browse while pending (soft — may be approved from prior run)')
         else console.log('ℹ️ C-05-04 bob not in browse while pending (expected, soft ok)')
       } else console.warn(`⚠️ C-05-04 browse API ${res.status} (soft)`)

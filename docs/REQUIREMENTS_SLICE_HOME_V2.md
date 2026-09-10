@@ -323,7 +323,7 @@ Home v2 itself requires **no new backend endpoint** — it is static. The only r
 - [ ] **Both surfaces built green:**
   - `cd backend && go vet ./...` exit 0
   - `cd backend && go test ./...` exit 0 (incl. `health_test.go:22`, `entitlement_test.go`)
-  - `cd frontend && npm run build` (tsc && vite build) exit 0 + `grep -R "alice.dev" frontend/dist` 0 (NO_LEAK)
+  - `cd frontend && npm run build` (tsc && vite build) exit 0 + `grep -R "chorus.test" frontend/dist` 0 (NO_LEAK)
   - `cd frontend && npm test` (vitest) exit 0 (new `Landing.test.tsx` hero/ecosystem/pricing/footer queries green)
   - `cd mobile && npx tsc --noEmit` exit 0
   - `cd mobile && npm test` (jest) exit 0 (new `LandingScreen` queries green)

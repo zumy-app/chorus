@@ -5,8 +5,8 @@
 
 | # | Email | Username | Display name | Native → Target | Role / Data | Password |
 |---|---|---|---|---|---|---|
-| 1 | `alice.dev@chorus.test` | `alice.dev` | `Alice Dev` | `en → es` | **Learner** — has 1 trial credit, 2 reviews for Sofia, used in `seedTutorMarketplace` | `ChorusDev123!` |
-| 2 | `bob.dev@chorus.test` | `bob.dev` | `Bob Dev` | `es → en` | **Learner** — second learner for booking/review flows | `ChorusDev123!` |
+| 1 | `alice.en-es@chorus.test` | `alice.en-es` | `Alice Dev` | `en → es` | **Learner (EN speaker learning ES)** — has 1 trial credit, 2 reviews for Sofia, used in `seedTutorMarketplace` | `ChorusDev123!` |
+| 2 | `bob.es-en@chorus.test` | `bob.es-en` | `Bob Dev` | `es → en` | **Learner (ES speaker learning EN)** — second learner for booking/review flows | `ChorusDev123!` |
 | 3 | `sofia.tutor@chorus.test` | `sofia.tutor` | `Sofia Tutor` | `en → es` | **Approved tutor** — `teacher_applications status=approved`, `rate 2500¢ ($25)`, bio `Hola! I am Sofia...`, `language_certificate` verified `Instituto Cervantes 2018`, 4 future `tutor_availability` slots (1h/day next 4d), ratings 5★+4★ avg 4.5 | `ChorusDev123!` |
 
 ### Invite-gated registration helper
@@ -23,7 +23,7 @@ cd backend && go run ./cmd/server --seed-dev
 # Storage on emulator still holds old JWT (old user IDs) → clear or logout
 adb -s emulator-5554 shell pm clear com.chorusmobile
 # then in app:
-# Login as alice.dev@chorus.test / ChorusDev123!  → Learn hub shows dueToday>0 + 5 es scenarios
+# Login as alice.en-es@chorus.test / ChorusDev123!  → Learn hub shows dueToday>0 + 5 es scenarios
 # Login as sofia.tutor@chorus.test / ChorusDev123! → Profile → Become Teacher shows `approved` + Trial Credits
 # Register new user with invite: POST /auth/register {email:"new@...", password:"...", inviteToken:"chorus-dev-invite-2026"}
 ```

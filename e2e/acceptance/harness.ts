@@ -8,8 +8,8 @@
  * of Done evidence required by the plan (docs/TEST_SPEC.md binding policy).
  *
  * Dev fixture credentials (backend/internal/services/dev_seed.go):
- *   learner: alice.dev@chorus.test   password: ChorusDev123!
- *   learner: bob.dev@chorus.test     password: ChorusDev123!
+ *   learner (EN→ES): alice.en-es@chorus.test   password: ChorusDev123!
+ *   learner (ES→EN): bob.es-en@chorus.test     password: ChorusDev123!
  *   tutor:   sofia.tutor@chorus.test password: ChorusDev123!
  *   invite:  invite.dev@chorus.test  token:    chorus-dev-invite-2026
  */
@@ -17,8 +17,8 @@
 export const API_BASE = process.env.CHORUS_API || 'http://localhost:8080'
 
 export const DEV_PASSWORD = 'ChorusDev123!'
-export const LEARNER_EMAIL = 'alice.dev@chorus.test'
-export const LEARNER2_EMAIL = 'bob.dev@chorus.test'
+export const LEARNER_EMAIL = 'alice.en-es@chorus.test'
+export const LEARNER2_EMAIL = 'bob.es-en@chorus.test'
 export const TUTOR_EMAIL = 'sofia.tutor@chorus.test'
 export const INVITE_EMAIL = 'invite.dev@chorus.test'
 export const INVITE_TOKEN = 'chorus-dev-invite-2026'

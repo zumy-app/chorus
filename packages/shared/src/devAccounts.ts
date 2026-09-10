@@ -14,17 +14,17 @@ export type DevAccount = {
 
 export const DEV_ACCOUNTS: DevAccount[] = [
   {
-    label: 'Alice — learner (en→es)',
-    email: 'alice.dev@chorus.test',
-    username: 'alice.dev',
+    label: 'Alice — English speaker learning Spanish (EN→ES)',
+    email: 'alice.en-es@chorus.test',
+    username: 'alice.en-es',
     password: 'ChorusDev123!',
     role: 'learner',
     note: 'has trial credit, 1★ for Sofia',
   },
   {
-    label: 'Bob — learner (es→en)',
-    email: 'bob.dev@chorus.test',
-    username: 'bob.dev',
+    label: 'Bob — Spanish speaker learning English (ES→EN)',
+    email: 'bob.es-en@chorus.test',
+    username: 'bob.es-en',
     password: 'ChorusDev123!',
     role: 'learner',
     note: 'second learner',

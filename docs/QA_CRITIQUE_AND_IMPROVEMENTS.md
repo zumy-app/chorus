@@ -17,7 +17,7 @@
 
 ### 1.1 Legacy Gmail users — `e2e/fixtures/users.ts:16` `uhsarp@gmail.com` / `avcxafefwer@gmail.com`
 
-- **Finding:** Tests depend on two externally-owned Gmail accounts with a shared cleartext password `Demor@cer1` (`users.ts:18,24`). Any password rotation, 2FA, captcha, or Gmail deletion makes the entire 01/03/04/05/06 suite flake. Seed is not deterministic — `dev_seed.go:31` provisions `alice.dev@chorus.test` / `bob.dev@chorus.test` / `sofia.tutor@chorus.test` (`DevPassword ChorusDev123!` `dev_seed.go:17`) but no test uses them. Parallel runs collide on the same Gmail inboxes/chats.
+- **Finding:** Tests depend on two externally-owned Gmail accounts with a shared cleartext password `Demor@cer1` (`users.ts:18,24`). Any password rotation, 2FA, captcha, or Gmail deletion makes the entire 01/03/04/05/06 suite flake. Seed is not deterministic — `dev_seed.go:31` provisions `alice.en-es@chorus.test` / `bob.es-en@chorus.test` / `sofia.tutor@chorus.test` (`DevPassword ChorusDev123!` `dev_seed.go:17`) but no test uses them. Parallel runs collide on the same Gmail inboxes/chats.
 - **Severity:** P0 — violates `TEST_PLAN.md:180` isolation ("seed two users per run") and `packages/shared/src/devAccounts.ts:1` canonical.
 - **Evidence:** `users.ts:16-28` hard-codes Gmail; `devAccounts.ts:15-40` lists the correct accounts; `e2e/tests/01-auth.spec.ts:15` logs in as Gmail; no `global-setup.ts:1` calls `SeedDevData`.
 - **Fix:** Switch `e2e/fixtures/users.ts:1` to re-export `DEV_ACCOUNTS` (`devAccounts.ts:15`), alias `ALICE = DEV_ACCOUNTS[0]`, `BOB = DEV_ACCOUNTS[1]`, `SOFIA = DEV_ACCOUNTS[2]`; delete Gmail literals; add `global-setup.ts:103` `await seedDevViaAPI()` (POST `/auth/register` or `go run ./cmd/server --seed-dev` equivalent via `fetch ${API_BASE}/dev/seed` when `E2E_SEED=true`). After seed, **clear JWTs** from storage so auth state starts clean (see §3.5).
@@ -81,7 +81,7 @@
 ## 2. Missing Test Cases — Gherkin + testRefs
 
 All Gherkin below assume **DEV_ACCOUNTS** (`packages/shared/src/devAccounts.ts:15`):
-`alice.dev@chorus.test` / `bob.dev@chorus.test` / `sofia.tutor@chorus.test` password `ChorusDev123!` (`dev_seed.go:17`), seeded via `global-setup.ts:103` `SeedDevData` + JWT clear.
+`alice.en-es@chorus.test` / `bob.es-en@chorus.test` / `sofia.tutor@chorus.test` password `ChorusDev123!` (`dev_seed.go:17`), seeded via `global-setup.ts:103` `SeedDevData` + JWT clear.
 
 Common Background for headed browser: `workers:1` (`playwright.config.ts:14`), `timeout 300_000` (`playwright.config.ts:19`), `baseURL http://localhost:3000 || E2E_BASE_URL`.
 
@@ -96,12 +96,12 @@ Common Background for headed browser: `workers:1` (`playwright.config.ts:14`), `
 Feature: C-01 Comprehensive two-user journey — alice (en→es) to bob (es→en), 5 messages + learning + settings
 
   Background:
-    Given dev seed ran — alice.dev en->{es}, bob.dev es->{en}, sofia.tutor approved (dev_seed.go:31 seedTutorMarketplace)
+    Given dev seed ran — alice.en-es en->{es}, bob.es-en es->{en}, sofia.tutor approved (dev_seed.go:31 seedTutorMarketplace)
     And global-setup cleared localStorage JWTs (storage.removeItem accessToken/refreshToken)
     And I have two persistent browser contexts alicePage and bobPage (workers:1, serial)
 
   Scenario: C-01-01 alice creates DM to bob and sends 5 messages (en)
-    When alicePage logs in as alice.dev@chorus.test via UI (test-helpers.ts:15 loginAsUser) and creates DM to "Bob Dev" (createDirectChat:36)
+    When alicePage logs in as alice.en-es@chorus.test via UI (test-helpers.ts:15 loginAsUser) and creates DM to "Bob Dev" (createDirectChat:36)
     And alicePage sends 5 messages via textarea[placeholder="Type a message..."] (sendMessage:67):
       | # | text |
       | 1 | Hello Bob, how are you doing today? |
@@ -113,7 +113,7 @@ Feature: C-01 Comprehensive two-user journey — alice (en→es) to bob (es→en
     And chat is reachable via GET /chats/:id/messages?limit=20 returns 5 (main.go:564)
 
   Scenario: C-01-02 bob receives inbox in real-time + sees translations (critical)
-    When bobPage logs in as bob.dev@chorus.test and finds DM with "Alice Dev" in sidebar (findChatInSidebar:175)
+    When bobPage logs in as bob.es-en@chorus.test and finds DM with "Alice Dev" in sidebar (findChatInSidebar:175)
     And bobPage clicks the chat
     Then bobPage sees all 5 alice messages as .break-words (hasText) within 15s
     And for each msg, bobPage sees "🌐 In your language:" via waitForTranslation(msg, 60_000, {critical:true}) (test-helpers.ts:88)
@@ -173,7 +173,7 @@ Feature: C-01 Comprehensive two-user journey — alice (en→es) to bob (es→en
 Feature: C-02 Learning journey — placement → dashboard → scenarios → real-talk → streak → lesson → monthly
 
   Background:
-    Given I am alice.dev (en->{es}, placement not started) and dev seed clean
+    Given I am alice.en-es (en->{es}, placement not started) and dev seed clean
 
   Scenario: C-02-01 placement start → answer vocab + reading → results
     When I open /learn/placement (Placement.tsx:1 App.tsx:134 /learn/placement) and tap Start (POST /learning/placement/start:663)
@@ -240,7 +240,7 @@ Feature: C-02 Learning journey — placement → dashboard → scenarios → rea
 Feature: C-03 Settings — privacy enforcement + 2FA + avatar + language
 
   Background:
-    Given alice.dev and bob.dev seeded, JWT clean
+    Given alice.en-es and bob.es-en seeded, JWT clean
 
   Scenario: C-03-01 profile settings persist
     When alicePage logs in and opens Settings (openProfileMenu:152 → Settings) and changes Display Name + Native Language (select first option) + toggles targetLanguage es (08:94)
@@ -302,7 +302,7 @@ Feature: C-04 Marketplace full UI — Browse → Profile → Book trial ($0, -1 
 
   Background:
     Given dev seed sofia.tutor approved 2500c verified + 4 slots + 2 reviews + alice credits 1 (dev_seed.go:79)
-    And I am alice.dev authenticated
+    And I am alice.en-es authenticated
 
   Scenario: C-04-01 browse tutors + search filters
     When I open /tutors (App.tsx:247 BrowseTutors.tsx:1) and type "sofia" + Search (GET /teachers/browse:648 ?search=sofia)
@@ -361,7 +361,7 @@ Feature: C-04 Marketplace full UI — Browse → Profile → Book trial ($0, -1 
 Feature: C-05 Teacher apply — UI form → pending → browse visibility after approval
 
   Background:
-    Given I am bob.dev (no application) seeded, JWT clean
+    Given I am bob.es-en (no application) seeded, JWT clean
 
   Scenario: C-05-01 form renders with wireframe contract
     When I open /become-teacher (App.tsx:242 BecomeTeacher.tsx:1)
@@ -381,7 +381,7 @@ Feature: C-05 Teacher apply — UI form → pending → browse visibility after 
     Then form prefills via GET /teachers/me:647 (teacherAPI.getMyApplication:29) with same bio/languages
 
   Scenario: C-05-04 pending not yet in browse; after approval visible (or admin mock)
-    When I GET /teachers/browse?search=bob.dev → total 0 while pending
+    When I GET /teachers/browse?search=bob.es-en → total 0 while pending
     Then after approval (dev_seed style admin approve or test hook POST /admin/teachers/:id/approve) pending→approved, browse shows bob
     And mobile BecomeTeacherScreen (MainTabs.tsx:193,196) same flow via Status pending
 ```
@@ -425,7 +425,7 @@ Feature: AVD parity — every C-01..C-05 journey reachable on emulator 10.0.2.2
     Then alice→bob 5 msgs + vocab + grammar + marketplace browse→profile→book→payouts all pass (same locators but baseURL 10.0.2.2)
 
   Scenario: AVD native parity — Detox/WebDriverIO for mobile app
-    When I launch mobile app on AVD via Detox and login as alice.dev / bob.dev (AsyncStorage adapter packages/shared/src/api.ts mobile)
+    When I launch mobile app on AVD via Detox and login as alice.en-es / bob.es-en (AsyncStorage adapter packages/shared/src/api.ts mobile)
     Then MainTabs.tsx:64 ChatList, LearnTab/LearnScreen, MarketplaceTab/BrowseTutors→TutorProfile→Confirm→TrialCredits→TeacherDashboard→Payouts, Profile/BecomeTeacher all navigate without crash
     And every LEARNING_DASHBOARD card navigates and loads data from backend (learning_dashboard.go)
 ```

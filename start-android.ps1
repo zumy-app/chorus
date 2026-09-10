@@ -23,7 +23,8 @@ param(
     [switch]$SkipDocker,
     [switch]$SkipBackend,
     [switch]$SkipMetro,
-    [switch]$SkipGradle
+    [switch]$SkipGradle,
+    [switch]$SkipSeed
 )
 
 $ErrorActionPreference = "Stop"
@@ -380,6 +381,40 @@ for ($i = 0; $i -lt 15; $i++) {
 if ($redisReady) { Ok "Redis healthy" } else { Warn "Redis not healthy yet" }
 Log ""
 } # end SkipDocker for step 6
+
+# ----------------------------------------------
+# 6.5. Ensure deterministic dev test users exist
+# ----------------------------------------------
+# Fresh clone / fresh `postgres_data` volume => empty users table, so login as
+# alice.en-es@chorus.test (EN→ES) / bob.es-en@chorus.test (ES→EN) / sofia.tutor@chorus.test fails
+# with "Invalid credentials". Seed only when missing (SeedDevData deletes +
+# recreates those 3 users, which would wipe their chats on every run).
+if ($SkipSeed) { Log "[6.5/8] Skipped (SkipSeed)" Yellow; Log "" } else {
+Log "[6.5/8] Ensuring dev test users..." Yellow
+try {
+    $devCountRaw = docker exec chorus-postgres psql -U messenger -d messenger_dev -tAc "SELECT count(*) FROM users WHERE email IN ('alice.en-es@chorus.test','bob.es-en@chorus.test','sofia.tutor@chorus.test')" 2>$null
+    $devCount = 0
+    if ($devCountRaw) { [int]::TryParse($devCountRaw.ToString().Trim(), [ref]$devCount) | Out-Null }
+    if ($devCount -ge 3) {
+        Ok "Dev test users present ($devCount/3) - skipping seed"
+    } else {
+        Warn "Only $devCount/3 dev test users found - seeding (alice/bob/sofia)..."
+        $SeedBackendDir = Join-Path $RootDir "backend"
+        Push-Location $SeedBackendDir
+        try {
+            $env:DATABASE_URL = "postgres://messenger:password@localhost:5432/messenger_dev?sslmode=disable"
+            go run ./cmd/server --seed-dev 2>&1 | ForEach-Object { Write-Host "  $_" }
+            Ok "Dev test users seeded (login: alice.en-es@chorus.test / ChorusDev123!)"
+            Warn "Seed recreates user IDs - if the app shows 401, logout or run: adb shell pm clear com.chorusmobile"
+        } finally {
+            Pop-Location
+        }
+    }
+} catch {
+    Warn "Dev-user check failed ($($_.Exception.Message)) - run manually: cd backend; go run ./cmd/server --seed-dev"
+}
+Log ""
+} # end seed check 6.5
 
 # ----------------------------------------------
 # 7. Start Go backend with air (hot-reload)

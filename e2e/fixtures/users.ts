@@ -14,15 +14,17 @@ export interface TestUser {
 }
 
 // Canonical DEV accounts — must match packages/shared/src/devAccounts.ts:15 + dev_seed.go:17
+// Local-parts encode the learning direction: alice speaks EN and learns ES,
+// bob speaks ES and learns EN.
 export const DEV_ALICE: TestUser = {
-  email: 'alice.dev@chorus.test',
+  email: 'alice.en-es@chorus.test',
   password: 'ChorusDev123!',
   nativeLanguage: 'en',
   displayName: 'Alice Dev',
 }
 
 export const DEV_BOB: TestUser = {
-  email: 'bob.dev@chorus.test',
+  email: 'bob.es-en@chorus.test',
   password: 'ChorusDev123!',
   nativeLanguage: 'es',
   displayName: 'Bob Dev',

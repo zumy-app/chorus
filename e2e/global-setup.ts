@@ -176,7 +176,7 @@ export default async function globalSetup() {
         console.log('✅ Cleared stale storageState.json')
       }
     } catch {}
-    console.log('✅ Seed + JWT clear done — dev accounts alice.dev/bob.dev/sofia.tutor ready')
+    console.log('✅ Seed + JWT clear done — dev accounts alice.en-es/bob.es-en/sofia.tutor ready')
   }
 
   // ── Wait for frontend ──
@@ -192,7 +192,7 @@ export default async function globalSetup() {
       const loginRes = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'alice.dev@chorus.test', password: 'ChorusDev123!' }),
+        body: JSON.stringify({ email: 'alice.en-es@chorus.test', password: 'ChorusDev123!' }),
       })
       if (loginRes.ok) {
         const { tokens } = (await loginRes.json()) as any
@@ -206,12 +206,12 @@ export default async function globalSetup() {
             chatId = chatsData?.chats?.[0]?.id || null
           }
           if (!chatId) {
-            // Create a warm-up chat with bob.dev (ignore failure if already exists)
+            // Create a warm-up chat with bob.es-en (ignore failure if already exists)
             try {
-              const bobLogin = await fetch(`${apiUrl}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'bob.dev@chorus.test', password: 'ChorusDev123!' }) })
+              const bobLogin = await fetch(`${apiUrl}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'bob.es-en@chorus.test', password: 'ChorusDev123!' }) })
               const bobToken = bobLogin.ok ? ((await bobLogin.json() as any)?.tokens?.accessToken || '') : ''
               // Need bob user id — search
-              const search = await fetch(`${apiUrl}/users/search?q=bob.dev@chorus.test`, { headers: { Authorization: `Bearer ${token}` } })
+              const search = await fetch(`${apiUrl}/users/search?q=bob.es-en@chorus.test`, { headers: { Authorization: `Bearer ${token}` } })
               const searchData = search.ok ? (await search.json() as any) : null
               const bobId = searchData?.users?.[0]?.id
               if (bobId) {

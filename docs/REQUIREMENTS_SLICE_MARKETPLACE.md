@@ -47,7 +47,7 @@ POST   /teachers/:id/book                  teacher.go:286 → services/teacher.g
 
 Deterministic seed `backend/internal/services/dev_seed.go:31` `SeedDevData` + `:79` `seedTutorMarketplace` provisions:
 - `sofia.tutor@chorus.test` / `sofia.tutor` / `Sofia Tutor` — `teacher_applications` approved, bio ES, `{es}`, expertise `Conversational Spanish, DELE A1-B1 prep` `:83`, `rate_cents=2500` ($25), verified `language_certificate` Instituto Cervantes 2018 `:91`, 4 availability slots next 4 days hourly `:99-108`, 2 reviews (Alice 5, Bob 4) `:110-126`, trial credit for Alice `:128`
-- Learners `alice.dev@chorus.test` / `bob.dev@chorus.test` — password `ChorusDev123!` `:17`
+- Learners `alice.en-es@chorus.test` / `bob.es-en@chorus.test` — password `ChorusDev123!` `:17`
 
 **UI thin but present:** `frontend/src/App.tsx:247-253` already mounts `/tutors`, `/tutors/:id`, `/tutors/:id/confirm`, `/trial-credits`, `/teacher/dashboard`, `/teacher/payouts` + pages `BrowseTutors.tsx:1`, `TutorProfile.tsx:1`, `ConfirmBooking.tsx:1`, `TrialCredits.tsx:1`, `TeacherDashboard.tsx:1`, `Payouts.tsx:1`; `mobile/src/components/MainTabs.tsx:180-202` mounts `MarketplaceTab` with `BrowseTutors`/`TutorProfile`/`ConfirmBooking`/`TrialCredits`/`TeacherDashboard`/`Payouts`. `docs/WIREFRAME_TRACE.md:28` GAP was audit-time; current slices **harden** those screens to wireframe visual contract + add failing-tests-first coverage + navigation reachability. No new backend migration is required for S-T-01..06. Implementing screens without this spec is **out of scope**.
 
@@ -87,7 +87,7 @@ Deterministic seed `backend/internal/services/dev_seed.go:31` `SeedDevData` + `:
 | **Backend contract** | `GET /teachers/browse` `main.go:648` `teacher.go:57` → `services/teacher.go:132` `BrowseTutors(models.TutorBrowseFilter) ([]TutorProfile, int, error)`<br>Query: `?language=es&search=sofia&verified=true&minRating=4.5&maxRate=3000&sort=rating|price_asc|price_desc|newest&limit=20&offset=0`<br>Auth: `Authorization: Bearer <JWT>` (protected). Pagination `limit<=50` else 50. Returns `{tutors: TutorProfile[], total:int, hasMore:bool}`. No new endpoint. `BrowseTutors` orders by `created_at DESC` / rating / price; verified filter checks `EXISTS teacher_certificates verified=true`. Seed proves `sofia.tutor` browsable with `search=sofia&language=es`.<br>Shared client `packages/shared/src/api.ts:1116-1119` `teacher.browse(params)` + `frontend/src/services/api.ts:52` `teacherAPI`. |
 | **Frontend route** | `frontend/src/pages/BrowseTutors.tsx:1` mounted `App.tsx:247` `/tutors` (auth guard → `/login`). State `q`, `tutors`, `loading`, `msg`; calls `teacherAPI.browse({search: q, limit:20})` `BrowseTutors.tsx:18`. |
 | **Mobile route** | `mobile/src/screens/BrowseTutorsScreen.tsx:1` via `MainTabs.tsx:183` `MarketplaceTab/BrowseTutors` title `Tutors`. 4th tab `Tutors` `MainTabs.tsx:207` `label=Tutors glyph=🏫` `TabIconMarketplace`. |
-| **Depends on** | Auth (`POST /auth/login` → `alice.dev@chorus.test` / `ChorusDev123!` `dev_seed.go:17`), `MarketplaceTab` exists. No prereq slice. |
+| **Depends on** | Auth (`POST /auth/login` → `alice.en-es@chorus.test` / `ChorusDev123!` `dev_seed.go:17`), `MarketplaceTab` exists. No prereq slice. |
 
 **API contract (existing — must not drift):**
 
@@ -128,7 +128,7 @@ Feature: Browse tutors + Find a trial tutor
 
   Background:
     Given dev seed ran (sofia.tutor approved, rateCents 2500, verified cert, 2 reviews, alice trial credit 1 — dev_seed.go:79)
-    And I am authenticated as alice.dev@chorus.test (POST /auth/login with ChorusDev123!)
+    And I am authenticated as alice.en-es@chorus.test (POST /auth/login with ChorusDev123!)
 
   Scenario: Web browse renders Featured + Available Now with filters
     When I open "/tutors" on web (App.tsx:247 BrowseTutors.tsx:31)
@@ -205,7 +205,7 @@ Feature: Tutor profile — Sofia (verified tutor canonical)
 
   Background:
     Given sofia.tutor approved seed (dev_seed.go:79 bio "Hola! I am Sofia, a certified..." rateCents 2500 verified cert, 2 reviews)
-    And I am authenticated as alice.dev
+    And I am authenticated as alice.en-es
 
   Scenario: Web profile renders Sofia hero
     When I open "/tutors/:id" for sofia uuid (App.tsx:248 TutorProfile.tsx:24)
@@ -608,7 +608,7 @@ All `main.go:638-668` marketplace routes are **protected** `r.Group("/api/v1")` 
 
 ### Seed & test accounts
 
-`backend/internal/services/dev_seed.go:17` `DevPassword=ChorusDev123!`, `:18` `alice.dev@chorus.test`, `:19` `bob.dev@chorus.test`, `:20` `sofia.tutor@chorus.test` (also `TEST_ACCOUNTS.md`). Every e2e must `go run ./cmd/server --seed-dev` before run (or rely on `docs/TEST_SPEC.md` acceptance fixtures). Flaky seed → `utils/db_isolation` truncation.
+`backend/internal/services/dev_seed.go:17` `DevPassword=ChorusDev123!`, `:18` `alice.en-es@chorus.test`, `:19` `bob.es-en@chorus.test`, `:20` `sofia.tutor@chorus.test` (also `TEST_ACCOUNTS.md`). Every e2e must `go run ./cmd/server --seed-dev` before run (or rely on `docs/TEST_SPEC.md` acceptance fixtures). Flaky seed → `utils/db_isolation` truncation.
 
 ### File refs index
 
@@ -637,7 +637,7 @@ All `main.go:638-668` marketplace routes are **protected** `r.Group("/api/v1")` 
 - [ ] **Both surfaces built green:**
   - `cd backend && go vet ./...` exit 0
   - `cd backend && go test ./...` exit 0 (incl. `teacher_test.go` browse/profile/booking/trial-credit + `payout_test.go` overview/methods/withdraw)
-  - `cd frontend && npm run build` (tsc && vite build) exit 0 + `grep -R "alice.dev" frontend/dist` 0 (NO_LEAK)
+  - `cd frontend && npm run build` (tsc && vite build) exit 0 + `grep -R "chorus.test" frontend/dist` 0 (NO_LEAK)
   - `cd frontend && npm test` (vitest) exit 0 (new `BrowseTutors.test.tsx`, `TutorProfile.test.tsx`, `ConfirmBooking.test.tsx`, `TrialCredits.test.tsx`, `TeacherDashboard.test.tsx`, `Payouts.test.tsx` green)
   - `cd mobile && npx tsc --noEmit` exit 0
   - `cd mobile && npm test` (jest) exit 0 (matching 6 mobile screen tests green)

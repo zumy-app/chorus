@@ -225,7 +225,7 @@ Fast fail: any `NO-GO` in `GO_NO_GO.md` or `ESCALATION.md` non-empty or threshol
 
 | Fragility | File:line | Impact | Fix in QA doc | Gate |
 |---|---|---|---|---|
-| Legacy Gmail users `uhsarp@gmail.com` / `avcxafefwer@gmail.com` with shared cleartext password | `e2e/fixtures/users.ts:16` | Flake on rotation/captcha, not deterministic, collides parallel | §3.1 switch to `DEV_ACCOUNTS` (`devAccounts.ts:15` alice.dev/bob.dev/sofia.tutor `ChorusDev123!`) | `grep -R "uhsarp" e2e/` 0 |
+| Legacy Gmail users `uhsarp@gmail.com` / `avcxafefwer@gmail.com` with shared cleartext password | `e2e/fixtures/users.ts:16` | Flake on rotation/captcha, not deterministic, collides parallel | §3.1 switch to `DEV_ACCOUNTS` (`devAccounts.ts:15` alice.en-es/bob.es-en/sofia.tutor `ChorusDev123!`) | `grep -R "uhsarp" e2e/` 0 |
 | File-content marketplace tests (no browser) | `e2e/tests/tutor-browse.spec.ts:28` etc. | Always green even if UI hidden | §3.2 keep @smoke + add C-04 browser journey | `23-marketplace-e2e.spec.ts` green |
 | Translation swallowed catch (always green) | `e2e/fixtures/test-helpers.ts:88` + `03-messaging-translation.spec.ts:135` | Hides translator-engine regression; NFR accuracy/p95 not enforced | §3.3 `waitForTranslation(..., {critical:true})` for C-01 | `C-01-02` critical fails if translation down |
 | Single-context journeys (1 msg per test) | `03-messaging-translation.spec.ts:21` etc. | No proof of 5-msg continuity + vocab/grammar/ai-tutor + settings | §2.1 C-01 serial two-context | `20-comprehensive-two-user.spec.ts` |
@@ -253,7 +253,7 @@ Fast fail: any `NO-GO` in `GO_NO_GO.md` or `ESCALATION.md` non-empty or threshol
 
 | Fix | File:line | Change | Verify |
 |---|---|---|---|
-| Switch fixtures to DEV_ACCOUNTS | `e2e/fixtures/users.ts:1` | `import { DEV_ACCOUNTS } from '@chorus/shared/src/devAccounts'` (`devAccounts.ts:15`); export `ALICE/BOB/SOFIA` from it; delete Gmail `uhsarp@gmail.com` | `grep -R "uhsarp" e2e/` 0; `e2e --list` shows C-01 using alice.dev |
+| Switch fixtures to DEV_ACCOUNTS | `e2e/fixtures/users.ts:1` | `import { DEV_ACCOUNTS } from '@chorus/shared/src/devAccounts'` (`devAccounts.ts:15`); export `ALICE/BOB/SOFIA` from it; delete Gmail `uhsarp@gmail.com` | `grep -R "uhsarp" e2e/` 0; `e2e --list` shows C-01 using alice.en-es |
 | Global-setup dev_seed + JWT clear | `e2e/global-setup.ts:103` `globalSetup()` | After `waitForUrl(BACKEND_HEALTH)` call `fetch ${API_BASE}/dev/seed POST` or `go run ./cmd/server --seed-dev` (dev_seed.go:31) then clear `localStorage`/`sessionStorage`/`storageState.json` (afterSeed JWT clear) | `GET /teachers/browse?search=sofia` 1 after setup; `localStorage accessToken` null at test start |
 | waitForTranslation critical flag | `e2e/fixtures/test-helpers.ts:88` | `waitForTranslation(page, msg, timeout, {critical})` — critical throws, soft warns; C-01 uses `critical:true`, exploratory stays `false` | `grep waitForTranslation.*critical` in `20-*.spec.ts` |
 | message_receipts durability | `e2e/tests/20-comprehensive-two-user.spec.ts:135` + `backend/internal/services/receipt_test.go` | `page.reload()` → `expect(.break-words hasText)` + `GET /api/v1/chats/:id/messages:564` count | `/metrics` `ws_fast_dropped_total==0` |

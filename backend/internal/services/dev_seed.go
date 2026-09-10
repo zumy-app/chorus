@@ -14,12 +14,22 @@ import (
 // the acceptance suite (docs/TEST_SPEC.md) and manual emulator walkthroughs.
 // Development only — production environments never run SeedDevData.
 const (
-	DevPassword      = "ChorusDev123!"
-	DevLearnerEmail  = "alice.dev@chorus.test"
-	DevLearner2Email = "bob.dev@chorus.test"
+	DevPassword = "ChorusDev123!"
+	// Email local-parts encode the learning direction (native-target) so the
+	// purpose of each fixture is obvious at login time:
+	// alice speaks English and learns Spanish, bob is the mirror.
+	DevLearnerEmail  = "alice.en-es@chorus.test"
+	DevLearner2Email = "bob.es-en@chorus.test"
 	DevTutorEmail    = "sofia.tutor@chorus.test"
 	DevInviteEmail   = "invite.dev@chorus.test"
 	DevInviteToken   = "chorus-dev-invite-2026"
+)
+
+// Legacy fixture emails from before the direction-signifying rename
+// (alice.dev/bob.dev). Deleted on seed so stale rows don't linger.
+const (
+	legacyLearnerEmail  = "alice.dev@chorus.test"
+	legacyLearner2Email = "bob.dev@chorus.test"
 )
 
 // SeedDevData provisions (or resets) the deterministic dev fixtures:
@@ -29,11 +39,17 @@ const (
 // fixture accounts are deleted and recreated so every run yields the same
 // state (cascade deletes their chats, applications, bookings, etc.).
 func SeedDevData(db *sql.DB) error {
-	aliceID, err := upsertDevUser(db, DevLearnerEmail, "alice.dev", "Alice Dev", "en", "{es}")
+	// Drop pre-rename fixture rows first (cascade removes their chats etc.).
+	for _, legacy := range []string{legacyLearnerEmail, legacyLearner2Email} {
+		if _, err := db.Exec(`DELETE FROM users WHERE email = $1`, legacy); err != nil {
+			return fmt.Errorf("seed cleanup legacy %s: %w", legacy, err)
+		}
+	}
+	aliceID, err := upsertDevUser(db, DevLearnerEmail, "alice.en-es", "Alice Dev", "en", "{es}")
 	if err != nil {
 		return fmt.Errorf("seed learner alice: %w", err)
 	}
-	bobID, err := upsertDevUser(db, DevLearner2Email, "bob.dev", "Bob Dev", "es", "{en}")
+	bobID, err := upsertDevUser(db, DevLearner2Email, "bob.es-en", "Bob Dev", "es", "{en}")
 	if err != nil {
 		return fmt.Errorf("seed learner bob: %w", err)
 	}

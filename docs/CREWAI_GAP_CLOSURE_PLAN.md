@@ -45,7 +45,7 @@ BA: slice spec (Gherkin + wireframe PNG refs + API contract)  →  QA: write FAI
 
 1. **BA gate:** `docs/REQUIREMENTS_SLICE_<id>.md` exists, references `wireframes/<folder>/code.html:line` + `REQUIREMENTS_MASTER.md` FR + `backend/cmd/server/main.go:line` contract. No spec → QA cannot start.
 2. **QA gate (red):** `testRefs` listed in `crew/phase_status.json` + `TDD_RESCUE_SPEC.md:12` style run is **red** on purpose (proves gap). `npm test` shows 1 fail.
-3. **Impl gate (green):** `go vet 0`, `go test ./... 0`, `frontend tsc && vite build 0` + `NO_LEAK` (`grep alice.dev dist → 0`), `mobile tsc 0`, `jest` green.
+3. **Impl gate (green):** `go vet 0`, `go test ./... 0`, `frontend tsc && vite build 0` + `NO_LEAK` (`grep chorus.test dist → 0`), `mobile tsc 0`, `jest` green.
 4. **QA verify gate (device):** `.\start-android.ps1` boots, `curl /health` `commit` == HEAD (`health.go:39`), AVD `MainTabs` navigation reaches new screen, `e2e/tests` + `acceptance/tests` green, `verify-wireframe-parity.sh` row flips `GAP → PASS`.
 5. **BA sign-off gate:** BA checks device screenshot vs wireframe PNG (e.g., home brain hero) + copy; marks `docs/WIREFRAME_TRACE.md:60` row `PASS` and signs `Gap sign-off Sheet` (`docs/GAP_SIGNOFF.md`). Only then `crew/state.py` may set slice `DONE`.
 
