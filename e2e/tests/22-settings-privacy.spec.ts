@@ -71,7 +71,7 @@ test.describe('@C-03 @settings @privacy @2FA', () => {
         if (searchRes.ok) {
           const data = await searchRes.json()
           const users = data.users || data.data || []
-          const bob = users.find((u: any) => u.email === DEV_BOB.email || u.username === 'bob.dev')
+          const bob = users.find((u: any) => u.email === DEV_BOB.email || u.username === 'bob.es-en')
           if (bob?.id) bobId = bob.id
         }
       } catch {}

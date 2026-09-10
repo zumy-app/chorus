@@ -35,7 +35,7 @@ export const foundationTests: TestCase[] = [
       const res = await http('GET', '/api/v1/users/me', { token: ctx.learnerToken })
       assertStatus(res, 200, 'GET /users/me')
       const user = res.body.data ?? res.body.user ?? res.body
-      assertEq(user.email, 'alice.dev@chorus.test', 'authenticated user email')
+      assertEq(user.email, 'alice.en-es@chorus.test', 'authenticated user email')
     },
   },
   {

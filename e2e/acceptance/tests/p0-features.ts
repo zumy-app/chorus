@@ -33,7 +33,7 @@ export const featureTests: TestCase[] = [
     reqs: ['REQ-APPLY-01'],
     name: 'a complete application WITHOUT intro video is accepted (video optional per locked decision)',
     fn: async (ctx) => {
-      // bob.dev never applies during seeding, so he is the clean applicant.
+      // bob.es-en never applies during seeding, so he is the clean applicant.
       const res = await http('POST', '/api/v1/teachers/apply', {
         token: ctx.learner2Token,
         json: {

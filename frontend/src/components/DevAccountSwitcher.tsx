@@ -6,7 +6,7 @@ type Props = {
 
 // Build-time gate: Vite replaces `import.meta.env.DEV` at bundle time and
 // minifiers dead-code-eliminate this entire component (and the `DEV_ACCOUNTS`
-// import) from production `dist/` — grep for alice.dev must be 0.
+// import) from production `dist/` — grep for chorus.test must be 0.
 export default function DevAccountSwitcher({ onSelect }: Props) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (!(import.meta as any).env?.DEV) return null

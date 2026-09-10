@@ -33,7 +33,7 @@
 > **Analyst signature:** ___________________________  **Date:** 2026-09-03  **Commit SHA:** `git rev-parse HEAD` (verify `curl /health | jq .commit`)
 > **Reviewer sign-off:** ___________________________  **Date:** __________  (only then `crew/state.py:97 phase_complete()` may flip PENDING→DONE)
 > **Device screenshots:** [ ] web Landing v2  [ ] AVD Landing v2  [ ] web Browse/Profile/Confirm/TrialCredits/Dashboard/Payouts  [ ] AVD MarketplaceTab flow
-> **No secrets/outline leaks:** `grep -R "alice.dev" frontend/dist` 0, `.env*` untouched.
+> **No secrets/outline leaks:** `grep -R "chorus.test" frontend/dist` 0, `.env*` untouched.
 
 ---
 
