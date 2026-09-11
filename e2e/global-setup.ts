@@ -192,11 +192,11 @@ export default async function globalSetup() {
       const loginRes = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'alice.en-es@chorus.test', password: 'ChorusDev123!' }),
+        body: JSON.stringify({ username: 'alice.en-es@chorus.test', password: 'ChorusDev123!' }),
       })
       if (loginRes.ok) {
-        const { tokens } = (await loginRes.json()) as any
-        const token: string = tokens?.accessToken || (await loginRes.json() as any)?.accessToken || ''
+        const loginBody = (await loginRes.json()) as any
+        const token: string = loginBody?.tokens?.accessToken || ''
         if (token) {
           // Ensure a chat exists and trigger a dummy translation to warm Helsinki/Ollama model
           const chatsRes = await fetch(`${apiUrl}/chats`, { headers: { Authorization: `Bearer ${token}` } })
@@ -208,7 +208,7 @@ export default async function globalSetup() {
           if (!chatId) {
             // Create a warm-up chat with bob.es-en (ignore failure if already exists)
             try {
-              const bobLogin = await fetch(`${apiUrl}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'bob.es-en@chorus.test', password: 'ChorusDev123!' }) })
+              const bobLogin = await fetch(`${apiUrl}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'bob.es-en@chorus.test', password: 'ChorusDev123!' }) })
               const bobToken = bobLogin.ok ? ((await bobLogin.json() as any)?.tokens?.accessToken || '') : ''
               // Need bob user id — search
               const search = await fetch(`${apiUrl}/users/search?q=bob.es-en@chorus.test`, { headers: { Authorization: `Bearer ${token}` } })
@@ -240,7 +240,8 @@ export default async function globalSetup() {
           }
         }
       } else {
-        console.log(`ℹ️ Pre-warm login failed ${loginRes.status} — skipping (mocked E2E does not need it)`)
+        const snippet = await loginRes.text().then((t) => t.slice(0, 120)).catch(() => '?')
+        console.log(`ℹ️ Pre-warm login failed ${loginRes.status} ${snippet} — skipping (mocked E2E does not need it)`)
       }
     } catch (e) {
       console.log(`ℹ️ Pre-warm skipped: ${(e as Error).message} (mocked E2E does not need it)`)

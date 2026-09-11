@@ -4,114 +4,99 @@ import { DEV_ALICE, DEV_BOB } from '../fixtures/users'
 
 /**
  * C-03 — Settings Privacy + 2FA (enforcement, not just fields)
- * Soft-probes where backend not yet ready.
+ * Persist/block/report probes are HARD. Sidebar-hiding after block is
+ * product-semantics TBD (backend enforces on send; list filtering
+ * unspecified) — logged, not asserted.
  */
 test.describe('@C-03 @settings @privacy @2FA', () => {
   test.describe.configure({ mode: 'serial' })
 
-  test('C-03-01 — profile settings persist: Display Name + Native Language + target toggle → PUT /users/me/settings:474 → reload', async ({ page }) => {
+  test('C-03-01 — profile settings persist: Display Name + Native Language + target toggle → PUT /users/me/settings:474 → reload (HARD)', async ({ page }) => {
     await loginAsUser(page, DEV_ALICE as any)
     await openProfileMenu(page)
     await page.getByRole('button', { name: /settings/i }).click()
     await expect(page.locator('h2', { hasText: 'Settings' })).toBeVisible({ timeout: 10_000 })
     const nameInput = page.locator('input[type="text"]').first()
     const newName = `Alice C03-${Date.now().toString().slice(-4)}`
-    try {
-      await nameInput.fill(newName)
-      await page.getByRole('button', { name: /save/i }).click()
-      await expect(page.locator('text=Settings saved successfully').or(page.getByText(/saved/i)).first()).toBeVisible({ timeout: 10_000 }).catch(()=> console.warn('⚠️ C-03-01 save toast not visible (soft)'))
-      await page.reload()
-      await page.waitForLoadState('networkidle').catch(()=>{})
-      // Re-open and verify persisted
-      try {
-        await openProfileMenu(page)
-        await page.getByRole('button', { name: /settings/i }).click()
-        await expect(page.locator('h2', { hasText: 'Settings' })).toBeVisible({ timeout: 10_000 })
-        const after = page.locator('input[type="text"]').first()
-        const val = await after.inputValue().catch(()=> '')
-        if (val !== newName) console.warn(`⚠️ C-03-01 Display Name not persisted got "${val}" expected "${newName}" (soft)`)
-        await page.getByTestId('settings-close').click().catch(()=> page.keyboard.press('Escape'))
-      } catch (e) {
-        console.warn(`⚠️ C-03-01 persist verify soft: ${(e as Error).message}`)
-      }
-      // Restore original name for other tests (soft)
-      try {
-        await openProfileMenu(page)
-        await page.getByRole('button', { name: /settings/i }).click()
-        await expect(page.locator('h2', { hasText: 'Settings' })).toBeVisible({ timeout: 5_000 })
-        await page.locator('input[type="text"]').first().fill(DEV_ALICE.displayName)
-        await page.getByRole('button', { name: /save/i }).click()
-        await page.waitForTimeout(800)
-        await page.getByTestId('settings-close').click().catch(()=> page.keyboard.press('Escape'))
-      } catch {}
-    } catch (e) {
-      console.warn(`⚠️ C-03-01 soft fail: ${(e as Error).message}`)
-    }
-    // API probe soft
-    try {
-      const token = await loginViaAPI(DEV_ALICE)
-      const res = await fetch(`${API_BASE.replace('/api/v1','')}/api/v1/users/me`, { headers: { Authorization: `Bearer ${token}` } })
-      if (res.ok) console.log('ℹ️ C-03-01 GET /users/me ok')
-      const res2 = await fetch(`${API_BASE.replace('/api/v1','')}/api/v1/users/me/settings`, { headers: { Authorization: `Bearer ${token}` } })
-      if (res2.ok) console.log('ℹ️ C-03-01 GET /users/me/settings ok')
-    } catch (e) {
-      console.warn(`⚠️ C-03-01 API soft: ${(e as Error).message}`)
-    }
+    await nameInput.fill(newName)
+    await page.getByRole('button', { name: /save/i }).click()
+    await expect(page.locator('text=Settings saved successfully').or(page.getByText(/saved/i)).first()).toBeVisible({ timeout: 10_000 })
+    await page.reload()
+    await page.waitForLoadState('networkidle').catch(()=>{})
+    // Display Name must survive reload (HARD persistence proof).
+    await openProfileMenu(page)
+    await page.getByRole('button', { name: /settings/i }).click()
+    await expect(page.locator('h2', { hasText: 'Settings' })).toBeVisible({ timeout: 10_000 })
+    const after = page.locator('input[type="text"]').first()
+    await expect(after).toHaveValue(newName)
+    await page.getByTestId('settings-close').click().catch(()=> page.keyboard.press('Escape'))
+    // Restore the canonical name so other suites find "Alice Dev" (HARD).
+    await openProfileMenu(page)
+    await page.getByRole('button', { name: /settings/i }).click()
+    await expect(page.locator('h2', { hasText: 'Settings' })).toBeVisible({ timeout: 10_000 })
+    await page.locator('input[type="text"]').first().fill(DEV_ALICE.displayName)
+    await page.getByRole('button', { name: /save/i }).click()
+    await page.waitForTimeout(800)
+    await page.getByTestId('settings-close').click().catch(()=> page.keyboard.press('Escape'))
+    // API probes (HARD): both endpoints must answer for the session.
+    const token = await loginViaAPI(DEV_ALICE)
+    const res = await fetch(`${API_BASE.replace('/api/v1','')}/api/v1/users/me`, { headers: { Authorization: `Bearer ${token}` } })
+    expect(res.ok).toBe(true)
+    const me = await res.json()
+    expect(me.displayName || me.user?.displayName || me.data?.displayName).toBe(DEV_ALICE.displayName)
+    const res2 = await fetch(`${API_BASE.replace('/api/v1','')}/api/v1/users/me/settings`, { headers: { Authorization: `Bearer ${token}` } })
+    expect(res2.ok).toBe(true)
   })
 
-  test('C-03-02 — block hides chat (privacy enforcement) POST /blocks:485 → GET /blocks:487 → sidebar count 0 → DELETE :486', async ({ page }) => {
+  test('C-03-02 — block lifecycle enforced: POST /blocks:485 → GET /blocks:487 lists bob → DELETE :486 removes (HARD)', async ({ page }) => {
     // page still on /chat or /profile; ensure we are on chat
     await page.goto('/chat').catch(()=>{})
+    const token = await loginViaAPI(DEV_ALICE)
+    // Resolve bob's user id via search, falling back to bob's own /users/me.
+    let bobId: string | null = null
+    const searchRes = await fetch(`${API_BASE}/users/search?q=${encodeURIComponent(DEV_BOB.email)}`, { headers: { Authorization: `Bearer ${token}` } })
+    expect(searchRes.ok).toBe(true)
+    const sData = await searchRes.json()
+    const users = sData.users || sData.data || []
+    const bob = users.find((u: any) => u.email === DEV_BOB.email || u.username === 'bob.es-en')
+    if (bob?.id) {
+      bobId = bob.id
+    } else {
+      const bobToken = await loginViaAPI(DEV_BOB)
+      const meRes = await fetch(`${API_BASE.replace('/api/v1','')}/api/v1/users/me`, { headers: { Authorization: `Bearer ${bobToken}` } })
+      expect(meRes.ok).toBe(true)
+      const me = await meRes.json()
+      bobId = me.id || me.user?.id || me.data?.id || null
+    }
+    expect(bobId).toBeTruthy()
     try {
-      const token = await loginViaAPI(DEV_ALICE)
-      // Get bob user id via search
-      let bobId: string | null = null
-      try {
-        const searchRes = await fetch(`${API_BASE}/users/search?q=${encodeURIComponent(DEV_BOB.email)}`, { headers: { Authorization: `Bearer ${token}` } })
-        if (searchRes.ok) {
-          const data = await searchRes.json()
-          const users = data.users || data.data || []
-          const bob = users.find((u: any) => u.email === DEV_BOB.email || u.username === 'bob.es-en')
-          if (bob?.id) bobId = bob.id
-        }
-      } catch {}
-      if (!bobId) {
-        // Try via auth getMe for bob
-        const bobToken = await loginViaAPI(DEV_BOB).catch(()=> null)
-        if (bobToken) {
-          const meRes = await fetch(`${API_BASE.replace('/api/v1','')}/api/v1/users/me`, { headers: { Authorization: `Bearer ${bobToken}` } }).catch(()=> null as any)
-          if (meRes && meRes.ok) {
-            const me = await meRes.json()
-            bobId = me.id || me.user?.id || null
-          }
-        }
-      }
-      if (!bobId) {
-        console.warn('⚠️ C-03-02 could not resolve bobId (soft, skipping block probe)')
-        return
-      }
-      // Block
+      // Block (HARD): POST returns 201.
       const blockRes = await fetch(`${API_BASE.replace('/api/v1','')}/api/v1/blocks`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ blockedUserId: bobId }) })
-      if (blockRes.ok) console.log('ℹ️ C-03-02 POST /blocks ok')
-      else console.warn(`⚠️ C-03-02 POST /blocks ${blockRes.status} ${(await blockRes.text()).slice(0,120)} (soft)`)
-      // Verify GET /blocks lists bob
+      expect(blockRes.ok).toBe(true)
+      // GET /blocks must list bob (HARD).
       const getRes = await fetch(`${API_BASE.replace('/api/v1','')}/api/v1/blocks`, { headers: { Authorization: `Bearer ${token}` } })
-      if (getRes.ok) {
-        const data = await getRes.json()
-        const blocks = data.blocks || data.data || []
-        if (blocks.length === 0) console.warn('⚠️ C-03-02 GET /blocks empty after block (soft)')
-      }
-      // UI soft: sidebar should hide or still show (enforcement may be server-side filter)
+      expect(getRes.ok).toBe(true)
+      const gData = await getRes.json()
+      const blocks = gData.blocks || gData.data || []
+      expect(blocks.length).toBeGreaterThan(0)
+      expect(blocks.some((b: any) => b.blockedId === bobId || b.blocked?.id === bobId || b.blocked?.email === DEV_BOB.email)).toBe(true)
+      // Sidebar visibility after block is product-semantics TBD (backend
+      // enforces on send; list filtering unspecified) — informational only.
       await page.reload()
       await page.waitForLoadState('networkidle').catch(()=>{})
       const count = await page.locator('[data-testid="chat-list-item"], .cursor-pointer').filter({ hasText: DEV_BOB.displayName }).count().catch(()=> 0)
-      console.log(`ℹ️ C-03-02 sidebar count for Bob after block: ${count} (soft)`)
-      // Cleanup unblock
+      console.log(`ℹ️ C-03-02 sidebar count for Bob after block: ${count} (informational — hiding semantics TBD)`)
+    } finally {
+      // Cleanup ALWAYS runs: a lingering block would break every later
+      // messaging suite (blocked users cannot chat). Unblock must remove
+      // the edge (HARD).
       const delRes = await fetch(`${API_BASE.replace('/api/v1','')}/api/v1/blocks/${bobId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
-      if (delRes.ok) console.log('ℹ️ C-03-02 DELETE /blocks ok')
-      else console.warn(`⚠️ C-03-02 DELETE /blocks ${delRes.status} (soft)`)
-    } catch (e) {
-      console.warn(`⚠️ C-03-02 soft fail: ${(e as Error).message}`)
+      expect(delRes.ok).toBe(true)
+      const getRes2 = await fetch(`${API_BASE.replace('/api/v1','')}/api/v1/blocks`, { headers: { Authorization: `Bearer ${token}` } })
+      expect(getRes2.ok).toBe(true)
+      const gData2 = await getRes2.json()
+      const blocks2 = gData2.blocks || gData2.data || []
+      expect(blocks2.some((b: any) => b.blockedId === bobId || b.blocked?.id === bobId)).toBe(false)
     }
   })
 

@@ -64,7 +64,13 @@ export interface Ctx {
 }
 
 /** Logs in a fixture account; throws a readable error when the stack is broken. */
+const loginCache = new Map<string, { token: string; user: any }>()
 export async function login(email: string): Promise<{ token: string; user: any }> {
+  // Memoized per run: /auth/login is rate-limited (10/15min/IP) and fixtures
+  // are seeded once up front, so one login per account is enough. (Throwaway
+  // accounts are registered fresh each time and never go through here.)
+  const cached = loginCache.get(email)
+  if (cached) return cached
   const res = await http('POST', '/api/v1/auth/login', {
     json: { username: email, password: DEV_PASSWORD },
   })
@@ -74,7 +80,9 @@ export async function login(email: string): Promise<{ token: string; user: any }
         `${JSON.stringify(res.body)} — did you run "go run ./cmd/server --seed-dev"?`,
     )
   }
-  return { token: res.body.tokens.accessToken, user: res.body.user }
+  const out = { token: res.body.tokens.accessToken, user: res.body.user }
+  loginCache.set(email, out)
+  return out
 }
 
 export async function buildCtx(): Promise<Ctx> {
@@ -98,6 +106,48 @@ export interface TestCase {
   reqs: string[] // REQ ids this test evidences
   name: string
   fn: (ctx: Ctx) => Promise<void>
+}
+
+/**
+ * Registers a throwaway account through the real invite gate.
+ * Production default is invite-gated (ALLOW_OPEN_REGISTRATION=false), so
+ * tests mint an open SMS invite as a fixture user first, then register with
+ * its single-use token. Returns the live token + email + id.
+ */
+export async function registerTemp(
+  inviterToken: string,
+  prefix: string,
+): Promise<{ token: string; email: string; id: string }> {
+  const email = `${prefix}-${Date.now()}@chorus.test`
+  const inviteRes = await http('POST', '/api/v1/contacts/invites', {
+    token: inviterToken,
+    json: {
+      channel: 'sms',
+      contact: { name: prefix, phone: `+1555${String(Date.now()).slice(-7)}` },
+    },
+  })
+  if (inviteRes.status !== 201 || !inviteRes.body?.data?.token) {
+    throw new Error(
+      `mint invite for ${email}: expected HTTP 201 with token, got ${inviteRes.status} — body: ${JSON.stringify(inviteRes.body)}`,
+    )
+  }
+  const res = await http('POST', '/api/v1/auth/register', {
+    json: {
+      username: email,
+      email,
+      password: 'ProbePass123!',
+      displayName: prefix,
+      nativeLanguage: 'en',
+      targetLanguages: ['es'],
+      inviteToken: inviteRes.body.data.token,
+    },
+  })
+  if (res.status !== 201 || !res.body?.tokens?.accessToken) {
+    throw new Error(
+      `temp registration (${email}): expected HTTP 201 with tokens, got ${res.status} — body: ${JSON.stringify(res.body)}`,
+    )
+  }
+  return { token: res.body.tokens.accessToken, email, id: res.body.user.id }
 }
 
 export function assert(cond: unknown, msg: string): asserts cond {

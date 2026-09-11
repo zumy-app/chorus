@@ -431,7 +431,7 @@ func TestScenarioServiceSendSpanishAndAIReply(t *testing.T) {
 		AddRow("ph2", "sc1", 2, "Order", "Order", "{order_drink}", []byte(`[]`))
 	mock.ExpectQuery("scenario_phases").WithArgs("sc1").WillReturnRows(phaseRows2)
 	// update run
-	mock.ExpectExec("UPDATE scenario_runs SET current_phase_ordinal").WithArgs("run1", 2, sqlmock.AnyArg(), 50, "in_progress").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec("UPDATE scenario_runs SET current_phase_ordinal").WithArgs("run1", 2, sqlmock.AnyArg(), 50, "in_progress", false).WillReturnResult(sqlmock.NewResult(1, 1))
 
 	reply, err := svc.SendMessage(context.Background(), "user1", "run1", "Hola, buenos días")
 	if err != nil {

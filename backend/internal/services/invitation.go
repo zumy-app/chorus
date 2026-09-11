@@ -110,19 +110,25 @@ func (s *InvitationService) CreateForContact(inviterID, channel, recipient, emai
 	}
 
 	status := "pending"
+	var sentAt any
 	if channel == "email" {
 		status = "sent"
+		sentAt = time.Now()
 	}
 
 	var id string
 	var expiry time.Time
+	// NOTE: sent_at is computed in Go, not via CASE WHEN $5... in SQL: a
+	// parameter used both as a varchar column value and inside a CASE
+	// expression makes Postgres deduce conflicting types (42P08) when the
+	// driver sends untyped params (acceptance TC-APPLY-03 caught this — the
+	// contacts-invite endpoint was 100% broken).
 	err := s.db.QueryRow(`INSERT INTO invitations
 		(waitlist_entry_id, inviter_user_id, email, token_hash, expires_at, channel, recipient, name, status, sent_at)
-		VALUES (NULL, $1, $2, $3, CURRENT_TIMESTAMP + $4 * INTERVAL '1 hour', $5, $6, $7, $8,
-			CASE WHEN $5 = 'email' THEN CURRENT_TIMESTAMP ELSE NULL END)
+		VALUES (NULL, $1, $2, $3, CURRENT_TIMESTAMP + $4 * INTERVAL '1 hour', $5, $6, $7, $8, $9)
 		RETURNING id, expires_at`,
 		inviterID, bindEmail, invitationHash(token), int(s.ttl.Hours()), channel,
-		strings.TrimSpace(recipient), strings.TrimSpace(name), status,
+		strings.TrimSpace(recipient), strings.TrimSpace(name), status, sentAt,
 	).Scan(&id, &expiry)
 	if err != nil {
 		return "", nil, err

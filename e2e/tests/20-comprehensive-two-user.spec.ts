@@ -9,7 +9,9 @@ const SOFIA = DEV_SOFIA
 /**
  * C-01 — Comprehensive Two-User Journey (alice → bob, 5 msgs + vocab/grammar/ai-tutor + settings → bob verify)
  * Authority: docs/QA_CRITIQUE_AND_IMPROVEMENTS.md:§2.1
- * Impl: now uses DEV_ALICE/BOB/SOFIA + waitForTranslation critical:true + soft backend probes
+ * Impl: now uses DEV_ALICE/BOB/SOFIA + waitForTranslation critical:true.
+ * All persistence/durability probes are HARD (no try/catch soft-pass):
+ * a green run proves Postgres is the source of truth, not UI optimism.
  */
 test.describe('@C-01 @comprehensive @critical @two-user', () => {
   test.describe.configure({ mode: 'serial' })
@@ -48,38 +50,32 @@ test.describe('@C-01 @comprehensive @critical @two-user', () => {
       await sendMessage(alicePage, stamped)
       await expect(alicePage.locator('.break-words', { hasText: msg.split(' ')[0] }).last()).toBeVisible({ timeout: 15_000 })
     }
-    // Try to capture chatId via API for durability probe (soft)
-    try {
-      const token = await loginViaAPI(ALICE)
-      const res = await fetch(`${API_BASE}/chats`, { headers: { Authorization: `Bearer ${token}` } })
-      if (res.ok) {
-        const data = await res.json()
-        const chats = data.chats || data.data || []
-        const match = chats.find((c: any) => JSON.stringify(c).includes(BOB.displayName) || (c.participants && c.participants.some((p: any) => p.displayName === BOB.displayName || p.email === BOB.email)))
-        if (match?.id || match?._id) chatId = match.id || match._id
-        // Also try extract from URL
-        if (!chatId) {
-          const url = alicePage.url()
-          const m = url.match(/\/chat\/([^/?#]+)/)
-          if (m) chatId = m[1]
-        }
-      }
-      if (chatId) {
-        const token2 = await loginViaAPI(ALICE)
-        const mRes = await fetch(`${API_BASE}/chats/${chatId}/messages?limit=20`, { headers: { Authorization: `Bearer ${token2}` } })
-        if (mRes.ok) {
-          const mData = await mRes.json()
-          const msgs = mData.messages || mData.data || []
-          console.log(`ℹ️ C-01-01 GET /chats/${chatId}/messages count ${msgs.length}`)
-          // Soft: if backend returns <5, just warn (seed may have prior history)
-          if (msgs.length < 5) console.warn(`⚠️ C-01-01 expected >=5 msgs, got ${msgs.length} (soft)`)
-        }
-      } else {
-        console.warn('⚠️ C-01-01 could not resolve chatId for API probe (soft)')
-      }
-    } catch (e) {
-      console.warn(`⚠️ C-01-01 API probe soft fail: ${(e as Error).message}`)
+    // Resolve the chat via API and prove Postgres holds all 5 messages (HARD).
+    // chatId resolution has two independent paths (API match, URL match);
+    // either must succeed — an unresolvable chat is a product bug, not noise.
+    const token = await loginViaAPI(ALICE)
+    const res = await fetch(`${API_BASE}/chats`, { headers: { Authorization: `Bearer ${token}` } })
+    expect(res.ok).toBe(true)
+    const data = await res.json()
+    const chats = data.chats || data.data || []
+    // Prefer the DIRECT DM with bob: group chats also contain him and would
+    // match a naive substring search (wrong-chat probe caught live).
+    const match = chats.find((c: any) => c.type === 'direct' && (JSON.stringify(c).includes(BOB.displayName) || (c.participants && c.participants.some((p: any) => p.displayName === BOB.displayName || p.email === BOB.email))))
+    if (match?.id || match?._id) chatId = match.id || match._id
+    // Also try extract from URL
+    if (!chatId) {
+      const url = alicePage.url()
+      const m = url.match(/\/chat\/([^/?#]+)/)
+      if (m) chatId = m[1]
     }
+    expect(chatId).toBeTruthy()
+    const token2 = await loginViaAPI(ALICE)
+    const mRes = await fetch(`${API_BASE}/chats/${chatId}/messages?limit=20`, { headers: { Authorization: `Bearer ${token2}` } })
+    expect(mRes.ok).toBe(true)
+    const mData = await mRes.json()
+    const msgs = mData.messages || mData.data || []
+    // >=5: prior runs may have added history to the same DM; fewer is a loss.
+    expect(msgs.length).toBeGreaterThanOrEqual(5)
     // Always pass if UI shows 5 msgs — proven above
     await expect(alicePage.locator('.break-words').first()).toBeVisible()
   })
@@ -90,84 +86,57 @@ test.describe('@C-01 @comprehensive @critical @two-user', () => {
     await chatItem.click()
     for (const snippet of ['Hello Bob', 'learning Spanish', 'weather is beautiful', 'walking through the park', 'elephant']) {
       await expect(bobPage.locator('.break-words', { hasText: snippet }).last()).toBeVisible({ timeout: 15_000 })
-      // Critical translation — must throw if missing, but we soft-warn if backend not ready so spec stays green
-      try {
-        await waitForTranslation(bobPage, snippet, 60_000, { critical: true })
-      } catch (e) {
-        console.warn(`⚠️ C-01-02 waitForTranslation critical soft: snippet "${snippet}" not translated within 60s — ${(e as Error).message}`)
-      }
-      // Soft check for translation UI, not hard fail
-      try {
-        const bubble = bobPage.locator('.break-words', { hasText: snippet }).last().locator('..')
-        const translating = bubble.getByText(/🌐 In your language:/)
-        if (await translating.count() > 0) {
-          await expect(translating.first()).toBeVisible({ timeout: 5_000 })
-          const trans = bubble.locator('.italic.font-medium')
-          if (await trans.count() > 0) {
-            const t = await trans.first().textContent()
-            if (t && t.length <= 3) console.warn(`⚠️ C-01-02 translation length <=3 for "${snippet}"`)
-          }
-        } else {
-          console.warn(`⚠️ C-01-02 no 🌐 In your language for "${snippet}" (soft, translator may be slow/disabled)`)
-        }
-      } catch (e) {
-        console.warn(`⚠️ C-01-02 translation locator soft fail: ${(e as Error).message}`)
+      // Critical translation — HARD: a missing translation is a product
+      // failure (provider chain), never suite noise. Throws on timeout.
+      await waitForTranslation(bobPage, snippet, 60_000, { critical: true })
+      // Translation UI must be present and non-trivial.
+      const bubble = bobPage.locator('.break-words', { hasText: snippet }).last().locator('..')
+      const translating = bubble.getByText(/🌐 In your language:/)
+      await expect(translating.first()).toBeVisible({ timeout: 10_000 })
+      const trans = bubble.locator('.font-translation-text')
+      if (await trans.count() > 0) {
+        const t = await trans.first().textContent()
+        if (!t || t.length <= 3) console.warn(`⚠️ C-01-02 translation suspiciously short for "${snippet}" (length warn only)`)
       }
     }
   })
 
-  test('C-01-03 — bob mines vocab (elephant) → ✅ Saved → vocab hub stats + All Words', async () => {
-    const snippet = 'elephant'
-    try {
-      const wrapper = bobPage.locator('.break-words', { hasText: snippet }).last().locator('xpath=ancestor::div[contains(@class, "flex")][1]')
-      await wrapper.hover()
-      const saveBtn = wrapper.getByRole('button').filter({ hasText: '+' }).first()
-      if (await saveBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-        await saveBtn.click()
-        const saved = wrapper.getByRole('button', { hasText: '✅ Saved' }).first()
-        await expect(saved).toBeVisible({ timeout: 10_000 }).catch(() => console.warn('⚠️ C-01-03 ✅ Saved not visible (soft)'))
-      } else {
-        console.warn('⚠️ C-01-03 vocab + button not visible (soft — UI may use different label)')
-      }
-    } catch (e) {
-      console.warn(`⚠️ C-01-03 vocab mining soft fail: ${(e as Error).message}`)
-    }
-    // Vocab hub soft probe
-    try {
-      await openProfileMenu(bobPage)
-      const vocabBtn = bobPage.getByRole('button', { name: /vocabulary/i })
-      if (await vocabBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-        await vocabBtn.click()
-        await expect(bobPage.locator('h2', { hasText: /Vocabulary/i })).toBeVisible({ timeout: 10_000 }).catch(() => console.warn('⚠️ C-01-03 Vocabulary hub h2 not visible (soft)'))
-        // Soft check stats
-        if (await bobPage.locator('text=Total Words').count() > 0) {
-          await expect(bobPage.locator('text=Total Words')).toBeVisible()
-        } else {
-          console.warn('⚠️ C-01-03 Total Words stat not visible (soft)')
-        }
-        // Return to chat for next steps
-        await bobPage.goto('/chat')
-        await findChatInSidebar(bobPage, ALICE.displayName).then(c => c.click()).catch(()=>{})
-      } else {
-        // Direct navigation fallback
-        await bobPage.goto('/learn/vocabulary')
-        await expect(bobPage.getByText(/Vocabulary|Words found in your chats/i).first()).toBeVisible({ timeout: 10_000 }).catch(()=> console.warn('⚠️ C-01-03 learn/vocabulary not visible (soft)'))
-        await bobPage.goto('/chat')
-        const chatItem = await findChatInSidebar(bobPage, ALICE.displayName).catch(()=>null)
-        if (chatItem) await chatItem.click().catch(()=>{})
-      }
-      // Soft probe GET /learning/vocabulary/mined via API
-      try {
-        const token = await loginViaAPI(BOB)
-        const res = await fetch(`${API_BASE.replace('/api/v1','')}/api/v1/learning/vocabulary/mined?targetLanguage=es`, { headers: { Authorization: `Bearer ${token}` } })
-        if (res.ok) console.log('ℹ️ C-01-03 mined API ok')
-        else console.warn(`⚠️ C-01-03 mined API ${res.status} (soft)`)
-      } catch (e) {
-        console.warn(`⚠️ C-01-03 mined API soft fail: ${(e as Error).message}`)
-      }
-    } catch (e) {
-      console.warn(`⚠️ C-01-03 vocab hub soft fail: ${(e as Error).message}`)
-    }
+  test('C-01-03 — bob saves a word from chat → ✅ Saved → GET /vocabulary persistence (HARD)', async () => {
+    // Chat "+" buttons save individual words via POST /vocabulary (manual-save
+    // path → VocabularyCard). /learn/vocabulary is a DIFFERENT feature (mined
+    // candidates) and must not be asserted here. Use a distinctive first word
+    // so the "+" button target is unambiguous (buttons show the first words).
+    const mineMsg = `Quokka dreams vividly at midnight ${Date.now()}`
+    await alicePage.goto('/chat')
+    const aliceChat = await findChatInSidebar(alicePage, BOB.displayName)
+    await aliceChat.click()
+    await sendMessage(alicePage, mineMsg)
+
+    await bobPage.goto('/chat')
+    const bobChat = await findChatInSidebar(bobPage, ALICE.displayName)
+    await bobChat.click()
+    const wrapper = bobPage.locator('.break-words', { hasText: 'Quokka dreams' }).last().locator('xpath=ancestor::div[contains(@class, "flex")][1]')
+    await wrapper.hover()
+    const saveBtn = wrapper.getByRole('button', { name: '+ Quokka' }).first()
+    await expect(saveBtn).toBeVisible({ timeout: 10_000 })
+    await saveBtn.click()
+    await expect(wrapper.getByText('Saved').first()).toBeVisible({ timeout: 10_000 })
+    // API persistence probe (HARD): the saved card must read back.
+    const token = await loginViaAPI(BOB)
+    const res = await fetch(`${API_BASE}/vocabulary?limit=50`, { headers: { Authorization: `Bearer ${token}` } })
+    expect(res.ok).toBe(true)
+    const vData = await res.json()
+    const entries = vData?.data?.entries || vData?.data || []
+    expect(Array.isArray(entries)).toBe(true)
+    expect(entries.some((e: any) => (e.term || '').toLowerCase().includes('quokka'))).toBe(true)
+    // Vocab hub loads (HARD shell only — its candidate list depends on async
+    // mining timing and is covered by 06-vocabulary + acceptance).
+    await bobPage.goto('/learn/vocabulary')
+    await expect(bobPage.getByText(/Vocabulary|Words found in your chats/i).first()).toBeVisible({ timeout: 10_000 })
+    // Return to the DM for C-01-04 (grammar needs the thread open).
+    await bobPage.goto('/chat')
+    const backToChat = await findChatInSidebar(bobPage, ALICE.displayName)
+    await backToChat.click()
   })
 
   test('C-01-04 — bob grammar + ai-tutor on msg2 (amber 180s, indigo 10s, assistant 45s)', async () => {
@@ -210,112 +179,77 @@ test.describe('@C-01 @comprehensive @critical @two-user', () => {
     }
   })
 
-  test('C-01-05 — alice changes Display Name to Alice C01 → persists reload → bob sidebar shows new name', async () => {
+  test('C-01-05 — alice changes Display Name to Alice C01 → persists reload → bob sidebar shows new name → restored (HARD)', async () => {
     const testName = 'Alice C01'
-    try {
-      await openProfileMenu(alicePage)
-      await alicePage.getByRole('button', { name: '⚙️ Settings' }).click()
-      await expect(alicePage.locator('h2', { hasText: 'Settings' })).toBeVisible({ timeout: 10_000 })
-      const nameInput = alicePage.locator('[data-testid="settings-modal"] input[type="text"]').first()
-      await nameInput.fill(testName)
-      await alicePage.getByRole('button', { name: /save settings/i }).click()
-      // Wait for success toast (i18n may vary)
-      const saved = alicePage.locator('text=Settings saved successfully').or(alicePage.locator('text=Saved')).or(alicePage.locator('text=saved'))
-      await expect(saved.first()).toBeVisible({ timeout: 10_000 }).catch(()=> console.warn('⚠️ C-01-05 save toast not visible (soft)'))
-      await alicePage.reload()
-      await alicePage.waitForLoadState('networkidle').catch(()=>{})
-      // Verify input still has new name after reload (soft)
-      try {
-        await openProfileMenu(alicePage)
-        await alicePage.getByRole('button', { name: '⚙️ Settings' }).click()
-        await expect(alicePage.locator('h2', { hasText: 'Settings' })).toBeVisible({ timeout: 10_000 })
-        const after = alicePage.locator('[data-testid="settings-modal"] input[type="text"]').first()
-        const val = await after.inputValue().catch(()=> '')
-        if (val !== testName) console.warn(`⚠️ C-01-05 Display Name not persisted (got "${val}") (soft)`)
-        // Close modal
-        await alicePage.getByTestId('settings-close').click().catch(()=> alicePage.keyboard.press('Escape'))
-      } catch (e) {
-        console.warn(`⚠️ C-01-05 persist verify soft fail: ${(e as Error).message}`)
-      }
-    } catch (e) {
-      console.warn(`⚠️ C-01-05 settings soft fail: ${(e as Error).message}`)
-    }
-    try {
-      await bobPage.reload()
-      await bobPage.waitForLoadState('networkidle').catch(()=>{})
-      // Sidebar should eventually show new name — soft
-      const sidebar = bobPage.locator('[data-testid="chat-list-item"], .cursor-pointer').filter({ hasText: testName })
-      if (await sidebar.count() > 0) {
-        await expect(sidebar.first()).toBeVisible({ timeout: 5_000 })
-      } else {
-        console.warn('⚠️ C-01-05 bob sidebar does not yet show Alice C01 (soft — may need cache refresh)')
-        // At least original name should still exist
-        const fallback = bobPage.locator('[data-testid="chat-list-item"], .cursor-pointer').filter({ hasText: 'Alice' })
-        if (await fallback.count() > 0) await expect(fallback.first()).toBeVisible({ timeout: 5_000 }).catch(()=>{})
-      }
-    } catch (e) {
-      console.warn(`⚠️ C-01-05 bob sidebar soft fail: ${(e as Error).message}`)
-    }
+    await openProfileMenu(alicePage)
+    await alicePage.getByRole('button', { name: '⚙️ Settings' }).click()
+    await expect(alicePage.locator('h2', { hasText: 'Settings' })).toBeVisible({ timeout: 10_000 })
+    const nameInput = alicePage.locator('[data-testid="settings-modal"] input[type="text"]').first()
+    await nameInput.fill(testName)
+    await alicePage.getByRole('button', { name: /save settings/i }).click()
+    // Wait for success toast (i18n may vary)
+    const saved = alicePage.locator('text=Settings saved successfully').or(alicePage.locator('text=Saved')).or(alicePage.locator('text=saved'))
+    await expect(saved.first()).toBeVisible({ timeout: 10_000 })
+    await alicePage.reload()
+    await alicePage.waitForLoadState('networkidle').catch(()=>{})
+    // Display Name must survive reload (HARD persistence proof).
+    await openProfileMenu(alicePage)
+    await alicePage.getByRole('button', { name: '⚙️ Settings' }).click()
+    await expect(alicePage.locator('h2', { hasText: 'Settings' })).toBeVisible({ timeout: 10_000 })
+    const after = alicePage.locator('[data-testid="settings-modal"] input[type="text"]').first()
+    await expect(after).toHaveValue(testName)
+    // Close modal
+    await alicePage.getByTestId('settings-close').click().catch(()=> alicePage.keyboard.press('Escape'))
+    // Bob's sidebar must show the new name after reload (HARD cross-user proof).
+    await bobPage.reload()
+    await bobPage.waitForLoadState('networkidle').catch(()=>{})
+    const sidebar = bobPage.locator('[data-testid="chat-list-item"], .cursor-pointer').filter({ hasText: testName })
+    await expect(sidebar.first()).toBeVisible({ timeout: 15_000 })
+    // Restore the canonical name so later suites/specs find "Alice Dev" (HARD).
+    await openProfileMenu(alicePage)
+    await alicePage.getByRole('button', { name: '⚙️ Settings' }).click()
+    await expect(alicePage.locator('h2', { hasText: 'Settings' })).toBeVisible({ timeout: 10_000 })
+    await alicePage.locator('[data-testid="settings-modal"] input[type="text"]').first().fill(ALICE.displayName)
+    await alicePage.getByRole('button', { name: /save settings/i }).click()
+    await expect(saved.first()).toBeVisible({ timeout: 10_000 })
+    await alicePage.reload()
+    await alicePage.waitForLoadState('networkidle').catch(()=>{})
+    await openProfileMenu(alicePage)
+    await alicePage.getByRole('button', { name: '⚙️ Settings' }).click()
+    const restored = alicePage.locator('[data-testid="settings-modal"] input[type="text"]').first()
+    await expect(restored).toHaveValue(ALICE.displayName)
+    await alicePage.getByTestId('settings-close').click().catch(()=> alicePage.keyboard.press('Escape'))
   })
 
-  test('C-01-06 — durability: reload both, GET /chats/:id/messages still 5, message_receipts + ws_fast_dropped_total==0', async () => {
+  test('C-01-06 — durability: reload both, GET /chats/:id/messages persists, ws_fast_dropped_total==0 (HARD)', async () => {
     const durabilityMsg = `Durability check ${Date.now()}`
-    try {
-      // Ensure alice is back on chat and focused on the DM
-      await alicePage.goto('/chat')
-      const chatItem = await findChatInSidebar(alicePage, BOB.displayName).catch(()=>null)
-      if (chatItem) await chatItem.click().catch(()=>{})
-      await sendMessage(alicePage, durabilityMsg)
-    } catch (e) {
-      console.warn(`⚠️ C-01-06 send durability soft fail: ${(e as Error).message}`)
-    }
-    try {
-      await alicePage.reload()
-      await bobPage.reload()
-      await bobPage.waitForLoadState('networkidle').catch(()=>{})
-      // Ensure bob is on the chat
-      try {
-        const bobChat = await findChatInSidebar(bobPage, 'Alice').catch(()=>null)
-        if (bobChat) await bobChat.click().catch(()=>{})
-      } catch {}
-      await expect(bobPage.locator('.break-words', { hasText: durabilityMsg }).last()).toBeVisible({ timeout: 15_000 }).catch(()=> {
-        console.warn('⚠️ C-01-06 durability msg not visible after reload (soft)')
-      })
-    } catch (e) {
-      console.warn(`⚠️ C-01-06 reload soft fail: ${(e as Error).message}`)
-    }
-    // API durability probe (soft)
-    try {
-      if (chatId) {
-        const token = await loginViaAPI(ALICE)
-        const res = await fetch(`${API_BASE}/chats/${chatId}/messages?limit=20`, { headers: { Authorization: `Bearer ${token}` } })
-        if (res.ok) {
-          const data = await res.json()
-          const msgs = data.messages || data.data || []
-          if (msgs.length < 6) console.warn(`⚠️ C-01-06 expected >=6 msgs after durability, got ${msgs.length} (soft)`)
-          const hasDur = msgs.some((m: any) => (m.content || m.text || '').includes('Durability check'))
-          if (!hasDur) console.warn('⚠️ C-01-06 durability msg not found via API (soft)')
-        }
-      } else {
-        console.warn('⚠️ C-01-06 no chatId for API probe (soft)')
-      }
-    } catch (e) {
-      console.warn(`⚠️ C-01-06 API durability soft fail: ${(e as Error).message}`)
-    }
-    // ws_fast_dropped_total metric soft probe
-    try {
-      const res = await fetch((process.env.E2E_API_URL || 'http://localhost:8080/api/v1').replace('/api/v1','') + '/metrics')
-      if (res.ok) {
-        const txt = await res.text()
-        if (txt.includes('ws_fast_dropped_total')) {
-          const m = txt.match(/ws_fast_dropped_total\s+(\d+)/)
-          if (m && m[1] !== '0') console.warn(`⚠️ C-01-06 ws_fast_dropped_total=${m[1]} expected 0 (soft)`)
-        } else {
-          console.warn('⚠️ C-01-06 metric ws_fast_dropped_total not found (soft)')
-        }
-      }
-    } catch (e) {
-      console.warn(`⚠️ C-01-06 metrics soft fail: ${(e as Error).message}`)
-    }
+    // Ensure alice is back on chat and focused on the DM
+    await alicePage.goto('/chat')
+    const chatItem = await findChatInSidebar(alicePage, BOB.displayName)
+    await chatItem.click()
+    await sendMessage(alicePage, durabilityMsg)
+    expect(chatId).toBeTruthy()
+    await alicePage.reload()
+    await bobPage.reload()
+    await bobPage.waitForLoadState('networkidle').catch(()=>{})
+    // Ensure bob is on the chat
+    const bobChat = await findChatInSidebar(bobPage, ALICE.displayName)
+    await bobChat.click()
+    await expect(bobPage.locator('.break-words', { hasText: durabilityMsg }).last()).toBeVisible({ timeout: 15_000 })
+    // API durability probe (HARD): Postgres must hold the message.
+    const token = await loginViaAPI(ALICE)
+    const res = await fetch(`${API_BASE}/chats/${chatId}/messages?limit=20`, { headers: { Authorization: `Bearer ${token}` } })
+    expect(res.ok).toBe(true)
+    const data = await res.json()
+    const msgs = data.messages || data.data || []
+    expect(msgs.length).toBeGreaterThanOrEqual(6)
+    expect(msgs.some((m: any) => (m.content || m.text || '').includes('Durability check'))).toBe(true)
+    // No fast-path drops allowed (HARD): Redis may cache, Postgres decides.
+    const mRes = await fetch((process.env.E2E_API_URL || 'http://localhost:8080/api/v1').replace('/api/v1','') + '/metrics')
+    expect(mRes.ok).toBe(true)
+    const txt = await mRes.text()
+    expect(txt.includes('ws_fast_dropped_total')).toBe(true)
+    const m = txt.match(/ws_fast_dropped_total\s+(\d+)/)
+    expect(m?.[1]).toBe('0')
   })
 })

@@ -1,7 +1,7 @@
 // HTTP API client. The implementation (interceptors, token refresh, endpoint
 // groups) lives in the shared package (@chorus/shared); this file wires it to
 // the mobile storage adapter (src/utils/storage.ts) and platform-specific URLs.
-import { createApiClient, resolveApiConfig, type ApiPlatform } from '@chorus/shared';
+import { createApiClient, resolveApiConfig, type ApiPlatform, type AuthTokens, type User } from '@chorus/shared';
 import { Platform } from 'react-native';
 import storage from '../utils/storage';
 
@@ -31,6 +31,27 @@ const apiService = {
   register: client.auth.register,
   login: (username: string, password: string) =>
     client.auth.login({ username, password }),
+  // Typed full re-login (dev quick-switch, test flows). Screens must use
+  // this instead of reaching into response envelopes: auth.login resolves
+  // the unwrapped body ({user, tokens} on success). Throws a plain Error
+  // with a human message when the shape is anything else (e.g. 2FA
+  // challenge), so callers can surface it instead of crashing on
+  // `undefined.data`.
+  switchUser: async (
+    username: string,
+    password: string
+  ): Promise<{ tokens: AuthTokens; user: User }> => {
+    const data = (await client.auth.login({ username, password })) as unknown as
+      | { tokens?: AuthTokens; user?: User; requires2FA?: boolean }
+      | undefined;
+    if (!data?.tokens?.accessToken || !data?.user) {
+      if (data?.requires2FA) {
+        throw new Error('Target account requires two-factor verification — log in manually');
+      }
+      throw new Error('Login did not return session tokens');
+    }
+    return { tokens: data.tokens, user: data.user };
+  },
   refreshToken: client.auth.refreshToken,
   logout: client.auth.logout,
   getMe: client.auth.getMe,
@@ -104,11 +125,11 @@ const apiService = {
   applyTeacher: client.teacher.apply,
   getTrialCredits: client.teacher.getTrialCredits,
   getTrialCreditsDashboard: async () => {
-    const r = await (client.api as any).get('/teachers/trial-credits/dashboard');
+    const r = await client.api.get('/teachers/trial-credits/dashboard');
     return r.data;
   },
   getTeacherDashboard: async () => {
-    const r = await (client.api as any).get('/teachers/dashboard');
+    const r = await client.api.get('/teachers/dashboard');
     return r.data;
   },
   getPayoutOverview: client.payouts.overview,

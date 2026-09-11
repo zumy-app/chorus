@@ -58,8 +58,10 @@ export const foundationTests: TestCase[] = [
   {
     id: 'TC-REG-01',
     reqs: ['REQ-REG-01'],
-    name: 'open registration (dev flag) creates an account without an invite token',
+    name: 'registration without an invite token is rejected: the deployment is invite-gated by default',
     fn: async () => {
+      // Rescue plan C2: ALLOW_OPEN_REGISTRATION defaults to false, so the
+      // no-token path must 403 with the invitation message (not 201).
       const suffix = Date.now()
       const email = `tc-reg01-${suffix}@chorus.test`
       const res = await http('POST', '/api/v1/auth/register', {
@@ -72,11 +74,9 @@ export const foundationTests: TestCase[] = [
           targetLanguages: ['es'],
         },
       })
-      assertStatus(res, 201, 'POST /auth/register without invite token (ALLOW_OPEN_REGISTRATION=true)')
-      assert(res.body?.tokens?.accessToken, 'registration response must include tokens')
-      // The new account must be immediately usable.
-      const me = await http('GET', '/api/v1/users/me', { token: res.body.tokens.accessToken })
-      assertStatus(me, 200, 'GET /users/me with fresh token')
+      assertStatus(res, 403, 'POST /auth/register without invite token')
+      const msg = JSON.stringify(res.body).toLowerCase()
+      assert(msg.includes('invitation'), 'rejection must mention the invitation requirement')
     },
   },
   {
@@ -146,8 +146,8 @@ export const foundationTests: TestCase[] = [
     fn: async () => {
       const res = await http('GET', '/api/v1/users/me')
       assertStatus(res, 401, 'GET /users/me without token')
-      assertEq(res.body.code, 'UNAUTHORIZED', 'error envelope code')
-      assert(typeof res.body.message === 'string' && res.body.message.length > 0, 'error envelope message')
+      assertEq(res.body?.error?.kind, 'auth', 'error envelope kind')
+      assert(typeof res.body?.error?.message === 'string' && res.body.error.message.length > 0, 'error envelope message')
     },
   },
   {
@@ -159,7 +159,7 @@ export const foundationTests: TestCase[] = [
         token: ctx.learnerToken,
       })
       assertStatus(res, 404, 'GET unknown tutor')
-      assertEq(res.body.code, 'NOT_FOUND', 'error envelope code')
+      assertEq(res.body?.error?.kind, 'not_found', 'error envelope kind')
     },
   },
 ]

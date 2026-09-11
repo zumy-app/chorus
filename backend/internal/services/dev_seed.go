@@ -5,8 +5,10 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -39,6 +41,18 @@ const (
 // fixture accounts are deleted and recreated so every run yields the same
 // state (cascade deletes their chats, applications, bookings, etc.).
 func SeedDevData(db *sql.DB) error {
+	// Drop every row that would block fixture-user deletion: any FK to
+	// users(id) WITHOUT ON DELETE CASCADE (e.g. chats.created_by — real
+	// test traffic creates chats owned by fixtures, and the delete used to
+	// die with 23503). Discovered when the acceptance runner's reseed failed
+	// after live messaging created fixture-owned chats.
+	fixtureEmails := []string{
+		DevLearnerEmail, DevLearner2Email, DevTutorEmail, DevInviteEmail,
+		legacyLearnerEmail, legacyLearner2Email,
+	}
+	if err := deleteFixtureDependents(db, fixtureEmails); err != nil {
+		return err
+	}
 	// Drop pre-rename fixture rows first (cascade removes their chats etc.).
 	for _, legacy := range []string{legacyLearnerEmail, legacyLearner2Email} {
 		if _, err := db.Exec(`DELETE FROM users WHERE email = $1`, legacy); err != nil {
@@ -67,6 +81,118 @@ func SeedDevData(db *sql.DB) error {
 	return nil
 }
 
+// deleteFixtureDependents deletes, for the given emails, every row that would
+// block fixture-user deletion, in dependency order:
+//  1. rows in tables with a RESTRICT/NO ACTION FK to chats(id)/messages(id)
+//     that point into the doomed chats (e.g. vocabulary context refs);
+//  2. rows in tables with a RESTRICT/NO ACTION FK to users(id) (e.g. fixture
+//     messages, refresh tokens) — discovered from the catalog so future
+//     migrations stay seed-safe;
+//  3. the doomed chats themselves.
+// Everything else cascades with the user delete. Dev-only; fixture chats and
+// their learned artifacts are removed with the fixtures (real test traffic
+// creates fixture-owned chats, which used to die with 23503 on reseed).
+func deleteFixtureDependents(db *sql.DB, emails []string) error {
+	// Order matters: second-order refs (e.g. vocabulary → messages) must go
+	// before the rows they point at; doomed chats go last.
+	second, err := dependentColumns(db, `c.confrelid IN ('chats'::regclass, 'messages'::regclass)`)
+	if err != nil {
+		return err
+	}
+	for _, d := range second {
+		var q string
+		switch d.parent {
+		case "public.chats", "chats":
+			q = fmt.Sprintf(
+				`DELETE FROM %s WHERE %s IN (SELECT id FROM chats WHERE created_by IN (SELECT id FROM users WHERE email = ANY ($1)))`,
+				quoteIdentQualified(d.table), quoteIdent(d.column),
+			)
+		default: // messages
+			q = fmt.Sprintf(
+				`DELETE FROM %s WHERE %s IN (SELECT id FROM messages WHERE chat_id IN (SELECT id FROM chats WHERE created_by IN (SELECT id FROM users WHERE email = ANY ($1))))`,
+				quoteIdentQualified(d.table), quoteIdent(d.column),
+			)
+		}
+		if _, err := db.Exec(q, pq.Array(emails)); err != nil {
+			return fmt.Errorf("seed cleanup %s: %w", d.table, err)
+		}
+	}
+
+	direct, err := dependentColumns(db, `c.confrelid = 'users'::regclass`)
+	if err != nil {
+		return err
+	}
+	for _, d := range direct {
+		// chats are removed below after their own dependents are gone.
+		if d.table == "public.chats" || d.table == "chats" {
+			continue
+		}
+		q := fmt.Sprintf(
+			`DELETE FROM %s WHERE %s IN (SELECT id FROM users WHERE email = ANY ($1))`,
+			quoteIdentQualified(d.table), quoteIdent(d.column),
+		)
+		if _, err := db.Exec(q, pq.Array(emails)); err != nil {
+			return fmt.Errorf("seed cleanup %s: %w", d.table, err)
+		}
+	}
+
+	if _, err := db.Exec(
+		`DELETE FROM chats WHERE created_by IN (SELECT id FROM users WHERE email = ANY ($1))`,
+		pq.Array(emails),
+	); err != nil {
+		return fmt.Errorf("seed cleanup chats: %w", err)
+	}
+	return nil
+}
+
+// dependentColumns lists (table, column, parent) for RESTRICT/NO ACTION FKs
+// into the given parent relation(s). SET NULL / SET DEFAULT / CASCADE targets
+// never block a delete and are excluded.
+func dependentColumns(db *sql.DB, parentPred string) ([]struct {
+	table, column, parent string
+}, error) {
+	rows, err := db.Query(fmt.Sprintf(`
+		SELECT DISTINCT c.conrelid::regclass::text, a.attname, c.confrelid::regclass::text
+		FROM pg_constraint c
+		JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY (c.conkey)
+		WHERE %s
+		  AND c.contype = 'f'
+		  AND c.confdeltype IN ('a', 'r')
+	`, parentPred))
+	if err != nil {
+		return nil, fmt.Errorf("seed list dependents: %w", err)
+	}
+	defer rows.Close()
+	var out []struct {
+		table, column, parent string
+	}
+	for rows.Next() {
+		var d struct {
+			table, column, parent string
+		}
+		if err := rows.Scan(&d.table, &d.column, &d.parent); err != nil {
+			return nil, fmt.Errorf("seed scan dependents: %w", err)
+		}
+		out = append(out, d)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("seed read dependents: %w", err)
+	}
+	return out, nil
+}
+
+func quoteIdent(s string) string {
+	return `"` + strings.ReplaceAll(s, `"`, `""`) + `"`
+}
+
+func quoteIdentQualified(name string) string {
+	parts := strings.Split(name, ".")
+	quoted := make([]string, 0, len(parts))
+	for _, p := range parts {
+		quoted = append(quoted, quoteIdent(p))
+	}
+	return strings.Join(quoted, ".")
+}
 // upsertDevUser deletes any existing fixture account (cascade removes its
 // dependent rows) and recreates it fresh, returning the new user id.
 func upsertDevUser(db *sql.DB, email, username, displayName, nativeLanguage, targetLanguages string) (string, error) {

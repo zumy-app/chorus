@@ -11,7 +11,9 @@
  */
 import axios from 'axios';
 
-const API = 'http://localhost:8080/api/v1';
+// Same-host backend by default; override with CHORUS_API_BASE_URL for CI.
+const API = (process.env.CHORUS_API_BASE_URL || 'http://localhost:8080') + '/api/v1';
+const HEALTH_URL = (process.env.CHORUS_API_BASE_URL || 'http://localhost:8080') + '/health';
 const TARGET = 'es';
 const NATIVE = 'en';
 
@@ -83,16 +85,16 @@ class LearningTestRunner {
   // ---- tests ---------------------------------------------------------------
 
   private async tHealth() {
-    const r = await axios.get('http://localhost:8080/health');
+    const r = await axios.get(HEALTH_URL);
     if (r.data.status !== 'healthy') throw new Error('not healthy');
   }
 
   private async tRegister() {
-    // The backend gates registration behind an invite, so authenticate with the
-    // local pre-seeded test account instead of creating a user per run.
+    // Canonical seeded fixture (mirrors e2e DEV_ALICE): alice speaks EN,
+    // learns ES.
     const r = await axios.post(`${API}/auth/login`, {
-      username: 'uhsarp@gmail.com',
-      password: 'Demor@cer1',
+      username: 'alice.en-es@chorus.test',
+      password: 'ChorusDev123!',
     });
     this.userId = r.data.user?.id;
     this.token = r.data.tokens?.accessToken;
@@ -317,9 +319,14 @@ class LearningTestRunner {
       console.log('');
     }
   }
+
+  failedCount() {
+    return this.results.filter((r) => !r.passed).length;
+  }
 }
 
-new LearningTestRunner()
+const learningRunner = new LearningTestRunner();
+learningRunner
   .run()
-  .then(() => process.exit(0))
+  .then(() => process.exit(learningRunner.failedCount() > 0 ? 1 : 0))
   .catch(() => process.exit(1));

@@ -4,12 +4,17 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"time"
 
 	"github.com/chorus/messenger/internal/models"
 )
+
+// ErrInvalidSessionMode is returned when StartSession gets a mode outside the
+// DB CHECK set. Surfaced as HTTP 400 (not 500) by LearningHandler.
+var ErrInvalidSessionMode = errors.New("invalid session mode")
 
 // SessionComposerService builds daily/quick-drill/vocabulary practice sessions
 // from due SRS cards, current-unit lesson steps, and recent grammar weaknesses,
@@ -48,6 +53,13 @@ func (s *SessionComposerService) StartSession(ctx context.Context, userID string
 	mode := req.Mode
 	if mode == "" {
 		mode = "daily"
+	}
+	// Reject unknown modes with a validation error instead of letting the
+	// DB CHECK constraint turn them into opaque 500s (acceptance TC-LEARN-04).
+	switch mode {
+	case "daily", "quick_drill", "vocabulary", "lesson", "scenario", "grammar", "streak_recovery":
+	default:
+		return nil, fmt.Errorf("%w: %q (want one of daily, quick_drill, vocabulary, lesson, scenario, grammar, streak_recovery)", ErrInvalidSessionMode, mode)
 	}
 
 	profile, err := s.profiles.GetProfile(ctx, userID, targetLang, nativeLang)

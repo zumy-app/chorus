@@ -1,7 +1,9 @@
 import axios from 'axios';
 
-// Android emulator uses 10.0.2.2 to access host machine's localhost
-const API_BASE_URL = 'http://10.0.2.2:8080/api/v1';
+// Android emulator uses 10.0.2.2 to access host machine's localhost.
+// Override with CHORUS_API_BASE_URL to run from the host (CI) or elsewhere.
+const API_BASE_URL = (process.env.CHORUS_API_BASE_URL || 'http://10.0.2.2:8080') + '/api/v1';
+const HEALTH_URL = (process.env.CHORUS_API_BASE_URL || 'http://10.0.2.2:8080') + '/health';
 
 interface SmokeTestResult {
   name: string;
@@ -61,7 +63,7 @@ class MobileSmokeTest {
 
   private async testBackendConnectivity(): Promise<void> {
     try {
-      await axios.get('http://10.0.2.2:8080/health', { timeout: 5000 });
+      await axios.get(HEALTH_URL, { timeout: 5000 });
     } catch (error: any) {
       if (error.code === 'ECONNREFUSED') {
         throw new Error('Backend not accessible. Make sure Docker services are running.');
@@ -71,16 +73,32 @@ class MobileSmokeTest {
   }
 
   private async testHealthCheck(): Promise<void> {
-    const response = await axios.get('http://10.0.2.2:8080/health');
+    const response = await axios.get(HEALTH_URL);
     if (response.data.status !== 'healthy') {
       throw new Error('Health check failed');
     }
   }
 
+  /**
+   * Registration is invite-gated: mint an open SMS invite as the seeded
+   * fixture, then register the throwaway with its single-use token.
+   */
   private async testCreateUser(): Promise<void> {
     const timestamp = Date.now();
     this.testUsername = `mobiletest_${timestamp}`;
-    
+
+    const fixture = await axios.post(`${API_BASE_URL}/auth/login`, {
+      username: 'alice.en-es@chorus.test',
+      password: 'ChorusDev123!',
+    });
+    const invite = await axios.post(
+      `${API_BASE_URL}/contacts/invites`,
+      { channel: 'sms', contact: { name: 'mobiletest', phone: `+1555${String(timestamp).slice(-7)}` } },
+      { headers: { Authorization: `Bearer ${fixture.data.tokens.accessToken}` } }
+    );
+    const inviteToken = invite.data?.data?.token;
+    if (!inviteToken) throw new Error('invite mint did not return a token');
+
     const response = await axios.post(`${API_BASE_URL}/auth/register`, {
       username: this.testUsername,
       email: `${this.testUsername}@example.com`,
@@ -88,6 +106,7 @@ class MobileSmokeTest {
       displayName: 'Mobile Test User',
       nativeLanguage: 'en',
       targetLanguages: ['es'],
+      inviteToken,
     });
 
     if (!response.data.user || !response.data.tokens?.accessToken) {
@@ -119,11 +138,20 @@ class MobileSmokeTest {
   }
 
   private async testCreateChat(): Promise<void> {
+    // Direct chats need a peer (participants min=1): resolve the seeded
+    // ES learner via search.
+    const search = await axios.get(`${API_BASE_URL}/users/search`, {
+      params: { q: 'bob.es-en@chorus.test' },
+      headers: { Authorization: `Bearer ${this.testAccessToken}` },
+    });
+    const users = search.data.users || search.data.data || [];
+    const bob = users.find((u: any) => u.email === 'bob.es-en@chorus.test');
+    if (!bob?.id) throw new Error('could not resolve peer user for DM (is the dev DB seeded?)');
     const response = await axios.post(
       `${API_BASE_URL}/chats`,
       {
         type: 'direct',
-        participants: [],
+        participants: [bob.id],
       },
       {
         headers: { Authorization: `Bearer ${this.testAccessToken}` },
@@ -213,6 +241,10 @@ class MobileSmokeTest {
     console.log('='.repeat(70));
   }
 
+  failedCount(): number {
+    return this.results.filter((r) => !r.passed).length;
+  }
+
   private printMobileAppInstructions(): void {
     console.log('');
     console.log('='.repeat(70));
@@ -255,7 +287,7 @@ const runner = new MobileSmokeTest();
 runner.runAll()
   .then(() => {
     console.log('\nSmoke tests completed!');
-    process.exit(0);
+    process.exit(runner.failedCount() > 0 ? 1 : 0);
   })
   .catch((error) => {
     console.error('Test runner failed:', error);

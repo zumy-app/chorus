@@ -86,10 +86,12 @@ services:
     restart: unless-stopped
 
   # React Frontend — proxies /api,/ws through the LB (see nginx.conf)
+  # NOTE: root context — frontend/Dockerfile needs packages/shared (tsconfig
+  # path alias @chorus/shared -> ../packages/shared).
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./frontend/Dockerfile
     container_name: chorus-frontend
     mem_limit: 512m
     ports:

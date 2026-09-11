@@ -128,6 +128,7 @@ func (s *AuthService) Register(req models.RegisterRequest) (*models.User, error)
 
 	// Insert user
 	user := &models.User{}
+	var firstNameNS, lastNameNS sql.NullString
 	displayName := req.DisplayName
 	if displayName == "" {
 		displayName = ComposeDisplayName(req.FirstName, req.LastName)
@@ -153,8 +154,8 @@ func (s *AuthService) Register(req models.RegisterRequest) (*models.User, error)
 		&user.Username,
 		&user.Email,
 		&user.DisplayName,
-		&user.FirstName,
-		&user.LastName,
+		&firstNameNS,
+		&lastNameNS,
 		&user.NativeLanguage,
 		pq.Array(&user.TargetLanguages),
 		&user.Role,
@@ -177,6 +178,12 @@ func (s *AuthService) Register(req models.RegisterRequest) (*models.User, error)
 		&user.PhoneVerifiedAt,
 		&user.TwoFactorEnabled,
 	)
+	if firstNameNS.Valid {
+		user.FirstName = firstNameNS.String
+	}
+	if lastNameNS.Valid {
+		user.LastName = lastNameNS.String
+	}
 
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
@@ -220,6 +227,7 @@ func (s *AuthService) RegisterWithInvitation(req models.RegisterRequest) (*model
 		return nil, ErrInvalidInvitation
 	}
 	user := &models.User{}
+	var firstNameNS, lastNameNS sql.NullString
 	displayName := req.DisplayName
 	if displayName == "" {
 		displayName = ComposeDisplayName(req.FirstName, req.LastName)
@@ -229,10 +237,16 @@ func (s *AuthService) RegisterWithInvitation(req models.RegisterRequest) (*model
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url, phone, phone_verified, phone_verified_at, two_factor_enabled`,
 		req.Username, req.Email, passwordHash, displayName, nilIfEmpty(req.FirstName), nilIfEmpty(req.LastName), req.NativeLanguage, pq.Array(req.TargetLanguages),
-	).Scan(&user.ID, &user.Username, &user.Email, &user.DisplayName, &user.FirstName, &user.LastName, &user.NativeLanguage,
+	).Scan(&user.ID, &user.Username, &user.Email, &user.DisplayName, &firstNameNS, &lastNameNS, &user.NativeLanguage,
 		pq.Array(&user.TargetLanguages), &user.Role, &user.CreatedAt, &user.LastActiveAt, &user.SuspendedAt, &user.DeletedAt,
 		&user.Plan, &user.PlanGraceUntil, &user.PremiumSince, &user.SubscriptionID, &user.SubscriptionProvider,
 		&user.SubscriptionPlanID, &user.SubscriptionStatus, &user.NextBillingDate, &user.LastPaymentAt, &user.AvatarURL, &user.Phone, &user.PhoneVerified, &user.PhoneVerifiedAt, &user.TwoFactorEnabled)
+	if firstNameNS.Valid {
+		user.FirstName = firstNameNS.String
+	}
+	if lastNameNS.Valid {
+		user.LastName = lastNameNS.String
+	}
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
 			return nil, ErrEmailAlreadyRegistered
