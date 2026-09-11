@@ -1,0 +1,18 @@
+config:
+  target: "{{ $processEnvironment.DEV_WS_URL }}"
+  phases:
+    - duration: 300
+      arrivalRate: 10
+      maxVusers: 100
+  ws:
+    rejectUnauthorized: true
+
+scenarios:
+  - name: authenticated websocket smoke
+    engine: ws
+    flow:
+      - connect:
+          url: "{{ $processEnvironment.DEV_WS_URL }}?token={{ $processEnvironment.ARTILLERY_WS_TOKEN }}"
+      - send:
+          payload: '{"type":"ping"}'
+      - think: 30

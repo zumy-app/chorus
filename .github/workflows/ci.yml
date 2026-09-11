@@ -1,0 +1,159 @@
+name: Chorus CI and promotion
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAMESPACE: ghcr.io/zumy-app
+
+jobs:
+  checks:
+    name: Unit, frontend, and security checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Go tests
+        working-directory: backend
+        run: go test ./... -count=1
+      - name: Go vulnerability scan
+        uses: golang/govulncheck-action@v1
+        with:
+          work-dir: backend
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Frontend tests
+        working-directory: frontend
+        run: npm ci && npm test -- --run
+      - name: Frontend production build
+        working-directory: frontend
+        run: npm run build
+      - name: npm audit
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
+
+  build:
+    name: Build and publish immutable images
+    needs: checks
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ env.IMAGE_NAMESPACE }}/chorus-backend:${{ github.sha }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: true
+          build-args: NGINX_CONFIG=nginx.prod.conf
+          tags: ${{ env.IMAGE_NAMESPACE }}/chorus-frontend:${{ github.sha }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+  deploy-dev:
+    name: Deploy exact images to chorus-dev
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Dokploy dev deployment
+        env:
+          DEPLOY_HOOK: ${{ secrets.DOKPLOY_DEV_DEPLOY_HOOK }}
+          BACKEND_IMAGE: ${{ env.IMAGE_NAMESPACE }}/chorus-backend:${{ github.sha }}
+          FRONTEND_IMAGE: ${{ env.IMAGE_NAMESPACE }}/chorus-frontend:${{ github.sha }}
+        run: |
+          test -n "$DEPLOY_HOOK"
+          curl --fail-with-body --retry 5 --retry-delay 10 -X POST "$DEPLOY_HOOK" \
+            -H 'Content-Type: application/json' \
+            --data "{\"BACKEND_IMAGE\":\"$BACKEND_IMAGE\",\"FRONTEND_IMAGE\":\"$FRONTEND_IMAGE\"}"
+      - name: Wait for dev health
+        env:
+          DEV_URL: ${{ vars.DEV_BASE_URL }}
+        run: |
+          test -n "$DEV_URL"
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent --show-error "$DEV_URL/health"; then exit 0; fi
+            sleep 10
+          done
+          exit 1
+
+  gates:
+    name: Dev quality gates
+    needs: deploy-dev
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - name: Install E2E dependencies and browser
+        working-directory: e2e
+        run: npm ci && npx playwright install --with-deps chromium
+      - name: Playwright E2E against dev
+        working-directory: e2e
+        env:
+          CI: true
+          E2E_BASE_URL: ${{ vars.DEV_BASE_URL }}
+          E2E_SKIP_STARTUP: true
+        run: npm test
+      - name: Phoenix golden-set evaluation
+        env:
+          PHOENIX_EVAL_COMMAND: ${{ vars.PHOENIX_EVAL_COMMAND }}
+        run: |
+          test -n "$PHOENIX_EVAL_COMMAND"
+          sh -c "$PHOENIX_EVAL_COMMAND"
+      - name: Artillery load smoke
+        env:
+          DEV_WS_URL: ${{ vars.DEV_WS_URL }}
+          ARTILLERY_WS_TOKEN: ${{ secrets.ARTILLERY_WS_TOKEN }}
+        run: |
+          test -n "$DEV_WS_URL"
+          test -n "$ARTILLERY_WS_TOKEN"
+          npx --yes artillery run load-tests/websocket-smoke.yml
+
+  promote:
+    name: Promote immutable images to production
+    needs: gates
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Dokploy production deployment
+        env:
+          DEPLOY_HOOK: ${{ secrets.DOKPLOY_PROD_DEPLOY_HOOK }}
+          BACKEND_IMAGE: ${{ env.IMAGE_NAMESPACE }}/chorus-backend:${{ github.sha }}
+          FRONTEND_IMAGE: ${{ env.IMAGE_NAMESPACE }}/chorus-frontend:${{ github.sha }}
+        run: |
+          test -n "$DEPLOY_HOOK"
+          curl --fail-with-body --retry 5 --retry-delay 10 -X POST "$DEPLOY_HOOK" \
+            -H 'Content-Type: application/json' \
+            --data "{\"BACKEND_IMAGE\":\"$BACKEND_IMAGE\",\"FRONTEND_IMAGE\":\"$FRONTEND_IMAGE\"}"

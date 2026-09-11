@@ -59,9 +59,8 @@ services:
 
   # Go Backend API
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE must point to the CI-tested image}
+    pull_policy: always
     container_name: chorus-backend
     # No host port — Dokploy routes internally
     environment:
@@ -118,11 +117,8 @@ services:
 
   # React Frontend (served via Nginx)
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        - NGINX_CONFIG=nginx.prod.conf
+    image: ${FRONTEND_IMAGE:?FRONTEND_IMAGE must point to the CI-tested image}
+    pull_policy: always
     container_name: chorus-frontend
     labels:
       - "traefik.enable=true"
