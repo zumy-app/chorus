@@ -113,7 +113,7 @@ If you haven't created it yet, click **New Project** → Name: `Chorus`.
 
 ### 3. Add a New Service → "Docker Compose"
 
-Dokploy supports deploying via Docker Compose. Use the `docker-compose.prod.yml` file:
+Dokploy supports deploying via Docker Compose. Use the `docker-compose.prod.yml` file. Production is image-only: Dokploy must pull the exact `BACKEND_IMAGE` and `FRONTEND_IMAGE` values supplied by CI; it must not rebuild from source.
 
 **Option A: Deploy from GitHub (recommended)**
 
@@ -126,6 +126,26 @@ Dokploy supports deploying via Docker Compose. Use the `docker-compose.prod.yml`
 4. Add environment variables from your `.env.prod` file in the Dokploy env vars section
 5. Click **Deploy**
 
+### CI/CD promotion configuration
+
+Create a separate Dokploy project named `chorus-dev` using `docker-compose.dev.yml`.
+Configure these GitHub repository values:
+
+| Type | Name | Value |
+|------|------|-------|
+| Variable | `DEV_BASE_URL` | HTTPS base URL for `chorus-dev` |
+| Variable | `DEV_WS_URL` | `wss://.../ws` URL for `chorus-dev` |
+| Variable | `PHOENIX_EVAL_COMMAND` | Repository command that runs the Phoenix golden-set evaluation |
+| Secret | `DOKPLOY_DEV_DEPLOY_HOOK` | Dokploy deploy hook for `chorus-dev` |
+| Secret | `DOKPLOY_PROD_DEPLOY_HOOK` | Dokploy deploy hook for production |
+| Secret | `ARTILLERY_WS_TOKEN` | Access token for a dedicated load-test user |
+
+Both Dokploy projects must map the JSON payload fields `BACKEND_IMAGE` and
+`FRONTEND_IMAGE` to their compose environment. The production project must
+retain `JWT_SECRET` and all application secrets independently of CI. The
+workflow builds each image once, deploys that SHA to dev, runs every gate, and
+then sends the same image references to production.
+
 **Option B: Deploy via file upload**
 
 1. Create a new service → **Docker Compose**
@@ -133,12 +153,12 @@ Dokploy supports deploying via Docker Compose. Use the `docker-compose.prod.yml`
 3. Add environment variables
 4. Click **Deploy**
 
-### 4. Wait for Build
+### 4. Wait for Deployment
 
 Dokploy will:
 1. Pull the source code (if from GitHub)
-2. Build the Docker images (backend binary + frontend static files)
-3. Start all 4 services (postgres, redis, backend, frontend)
+2. Pull the CI-tested backend and frontend images
+3. Start the services (postgres, redis, backend, frontend)
 4. Run health checks
 
 You'll see logs streaming in real-time:
