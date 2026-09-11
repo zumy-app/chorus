@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -298,6 +299,10 @@ func (h *LearningHandler) StartSession(c *gin.Context) {
 	}
 	resp, err := h.sessions.StartSession(c.Request.Context(), c.GetString("userID"), req)
 	if err != nil {
+		if errors.Is(err, services.ErrInvalidSessionMode) {
+			WriteError(c, middleware.ErrValidation(err.Error()))
+			return
+		}
 		WriteError(c, middleware.ErrInternal("Failed to start session"))
 		return
 	}

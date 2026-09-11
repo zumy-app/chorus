@@ -169,6 +169,26 @@ export const useStore = create<AppState>((set, get) => ({
     set({ activeChat: chat })
     if (chat) {
       get().loadMessages(chat.id)
+      // Sidebar chat objects carry no participants (GET /chats omits them),
+      // but typing indicators, presence and slugs key off participant.user.
+      // Without this, the joiner side of a DM never renders "X is typing…".
+      // Merge enriched participants when the full detail arrives (guarded so
+      // a fast chat-switch can't backfill a stale thread; skips mocked
+      // clients without getChat).
+      const detail = chatAPI.getChat?.(chat.id)
+      if (detail) {
+        detail.then((full) => {
+          if (!full) return
+          set((state) => {
+            if (state.activeChat?.id !== full.id) return state
+            const participants = full.participants ?? state.activeChat?.participants
+            return {
+              activeChat: state.activeChat ? { ...state.activeChat, participants } : state.activeChat,
+              chats: state.chats.map((c) => (c.id === full.id ? { ...c, participants } : c)),
+            }
+          })
+        }).catch(() => {})
+      }
     }
   },
 

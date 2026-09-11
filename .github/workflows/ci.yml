@@ -146,6 +146,73 @@ jobs:
           if-no-files-found: warn
 
   # ---------------------------------------------------------------------------
+  # 1c) Mobile blackbox gate — real backend + Postgres, no mocks (PR + main)
+  #     Runs mobile/tests/*.ts (raw axios vs live API): core auth/chat flow +
+  #     the 17 learning-engine probes. These scripts used to be manual-only,
+  #     exit-0-always, and pointed at stale Gmail creds; they now fail loudly.
+  # ---------------------------------------------------------------------------
+  mobile-blackbox:
+    needs: [test]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: messenger_dev
+          POSTGRES_USER: messenger
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U messenger -d messenger_dev"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgres://messenger:password@localhost:5432/messenger_dev?sslmode=disable
+      REDIS_URL: localhost:6379
+      JWT_SECRET: ci-blackbox-secret-change-me
+      PORT: 8080
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: backend/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Build backend
+        working-directory: backend
+        run: go build ./...
+      - name: Seed deterministic fixtures
+        working-directory: backend
+        run: go run ./cmd/server --seed-dev
+      - name: Start backend
+        working-directory: backend
+        run: |
+          nohup go run ./cmd/server > /tmp/backend.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://localhost:8080/health >/dev/null 2>&1 && break; sleep 2; done
+          curl -fsS http://localhost:8080/health >/dev/null
+      - name: Install mobile deps
+        working-directory: mobile
+        run: npm ci --no-audit --no-fund
+      - name: Run core API blackbox (auth/chat)
+        working-directory: mobile
+        run: npx ts-node --project tsconfig.tests.json tests/functional-tests.ts
+      - name: Run learning-engine blackbox (17 probes)
+        working-directory: mobile
+        run: npx ts-node --project tsconfig.tests.json tests/learning-functional-tests.ts
+      - name: Dump backend log on failure
+        if: failure()
+        run: tail -n 100 /tmp/backend.log || true
+
+  # ---------------------------------------------------------------------------
   # 2) Security scan: govulncheck + npm audit (PR + main)
   # ---------------------------------------------------------------------------
   security:
@@ -166,7 +233,7 @@ jobs:
   # 3) Build + push dev snapshot images (main only)
   # ---------------------------------------------------------------------------
   images:
-    needs: [test, security, e2e-mocked]
+    needs: [test, security, e2e-mocked, mobile-blackbox]
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_dev == 'true')
     runs-on: ubuntu-latest
     steps:
@@ -192,10 +259,12 @@ jobs:
 
       # Frontend image — baked WITHOUT VITE_API_URL so the same image serves dev
       # and prod behind their respective LBs (client uses a relative /api origin).
+      # NOTE: root context — frontend/Dockerfile needs packages/shared.
       - name: Build & push frontend
         uses: docker/build-push-action@v6
         with:
-          context: frontend
+          context: .
+          file: ./frontend/Dockerfile
           push: true
           tags: |
             ${{ env.IMAGE_NAME }}/frontend:${{ github.run_number }}
@@ -332,7 +401,7 @@ jobs:
   # 6) Notify on failure (Slack webhook, optional)
   # ---------------------------------------------------------------------------
   notify-failure:
-    needs: [test, security, e2e-mocked, deploy-dev, promote-prod]
+    needs: [test, security, e2e-mocked, mobile-blackbox, deploy-dev, promote-prod]
     if: failure() && (github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     steps:

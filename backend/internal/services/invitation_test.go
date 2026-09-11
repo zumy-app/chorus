@@ -20,13 +20,12 @@ func TestInvitationCreateForContact_Email(t *testing.T) {
 
 	query := regexp.QuoteMeta(`INSERT INTO invitations
 		(waitlist_entry_id, inviter_user_id, email, token_hash, expires_at, channel, recipient, name, status, sent_at)
-		VALUES (NULL, $1, $2, $3, CURRENT_TIMESTAMP + $4 * INTERVAL '1 hour', $5, $6, $7, $8,
-			CASE WHEN $5 = 'email' THEN CURRENT_TIMESTAMP ELSE NULL END)
+		VALUES (NULL, $1, $2, $3, CURRENT_TIMESTAMP + $4 * INTERVAL '1 hour', $5, $6, $7, $8, $9)
 		RETURNING id, expires_at`)
 
 	expiry := time.Now().Add(ttl)
 	mock.ExpectQuery(query).
-		WithArgs("inviter-1", "alice@example.com", sqlmock.AnyArg(), 168, "email", "alice@example.com", "Alice", "sent").
+		WithArgs("inviter-1", "alice@example.com", sqlmock.AnyArg(), 168, "email", "alice@example.com", "Alice", "sent", sqlmock.AnyArg()).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "expires_at"}).
 			AddRow("invite-1", expiry))
 
@@ -63,12 +62,11 @@ func TestInvitationCreateForContact_WhatsAppOpen(t *testing.T) {
 
 	query := regexp.QuoteMeta(`INSERT INTO invitations
 		(waitlist_entry_id, inviter_user_id, email, token_hash, expires_at, channel, recipient, name, status, sent_at)
-		VALUES (NULL, $1, $2, $3, CURRENT_TIMESTAMP + $4 * INTERVAL '1 hour', $5, $6, $7, $8,
-			CASE WHEN $5 = 'email' THEN CURRENT_TIMESTAMP ELSE NULL END)
+		VALUES (NULL, $1, $2, $3, CURRENT_TIMESTAMP + $4 * INTERVAL '1 hour', $5, $6, $7, $8, $9)
 		RETURNING id, expires_at`)
 
 	mock.ExpectQuery(query).
-		WithArgs("inviter-1", "", sqlmock.AnyArg(), 168, "whatsapp", "+14085551234", "Alice", "pending").
+		WithArgs("inviter-1", "", sqlmock.AnyArg(), 168, "whatsapp", "+14085551234", "Alice", "pending", nil).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "expires_at"}).
 			AddRow("invite-2", time.Now().Add(7*24*time.Hour)))
 

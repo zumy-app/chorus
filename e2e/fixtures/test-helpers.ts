@@ -10,10 +10,24 @@ import { TestUser } from './users'
 
 /**
  * Log in a user via the UI.
+ * Session-agnostic: suites routinely switch identities on the SAME page
+ * (C-04-05/06 restores, 25-account-switch), but /login bounces authenticated
+ * sessions to /chat where no form exists. When the form is absent, reset to
+ * a clean logged-out state first instead of timing out.
  * Assumes the app is on /login or / (will navigate if needed).
  */
 export async function loginAsUser(page: Page, user: TestUser) {
   await page.goto('/login')
+
+  // If already authenticated (form absent), drop the session and reload.
+  const formVisible = await page
+    .locator('input[type="email"]')
+    .isVisible({ timeout: 5_000 })
+    .catch(() => false)
+  if (!formVisible) {
+    await page.evaluate(() => localStorage.clear())
+    await page.goto('/login')
+  }
 
   // Wait for the login form to render
   await expect(page.locator('input[type="email"]')).toBeVisible()
@@ -58,6 +72,10 @@ export async function createDirectChat(page: Page, searchQuery: string) {
 
   // Wait for modal to close and chat area to load
   await expect(page.locator('h2', { hasText: 'New Chat' })).not.toBeVisible({ timeout: 10_000 })
+  // HARD: the DM thread must actually open with the peer in the header —
+  // without this, later steps type into the wrong (or no) thread while
+  // optimistic UI masks the failure.
+  await expect(page.locator('h2', { hasText: searchQuery })).toBeVisible({ timeout: 10_000 })
 }
 
 /**
@@ -76,8 +94,13 @@ export async function sendMessage(page: Page, text: string) {
     await sendBtn.click()
   }
 
-  // Wait for the message to appear in the chat area
-  // Use .last() to target the most recently sent message (handles duplicates from prior runs)
+  // HARD ordering: handleSend clears the composer FIRST, so an empty input
+  // proves the submit actually ran. Asserting the bubble first is unsound:
+  // the "Translate as I type" live preview renders the typed text in a
+  // .break-words node and would false-pass a failed send.
+  await expect(input).toHaveValue('', { timeout: 10_000 })
+  // Only now can a .break-words match be a real thread bubble (the preview
+  // unmounts with empty input). Use .last() for the most recent message.
   await expect(page.locator('.break-words', { hasText: text }).last()).toBeVisible({ timeout: 15_000 })
 }
 

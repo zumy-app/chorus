@@ -3,25 +3,13 @@
  * Freeze policy: QA-owned; changes require human approval.
  */
 import {
-  TestCase, http, assert, assertEq, assertStatus,
+  TestCase, http, assert, assertEq, assertStatus, registerTemp,
 } from '../harness.js'
 
-/** Registers a throwaway applicant account (dev open registration). */
-async function registerTempApplicant(prefix: string): Promise<{ token: string }> {
-  const email = `${prefix}-${Date.now()}@chorus.test`
-  const res = await http('POST', '/api/v1/auth/register', {
-    json: {
-      username: email,
-      email,
-      password: 'ProbePass123!',
-      displayName: prefix,
-      nativeLanguage: 'en',
-      targetLanguages: ['es'],
-    },
-  })
-  assertStatus(res, 201, `temp applicant registration (${email})`)
-  assert(res.body?.tokens?.accessToken, 'temp applicant must receive tokens')
-  return { token: res.body.tokens.accessToken }
+/** Registers a throwaway applicant account through the real invite gate. */
+async function registerTempApplicant(inviterToken: string, prefix: string): Promise<{ token: string }> {
+  const { token } = await registerTemp(inviterToken, prefix)
+  return { token }
 }
 
 export const featureTests: TestCase[] = [
@@ -79,10 +67,10 @@ export const featureTests: TestCase[] = [
     id: 'TC-APPLY-03',
     reqs: ['REQ-APPLY-02'],
     name: 'an application with a malformed video URL is rejected with a field-level message',
-    fn: async () => {
+    fn: async (ctx) => {
       // Fresh applicant so duplicate-application handling cannot mask the
       // validation path under test.
-      const applicant = await registerTempApplicant('tc-apply03')
+      const applicant = await registerTempApplicant(ctx.learnerToken, 'tc-apply03')
       const res = await http('POST', '/api/v1/teachers/apply', {
         token: applicant.token,
         json: {
@@ -93,17 +81,17 @@ export const featureTests: TestCase[] = [
         },
       })
       assertStatus(res, 400, 'POST /teachers/apply with invalid videoUrl')
-      assertEq(res.body.code, 'VALIDATION', 'error envelope code')
-      const msg = String(res.body.message ?? '').toLowerCase()
-      assert(msg.includes('video') || msg.includes('application'), `message must hint at the failing field, got: ${res.body.message}`)
+      assertEq(res.body?.error?.kind, 'validation', 'error envelope kind')
+      const msg = String(res.body?.error?.message ?? '').toLowerCase()
+      assert(msg.includes('video') || msg.includes('application'), `message must hint at the failing field, got: ${res.body?.error?.message}`)
     },
   },
   {
     id: 'TC-APPLY-04',
     reqs: ['REQ-APPLY-02'],
     name: 'an application with bio < 10 chars or missing languages is rejected with a readable message',
-    fn: async () => {
-      const applicant = await registerTempApplicant('tc-apply04')
+    fn: async (ctx) => {
+      const applicant = await registerTempApplicant(ctx.learnerToken, 'tc-apply04')
       const shortBio = await http('POST', '/api/v1/teachers/apply', {
         token: applicant.token,
         json: { bio: 'short', languages: ['en'], rateCents: 2000 },
@@ -130,8 +118,10 @@ export const featureTests: TestCase[] = [
       assert(Array.isArray(tutors) && tutors.length >= 1, `expected at least 1 tutor, got ${JSON.stringify(res.body).slice(0, 200)}`)
       const sofia = tutors.find((t: any) => t.email === 'sofia.tutor@chorus.test' || String(t.displayName ?? '').includes('Sofia'))
       assert(sofia, 'seeded tutor Sofia must appear in browse results')
-      assert(sofia.avgRating >= 4, `Sofia avgRating should reflect seeded reviews (>=4), got ${sofia.avgRating}`)
-      assert(sofia.reviewCount >= 2, `Sofia reviewCount should be >=2, got ${sofia.reviewCount}`)
+      const ratingAvg = sofia.ratingAvg ?? sofia.avgRating
+      const ratingCount = sofia.ratingCount ?? sofia.reviewCount
+      assert(ratingAvg >= 4, `Sofia ratingAvg should reflect seeded reviews (>=4), got ${ratingAvg}`)
+      assert(ratingCount >= 2, `Sofia ratingCount should be >=2, got ${ratingCount}`)
     },
   },
   {
@@ -143,15 +133,20 @@ export const featureTests: TestCase[] = [
       assertStatus(browse, 200, 'browse before profile')
       const sofia = (browse.body.tutors ?? []).find((t: any) => String(t.displayName ?? '').includes('Sofia'))
       assert(sofia, 'Sofia present in browse')
-      const profile = await http('GET', `/api/v1/teachers/${sofia.id ?? sofia.userId}`, { token: ctx.learnerToken })
+      // Browse items carry both ids: `id` is the application id, `userId` is
+      // the user id. Profile/availability/reviews/book endpoints key on the
+      // USER id — using `id` addresses the application and breaks lookups.
+      const tutorId = sofia.userId ?? sofia.id
+      assert(tutorId, 'browse item must carry the tutor userId')
+      const profile = await http('GET', `/api/v1/teachers/${tutorId}`, { token: ctx.learnerToken })
       assertStatus(profile, 200, 'GET /teachers/:id')
       const p = profile.body.tutor
       assert(p && String(p.bio ?? '').length >= 20, 'profile must include a real bio')
-      const avail = await http('GET', `/api/v1/teachers/${sofia.id ?? sofia.userId}/availability`, { token: ctx.learnerToken })
+      const avail = await http('GET', `/api/v1/teachers/${tutorId}/availability`, { token: ctx.learnerToken })
       assertStatus(avail, 200, 'GET /teachers/:id/availability')
       const slots = avail.body.availability ?? avail.body.data ?? avail.body
       assert(Array.isArray(slots) && slots.length >= 4, `expected >=4 seeded availability slots, got ${JSON.stringify(avail.body).slice(0, 200)}`)
-      const reviews = await http('GET', `/api/v1/teachers/${sofia.id ?? sofia.userId}/reviews`, { token: ctx.learnerToken })
+      const reviews = await http('GET', `/api/v1/teachers/${tutorId}/reviews`, { token: ctx.learnerToken })
       assertStatus(reviews, 200, 'GET /teachers/:id/reviews')
       const rs = reviews.body.reviews ?? reviews.body.data ?? reviews.body
       assert(Array.isArray(rs) && rs.length >= 2, `expected >=2 seeded reviews, got ${JSON.stringify(reviews.body).slice(0, 200)}`)
@@ -165,7 +160,8 @@ export const featureTests: TestCase[] = [
       const browse = await http('GET', '/api/v1/teachers/browse?language=es', { token: ctx.learnerToken })
       const sofia = (browse.body.tutors ?? []).find((t: any) => String(t.displayName ?? '').includes('Sofia'))
       assert(sofia, 'Sofia present in browse')
-      const tutorId = sofia.id ?? sofia.userId
+      const tutorId = sofia.userId ?? sofia.id
+      assert(tutorId, 'browse item must carry the tutor userId')
       const avail = await http('GET', `/api/v1/teachers/${tutorId}/availability`, { token: ctx.learnerToken })
       const slots = avail.body.availability ?? avail.body.data ?? avail.body
       assert(Array.isArray(slots) && slots.length > 0, 'at least one availability slot')
@@ -248,16 +244,26 @@ export const featureTests: TestCase[] = [
   {
     id: 'TC-LEARN-04',
     reqs: ['REQ-LEARN-03'],
-    name: 'a quick drill session starts and returns practice items (Vocabulary/Drills tab content)',
+    name: 'a daily drill session starts and returns practice items (Vocabulary/Drills tab content)',
     fn: async (ctx) => {
+      // mode=daily composes the current curriculum lesson step, so even a
+      // fresh learner gets items. (mode=quick_drill needs due/new SRS cards
+      // and is legitimately empty for brand-new users — see BLACKBOX_GAPS.)
       const res = await http('POST', '/api/v1/learning/sessions/start', {
         token: ctx.learnerToken,
-        json: { targetLanguage: 'es', nativeLanguage: 'en', mode: 'drill', source: 'acceptance' },
+        json: { targetLanguage: 'es', nativeLanguage: 'en', mode: 'daily', source: 'acceptance' },
       })
       assertStatus(res, 200, 'POST /learning/sessions/start')
       const data = res.body.data
       assert(data?.session?.id, 'session id returned')
       assert(Array.isArray(data.items) && data.items.length > 0, `drill must return practice items, got ${JSON.stringify(data).slice(0, 300)}`)
+      // An unknown mode must be a 400 validation error, never a 500 from the
+      // DB CHECK constraint (regression: mode 'drill' used to 500).
+      const bad = await http('POST', '/api/v1/learning/sessions/start', {
+        token: ctx.learnerToken,
+        json: { targetLanguage: 'es', nativeLanguage: 'en', mode: 'drill', source: 'acceptance' },
+      })
+      assertStatus(bad, 400, 'POST /learning/sessions/start with invalid mode')
     },
   },
 ]

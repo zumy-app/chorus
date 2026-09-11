@@ -135,15 +135,15 @@ export default function ProfileScreen({ navigation }: any) {
   const handleDevSwitch = async (a: typeof DEV_ACCOUNTS[number]) => {
     try {
       webSocketService.disconnect()
-      const raw: any = await (apiService as any).api?.post?.('/auth/login', { username: a.email, password: a.password })
-      const tokens = raw.data?.tokens
-      const user = raw.data?.user
-      if (tokens && user) {
-        await storage.setItem('accessToken', tokens.accessToken)
-        await storage.setItem('refreshToken', tokens.refreshToken)
-        await storage.setItem('user', JSON.stringify(user))
-        navigation.replace('MainTabs')
-      }
+      // Typed re-login: apiService.switchUser resolves {tokens, user} or
+      // throws a human-readable Error. Never reach into response envelopes
+      // here — `(apiService as any).api?.post(...)` was undefined (the
+      // default export has no `.api`), which crashed on `raw.data`.
+      const { tokens, user } = await apiService.switchUser(a.email, a.password)
+      await storage.setItem('accessToken', tokens.accessToken)
+      await storage.setItem('refreshToken', tokens.refreshToken)
+      await storage.setItem('user', JSON.stringify(user))
+      navigation.replace('MainTabs')
     } catch (e: any) {
       Alert.alert('Switch failed', e.response?.data?.error || e.message)
     }

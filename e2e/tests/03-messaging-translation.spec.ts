@@ -119,7 +119,9 @@ test.describe('Cross-Language Messaging & Translation', () => {
       const bubble = receiverPage.locator('.break-words', { hasText: testMsg }).last().locator('..')
       await waitForTranslation(receiverPage, testMsg, 60_000)
       await expect(bubble.locator('text=🌐 In your language:')).toBeVisible({ timeout: 10_000 })
-      const translationSection = bubble.locator('.italic.font-medium')
+      // Translated text renders in .font-translation-text (NOT .italic.font-medium,
+      // a stale selector from an older UI — fixed after live-DOM inspection).
+      const translationSection = bubble.locator('.font-translation-text')
       const translationText = await translationSection.textContent()
       expect(translationText, 'translation text must be non-empty').toBeTruthy()
       expect(translationText!.length).toBeGreaterThan(3)

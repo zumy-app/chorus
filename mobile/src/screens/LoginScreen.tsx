@@ -35,14 +35,23 @@ export default function LoginScreen({ navigation }: any) {
     }
     setLoading(true);
     try {
-      const raw: any = await (apiService as any).api?.post?.('/auth/login', { username: username.trim(), password }) ?? await (await import('../services/api')).api.post('/auth/login', { username: username.trim(), password });
-      if (raw.data?.requires2FA) {
-        setTempToken(raw.data.tempToken);
-        setPhoneMasked(raw.data.phoneMasked || '');
+      // Typed login resolves the unwrapped body ({user, tokens} on success,
+      // {requires2FA, tempToken} for 2FA accounts). Single call — no envelope
+      // sniffing, no `as any` on the client.
+      const data = await apiService.login(username.trim(), password) as unknown as {
+        user?: any; tokens?: { accessToken: string; refreshToken: string };
+        requires2FA?: boolean; tempToken?: string; phoneMasked?: string;
+      };
+      if (data?.requires2FA) {
+        setTempToken(data.tempToken || '');
+        setPhoneMasked(data.phoneMasked || '');
         setRequires2FA(true);
         return;
       }
-      const response = raw.data.tokens ? raw.data : await apiService.login(username.trim(), password);
+      if (!data?.tokens?.accessToken || !data?.user) {
+        throw new Error('Login did not return session tokens');
+      }
+      const response = data as { tokens: { accessToken: string; refreshToken: string }; user: any };
       if (response.tokens) {
         await storage.setItem('accessToken', response.tokens.accessToken);
         await storage.setItem('refreshToken', response.tokens.refreshToken);
@@ -60,7 +69,7 @@ export default function LoginScreen({ navigation }: any) {
     if (code.length !== 6) { Alert.alert('Error','Enter 6-digit code'); return; }
     setLoading(true);
     try {
-      const r: any = await (apiService as any).verify2FA(tempToken, code);
+      const r: any = await apiService.verify2FA(tempToken, code);
       await storage.setItem('accessToken', r.tokens.accessToken);
       await storage.setItem('refreshToken', r.tokens.refreshToken);
       await storage.setItem('user', JSON.stringify(r.user));

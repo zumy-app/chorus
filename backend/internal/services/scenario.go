@@ -275,9 +275,9 @@ func (s *ScenarioService) SendMessage(ctx context.Context, userID, runID, messag
 		newScore = 700
 	}
 	_, err = s.db.ExecContext(ctx, `
-		UPDATE scenario_runs SET current_phase_ordinal = $2, covered_intents = $3, score = $4, status = $5::text,
-			completed_at = CASE WHEN $5::text = 'completed' THEN CURRENT_TIMESTAMP ELSE completed_at END
-		WHERE id = $1`, runID, newPhase, pq.Array(allIntents), newScore, status2)
+		UPDATE scenario_runs SET current_phase_ordinal = $2, covered_intents = $3, score = $4, status = $5,
+			completed_at = CASE WHEN $6 THEN CURRENT_TIMESTAMP ELSE completed_at END
+		WHERE id = $1`, runID, newPhase, pq.Array(allIntents), newScore, status2, runComplete)
 	if err != nil {
 		log.Printf("[Scenario] update run %s: %v", runID, err)
 	}
