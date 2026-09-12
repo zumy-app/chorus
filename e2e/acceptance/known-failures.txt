@@ -1,0 +1,5 @@
+# Acceptance ratchet baseline (run.ts).
+# One TC id per line. Listed TCs MUST fail; every other TC MUST pass.
+# A listed TC that starts passing fails the run (freeze violation) — remove
+# its line when the fix lands. An empty file + all green = release gate.
+# (Empty on purpose: every TC is currently expected to pass.)
