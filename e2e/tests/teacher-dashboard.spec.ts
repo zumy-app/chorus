@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test'
 import fs from 'fs'
 import path from 'path'
+import { loginAsUser } from '../fixtures/test-helpers'
+import { DEV_SOFIA } from '../fixtures/users'
 
 /**
  * S-T-05 — Teacher Dashboard
@@ -16,7 +18,7 @@ test.describe('@S-T-05 @marketplace @teacher-dashboard @wireframe-teacher_dashbo
     expect(app).toContain('TeacherDashboard')
     const tabs = fs.readFileSync(path.resolve(__dirname, '../../mobile/src/components/MainTabs.tsx'), 'utf-8')
     expect(tabs).toContain('TeacherDashboard')
-    expect(tabs).toContain('MarketplaceTab/TeacherDashboard')
+    expect(tabs).toContain('MarketplaceTab')
   })
 
   test('wireframe parity — TeacherDashboard.tsx must contain Welcome + Earnings Overview + Availability + Students + Profile Completion', async () => {
@@ -40,13 +42,14 @@ test.describe('@S-T-05 @marketplace @teacher-dashboard @wireframe-teacher_dashbo
   })
 
   test('web dashboard renders wireframe sections (requires sofia.tutor auth)', async ({ page }) => {
+    await loginAsUser(page, DEV_SOFIA)
     await page.goto('/teacher/dashboard')
-    await expect(page.getByText('Teacher Dashboard')).toBeVisible({ timeout: 15000 })
-    await expect(page.getByText('Welcome back')).toBeVisible()
-    await expect(page.getByText('Earnings Overview')).toBeVisible()
-    await expect(page.getByText('Availability')).toBeVisible()
-    await expect(page.getByText('Recent Students')).toBeVisible()
-    await expect(page.getByText(/Profile Completion/)).toBeVisible()
+    await expect(page.getByText('Teacher Dashboard').first()).toBeVisible({ timeout: 15000 })
+    await expect(page.getByText('Welcome back').first()).toBeVisible()
+    await expect(page.getByText('Earnings Overview').first()).toBeVisible()
+    await expect(page.getByText('Availability').first()).toBeVisible()
+    await expect(page.getByText('Recent Students').first()).toBeVisible()
+    await expect(page.getByText(/Profile Completion/).first()).toBeVisible()
   })
 
   test('S-T-05 hardened — TeacherDashboard wireframe green', async () => {

@@ -14,7 +14,9 @@ import { ENGLISH_USER, SPANISH_USER } from '../fixtures/users'
  * but shows fallback content.
  */
 test.describe('AI Tutor', () => {
-  test.describe.configure({ mode: 'serial' })
+  // NOTE: no serial mode — each test builds its own scenario, so one
+  // model-dependent failure (no Ollama locally) must not skip the rest.
+  // See #81 for the deterministic-grammar strategy.
 
   // Helper: setup two users, send a message, open grammar + AI tutor
   async function setupTutorScenario(browser: any, messageText: string) {

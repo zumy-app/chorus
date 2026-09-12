@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { moderationAPI } from '../services/api'
+import { apiErrorMessage } from '@chorus/shared'
 
 interface ReportModalProps {
   targetType: 'user' | 'message'
@@ -43,7 +44,7 @@ export default function ReportModal({
       setDone(true)
       setTimeout(onClose, 1200)
     } catch (err: any) {
-      setError(err?.response?.data?.error || t('report.submitError'))
+      setError(apiErrorMessage(err, t('report.submitError')))
     } finally {
       setSubmitting(false)
     }

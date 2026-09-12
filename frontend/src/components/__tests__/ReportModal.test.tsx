@@ -121,7 +121,10 @@ describe('ReportModal', () => {
 
   it('shows a fallback error when the server response has no message', async () => {
     const user = userEvent.setup()
-    vi.spyOn(moderationAPI, 'report').mockRejectedValue(new Error('network down'))
+    // Axios-shaped network failure: no response envelope at all.
+    const networkError: any = new Error('Network Error')
+    networkError.request = {}
+    vi.spyOn(moderationAPI, 'report').mockRejectedValue(networkError)
     renderUserModal()
 
     await user.click(screen.getByRole('button', { name: 'Submit report' }))

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import apiService from '../services/api';
 import { api } from '../services/api';
+import { apiErrorMessage } from '@chorus/shared';
 
 export default function TeacherCaptionReviewScreen() {
   const [items, setItems] = useState<any[]>([]);
@@ -28,7 +29,7 @@ export default function TeacherCaptionReviewScreen() {
   };
   const submit = async () => {
     if(!sel) return;
-    try { await (api as any).post(`/calls/${sel.callId}/captions/${sel.segmentIndex}/review`, { rating, correctedText: corrected, feedback }); setMsg('Submitted'); load(); const r:any=await (api as any).get(`/calls/${sel.callId}/captions/${sel.segmentIndex}/reviews`); setReviews(r.data.reviews||[]);} catch(e:any){setMsg(e?.response?.data?.error||'Failed');}
+    try { await (api as any).post(`/calls/${sel.callId}/captions/${sel.segmentIndex}/review`, { rating, correctedText: corrected, feedback }); setMsg('Submitted'); load(); const r:any=await (api as any).get(`/calls/${sel.callId}/captions/${sel.segmentIndex}/reviews`); setReviews(r.data.reviews||[]);} catch(e:any){setMsg(apiErrorMessage(e, 'Failed'));}
   };
   return (
     <ScrollView style={{flex:1,padding:12}}>

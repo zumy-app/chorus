@@ -208,6 +208,11 @@ jobs:
       - name: Run learning-engine blackbox (17 probes)
         working-directory: mobile
         run: npx ts-node --project tsconfig.tests.json tests/learning-functional-tests.ts
+      - name: Run acceptance gate (31 hard TCs, green mode)
+        working-directory: e2e/acceptance
+        run: |
+          npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+          npm run acceptance:green
       - name: Dump backend log on failure
         if: failure()
         run: tail -n 100 /tmp/backend.log || true

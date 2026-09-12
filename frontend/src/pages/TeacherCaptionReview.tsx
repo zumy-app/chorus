@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../services/api'
 import type { CaptionReviewQueueItem, CaptionQualityStats, CaptionReview } from '@chorus/shared'
+import { apiErrorMessage } from '@chorus/shared'
 
 export default function TeacherCaptionReview() {
   const [items, setItems] = useState<CaptionReviewQueueItem[]>([])
@@ -39,7 +40,7 @@ export default function TeacherCaptionReview() {
       load()
       const r = await api.get<{ reviews: CaptionReview[] }>(`/calls/${selected.callId}/captions/${selected.segmentIndex}/reviews`)
       setReviews(r.data.reviews)
-    } catch (e: any) { setMsg(e?.response?.data?.error || 'Failed') }
+    } catch (e: any) { setMsg(apiErrorMessage(e, 'Failed')) }
   }
 
   return (

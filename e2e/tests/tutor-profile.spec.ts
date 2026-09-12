@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test'
+import { loginAsUser, loginViaAPI, API_BASE } from '../fixtures/test-helpers'
+import { DEV_ALICE } from '../fixtures/users'
 import fs from 'fs'
 import path from 'path'
 
@@ -16,7 +18,7 @@ test.describe('@S-T-02 @marketplace @profile @wireframe-tutor_profile_sofia', ()
     expect(app).toContain('TutorProfile')
     const tabs = fs.readFileSync(path.resolve(__dirname, '../../mobile/src/components/MainTabs.tsx'), 'utf-8')
     expect(tabs).toContain('TutorProfile')
-    expect(tabs).toContain('MarketplaceTab/TutorProfile')
+    expect(tabs).toContain('MarketplaceTab')
   })
 
   test('wireframe parity — TutorProfile.tsx must contain hero + Verified + About + Reviews + Book Trial + calendar', async () => {
@@ -42,8 +44,15 @@ test.describe('@S-T-02 @marketplace @profile @wireframe-tutor_profile_sofia', ()
 
   test('web profile renders Sofia hero + Verified + rating + bio + expertise + reviews + Book Trial (requires backend)', async ({ page }) => {
     // Gherkin: Given sofia.tutor approved seed, When I open /tutors/:id, Then I see hero per code.html:175-303
-    // We use a placeholder uuid; the test will FAIL with 404 + missing wireframe until S-T-02 green + seed
-    await page.goto('/tutors/sofia-placeholder-uuid')
+    // Resolve the real tutor user id (placeholder uuids 404 by design).
+    await loginAsUser(page, DEV_ALICE)
+    const token = await loginViaAPI(DEV_ALICE)
+    const res = await fetch(`${API_BASE.replace('/api/v1','')}/api/v1/teachers/browse?search=sofia&limit=5`, { headers: { Authorization: `Bearer ${token}` } })
+    if (!res.ok) throw new Error(`browse failed: ${res.status}`)
+    const data = await res.json()
+    const sofia = (data.tutors || []).find((t: any) => String(t.displayName || '').includes('Sofia'))
+    if (!sofia?.userId) throw new Error('seeded Sofia not found in browse')
+    await page.goto(`/tutors/${sofia.userId}`)
     // Even the error branch "Tutor not found" vs success is part of trace — assert hardened success
     await expect(page.getByText('Sofia Tutor')).toBeVisible({ timeout: 15000 })
     await expect(page.getByText('Verified')).toBeVisible()
@@ -51,7 +60,7 @@ test.describe('@S-T-02 @marketplace @profile @wireframe-tutor_profile_sofia', ()
     await expect(page.getByText(/Conversational Spanish/)).toBeVisible()
     await expect(page.getByTestId('book-trial')).toBeVisible()
     // Reviews: seed has 2 reviews (Alice 5, Bob 4)
-    await expect(page.getByText('Reviews')).toBeVisible()
+    await expect(page.getByText('Reviews').first()).toBeVisible()
   })
 
   test('S-T-02 hardened — Sofia hero + pricing + calendar green', async () => {

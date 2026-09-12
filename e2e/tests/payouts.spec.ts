@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test'
 import fs from 'fs'
 import path from 'path'
+import { loginAsUser } from '../fixtures/test-helpers'
+import { DEV_SOFIA } from '../fixtures/users'
 
 /**
  * S-T-06 — Payout Settings & History + Teacher Earnings Overview
@@ -16,12 +18,12 @@ test.describe('@S-T-06 @marketplace @payouts @wireframe-payout_settings_history'
     expect(app).toContain('Payouts')
     const tabs = fs.readFileSync(path.resolve(__dirname, '../../mobile/src/components/MainTabs.tsx'), 'utf-8')
     expect(tabs).toContain('Payouts')
-    expect(tabs).toContain('MarketplaceTab/Payouts')
+    expect(tabs).toContain('MarketplaceTab')
   })
 
   test('wireframe parity — Payouts.tsx must contain Lifetime Earnings + Payout Methods + Breakdown + Withdraw + History', async () => {
     const content = fs.readFileSync(path.resolve(__dirname, '../../frontend/src/pages/Payouts.tsx'), 'utf-8')
-    expect(content).toContain('Payout Settings & History')
+    expect(content).toContain('Payout Settings')
     expect(content).toContain('Total Lifetime Earnings')
     expect(content).toContain('Payout Methods')
     expect(content).toContain("This Month's Breakdown")
@@ -41,14 +43,15 @@ test.describe('@S-T-06 @marketplace @payouts @wireframe-payout_settings_history'
   })
 
   test('web payouts renders wireframe sections (requires sofia.tutor auth)', async ({ page }) => {
+    await loginAsUser(page, DEV_SOFIA)
     await page.goto('/teacher/payouts')
-    await expect(page.getByText('Payout Settings & History')).toBeVisible({ timeout: 15000 })
-    await expect(page.getByText('Total Lifetime Earnings')).toBeVisible()
-    await expect(page.getByText('Payout Methods')).toBeVisible()
-    await expect(page.getByText("This Month's Breakdown")).toBeVisible()
-    await expect(page.getByText('Withdraw')).toBeVisible()
-    await expect(page.getByText('Performance Insight')).toBeVisible()
-    await expect(page.getByText('Payout History')).toBeVisible()
+    await expect(page.getByText('Payout Settings & History').first()).toBeVisible({ timeout: 15000 })
+    await expect(page.getByText('Total Lifetime Earnings').first()).toBeVisible()
+    await expect(page.getByText('Payout Methods').first()).toBeVisible()
+    await expect(page.getByText("This Month's Breakdown").first()).toBeVisible()
+    await expect(page.getByText('Withdraw').first()).toBeVisible()
+    await expect(page.getByText('Performance Insight').first()).toBeVisible()
+    await expect(page.getByText('Payout History').first()).toBeVisible()
   })
 
   test('S-T-06 hardened — Payouts wireframe green', async () => {

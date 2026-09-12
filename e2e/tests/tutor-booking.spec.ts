@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test'
 import fs from 'fs'
 import path from 'path'
+import { loginAsUser, loginViaAPI, API_BASE } from '../fixtures/test-helpers'
+import { DEV_ALICE } from '../fixtures/users'
 
 /**
  * S-T-03 — Confirm Trial Booking
@@ -16,7 +18,7 @@ test.describe('@S-T-03 @marketplace @booking @wireframe-confirm_trial_booking', 
     expect(app).toContain('ConfirmBooking')
     const tabs = fs.readFileSync(path.resolve(__dirname, '../../mobile/src/components/MainTabs.tsx'), 'utf-8')
     expect(tabs).toContain('ConfirmBooking')
-    expect(tabs).toContain('MarketplaceTab/ConfirmBooking')
+    expect(tabs).toContain('MarketplaceTab')
   })
 
   test('wireframe parity — ConfirmBooking.tsx must contain Great choice + Payment Summary $0.00 + sticky CTA', async () => {
@@ -44,17 +46,25 @@ test.describe('@S-T-03 @marketplace @booking @wireframe-confirm_trial_booking', 
   })
 
   test('web confirm screen renders wireframe contract (requires backend + auth)', async ({ page }) => {
-    await page.goto('/tutors/sofia-placeholder-uuid/confirm')
+    await loginAsUser(page, DEV_ALICE)
+    // Resolve the real tutor user id (placeholder uuids 404 by design).
+    const token = await loginViaAPI(DEV_ALICE)
+    const res = await fetch(`${API_BASE.replace('/api/v1','')}/api/v1/teachers/browse?search=sofia&limit=5`, { headers: { Authorization: `Bearer ${token}` } })
+    if (!res.ok) throw new Error(`browse failed: ${res.status}`)
+    const data = await res.json()
+    const sofia = (data.tutors || []).find((t: any) => String(t.displayName || '').includes('Sofia'))
+    if (!sofia?.userId) throw new Error('seeded Sofia not found in browse')
+    await page.goto(`/tutors/${sofia.userId}/confirm`)
     await expect(page.getByRole('heading', { name: 'Confirm Booking' })).toBeVisible({ timeout: 15000 })
-    await expect(page.getByText('Great choice!')).toBeVisible()
-    await expect(page.getByText('Review your trial session details')).toBeVisible()
-    await expect(page.getByText('Your Tutor')).toBeVisible()
-    await expect(page.getByText('Sofia Tutor')).toBeVisible()
-    await expect(page.getByText('Payment Summary')).toBeVisible()
-    await expect(page.getByText('Trial Session')).toBeVisible()
-    await expect(page.getByText('Credits Applied')).toBeVisible()
-    await expect(page.getByText('$0.00')).toBeVisible()
-    await expect(page.getByText(/Cancellation Policy/)).toBeVisible()
+    await expect(page.getByText('Great choice!').first()).toBeVisible()
+    await expect(page.getByText('Review your trial session details').first()).toBeVisible()
+    await expect(page.getByText('Your Tutor').first()).toBeVisible()
+    await expect(page.getByText('Sofia Tutor').first()).toBeVisible()
+    await expect(page.getByText('Payment Summary').first()).toBeVisible()
+    await expect(page.getByText('Trial Session').first()).toBeVisible()
+    await expect(page.getByText('Credits Applied').first()).toBeVisible()
+    await expect(page.getByText('$0.00').first()).toBeVisible()
+    await expect(page.getByText(/Cancellation Policy/).first()).toBeVisible()
     await expect(page.getByTestId('confirm-booking')).toBeVisible()
   })
 

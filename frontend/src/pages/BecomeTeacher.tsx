@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createApiClient } from '@chorus/shared'
+import { apiErrorMessage } from '@chorus/shared'
 import AppHeader from '../components/AppHeader'
 import BottomNav from '../components/BottomNav'
 
@@ -49,7 +50,11 @@ export default function BecomeTeacher() {
       const rateCents = Math.round(parseFloat(rate)*100)
       const app = await client.teacher.apply({ bio, languages, expertise, rateCents, videoUrl, certificates: certs.map(c=>({type:c.type as any, issuer:c.issuer, year:c.year, fileUrl:c.fileUrl})) })
       setStatus(app.status); setMsg('Application submitted: '+app.status)
-    } catch(e:any){ setMsg(e?.response?.data?.error || e.message) }
+    } catch(e:any){
+      // The API error envelope is {error:{kind,message}} — never stash the
+      // raw object in state (React cannot render objects and unmounts).
+      setMsg(apiErrorMessage(e))
+    }
     setLoading(false)
   }
 

@@ -2,6 +2,7 @@ import { FormEvent, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import LanguagePicker from '../components/LanguagePicker'
+import { apiErrorMessage } from '@chorus/shared'
 import { waitlistAPI } from '../services/api'
 
 const SPEAK_TOP_CODES = ['en', 'es', 'fr', 'de', 'hi', 'zh', 'ar', 'pt']
@@ -86,7 +87,7 @@ export default function Waitlist() {
       setAlreadyJoined(!!result.alreadyJoined)
       setServerMessage(result.message || '')
     } catch (err: any) {
-      setError(err?.response?.data?.error || t('waitlist.joinFailed'))
+      setError(apiErrorMessage(err, t('waitlist.joinFailed')))
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } finally { setLoading(false) }
   }

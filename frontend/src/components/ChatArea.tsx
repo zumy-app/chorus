@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { useStore } from '../store'
+import { apiErrorMessage } from '@chorus/shared'
 import MessageBubble from './MessageBubble'
 import DeepDiveSheet from './DeepDiveSheet'
 import ChatLanguageModal from './ChatLanguageModal'
@@ -172,7 +173,7 @@ export default function ChatArea() {
       setShowChatMenu(false)
       setTimeout(() => setActionNotice(''), 2500)
     } catch (err: any) {
-      setActionError(err?.response?.data?.error || t('report.blockError'))
+      setActionError(apiErrorMessage(err, t('report.blockError')))
     }
   }
 
@@ -227,7 +228,7 @@ export default function ChatArea() {
         await sendLocation(activeChat.id, lat, lng, label, replyId)
         setReplyTo(null)
       } catch (err: any) {
-        setAttachError(err?.response?.data?.error || err?.message || 'Failed to share location')
+        setAttachError(apiErrorMessage(err, 'Failed to share location'))
         setTimeout(() => setAttachError(''), 3000)
       } finally {
         setLocating(false)
@@ -272,7 +273,7 @@ export default function ChatArea() {
     try {
       await sendAttachment(activeChat.id, file)
     } catch (err: any) {
-      setAttachError(err?.response?.data?.error || t('chat.uploadFailed', { defaultValue: 'Upload failed' }))
+      setAttachError(apiErrorMessage(err, t('chat.uploadFailed', { defaultValue: 'Upload failed' })))
       setTimeout(() => setAttachError(''), 3000)
     } finally {
       setUploading(false)

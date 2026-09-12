@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { otpAPI } from '../services/api'
 import type { PhoneStatus } from '@chorus/shared'
+import { apiErrorMessage } from '@chorus/shared'
 
 export default function TwoFactorSettings() {
   const [status, setStatus] = useState<PhoneStatus | null>(null)
@@ -16,18 +17,18 @@ export default function TwoFactorSettings() {
 
   const requestOTP = async () => {
     setLoading(true); setMsg('')
-    try { const r = await otpAPI.requestOTP(phone); setMsg(`Code sent to ${r.phoneMasked}`) } catch (e: any) { setMsg(e.response?.data?.error || 'Failed to send code') }
+    try { const r = await otpAPI.requestOTP(phone); setMsg(`Code sent to ${r.phoneMasked}`) } catch (e: any) { setMsg(apiErrorMessage(e, 'Failed to send code')) }
     finally { setLoading(false) }
   }
   const verify = async () => {
     setLoading(true); setMsg('')
-    try { await otpAPI.verifyPhone(phone, code); setMsg('Phone verified'); setCode(''); await load() } catch (e: any) { setMsg(e.response?.data?.error || 'Invalid code') }
+    try { await otpAPI.verifyPhone(phone, code); setMsg('Phone verified'); setCode(''); await load() } catch (e: any) { setMsg(apiErrorMessage(e, 'Invalid code')) }
     finally { setLoading(false) }
   }
   const toggle2FA = async () => {
     if (!status) return
     setLoading(true); setMsg('')
-    try { const s = await otpAPI.setTwoFactor(!status.twoFactorEnabled); setStatus(s); setMsg(s.twoFactorEnabled ? '2FA enabled' : '2FA disabled') } catch (e: any) { setMsg(e.response?.data?.error || 'Failed to update 2FA') }
+    try { const s = await otpAPI.setTwoFactor(!status.twoFactorEnabled); setStatus(s); setMsg(s.twoFactorEnabled ? '2FA enabled' : '2FA disabled') } catch (e: any) { setMsg(apiErrorMessage(e, 'Failed to update 2FA')) }
     finally { setLoading(false) }
   }
 

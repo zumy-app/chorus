@@ -478,7 +478,7 @@ func main() {
 	// Public routes
 	public := r.Group("/api/v1")
 	{
-		public.POST("/waitlist", middleware.RateLimiterRedis(redisClient, 10, time.Hour, middleware.IPKey, "ratelimit:waitlist:"), waitlistHandler.Submit)
+		public.POST("/waitlist", middleware.RateLimiterRedis(redisClient, envIntOr("RATE_LIMIT_WAITLIST_MAX", 10), time.Hour, middleware.IPKey, "ratelimit:waitlist:"), waitlistHandler.Submit)
 		// Register budget is env-tunable (default 10/hr): the acceptance
 		// suite registers ~6 throwaways per run, so dev/test stacks raise
 		// RATE_LIMIT_REGISTER_MAX via env (prod keeps the strict default).

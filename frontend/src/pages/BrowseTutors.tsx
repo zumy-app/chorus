@@ -4,6 +4,7 @@ import AppHeader from '../components/AppHeader'
 import BottomNav from '../components/BottomNav'
 import { teacherAPI } from '../services/api'
 import type { TutorProfile } from '@chorus/shared'
+import { apiErrorMessage } from '@chorus/shared'
 
 export default function BrowseTutors() {
   const [q, setQ] = useState('')
@@ -25,7 +26,7 @@ export default function BrowseTutors() {
       const res = await teacherAPI.browse(params)
       setTutors(res.tutors)
     } catch (e: any) {
-      setMsg(e?.response?.data?.error || 'Failed to load tutors')
+      setMsg(apiErrorMessage(e, 'Failed to load tutors'))
     } finally { setLoading(false) }
   }, [q, langFilter, ratingFilter, priceFilter])
 

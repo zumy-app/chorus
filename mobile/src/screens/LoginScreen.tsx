@@ -13,6 +13,7 @@ import apiService from '../services/api';
 import AuthLayout from '../components/AuthLayout';
 import DevAccountSwitcher from '../components/DevAccountSwitcher';
 import { COLOR, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../theme';
+import { apiErrorMessage } from '@chorus/shared';
 
 export default function LoginScreen({ navigation }: any) {
   // Local-dev convenience: prefill the test account when
@@ -59,7 +60,7 @@ export default function LoginScreen({ navigation }: any) {
         navigation.replace('MainTabs');
       }
     } catch (error: any) {
-      Alert.alert('Login Failed', error.response?.data?.error || 'Invalid credentials. Please try again.');
+      Alert.alert('Login Failed', apiErrorMessage(error, 'Invalid credentials. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -74,7 +75,7 @@ export default function LoginScreen({ navigation }: any) {
       await storage.setItem('refreshToken', r.tokens.refreshToken);
       await storage.setItem('user', JSON.stringify(r.user));
       navigation.replace('MainTabs');
-    } catch (e: any) { Alert.alert('Failed', e.response?.data?.error || 'Invalid code') }
+    } catch (e: any) { Alert.alert('Failed', apiErrorMessage(e, 'Invalid code')) }
     finally { setLoading(false) }
   };
 
