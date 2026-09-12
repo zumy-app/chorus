@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable } from
 import { useNavigation } from '@react-navigation/native';
 import { COLOR, FONTS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../theme';
 import apiService from '../services/api';
+import { apiErrorMessage } from '@chorus/shared';
 
 export default function TeacherDashboardScreen() {
   const nav = useNavigation<any>();
@@ -10,7 +11,7 @@ export default function TeacherDashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
 
-  useEffect(()=>{ let a=true; (async()=>{ try{ const r = await (apiService as any).getTeacherDashboard(); if(a) setDash(r.dashboard ?? r);} catch(e:any){ if(a) setErr(e?.response?.data?.error||e.message);} finally{ if(a) setLoading(false);} })(); return()=>{a=false};},[]);
+  useEffect(()=>{ let a=true; (async()=>{ try{ const r = await (apiService as any).getTeacherDashboard(); if(a) setDash(r.dashboard ?? r);} catch(e:any){ if(a) setErr(apiErrorMessage(e));} finally{ if(a) setLoading(false);} })(); return()=>{a=false};},[]);
 
   if(loading) return <View style={styles.center}><ActivityIndicator color={COLOR.primary}/></View>;
   if(err) return <View style={styles.center}><Text style={styles.body}>{err}</Text><Pressable onPress={()=>nav.navigate('BecomeTeacher')}><Text style={styles.link}>Become a teacher</Text></Pressable></View>;

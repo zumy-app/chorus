@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { authAPI } from '../services/api'
+import { apiErrorMessage } from '@chorus/shared'
 import { detectBrowserLanguage, getNativeLanguageName } from '../services/language'
 import AuthShell from '../components/AuthShell'
 
@@ -42,7 +43,7 @@ export default function ResetPassword() {
       setPassword('')
       setConfirmPassword('')
     } catch (err: any) {
-      setError(err.response?.data?.error || t('auth.resetLinkInvalid'))
+      setError(apiErrorMessage(err, t('auth.resetLinkInvalid')))
     } finally {
       setIsLoading(false)
     }

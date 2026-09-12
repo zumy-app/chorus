@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import AppHeader from '../components/AppHeader'
 import BottomNav from '../components/BottomNav'
 import { teacherAPI } from '../services/api'
+import { apiErrorMessage } from '@chorus/shared'
 import type { TutorProfile } from '@chorus/shared'
 
 export default function ConfirmBooking() {
@@ -36,7 +37,7 @@ export default function ConfirmBooking() {
       setMsg('Trial booked! Check your bookings.')
       setTimeout(() => navigate('/trial-credits'), 1200)
     } catch (e: any) {
-      setErr(e?.response?.data?.error || e.message)
+      setErr(apiErrorMessage(e))
     }
     setBooking(false)
   }

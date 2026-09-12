@@ -92,6 +92,33 @@ function qs(params: Record<string, string | number | boolean | null | undefined>
   return parts.length ? `?${parts.join('&')}` : ''
 }
 
+/**
+ * Extracts a render-safe message from an API failure. The backend envelope is
+ * `{error: {kind, message}}`, but screens historically read
+ * `err.response?.data?.error` and stash it in state — handing a raw OBJECT
+ * to React, which unmounts the tree ("Objects are not valid as a React
+ * child"). Always pass errors for display through here.
+ *
+ * Contract: server message wins; HTTP-ish failures without one (network
+ * errors, generic axios failures) fall back to curated copy; plain thrown
+ * Errors (e.g. typed client helpers) keep their message.
+ */
+export function apiErrorMessage(err: unknown, fallback = 'Something went wrong'): string {
+  const data = (err as any)?.response?.data
+  const raw = data?.error ?? data?.message
+  if (typeof raw === 'string' && raw) return raw
+  if (raw && typeof (raw as any).message === 'string' && (raw as any).message) {
+    return (raw as any).message
+  }
+  const httpLike =
+    !!(err as any)?.response || !!(err as any)?.request || (err as any)?.isAxiosError === true
+  if (!httpLike) {
+    if (err instanceof Error && err.message) return err.message
+    if (typeof err === 'string' && err) return err
+  }
+  return fallback
+}
+
 declare module 'axios' {
   interface InternalAxiosRequestConfig {
     _retry?: boolean

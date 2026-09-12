@@ -106,19 +106,20 @@ test.describe('@S-HOME-01..04 Home v2 — chorus_home_desktop_v2', () => {
     await expect(page.getByText('Company')).toBeVisible()
     await expect(page.getByText('Support')).toBeVisible()
 
-    // 7 links with correct hrefs
-    const featuresLink = page.getByRole('link', { name: 'Features' })
+    // 7 links with correct hrefs (scoped to footer: header nav duplicates names)
+    const footerLinks = page.locator('footer')
+    const featuresLink = footerLinks.getByRole('link', { name: 'Features' })
     await expect(featuresLink).toBeVisible()
     await expect(featuresLink).toHaveAttribute('href', '#features')
 
-    const pricingLink = page.getByRole('link', { name: 'Pricing' })
+    const pricingLink = footerLinks.getByRole('link', { name: 'Pricing' })
     await expect(pricingLink).toBeVisible()
     await expect(pricingLink).toHaveAttribute('href', '#pricing')
 
-    await expect(page.getByRole('link', { name: 'About Us' })).toHaveAttribute('href', '#about')
-    await expect(page.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute('href', '#')
-    await expect(page.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute('href', '#')
-    await expect(page.getByRole('link', { name: 'Help Center' })).toHaveAttribute('href', '#')
+    await expect(footerLinks.getByRole('link', { name: 'About Us' })).toHaveAttribute('href', '#about')
+    await expect(footerLinks.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute('href', '#')
+    await expect(footerLinks.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute('href', '#')
+    await expect(footerLinks.getByRole('link', { name: 'Help Center' })).toHaveAttribute('href', '#')
 
     // Exactly 7 footer links: count inside footer
     const footer = page.locator('footer')
@@ -139,7 +140,7 @@ test.describe('@S-HOME-01..04 Home v2 — chorus_home_desktop_v2', () => {
     // Free card
     await expect(pricing.getByRole('heading', { name: 'Free' })).toBeVisible()
     await expect(pricing.getByText('$0')).toBeVisible()
-    await expect(pricing.getByText('/month')).toBeVisible()
+    await expect(pricing.getByText('/month').first()).toBeVisible()
     await expect(pricing.getByText('280-character messages')).toBeVisible()
     await expect(pricing.getByText('Basic AI translations')).toBeVisible()
     await expect(pricing.getByText('Limited daily AI insights')).toBeVisible()

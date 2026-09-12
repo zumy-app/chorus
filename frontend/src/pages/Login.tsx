@@ -6,6 +6,7 @@ import { api } from '../services/api'
 import { detectBrowserLanguage, getNativeLanguageName } from '../services/language'
 import AuthShell from '../components/AuthShell'
 import DevAccountSwitcher from '../components/DevAccountSwitcher'
+import { apiErrorMessage } from '@chorus/shared'
 
 interface LoginProps {
   onLogin: (tokens: { accessToken: string; refreshToken: string }) => void
@@ -49,7 +50,7 @@ export default function Login({ onLogin }: LoginProps) {
         onLogin(raw.data.tokens)
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || t('auth.loginFailed'))
+      setError(apiErrorMessage(err, t('auth.loginFailed')))
     } finally {
       setIsLoading(false)
     }
@@ -62,7 +63,7 @@ export default function Login({ onLogin }: LoginProps) {
       const r = await otpAPI.verify2FA(tempToken, code)
       onLogin(r.tokens)
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Invalid code')
+      setError(apiErrorMessage(err, 'Invalid code'))
     } finally { setIsLoading(false) }
   }
 

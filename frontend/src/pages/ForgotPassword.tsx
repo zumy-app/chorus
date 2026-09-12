@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { authAPI } from '../services/api'
+import { apiErrorMessage } from '@chorus/shared'
 import { detectBrowserLanguage, getNativeLanguageName } from '../services/language'
 import AuthShell from '../components/AuthShell'
 
@@ -31,7 +32,7 @@ export default function ForgotPassword() {
       setMessage(response.message)
       setEmail('')
     } catch (err: any) {
-      setError(err.response?.data?.error || t('auth.error'))
+      setError(apiErrorMessage(err, t('auth.error')))
     } finally {
       setIsLoading(false)
     }

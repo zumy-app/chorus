@@ -12,7 +12,7 @@ import {
 import storage from '../utils/storage';
 import apiService from '../services/api';
 import webSocketService from '../services/websocket';
-import { SUPPORTED_LANGUAGES, User, type PrivacyVisibility, DEV_ACCOUNTS } from '@chorus/shared';
+import { SUPPORTED_LANGUAGES, User, type PrivacyVisibility, DEV_ACCOUNTS, apiErrorMessage } from '@chorus/shared';
 import { COLOR, FONTS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../theme';
 
 export default function ProfileScreen({ navigation }: any) {
@@ -145,7 +145,7 @@ export default function ProfileScreen({ navigation }: any) {
       await storage.setItem('user', JSON.stringify(user))
       navigation.replace('MainTabs')
     } catch (e: any) {
-      Alert.alert('Switch failed', e.response?.data?.error || e.message)
+      Alert.alert('Switch failed', apiErrorMessage(e, 'Could not switch accounts. Please try again.'))
     }
   }
 

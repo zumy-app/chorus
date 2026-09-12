@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { grammarAPI } from '../services/api'
 import { useStore } from '../store'
+import { apiErrorMessage } from '@chorus/shared'
 
 interface DeepDiveSheetProps {
   message?: {
@@ -43,7 +44,7 @@ export default function DeepDiveSheet({ message, onClose }: DeepDiveSheetProps) 
       const result = await grammarAPI.learn(contextText, language, nativeLanguage, 'custom', query)
       setSparkyMessages(prev => [...prev, { role: 'assistant', content: result.content || t('grammar.aiError') }])
     } catch (err: any) {
-      const msg = err?.response?.data?.error || err?.message || t('grammar.aiError')
+      const msg = apiErrorMessage(err, t('grammar.aiError'))
       setSparkyError(msg)
       setSparkyMessages(prev => [...prev, { role: 'assistant', content: msg }])
     } finally {

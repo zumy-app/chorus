@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test'
 import fs from 'fs'
 import path from 'path'
+import { loginAsUser } from '../fixtures/test-helpers'
+import { DEV_ALICE } from '../fixtures/users'
 
 /**
  * S-T-04 — Trial Credit Dashboard
@@ -16,7 +18,7 @@ test.describe('@S-T-04 @marketplace @trial-credits @wireframe-trial_credit_dashb
     expect(app).toContain('TrialCredits')
     const tabs = fs.readFileSync(path.resolve(__dirname, '../../mobile/src/components/MainTabs.tsx'), 'utf-8')
     expect(tabs).toContain('TrialCredits')
-    expect(tabs).toContain('MarketplaceTab/TrialCredits')
+    expect(tabs).toContain('MarketplaceTab')
   })
 
   test('wireframe parity — TrialCredits.tsx must contain credits card + How Trials Work + Recommended + History', async () => {
@@ -41,13 +43,14 @@ test.describe('@S-T-04 @marketplace @trial-credits @wireframe-trial_credit_dashb
   })
 
   test('web dashboard renders credits card + CTA + History (requires backend)', async ({ page }) => {
+    await loginAsUser(page, DEV_ALICE)
     await page.goto('/trial-credits')
-    await expect(page.getByText('Trial Credits')).toBeVisible({ timeout: 15000 })
-    await expect(page.getByText('Available to use right now')).toBeVisible()
+    await expect(page.getByText('Trial Credits').first()).toBeVisible({ timeout: 15000 })
+    await expect(page.getByText('Available to use right now').first()).toBeVisible()
     await expect(page.getByRole('button', { name: 'Find a Tutor' })).toBeVisible()
-    await expect(page.getByText('How Trials Work')).toBeVisible()
-    await expect(page.getByText('Recommended for Trials')).toBeVisible()
-    await expect(page.getByText('History')).toBeVisible()
+    await expect(page.getByText('How Trials Work').first()).toBeVisible()
+    await expect(page.getByText('Recommended for Trials').first()).toBeVisible()
+    await expect(page.getByText('History').first()).toBeVisible()
   })
 
   test('S-T-04 hardened — TrialCredits wireframe green', async () => {

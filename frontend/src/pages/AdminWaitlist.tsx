@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { adminAPI } from '../services/api'
 import { getLanguageName } from '../services/language'
+import { apiErrorMessage } from '@chorus/shared'
 import { useStore } from '../store'
 import type { WaitlistEntry, EmailOutboxEntry, AdminStats, User, TranslationJob, ProviderHealth, PremiumUserRow, PremiumAnalytics, PlanChange, GrantPlanRequest, Report, ReportStats } from '@chorus/shared'
 
@@ -96,7 +97,7 @@ export default function AdminWaitlist({ defaultTab }: { defaultTab?: Tab }) {
     try {
       setEntries(await adminAPI.listWaitlist(status, query))
     } catch (err: any) {
-      setError(err?.response?.data?.error || t('admin.notAuthorizedWaitlist'))
+      setError(apiErrorMessage(err, t('admin.notAuthorizedWaitlist')))
     }
   }
 
@@ -105,7 +106,7 @@ export default function AdminWaitlist({ defaultTab }: { defaultTab?: Tab }) {
     try {
       setEmails(await adminAPI.emails(status))
     } catch (err: any) {
-      setError(err?.response?.data?.error || t('admin.notAuthorizedEmails'))
+      setError(apiErrorMessage(err, t('admin.notAuthorizedEmails')))
     }
   }
 
@@ -114,7 +115,7 @@ export default function AdminWaitlist({ defaultTab }: { defaultTab?: Tab }) {
     try {
       setStats(await adminAPI.stats())
     } catch (err: any) {
-      setError(err?.response?.data?.error || t('admin.notAuthorizedStats'))
+      setError(apiErrorMessage(err, t('admin.notAuthorizedStats')))
     }
   }
 
@@ -127,7 +128,7 @@ export default function AdminWaitlist({ defaultTab }: { defaultTab?: Tab }) {
         status: userStatusFilter !== 'all' ? userStatusFilter : undefined,
       }))
     } catch (err: any) {
-      setError(err?.response?.data?.error || t('admin.notAuthorizedUsers'))
+      setError(apiErrorMessage(err, t('admin.notAuthorizedUsers')))
     }
   }
 
@@ -140,7 +141,7 @@ export default function AdminWaitlist({ defaultTab }: { defaultTab?: Tab }) {
         setProviders(await adminAPI.translationHealth().catch(() => []))
       }
     } catch (err: any) {
-      setError(err?.response?.data?.error || t('admin.notAuthorizedTranslations'))
+      setError(apiErrorMessage(err, t('admin.notAuthorizedTranslations')))
     }
   }
 
@@ -150,7 +151,7 @@ export default function AdminWaitlist({ defaultTab }: { defaultTab?: Tab }) {
       setPremium(await adminAPI.premiumUsers(q || undefined))
       setAnalytics(await adminAPI.premiumAnalytics())
     } catch (err: any) {
-      setError(err?.response?.data?.error || t('admin.notAuthorizedPremium'))
+      setError(apiErrorMessage(err, t('admin.notAuthorizedPremium')))
     }
   }
 
@@ -164,7 +165,7 @@ export default function AdminWaitlist({ defaultTab }: { defaultTab?: Tab }) {
         setReportStats(await adminAPI.reportStats().catch(() => null))
       }
     } catch (err: any) {
-      setError(err?.response?.data?.error || t('admin.notAuthorizedReports'))
+      setError(apiErrorMessage(err, t('admin.notAuthorizedReports')))
     }
   }
 
@@ -186,7 +187,7 @@ export default function AdminWaitlist({ defaultTab }: { defaultTab?: Tab }) {
       if (message) setNotice(String(message))
       await reload()
     } catch (err: any) {
-      setError(err?.response?.data?.error || t('admin.error'))
+      setError(apiErrorMessage(err, t('admin.error')))
     } finally { setBusy(null) }
   }
 
@@ -208,7 +209,7 @@ export default function AdminWaitlist({ defaultTab }: { defaultTab?: Tab }) {
       setDismissing(null); setDismissNote('')
       await loadReports()
     } catch (err: any) {
-      setError(err?.response?.data?.error || t('admin.error'))
+      setError(apiErrorMessage(err, t('admin.error')))
     } finally { setBusy(null) }
   }
 
@@ -224,7 +225,7 @@ export default function AdminWaitlist({ defaultTab }: { defaultTab?: Tab }) {
       setGrantTarget(null); setReason('')
       await Promise.all([loadPremium()])
     } catch (err: any) {
-      setError(err?.response?.data?.error || t('admin.error'))
+      setError(apiErrorMessage(err, t('admin.error')))
     } finally { setBusy(null) }
   }
 
@@ -238,7 +239,7 @@ export default function AdminWaitlist({ defaultTab }: { defaultTab?: Tab }) {
       setRevokeTarget(null); setReason(''); setRevokeGrace(0)
       await Promise.all([loadPremium()])
     } catch (err: any) {
-      setError(err?.response?.data?.error || t('admin.error'))
+      setError(apiErrorMessage(err, t('admin.error')))
     } finally { setBusy(null) }
   }
 
@@ -248,7 +249,7 @@ export default function AdminWaitlist({ defaultTab }: { defaultTab?: Tab }) {
       const entries = await adminAPI.planHistory(user.id)
       setHistory({ user, entries })
     } catch (err: any) {
-      setError(err?.response?.data?.error || t('admin.error'))
+      setError(apiErrorMessage(err, t('admin.error')))
     } finally { setBusy(null) }
   }
 

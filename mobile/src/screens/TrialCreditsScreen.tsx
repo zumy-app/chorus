@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable } from
 import { useNavigation } from '@react-navigation/native';
 import { COLOR, FONTS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../theme';
 import apiService from '../services/api';
+import { apiErrorMessage } from '@chorus/shared';
 
 export default function TrialCreditsScreen() {
   const nav = useNavigation<any>();
@@ -18,7 +19,7 @@ export default function TrialCreditsScreen() {
         const res = await (apiService as any).getTrialCreditsDashboard?.() ?? await (apiService as any).getTrialCredits?.();
         if (active) setData(res.dashboard ?? res);
         try { const r = await apiService.browseTutors({ limit: 2 }); if (active) setTutors(r.tutors.slice(0,2)); } catch {}
-      } catch (e:any) { if(active) setErr(e?.response?.data?.error||e.message); }
+      } catch (e:any) { if(active) setErr(apiErrorMessage(e)); }
       finally { if(active) setLoading(false); }
     })();
     return () => { active = false; };

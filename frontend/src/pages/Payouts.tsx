@@ -3,6 +3,7 @@ import AppHeader from '../components/AppHeader'
 import BottomNav from '../components/BottomNav'
 import { payoutsAPI } from '../services/api'
 import type { PayoutOverview, PayoutMethod, PayoutRecord } from '@chorus/shared'
+import { apiErrorMessage } from '@chorus/shared'
 
 export default function Payouts() {
   const [overview, setOverview] = useState<PayoutOverview | null>(null)
@@ -20,16 +21,16 @@ export default function Payouts() {
     try {
       const [ov, ms, hs] = await Promise.all([payoutsAPI.overview(), payoutsAPI.methods(), payoutsAPI.history({ limit: 10 })])
       setOverview(ov); setMethods(ms); setHistory(hs.payouts)
-    } catch (e:any) { setErr(e?.response?.data?.error || e.message) }
+    } catch (e:any) { setErr(apiErrorMessage(e)) }
     setLoading(false)
   }
   useEffect(()=>{ load() }, [])
 
   const addMethod = async () => {
-    try { await payoutsAPI.addMethod({ type, label: label || type, details: details || label }); setLabel(''); setDetails(''); load() } catch(e:any){ setErr(e?.response?.data?.error||e.message) }
+    try { await payoutsAPI.addMethod({ type, label: label || type, details: details || label }); setLabel(''); setDetails(''); load() } catch(e:any){ setErr(apiErrorMessage(e)) }
   }
   const withdraw = async () => {
-    try { await payoutsAPI.withdraw({ amountCents: Math.round(parseFloat(withdrawAmt)*100) }); load() } catch(e:any){ setErr(e?.response?.data?.error||e.message) }
+    try { await payoutsAPI.withdraw({ amountCents: Math.round(parseFloat(withdrawAmt)*100) }); load() } catch(e:any){ setErr(apiErrorMessage(e)) }
   }
 
   return (

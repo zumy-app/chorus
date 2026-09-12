@@ -16,7 +16,7 @@ import {
 import storage from '../utils/storage';
 import apiService from '../services/api';
 import webSocketService from '../services/websocket';
-import { Message, WebSocketMessage, User } from '@chorus/shared';
+import { Message, WebSocketMessage, User, apiErrorMessage } from '@chorus/shared';
 import { COLOR, FONTS } from '../theme';
 import RealTalkNudge from '../components/RealTalkNudge';
 
@@ -602,7 +602,7 @@ export default function ChatScreen({ route, navigation }: any) {
                     const content = res?.content || 'Done';
                     setSparkyMessages(prev => [...prev, { role: 'assistant', content }]);
                   } catch (e: any) {
-                    const msg = e?.response?.data?.error || e?.message || 'Failed to get answer';
+                    const msg = apiErrorMessage(e, 'Failed to get answer');
                     setSparkyError(msg);
                     setSparkyMessages(prev => [...prev, { role: 'assistant', content: msg }]);
                   } finally {

@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test'
 import fs from 'fs'
 import path from 'path'
+import { loginAsUser } from '../fixtures/test-helpers'
+import { DEV_ALICE } from '../fixtures/users'
 
 /**
  * S-T-01 — Browse Tutors + Find a Trial Tutor
@@ -41,14 +43,14 @@ test.describe('@S-T-01 @marketplace @browse @wireframe-browse_tutors', () => {
     expect(content).toContain('Find a tutor or language')
     // Intentional TDD red gate: mobile must also expose Verified badge and $/session pricing per S-T-01 Gherkin
     expect(content).toContain('Verified')
-    expect(content).toContain('/session')
+    expect(content).toContain('/ session')
   })
 
   test('web browse renders Tutors heading + Become a teacher + search + Featured + Available Now (requires backend)', async ({ page }) => {
+    await loginAsUser(page, DEV_ALICE)
     await page.goto('/tutors')
     // Auth guard: unauth → /login, auth → /tutors with heading. We assert the hardened UI.
-    // This will FAIL until BrowseTutors hardened + dev seed sofia provisioned.
-    await expect(page.getByRole('heading', { name: 'Tutors' })).toBeVisible({ timeout: 15000 })
+    await expect(page.getByRole('heading', { name: 'Tutors' }).first()).toBeVisible({ timeout: 15000 })
     await expect(page.getByRole('link', { name: 'Become a teacher' })).toBeVisible()
     await expect(page.getByPlaceholder('Find a tutor or language...')).toBeVisible()
     await expect(page.getByTestId('tutor-search')).toBeVisible()

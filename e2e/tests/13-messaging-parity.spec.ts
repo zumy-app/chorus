@@ -68,7 +68,10 @@ test.describe('Messaging Parity — web ↔ mobile', () => {
       const long = Array.from({ length: 290 }, () => 'word').join(' ')
       const input = page.locator('textarea[placeholder="Type a message..."]')
       await input.fill(long)
-      await expect(page.getByRole('button', { name: 'Send' })).toBeDisabled()
+      // Two exact-'Send' buttons exist (composer + header): assert the
+      // composer one (inside the form) is disabled over the free limit.
+      const composerSend = page.locator('form').getByRole('button', { name: 'Send', exact: true })
+      await expect(composerSend).toBeDisabled()
       await expect(page.locator('text=/280/').first()).toBeVisible()
     } finally { await ctx.close() }
   })
