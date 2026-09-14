@@ -1,0 +1,45 @@
+-- 03_lexical_items.sql: Lexical items for Spanish A1-B2
+INSERT INTO lexical_items (
+    course_id, unit_id, language, lemma, display_text, part_of_speech, cefr_level, translations, forms, tags, frequency, is_chunk
+)
+VALUES
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000001', 'es', 'hola', 'hola', 'interjection', 'A1', '{"en":"hello"}'::jsonb, '{}'::jsonb, ARRAY['greeting'], 1, false),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000001', 'es', 'me llamo', 'me llamo', 'verb_phrase', 'A1', '{"en":"my name is"}'::jsonb, '{}'::jsonb, ARRAY['introduction','chunk'], 2, true),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000001', 'es', 'gracias', 'gracias', 'interjection', 'A1', '{"en":"thank you"}'::jsonb, '{}'::jsonb, ARRAY['politeness'], 3, false),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000002', 'es', 'idioma', 'idioma', 'noun', 'A1', '{"en":"language"}'::jsonb, '{}'::jsonb, ARRAY['identity'], 20, false),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000002', 'es', '¿de dónde eres?', '¿de dónde eres?', 'question', 'A1', '{"en":"where are you from?"}'::jsonb, '{}'::jsonb, ARRAY['question','identity'], 21, true),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000003', 'es', 'levantarse', 'levantarse', 'verb', 'A1', '{"en":"to get up"}'::jsonb, '{}'::jsonb, ARRAY['daily_routine','reflexive'], 30, false),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000003', 'es', 'normalmente', 'normalmente', 'adverb', 'A1', '{"en":"usually"}'::jsonb, '{}'::jsonb, ARRAY['daily_routine'], 31, false),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000004', 'es', 'café', 'café', 'noun', 'A1', '{"en":"coffee"}'::jsonb, '{}'::jsonb, ARRAY['cafe','food_drink'], 40, false),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000004', 'es', 'café con leche', 'café con leche', 'noun_phrase', 'A1', '{"en":"coffee with milk"}'::jsonb, '{}'::jsonb, ARRAY['cafe','food_drink','chunk'], 41, true),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000004', 'es', 'quisiera', 'quisiera', 'verb', 'A1', '{"en":"I would like"}'::jsonb, '{}'::jsonb, ARRAY['cafe','polite_request'], 42, false),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000004', 'es', 'para llevar', 'para llevar', 'phrase', 'A1', '{"en":"to go"}'::jsonb, '{}'::jsonb, ARRAY['cafe','service','chunk'], 43, true),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000004', 'es', '¿cuánto cuesta?', '¿cuánto cuesta?', 'question', 'A1', '{"en":"how much does it cost?"}'::jsonb, '{}'::jsonb, ARRAY['cafe','payment','chunk'], 44, true),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000005', 'es', '¿dónde está?', '¿dónde está?', 'question', 'A1', '{"en":"where is it?"}'::jsonb, '{}'::jsonb, ARRAY['directions','location'], 50, true),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000005', 'es', 'a la izquierda', 'a la izquierda', 'phrase', 'A1', '{"en":"to the left"}'::jsonb, '{}'::jsonb, ARRAY['directions'], 51, true),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000007', 'es', 'ayer', 'ayer', 'adverb', 'A2', '{"en":"yesterday"}'::jsonb, '{}'::jsonb, ARRAY['past_time'], 70, false),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000007', 'es', 'el fin de semana', 'el fin de semana', 'noun_phrase', 'A2', '{"en":"the weekend"}'::jsonb, '{}'::jsonb, ARRAY['time','leisure'], 71, true),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000008', 'es', 'bolsa', 'bolsa', 'noun', 'A2', '{"en":"bag"}'::jsonb, '{}'::jsonb, ARRAY['shopping'], 80, false),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000008', 'es', 'total', 'total', 'noun', 'A2', '{"en":"total"}'::jsonb, '{}'::jsonb, ARRAY['shopping','payment'], 81, false),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000009', 'es', 'voy a', 'voy a', 'verb_phrase', 'A2', '{"en":"I am going to"}'::jsonb, '{}'::jsonb, ARRAY['plans','near_future'], 90, true),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000010', 'es', 'estoy cansado', 'estoy cansado', 'phrase', 'A2', '{"en":"I am tired"}'::jsonb, '{}'::jsonb, ARRAY['feelings','estar'], 100, true),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000011', 'es', 'necesito reservar', 'necesito reservar', 'verb_phrase', 'A2', '{"en":"I need to book"}'::jsonb, '{}'::jsonb, ARRAY['travel','hotel'], 110, true),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000013', 'es', 'primero', 'primero', 'connector', 'B1', '{"en":"first"}'::jsonb, '{}'::jsonb, ARRAY['story','sequence'], 130, false),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000013', 'es', 'después', 'después', 'connector', 'B1', '{"en":"afterward"}'::jsonb, '{}'::jsonb, ARRAY['story','sequence'], 131, false),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000014', 'es', 'aunque', 'aunque', 'connector', 'B1', '{"en":"although"}'::jsonb, '{}'::jsonb, ARRAY['opinion','concession'], 140, false),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000015', 'es', 'hay un problema', 'hay un problema', 'phrase', 'B1', '{"en":"there is a problem"}'::jsonb, '{}'::jsonb, ARRAY['service','problem'], 150, true),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000016', 'es', 'podríamos', 'podríamos', 'verb', 'B1', '{"en":"we could"}'::jsonb, '{}'::jsonb, ARRAY['plans','conditional'], 160, false),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000017', 'es', 'responsabilidad', 'responsabilidad', 'noun', 'B1', '{"en":"responsibility"}'::jsonb, '{}'::jsonb, ARRAY['work','study'], 170, false),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000019', 'es', 'por un lado', 'por un lado', 'connector', 'B2', '{"en":"on one hand"}'::jsonb, '{}'::jsonb, ARRAY['argument','nuance'], 190, true),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000020', 'es', 'si tuviera', 'si tuviera', 'phrase', 'B2', '{"en":"if I had"}'::jsonb, '{}'::jsonb, ARRAY['hypothetical'], 200, true),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000021', 'es', 'me gustaría reprogramar', 'me gustaría reprogramar', 'phrase', 'B2', '{"en":"I would like to reschedule"}'::jsonb, '{}'::jsonb, ARRAY['professional','formal'], 210, true),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000022', 'es', 'según el artículo', 'según el artículo', 'phrase', 'B2', '{"en":"according to the article"}'::jsonb, '{}'::jsonb, ARRAY['media','summary'], 220, true),
+    ('c0000000-0000-0000-0000-000000000001', 'u0000000-0000-0000-0000-000000000023', 'es', 'entiendo tu punto', 'entiendo tu punto', 'phrase', 'B2', '{"en":"I understand your point"}'::jsonb, '{}'::jsonb, ARRAY['conflict','repair'], 230, true)
+ON CONFLICT (course_id, language, lemma) DO UPDATE SET
+    display_text = EXCLUDED.display_text,
+    part_of_speech = EXCLUDED.part_of_speech,
+    cefr_level = EXCLUDED.cefr_level,
+    translations = EXCLUDED.translations,
+    tags = EXCLUDED.tags,
+    frequency = EXCLUDED.frequency,
+    is_chunk = EXCLUDED.is_chunk;

@@ -82,8 +82,15 @@ func main() {
 		log.Fatalf("Failed to seed admin roles: %v", err)
 	}
 
-	// Seed the launch learning course (English -> Spanish full A1-B2 path) and
-	// mark the pair as full_course. Idempotent; safe to run on every boot.
+	// Seed the launch learning course via deploy-synced embedded SQL seeds.
+	// Checksum-gated: unchanged seed files cost exactly one DB lookup on startup.
+	seedRunner := database.NewSeedRunner(db)
+	if applied, err := seedRunner.Run(context.Background(), "en-es"); err != nil {
+		log.Fatalf("Failed to run embedded seeds: %v", err)
+	} else if len(applied) > 0 {
+		log.Printf("[Startup] Applied %d new/modified embedded seed files", len(applied))
+	}
+
 	curriculumService := services.NewCurriculumService(db)
 	if err := curriculumService.SeedDefaultCourses(context.Background()); err != nil {
 		log.Fatalf("Failed to seed learning curriculum: %v", err)
