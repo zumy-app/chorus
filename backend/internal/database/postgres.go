@@ -17,8 +17,8 @@ func Connect(databaseURL string) (*sql.DB, error) {
 		return nil, err
 	}
 
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(5)
+	db.SetMaxOpenConns(100)
+	db.SetMaxIdleConns(25)
 
 	log.Println("Database connected successfully")
 	return db, nil
@@ -1270,6 +1270,185 @@ func Migrate(db *sql.DB) error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_caption_reviews_call ON caption_reviews(call_id, segment_index)`,
 		`CREATE INDEX IF NOT EXISTS idx_caption_reviews_reviewer ON caption_reviews(reviewer_id, created_at DESC)`,
+
+		// Phase 0: Learning Engine V3 Foundation Migrations
+		`CREATE TABLE IF NOT EXISTS seed_checksums (
+			file TEXT PRIMARY KEY,
+			checksum TEXT NOT NULL,
+			run_at TIMESTAMPTZ DEFAULT NOW()
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS grammar_items (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			grammar_point_id UUID NOT NULL REFERENCES grammar_points(id) ON DELETE CASCADE,
+			ordinal INT NOT NULL,
+			item_type TEXT NOT NULL CHECK (item_type IN ('cloze','mcq','reconstruction')),
+			prompt TEXT NOT NULL,
+			sentence_with_blank TEXT,
+			choices TEXT[] NOT NULL DEFAULT '{}',
+			correct TEXT NOT NULL,
+			accept_variants TEXT[] NOT NULL DEFAULT '{}',
+			note TEXT NOT NULL DEFAULT '',
+			is_active BOOL NOT NULL DEFAULT true,
+			UNIQUE (grammar_point_id, ordinal)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_grammar_items_point ON grammar_items(grammar_point_id, ordinal)`,
+
+		`CREATE TABLE IF NOT EXISTS user_grammar_item_attempts (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			grammar_item_id UUID NOT NULL REFERENCES grammar_items(id) ON DELETE CASCADE,
+			grammar_point_id UUID NOT NULL REFERENCES grammar_points(id) ON DELETE CASCADE,
+			correct BOOL NOT NULL,
+			quality INT NOT NULL DEFAULT 0,
+			latency_ms INT,
+			created_at TIMESTAMPTZ DEFAULT NOW()
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_grammar_item_attempts_user_point ON user_grammar_item_attempts(user_id, grammar_point_id, created_at DESC)`,
+
+		`ALTER TABLE user_grammar_mastery ADD COLUMN IF NOT EXISTS mastery_stage INT NOT NULL DEFAULT 1`,
+		`ALTER TABLE user_grammar_mastery ADD COLUMN IF NOT EXISTS ease_factor NUMERIC(4,2) NOT NULL DEFAULT 2.5`,
+		`ALTER TABLE user_grammar_mastery ADD COLUMN IF NOT EXISTS repetitions INT NOT NULL DEFAULT 0`,
+		`ALTER TABLE user_grammar_mastery ADD COLUMN IF NOT EXISTS interval_days INT NOT NULL DEFAULT 0`,
+		`ALTER TABLE user_grammar_mastery ADD COLUMN IF NOT EXISTS last_reviewed_at TIMESTAMPTZ`,
+
+		`ALTER TABLE grammar_points ADD COLUMN IF NOT EXISTS rule_text TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE grammar_points ADD COLUMN IF NOT EXISTS common_trap TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE grammar_points ADD COLUMN IF NOT EXISTS ordinal INT NOT NULL DEFAULT 0`,
+		`ALTER TABLE grammar_points ADD COLUMN IF NOT EXISTS is_active BOOL NOT NULL DEFAULT true`,
+
+		`CREATE TABLE IF NOT EXISTS placement_items (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			course_id UUID NOT NULL REFERENCES curriculum_courses(id) ON DELETE CASCADE,
+			cefr_level TEXT NOT NULL CHECK (cefr_level IN ('A1','A2','B1','B2')),
+			module TEXT NOT NULL CHECK (module IN ('receptive_vocab','grammar_production','discourse_reading')),
+			item_type TEXT NOT NULL,
+			prompt JSONB NOT NULL DEFAULT '{}',
+			choices TEXT[] NOT NULL DEFAULT '{}',
+			correct TEXT NOT NULL,
+			accept_variants TEXT[] NOT NULL DEFAULT '{}',
+			difficulty_value INT NOT NULL DEFAULT 500,
+			is_active BOOL NOT NULL DEFAULT true,
+			created_at TIMESTAMPTZ DEFAULT NOW()
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_placement_items_course_level ON placement_items(course_id, cefr_level, module)`,
+
+		`CREATE TABLE IF NOT EXISTS reading_passages (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			course_id UUID NOT NULL REFERENCES curriculum_courses(id) ON DELETE CASCADE,
+			unit_id UUID REFERENCES curriculum_units(id) ON DELETE SET NULL,
+			cefr_level TEXT NOT NULL CHECK (cefr_level IN ('A1','A2','B1','B2')),
+			title TEXT NOT NULL DEFAULT '',
+			body TEXT NOT NULL,
+			word_count INT NOT NULL DEFAULT 0,
+			questions JSONB NOT NULL DEFAULT '[]',
+			vocabulary_ids UUID[] NOT NULL DEFAULT '{}',
+			is_active BOOL NOT NULL DEFAULT true,
+			created_at TIMESTAMPTZ DEFAULT NOW()
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_reading_passages_course_level ON reading_passages(course_id, cefr_level)`,
+
+		`CREATE TABLE IF NOT EXISTS real_talk_prompts (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			course_id UUID NOT NULL REFERENCES curriculum_courses(id) ON DELETE CASCADE,
+			cefr_level TEXT NOT NULL CHECK (cefr_level IN ('A1','A2','B1','B2')),
+			category TEXT NOT NULL CHECK (category IN ('conversation_starter','topic_injector','opinion_phrase')),
+			prompt_for_learner TEXT NOT NULL,
+			target_phrase TEXT NOT NULL,
+			why_useful TEXT NOT NULL DEFAULT '',
+			follow_up_chunks JSONB NOT NULL DEFAULT '[]',
+			is_active BOOL NOT NULL DEFAULT true,
+			created_at TIMESTAMPTZ DEFAULT NOW()
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_real_talk_prompts_course_level ON real_talk_prompts(course_id, cefr_level, category)`,
+
+		`CREATE TABLE IF NOT EXISTS teacher_lessons (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			teacher_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			target_language TEXT NOT NULL,
+			native_language TEXT NOT NULL DEFAULT 'en',
+			title TEXT NOT NULL,
+			objective TEXT NOT NULL DEFAULT '',
+			estimated_minutes INT NOT NULL DEFAULT 5,
+			cefr_level TEXT CHECK (cefr_level IN ('A1','A2','B1','B2')),
+			is_published BOOL NOT NULL DEFAULT false,
+			created_at TIMESTAMPTZ DEFAULT NOW(),
+			updated_at TIMESTAMPTZ DEFAULT NOW()
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_teacher_lessons_teacher ON teacher_lessons(teacher_id)`,
+
+		`CREATE TABLE IF NOT EXISTS teacher_lesson_steps (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			lesson_id UUID NOT NULL REFERENCES teacher_lessons(id) ON DELETE CASCADE,
+			ordinal INT NOT NULL,
+			type TEXT NOT NULL CHECK (type IN ('intro','mcq','cloze','free_recall','production','reading_passage','writing','gap_fill')),
+			prompt JSONB NOT NULL DEFAULT '{}',
+			answer_key JSONB NOT NULL DEFAULT '{}',
+			UNIQUE (lesson_id, ordinal)
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS teacher_assignments (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			teacher_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			student_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			booking_id UUID REFERENCES tutor_bookings(id) ON DELETE SET NULL,
+			type TEXT NOT NULL CHECK (type IN ('vocabulary_push','reading','writing','scenario','lesson','mixed')),
+			title TEXT NOT NULL,
+			instructions TEXT NOT NULL DEFAULT '',
+			content JSONB NOT NULL DEFAULT '{}',
+			due_date TIMESTAMPTZ,
+			target_language TEXT NOT NULL,
+			native_language TEXT NOT NULL DEFAULT 'en',
+			status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','in_progress','submitted','reviewed')),
+			created_at TIMESTAMPTZ DEFAULT NOW(),
+			updated_at TIMESTAMPTZ DEFAULT NOW()
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_teacher_assignments_teacher ON teacher_assignments(teacher_id, created_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_teacher_assignments_student ON teacher_assignments(student_id, status)`,
+
+		`CREATE TABLE IF NOT EXISTS assignment_submissions (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			assignment_id UUID NOT NULL REFERENCES teacher_assignments(id) ON DELETE CASCADE,
+			student_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			content JSONB NOT NULL DEFAULT '{}',
+			ai_feedback JSONB,
+			teacher_feedback JSONB,
+			score INT CHECK (score >= 0 AND score <= 10),
+			submitted_at TIMESTAMPTZ DEFAULT NOW(),
+			reviewed_at TIMESTAMPTZ,
+			UNIQUE(assignment_id, student_id)
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS grading_jobs (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			submission_id UUID REFERENCES assignment_submissions(id) ON DELETE CASCADE,
+			vocabulary_id UUID REFERENCES vocabulary(id) ON DELETE CASCADE,
+			job_type TEXT NOT NULL CHECK (job_type IN ('production','writing','placement_open')),
+			payload JSONB NOT NULL DEFAULT '{}',
+			status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','processing','done','failed')),
+			result JSONB,
+			attempts INT NOT NULL DEFAULT 0,
+			last_error TEXT,
+			created_at TIMESTAMPTZ DEFAULT NOW(),
+			next_attempt_at TIMESTAMPTZ DEFAULT NOW(),
+			processing_at TIMESTAMPTZ,
+			completed_at TIMESTAMPTZ
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_grading_jobs_status ON grading_jobs(status, next_attempt_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_grading_jobs_submission ON grading_jobs(submission_id)`,
+
+		`ALTER TABLE scenario_phases ADD COLUMN IF NOT EXISTS scaffold_hints JSONB NOT NULL DEFAULT '[]'`,
+		`ALTER TABLE scenario_phases ADD COLUMN IF NOT EXISTS ai_follow_up TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE scenario_phases ADD COLUMN IF NOT EXISTS success_examples JSONB NOT NULL DEFAULT '[]'`,
+		`ALTER TABLE scenario_scripts ADD COLUMN IF NOT EXISTS scaffold_initial TEXT NOT NULL DEFAULT 'guided' CHECK (scaffold_initial IN ('guided','supported','independent'))`,
+
+		`ALTER TABLE curriculum_lessons ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'curriculum' CHECK (source IN ('curriculum','teacher'))`,
+		`ALTER TABLE curriculum_lessons ADD COLUMN IF NOT EXISTS is_active BOOL NOT NULL DEFAULT true`,
+		`ALTER TABLE scenario_runs ADD COLUMN IF NOT EXISTS assignment_id UUID REFERENCES teacher_assignments(id) ON DELETE SET NULL`,
+
+		`ALTER TABLE curriculum_lesson_steps DROP CONSTRAINT IF EXISTS curriculum_lesson_steps_type_check`,
+		`ALTER TABLE curriculum_lesson_steps ADD CONSTRAINT curriculum_lesson_steps_type_check CHECK (type IN ('intro','mcq','cloze','free_recall','translation','listening','speaking','production','chat_prompt','explanation','reading_passage','gap_fill','writing'))`,
 	}
 
 	for _, migration := range migrations {

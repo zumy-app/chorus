@@ -1347,4 +1347,165 @@ export interface CaptionQualityStats {
   ratingCounts: Record<number,number>
   pendingCount: number
 }
+
+// ---------------------------------------------------------------------------
+// V3 Learning Engine Models
+// ---------------------------------------------------------------------------
+
+export type GrammarItemType = 'cloze' | 'mcq' | 'reconstruction'
+
+export interface GrammarItem {
+  id: string
+  grammarPointId: string
+  ordinal: number
+  itemType: GrammarItemType
+  prompt: string
+  sentenceWithBlank?: string
+  choices: string[]
+  correct: string
+  acceptVariants: string[]
+  note: string
+  isActive: boolean
+}
+
+export interface GrammarMicroLesson {
+  pointId: string
+  title: string
+  cefrLevel: string
+  ruleText: string
+  commonTrap: string
+  examples: string[]
+  prerequisites: string[]
+}
+
+export interface GrammarDrillItem {
+  id: string
+  grammarPointId: string
+  pointTitle: string
+  ordinal: number
+  itemType: GrammarItemType
+  prompt: string
+  sentenceWithBlank?: string
+  choices?: string[]
+  correct: string
+  note?: string
+}
+
+export interface UserGrammarMastery {
+  userId: string
+  grammarPointId: string
+  masteryStage: number
+  easeFactor: number
+  repetitions: number
+  intervalDays: number
+  nextReviewAt: string
+  lastReviewedAt?: string
+  targetLanguage: string
+  confidence: number
+}
+
+export interface PlacementItem {
+  id: string
+  courseId: string
+  cefrLevel: string
+  module: 'receptive_vocab' | 'grammar_production' | 'discourse_reading'
+  itemType: string
+  prompt: any
+  choices: string[]
+  correct: string
+  acceptVariants: string[]
+  difficultyValue: number
+  isActive: boolean
+}
+
+export interface ReadingPassage {
+  id: string
+  courseId: string
+  unitId?: string
+  cefrLevel: string
+  title: string
+  body: string
+  wordCount: number
+  questions: any
+  vocabularyIds: string[]
+  isActive: boolean
+}
+
+export interface TeacherLesson {
+  id: string
+  teacherId: string
+  targetLanguage: string
+  nativeLanguage: string
+  title: string
+  objective: string
+  estimatedMinutes: number
+  cefrLevel?: string
+  isPublished: boolean
+  steps?: TeacherLessonStep[]
+}
+
+export interface TeacherLessonStep {
+  id: string
+  lessonId: string
+  ordinal: number
+  type: string
+  prompt: any
+  answerKey: any
+}
+
+export interface TeacherAssignment {
+  id: string
+  teacherId: string
+  studentId: string
+  bookingId?: string
+  type: 'vocabulary_push' | 'reading' | 'writing' | 'scenario' | 'lesson' | 'mixed'
+  title: string
+  instructions: string
+  content: any
+  dueDate?: string
+  targetLanguage: string
+  nativeLanguage: string
+  status: 'pending' | 'in_progress' | 'submitted' | 'reviewed'
+  createdAt: string
+  submission?: AssignmentSubmission
+}
+
+export interface AssignmentSubmission {
+  id: string
+  assignmentId: string
+  studentId: string
+  content: any
+  aiFeedback?: any
+  teacherFeedback?: any
+  score?: number
+  submittedAt: string
+  reviewedAt?: string
+}
+
+export interface StudentProgressSummary {
+  studentId: string
+  studentName: string
+  targetLanguage: string
+  vocabByStage: Record<number, number>
+  topGrammarErrors: GrammarSummary[]
+  weeklyXp: number
+  activeAssignments: TeacherAssignment[]
+  recentSubmissions: AssignmentSubmission[]
+}
+
+export interface GradingJob {
+  id: string
+  userId: string
+  submissionId?: string
+  vocabularyId?: string
+  jobType: 'production' | 'writing' | 'placement_open'
+  payload: any
+  status: 'pending' | 'processing' | 'done' | 'failed'
+  result?: any
+  attempts: number
+  lastError?: string
+  createdAt: string
+  nextAttemptAt: string
+}
+
 export type { PlacementMainStartResponse as StartPlacementResponse }
