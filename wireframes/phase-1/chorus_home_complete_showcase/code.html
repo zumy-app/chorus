@@ -1,0 +1,566 @@
+<!DOCTYPE html><html class="scroll-smooth light" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Chorus - Master any language</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "inverse-on-surface": "#eaf1ff",
+          "tertiary-container": "#007d55",
+          "error-container": "#ffdad6",
+          "on-primary-fixed-variant": "#003ea8",
+          "on-surface": "#0b1c30",
+          "surface-container-low": "#eff4ff",
+          "on-primary": "#ffffff",
+          "secondary-container": "#8455ef",
+          "surface-container": "#e5eeff",
+          "on-secondary-container": "#fffbff",
+          "surface": "#f8f9ff",
+          "outline": "#737686",
+          "on-secondary": "#ffffff",
+          "on-surface-variant": "#434655",
+          "secondary": "#6b38d4",
+          "background": "#f8f9ff",
+          "primary-fixed": "#dbe1ff",
+          "primary": "#004ac6",
+          "surface-tint": "#0053db",
+          "on-tertiary": "#ffffff",
+          "surface-container-lowest": "#ffffff",
+          "surface-variant": "#d3e4fe",
+          "inverse-primary": "#b4c5ff",
+          "outline-variant": "#c3c6d7",
+          "on-tertiary-fixed-variant": "#005236",
+          "secondary-fixed": "#e9ddff",
+          "on-background": "#0b1c30",
+          "error": "#ba1a1a",
+          "on-secondary-fixed": "#23005c",
+          "secondary-fixed-dim": "#d0bcff",
+          "surface-container-highest": "#d3e4fe",
+          "tertiary": "#006242",
+          "surface-bright": "#f8f9ff",
+          "on-primary-container": "#eeefff",
+          "primary-container": "#2563eb",
+          "on-primary-fixed": "#00174b",
+          "on-tertiary-fixed": "#002113",
+          "on-secondary-fixed-variant": "#5516be",
+          "tertiary-fixed": "#6ffbbe",
+          "surface-dim": "#cbdbf5",
+          "inverse-surface": "#213145",
+          "tertiary-fixed-dim": "#4edea3",
+          "on-error-container": "#93000a",
+          "on-error": "#ffffff",
+          "primary-fixed-dim": "#b4c5ff",
+          "on-tertiary-container": "#bdffdb",
+          "surface-container-high": "#dce9ff"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.25rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "2xl": "1rem",
+          "3xl": "1.5rem",
+          "full": "9999px"
+        },
+        "spacing": {
+          "unit": "4px",
+          "gutter-mobile": "12px",
+          "stack-sm": "8px",
+          "stack-md": "16px",
+          "margin-mobile": "16px",
+          "stack-lg": "24px"
+        },
+        "fontFamily": {
+          "translation-text": [
+            "Be Vietnam Pro"
+          ],
+          "label-sm": [
+            "Inter"
+          ],
+          "body-lg": [
+            "Be Vietnam Pro"
+          ],
+          "headline-lg": [
+            "Plus Jakarta Sans"
+          ],
+          "label-md": [
+            "Inter"
+          ],
+          "headline-sm": [
+            "Plus Jakarta Sans"
+          ],
+          "body-sm": [
+            "Be Vietnam Pro"
+          ],
+          "body-md": [
+            "Be Vietnam Pro"
+          ],
+          "headline-md": [
+            "Plus Jakarta Sans"
+          ]
+        },
+        "fontSize": {
+          "translation-text": [
+            "14px",
+            {
+              "lineHeight": "20px",
+              "fontWeight": "500"
+            }
+          ],
+          "label-sm": [
+            "11px",
+            {
+              "lineHeight": "16px",
+              "letterSpacing": "0.03em",
+              "fontWeight": "500"
+            }
+          ],
+          "body-lg": [
+            "18px",
+            {
+              "lineHeight": "28px",
+              "fontWeight": "400"
+            }
+          ],
+          "headline-lg": [
+            "30px",
+            {
+              "lineHeight": "38px",
+              "letterSpacing": "-0.02em",
+              "fontWeight": "700"
+            }
+          ],
+          "label-md": [
+            "13px",
+            {
+              "lineHeight": "18px",
+              "letterSpacing": "0.01em",
+              "fontWeight": "600"
+            }
+          ],
+          "headline-sm": [
+            "20px",
+            {
+              "lineHeight": "28px",
+              "fontWeight": "600"
+            }
+          ],
+          "body-sm": [
+            "14px",
+            {
+              "lineHeight": "20px",
+              "fontWeight": "400"
+            }
+          ],
+          "body-md": [
+            "16px",
+            {
+              "lineHeight": "24px",
+              "fontWeight": "400"
+            }
+          ],
+          "headline-md": [
+            "24px",
+            {
+              "lineHeight": "32px",
+              "letterSpacing": "-0.01em",
+              "fontWeight": "700"
+            }
+          ]
+        }
+      },
+    },
+  }
+</script>
+<style>
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    display: inline-block;
+    vertical-align: middle;
+    line-height: 1;
+  }
+</style>
+</head>
+<body class="bg-background text-on-surface antialiased font-body-md overflow-x-hidden selection:bg-primary-fixed selection:text-primary">
+<!-- Top Navigation -->
+<header class="w-full top-0 sticky z-50 bg-surface/90 backdrop-blur-md shadow-sm transition-all">
+<div class="flex justify-between items-center px-margin-mobile py-stack-sm w-full max-w-lg mx-auto">
+<!-- Brand Logo -->
+<a class="flex items-center gap-2 group" href="#">
+<span class="material-symbols-outlined text-primary text-2xl" style="font-variation-settings: &quot;FILL&quot; 1;">graphic_eq</span>
+<span class="font-headline-md text-headline-md font-bold text-primary tracking-tight">Chorus</span>
+</a>
+<!-- Trailing Actions -->
+<div class="flex items-center gap-2">
+<a class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-primary-container text-on-primary font-label-md text-label-sm shadow-sm hover:bg-primary transition-colors active:scale-95" href="#waitlist-form">
+<span class="">Join Waitlist</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</a>
+<a class="inline-flex items-center px-2.5 py-1.5 rounded-full text-on-surface hover:text-primary font-label-md text-label-sm transition-colors" href="#">Log In</a>
+</div>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="w-full max-w-lg mx-auto px-margin-mobile pt-stack-md pb-16 flex flex-col gap-10">
+<!-- 2. Hero Section -->
+<section class="flex flex-col items-start gap-4 pt-2">
+<!-- Waitlist Ticker Pill -->
+<div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-container-low border border-surface-variant/80 text-primary font-label-md text-label-sm shadow-sm">
+<span class="inline-block w-2 h-2 rounded-full bg-primary-container animate-pulse"></span>
+<span class="">⏱ 14,820 language learners waiting</span>
+</div>
+<!-- Headline -->
+<h1 class="font-headline-lg text-headline-lg text-on-surface font-extrabold tracking-tight">
+      Connect with anyone, <span class="text-primary-container">in any language.</span>
+</h1>
+<!-- Subtitle / Body copy -->
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+      Languages should not be a barrier for building connections. Chorus is a powerful messaging app that helps you chat with anyone in any language and also teaches you that language intuitively using AI. Chorus understands and adapts to your learning needs.
+    </p>
+<!-- Priority beta waitlist email input card -->
+<div class="w-full bg-surface-container-lowest rounded-2xl p-4 shadow-[0px_4px_12px_rgba(0,0,0,0.05)] border border-surface-container-high/60 flex flex-col gap-3" id="waitlist-form">
+<form class="flex flex-col gap-3" onsubmit="event.preventDefault(); document.getElementById('success-toast').classList.remove('hidden');">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-outline text-[20px]">mail</span>
+<input class="w-full pl-11 pr-4 py-3 bg-surface-container-low rounded-xl border border-outline-variant/60 font-body-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-body-sm" placeholder="Enter your email for priority beta" required="" type="email">
+</div>
+<button class="w-full py-3.5 px-6 rounded-xl bg-primary-container text-on-primary font-headline-sm text-body-md font-bold flex items-center justify-center gap-2 shadow-md shadow-primary/20 active:scale-[0.98] transition-all hover:bg-primary" type="submit">
+<span class="">Join 14,000+ on Waitlist</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</form>
+<div class="hidden p-3 rounded-lg bg-tertiary-fixed text-on-tertiary-fixed font-label-md text-label-sm text-center flex items-center justify-center gap-1.5" id="success-toast">
+<span class="material-symbols-outlined text-[16px] text-tertiary">check_circle</span>
+<span class="">You're on the priority list! We just sent you a welcome note.</span>
+</div>
+<!-- Micro-reassurance labels -->
+<div class="flex items-center justify-between pt-1 text-on-surface-variant font-label-sm text-label-sm px-1">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-tertiary text-[14px]">check</span>
+          No credit card required
+        </span>
+<span class="flex items-center gap-1 text-primary">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+          Next invite drop in 18 hrs
+        </span>
+</div>
+</div>
+<!-- Social Proof Avatars -->
+<div class="flex items-center gap-3 pt-1">
+<div class="flex -space-x-2.5 overflow-hidden">
+<div class="w-8 h-8 rounded-full border-2 border-surface-container-lowest bg-surface-variant flex items-center justify-center text-primary font-bold text-[11px]">OX</div>
+<div class="w-8 h-8 rounded-full border-2 border-surface-container-lowest bg-secondary-fixed flex items-center justify-center text-secondary font-bold text-[11px]">IE</div>
+<div class="w-8 h-8 rounded-full border-2 border-surface-container-lowest bg-tertiary-fixed flex items-center justify-center text-tertiary font-bold text-[11px]">BL</div>
+<div class="w-8 h-8 rounded-full border-2 border-surface-container-lowest bg-primary-container text-on-primary flex items-center justify-center font-bold text-[10px]">+14k</div>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant leading-tight">
+        Joined by alumni from <strong class="text-on-surface font-semibold">Oxford, IE Madrid,</strong> &amp; <strong class="text-on-surface font-semibold">Babbel Labs</strong>
+</p>
+</div>
+<!-- Hero Media Container with Lifestyle Image & Floating AI Tutor Card -->
+<div class="relative w-full h-[380px] rounded-3xl overflow-hidden shadow-[0px_8px_24px_rgba(0,0,0,0.1)] mt-2">
+<div class="absolute inset-0 bg-cover bg-center w-full h-full" style="background-image: url(&quot;https://lh3.googleusercontent.com/aida-public/AB6AXuAswQf9XgiQDsAqUPUc_G8MA2R5sbgyiSN1KCuiinIbC02PL38FHJebDQZ76E9gpoJ5ziSAj4mKasVXPaJeAjHL19JuxRZ915gsgPmwBSyoflmclEFtReVckKskNv4V-N4oldDpwxp73yPr-XENJGMlTVzv6mXiRC7jpjRmZSc4Rn3uEqqbDzP0BrcmyjAw5D1smu8hz4CRRkMOHOQ_6WTnOGQ_ZzuHowYNo3AjKLcfiXvCYgUnGdBi&quot;);"></div>
+<!-- Floating Frosted Bubble -->
+<div class="absolute bottom-5 left-4 right-4 bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-[0px_4px_16px_rgba(0,0,0,0.08)] border-l-4 border-secondary-container">
+<div class="flex items-center gap-2.5 mb-1.5">
+<div class="w-7 h-7 rounded-full bg-primary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: &quot;FILL&quot; 1;">smart_toy</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface font-bold">AI Tutor Sparky</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface font-medium mb-0.5">¡Hola! ¿Cómo estuvo tu día hoy?</p>
+<p class="font-translation-text text-translation-text text-secondary font-medium">Hello! How was your day today?</p>
+</div>
+</div>
+</section>
+<!-- 3. Value Proposition Callout Banner -->
+<section class="p-6 rounded-3xl bg-surface-container-low border border-surface-variant/70 text-center flex flex-col items-center gap-3">
+<div class="w-10 h-10 rounded-2xl bg-primary-fixed flex items-center justify-center text-primary mb-1">
+<span class="material-symbols-outlined text-[22px]">psychology</span>
+</div>
+<h2 class="font-headline-md text-headline-sm text-on-surface font-bold">
+      Your brain doesn't separate communicating from learning. <span class="text-primary">Neither does Chorus!</span>
+</h2>
+<p class="font-body-md text-body-sm text-on-surface-variant max-w-sm">
+      Messaging apps connect you. Language apps quiz you. Chorus does both — you learn a language while you are actually talking to people.
+    </p>
+</section>
+<!-- 4. Pioneering Language Tech Section -->
+<section class="flex flex-col gap-6">
+<div class="flex flex-col gap-1">
+<span class="font-label-sm text-label-sm font-bold tracking-wider uppercase text-primary">PIONEERING LANGUAGE TECH</span>
+<h2 class="font-headline-md text-headline-md text-on-surface font-bold">Engineered for Natural Fluency</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">A four-stage learning loop embedded directly into your real conversations.</p>
+</div>
+<!-- Feature Card 1 -->
+<div class="bg-surface-container-lowest rounded-3xl p-5 border border-surface-container shadow-[0px_4px_12px_rgba(0,0,0,0.05)] flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<span class="px-2.5 py-1 rounded-full bg-primary-fixed text-primary font-label-md text-label-sm font-semibold">1. Real-Time Human Translation</span>
+<span class="material-symbols-outlined text-primary-container">translate</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Bilingual Chat with Instant Toggle</h3>
+<h4 class="font-label-md text-label-md text-primary font-semibold mt-0.5">Never Pause the Flow of Conversation</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-2">Chat with native speakers worldwide without getting lost. Every message displays side-by-side or collapsible translations tuned for nuance, slang, and cultural tone.</p>
+</div>
+
+<a class="inline-flex items-center gap-1 font-label-md text-label-md text-primary font-bold hover:gap-2 transition-all" href="#waitlist-form">
+<span class="">Test Live Translation</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</a>
+</div>
+<!-- Feature Card 2 -->
+<div class="bg-surface-container-lowest rounded-3xl p-5 border border-surface-container shadow-[0px_4px_12px_rgba(0,0,0,0.05)] flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<span class="px-2.5 py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed-variant font-label-md text-label-sm font-semibold">2. AI Grammar Analysis &amp; Deep Dive</span>
+<span class="material-symbols-outlined text-secondary">psychology</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Word-by-Word Syntax Explanations</h3>
+<h4 class="font-label-md text-label-md text-primary font-semibold mt-0.5">See Exactly 'How It's Built'</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-2">Tap any idiom, verb tense, or unfamiliar phrase. Chorus unpacks conjugation tables, register differences, and grammatical structures in seconds.</p>
+</div>
+
+<a class="inline-flex items-center gap-1 font-label-md text-label-md text-primary font-bold hover:gap-2 transition-all" href="#waitlist-form">
+<span class="">Explore Grammar Deep Dives</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</a>
+</div>
+<!-- Feature Card 3 -->
+<div class="bg-surface-container-lowest rounded-3xl p-5 border border-surface-container shadow-[0px_4px_12px_rgba(0,0,0,0.05)] flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<span class="px-2.5 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-md text-label-sm font-semibold">3. Personalized AI Support</span>
+<span class="material-symbols-outlined text-tertiary">smart_toy</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">24/7 In-Chat Conversation Partner (Sparky)</h3>
+<h4 class="font-label-md text-label-md text-primary font-semibold mt-0.5">Gentle Real-Time Feedback &amp; Audio Support</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-2">Practice anytime with your tailored AI tutor. Receive instant pronunciation feedback, phrasing suggestions, and roleplay simulations in a zero-pressure environment.</p>
+</div>
+
+<a class="inline-flex items-center gap-1 font-label-md text-label-md text-primary font-bold hover:gap-2 transition-all" href="#waitlist-form">
+<span class="">Chat with AI Tutor</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</a>
+</div>
+<!-- Feature Card 4 -->
+<div class="bg-surface-container-lowest rounded-3xl p-5 border border-surface-container shadow-[0px_4px_12px_rgba(0,0,0,0.05)] flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<span class="px-2.5 py-1 rounded-full bg-surface-container-high text-primary font-label-md text-label-sm font-semibold">4. CEFR-Aligned Structured Progression</span>
+<span class="material-symbols-outlined text-primary">route</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Milestone Progression from A1 to C2</h3>
+<h4 class="font-label-md text-label-md text-primary font-semibold mt-0.5">Structured Growth Grounded in Real Chats</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-2">Every message sent and translated counts toward European Framework benchmarks. Turn everyday texting into verifiable conversational mastery.</p>
+</div>
+
+<a class="inline-flex items-center gap-1 font-label-md text-label-md text-primary font-bold hover:gap-2 transition-all" href="#waitlist-form">
+<span class="">View Full CEFR Path</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</a>
+</div>
+</section>
+<!-- 5. Built for Everyday Fluency Scenarios -->
+<section class="flex flex-col gap-3">
+<div class="flex items-center justify-between px-1">
+<span class="font-label-sm text-label-sm font-bold uppercase tracking-wider text-primary">Built For Everyday Fluency</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">4 Key Scenarios</span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+<div class="p-4 rounded-2xl bg-surface-container-lowest border border-surface-container shadow-[0px_4px_12px_rgba(0,0,0,0.04)] flex flex-col gap-1.5">
+<div class="flex items-center gap-2">
+<span class="text-[18px]">👨‍👩‍👧‍👦</span>
+<h3 class="font-headline-sm text-body-md font-bold text-on-surface">Multilingual Families</h3>
+</div>
+<p class="font-body-sm text-label-md text-on-surface-variant leading-relaxed">Chat with relatives &amp; in-laws across borders while learning heritage languages naturally.</p>
+</div>
+<div class="p-4 rounded-2xl bg-surface-container-lowest border border-surface-container shadow-[0px_4px_12px_rgba(0,0,0,0.04)] flex flex-col gap-1.5">
+<div class="flex items-center gap-2">
+<span class="text-[18px]">✈️</span>
+<h3 class="font-headline-sm text-body-md font-bold text-on-surface">Travelers &amp; Expats</h3>
+</div>
+<p class="font-body-sm text-label-md text-on-surface-variant leading-relaxed">Connect with locals, order confidently, and settle in without juggling separate translator tools.</p>
+</div>
+<div class="p-4 rounded-2xl bg-surface-container-lowest border border-surface-container shadow-[0px_4px_12px_rgba(0,0,0,0.04)] flex flex-col gap-1.5">
+<div class="flex items-center gap-2">
+<span class="text-[18px]">🎓</span>
+<h3 class="font-headline-sm text-body-md font-bold text-on-surface">Active Students</h3>
+</div>
+<p class="font-body-sm text-label-md text-on-surface-variant leading-relaxed">Transition from passive study to real conversational practice with instant grammar insights.</p>
+</div>
+<div class="p-4 rounded-2xl bg-surface-container-lowest border border-surface-container shadow-[0px_4px_12px_rgba(0,0,0,0.04)] flex flex-col gap-1.5">
+<div class="flex items-center gap-2">
+<span class="text-[18px]">💼</span>
+<h3 class="font-headline-sm text-body-md font-bold text-on-surface">Global Professionals</h3>
+</div>
+<p class="font-body-sm text-label-md text-on-surface-variant leading-relaxed">Message international peers comfortably while building bilingual workplace fluency.</p>
+</div>
+</div>
+</section>
+<!-- 6. Future Pricing Plans -->
+<section class="flex flex-col gap-5">
+<div class="flex flex-col gap-1 text-center">
+<span class="font-label-sm text-label-sm font-bold tracking-wider uppercase text-primary">Transparent Pricing</span>
+<h2 class="font-headline-md text-headline-md text-on-surface font-bold">Future Pricing Plans</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Join the waitlist today for 100% free priority beta access.</p>
+</div>
+<div class="flex flex-col gap-4">
+<!-- Free Plan -->
+<div class="bg-surface-container-lowest rounded-3xl p-5 border border-surface-container shadow-[0px_4px_12px_rgba(0,0,0,0.05)] flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">Free Plan</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">For curious casual learners</p>
+</div>
+<div class="text-right">
+<span class="font-headline-lg text-headline-md font-extrabold text-on-surface">$0</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">/mo</span>
+</div>
+</div>
+<ul class="flex flex-col gap-2.5 font-body-sm text-body-sm text-on-surface-variant border-t border-surface-variant/50 pt-3">
+<li class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-[18px]">check_circle</span>
+<span class="">280-character messages</span>
+</li>
+<li class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-[18px]">check_circle</span>
+<span class="">Basic AI translations</span>
+</li>
+<li class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-[18px]">check_circle</span>
+<span class="">Limited daily AI insights</span>
+</li>
+</ul>
+<a class="w-full py-3 rounded-xl border border-primary text-primary font-headline-sm text-body-md font-semibold text-center hover:bg-surface-container-low transition-colors" href="#waitlist-form">
+          Join Beta Waitlist
+        </a>
+</div>
+<!-- Premium Plan -->
+<div class="bg-surface-container-lowest rounded-3xl p-5 border-2 border-primary-container shadow-[0px_8px_24px_rgba(37,99,235,0.12)] flex flex-col gap-4 relative">
+<div class="absolute -top-3 right-6 bg-primary-container text-on-primary font-label-md text-label-sm font-bold px-3 py-0.5 rounded-full shadow-sm">
+          Most Popular
+        </div>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">Premium Plan</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">For accelerated conversational fluency</p>
+</div>
+<div class="text-right">
+<span class="font-headline-lg text-headline-md font-extrabold text-primary-container">$7.99</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">/mo</span>
+</div>
+</div>
+<ul class="flex flex-col gap-2.5 font-body-sm text-body-sm text-on-surface border-t border-surface-variant/50 pt-3">
+<li class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container text-[18px]">check_circle</span>
+<span class="">1000-character messages</span>
+</li>
+<li class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container text-[18px]">check_circle</span>
+<span class="">Unlimited AI Deep Dives &amp; Grammar notes</span>
+</li>
+<li class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container text-[18px]">check_circle</span>
+<span class="">Monthly trial credits for live native tutors</span>
+</li>
+<li class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container text-[18px]">check_circle</span>
+<span class="">Reduced marketplace session fees</span>
+</li>
+</ul>
+<a class="w-full py-3 rounded-xl bg-primary-container text-on-primary font-headline-sm text-body-md font-semibold text-center hover:bg-primary transition-colors shadow-sm" href="#waitlist-form">
+          Join Beta Waitlist
+        </a>
+</div>
+</div>
+</section>
+<!-- 7. Mission Section & Final Waitlist Banner -->
+<section class="flex flex-col gap-6">
+<div class="bg-surface-container-lowest p-6 rounded-3xl border border-surface-container flex flex-col gap-3 shadow-[0px_4px_12px_rgba(0,0,0,0.04)]">
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined text-[20px]">public</span>
+<span class="font-label-md text-label-md font-bold uppercase tracking-wider">Our Mission</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface font-medium leading-relaxed">
+        We believe language shouldn’t be a barrier, but a bridge. Chorus was built by a team of linguists and engineers dedicated to bridging global communication gaps through science-based acquisition, not rote memorization.
+      </p>
+</div>
+<!-- Final Blue Banner -->
+<div class="rounded-3xl bg-primary-container text-on-primary p-6 shadow-xl shadow-primary/25 flex flex-col gap-4">
+<div class="flex flex-col gap-1.5">
+<h2 class="font-headline-lg text-headline-md font-extrabold text-white">Join the Waitlist</h2>
+<p class="font-body-sm text-body-sm text-on-primary-container">Get priority access to the upcoming iOS and Android beta drops.</p>
+</div>
+<form class="flex flex-col gap-3" onsubmit="event.preventDefault(); alert('Thank you for joining the Chorus waitlist!');">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-on-surface-variant text-[20px]">mail</span>
+<input class="w-full pl-11 pr-4 py-3 bg-surface-container-lowest rounded-xl font-body-sm text-on-surface placeholder:text-outline border-0 focus:ring-2 focus:ring-secondary-fixed text-body-sm" placeholder="Your preferred email" required="" type="email">
+</div>
+<button class="w-full py-3.5 px-6 rounded-xl bg-white text-primary-container font-headline-sm text-body-md font-bold flex items-center justify-center gap-2 shadow-md active:scale-[0.98] transition-all hover:bg-surface-container-low" type="submit">
+<span class="">Join Waitlist</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</form>
+</div>
+</section>
+<!-- 8. Mobile Footer -->
+<footer class="pt-6 border-t border-surface-container flex flex-col gap-6 text-on-surface-variant">
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-2xl" style="font-variation-settings: &quot;FILL&quot; 1;">graphic_eq</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">Chorus</span>
+</div>
+<p class="font-body-sm text-body-sm">Bridging conversations and language fluency with conversational AI.</p>
+</div>
+<div class="grid grid-cols-3 gap-4 text-body-sm">
+<div class="flex flex-col gap-2">
+<span class="font-label-md text-label-md font-bold text-on-surface">Product</span>
+<a class="hover:text-primary" href="#">Chat</a>
+<a class="hover:text-primary" href="#">Live Calls</a>
+<a class="hover:text-primary" href="#">Flashcards</a>
+</div>
+<div class="flex flex-col gap-2">
+<span class="font-label-md text-label-md font-bold text-on-surface">Company</span>
+<a class="hover:text-primary" href="#">Mission</a>
+<a class="hover:text-primary" href="#">Careers</a>
+<a class="hover:text-primary" href="#">Blog</a>
+</div>
+<div class="flex flex-col gap-2">
+<span class="font-label-md text-label-md font-bold text-on-surface">Support</span>
+<a class="hover:text-primary" href="#">Help Center</a>
+<a class="hover:text-primary" href="#">Privacy</a>
+<a class="hover:text-primary" href="#">Terms</a>
+</div>
+</div>
+<div class="pt-4 border-t border-surface-container-high/60 flex flex-col sm:flex-row justify-between items-center gap-2 font-label-sm text-label-sm text-outline">
+<p class="">© 2025 Chorus Inc. All rights reserved.</p>
+<p class="">Built for curious polyglots worldwide.</p>
+</div>
+</footer>
+</main>
+<script>
+  // Smooth scroll handler
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      const targetId = this.getAttribute('href');
+      if (targetId && targetId !== '#') {
+        e.preventDefault();
+        const target = document.querySelector(targetId);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    });
+  });
+</script>
+
+
+</body></html>

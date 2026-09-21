@@ -1,0 +1,485 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Chorus - Home &amp; Dashboard</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&amp;family=Inter:wght@500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700;800&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-secondary-fixed-variant": "#5516be",
+            "surface-variant": "#d3e4fe",
+            "inverse-primary": "#b4c5ff",
+            "surface-container-low": "#eff4ff",
+            "on-secondary": "#ffffff",
+            "on-tertiary-fixed-variant": "#005236",
+            "secondary-fixed": "#e9ddff",
+            "outline-variant": "#c3c6d7",
+            "secondary-fixed-dim": "#d0bcff",
+            "on-tertiary": "#ffffff",
+            "error": "#ba1a1a",
+            "surface-tint": "#0053db",
+            "error-container": "#ffdad6",
+            "tertiary-container": "#007d55",
+            "inverse-on-surface": "#eaf1ff",
+            "surface-container": "#e5eeff",
+            "on-surface-variant": "#434655",
+            "on-secondary-container": "#fffbff",
+            "inverse-surface": "#213145",
+            "on-primary-fixed-variant": "#003ea8",
+            "tertiary-fixed-dim": "#4edea3",
+            "surface-container-high": "#dce9ff",
+            "primary-fixed-dim": "#b4c5ff",
+            "surface-bright": "#f8f9ff",
+            "on-primary-fixed": "#00174b",
+            "background": "#f8f9ff",
+            "on-error": "#ffffff",
+            "primary": "#004ac6",
+            "secondary-container": "#8455ef",
+            "on-error-container": "#93000a",
+            "on-tertiary-fixed": "#002113",
+            "surface-dim": "#cbdbf5",
+            "primary-container": "#2563eb",
+            "on-background": "#0b1c30",
+            "tertiary-fixed": "#6ffbbe",
+            "on-primary": "#ffffff",
+            "on-surface": "#0b1c30",
+            "on-primary-container": "#eeefff",
+            "surface-container-highest": "#d3e4fe",
+            "surface-container-lowest": "#ffffff",
+            "on-secondary-fixed": "#23005c",
+            "tertiary": "#006242",
+            "on-tertiary-container": "#bdffdb",
+            "surface": "#f8f9ff",
+            "primary-fixed": "#dbe1ff",
+            "secondary": "#6b38d4",
+            "outline": "#737686"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "gutter-mobile": "12px",
+            "unit": "4px",
+            "stack-lg": "24px",
+            "margin-mobile": "16px",
+            "stack-sm": "8px",
+            "stack-md": "16px"
+          },
+          "fontFamily": {
+            "translation-text": [
+              "Be Vietnam Pro"
+            ],
+            "headline-sm": [
+              "Plus Jakarta Sans"
+            ],
+            "body-lg": [
+              "Be Vietnam Pro"
+            ],
+            "label-sm": [
+              "Inter"
+            ],
+            "headline-md": [
+              "Plus Jakarta Sans"
+            ],
+            "body-md": [
+              "Be Vietnam Pro"
+            ],
+            "body-sm": [
+              "Be Vietnam Pro"
+            ],
+            "label-md": [
+              "Inter"
+            ],
+            "headline-lg": [
+              "Plus Jakarta Sans"
+            ]
+          },
+          "fontSize": {
+            "translation-text": [
+              "14px",
+              {
+                "lineHeight": "20px",
+                "fontWeight": "500"
+              }
+            ],
+            "headline-sm": [
+              "20px",
+              {
+                "lineHeight": "28px",
+                "fontWeight": "600"
+              }
+            ],
+            "body-lg": [
+              "18px",
+              {
+                "lineHeight": "28px",
+                "fontWeight": "400"
+              }
+            ],
+            "label-sm": [
+              "11px",
+              {
+                "lineHeight": "16px",
+                "letterSpacing": "0.03em",
+                "fontWeight": "500"
+              }
+            ],
+            "headline-md": [
+              "24px",
+              {
+                "lineHeight": "32px",
+                "letterSpacing": "-0.01em",
+                "fontWeight": "700"
+              }
+            ],
+            "body-md": [
+              "16px",
+              {
+                "lineHeight": "24px",
+                "fontWeight": "400"
+              }
+            ],
+            "body-sm": [
+              "14px",
+              {
+                "lineHeight": "20px",
+                "fontWeight": "400"
+              }
+            ],
+            "label-md": [
+              "13px",
+              {
+                "lineHeight": "18px",
+                "letterSpacing": "0.01em",
+                "fontWeight": "600"
+              }
+            ],
+            "headline-lg": [
+              "30px",
+              {
+                "lineHeight": "38px",
+                "letterSpacing": "-0.02em",
+                "fontWeight": "700"
+              }
+            ]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Outlined';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 20px;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      display: inline-block;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      -webkit-font-feature-settings: 'liga';
+      -webkit-font-smoothing: antialiased;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased selection:bg-primary-fixed selection:text-on-primary-fixed min-h-screen">
+<div class="max-w-md mx-auto min-h-screen flex flex-col bg-surface pb-28 relative">
+<header class="sticky top-0 z-40 bg-surface dark:bg-inverse-surface shadow-sm">
+<div class="flex justify-between items-center w-full px-margin-mobile h-16 max-w-md mx-auto">
+<div class="flex items-center gap-2">
+<div class="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-on-primary font-headline-md text-headline-sm shadow-sm font-bold">
+            C
+          </div>
+<span class="text-headline-md font-headline-md text-primary dark:text-inverse-primary tracking-tight font-bold">Chorus</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="flex items-center gap-1 bg-surface-container-low px-2.5 py-1 rounded-full">
+<span class="material-symbols-outlined text-secondary text-[18px]" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<span class="font-label-md text-label-md text-on-surface font-semibold">1d</span>
+</div>
+<div class="flex items-center gap-1 bg-surface-container px-2.5 py-1 rounded-full">
+<span class="material-symbols-outlined text-primary text-[17px]" style="font-variation-settings: 'FILL' 1;">bolt</span>
+<span class="font-label-md text-label-md text-primary font-semibold">50 XP</span>
+</div>
+<div class="relative ml-1 active:scale-95 transition-transform duration-100 ease-out cursor-pointer">
+<div class="w-9 h-9 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed font-headline-sm text-label-md ring-2 ring-surface-container-lowest shadow-sm font-bold">
+              AL
+            </div>
+<span class="absolute -bottom-1 -right-1 bg-secondary text-on-secondary font-label-sm text-[10px] px-1 rounded-full ring-2 ring-surface-container-lowest font-bold">
+              EN
+            </span>
+</div>
+</div>
+</div>
+</header>
+<main class="flex-1 px-margin-mobile pt-stack-md space-y-stack-lg">
+<!-- Welcome Banner -->
+<section class="relative overflow-hidden rounded-2xl bg-surface-container-lowest p-5 shadow-[0_4px_12px_rgba(0,0,0,0.04)] ring-1 ring-surface-container-high">
+<div class="absolute -right-6 -bottom-6 w-32 h-32 bg-primary-fixed/40 rounded-full blur-2xl pointer-events-none"></div>
+<div class="relative z-10 space-y-2">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm font-medium">
+<span class="material-symbols-outlined text-[15px]" style="font-variation-settings: 'FILL' 1;">waving_hand</span>
+<span>Invited by Sofia Martínez</span>
+</div>
+<h1 class="font-headline-md text-headline-md text-on-surface font-bold tracking-tight">
+            Welcome, Alex! Ready to chat &amp; learn.
+          </h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            Your bilingual conversations with instant translation and contextual AI guidance are ready.
+          </p>
+</div>
+</section>
+<!-- Active Conversations -->
+<section class="space-y-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">chat_bubble</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold">Active Conversations</h2>
+</div>
+<span class="bg-surface-container font-label-sm text-label-sm text-primary font-semibold px-2.5 py-0.5 rounded-full">2 Active</span>
+</div>
+<div class="space-y-3">
+<!-- Sofia Preview Card -->
+<div class="rounded-2xl bg-surface-container-lowest p-4 shadow-[0_4px_12px_rgba(0,0,0,0.05)] ring-1 ring-surface-container-high space-y-3 transition-transform active:scale-[0.99]">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="w-12 h-12 rounded-full bg-secondary-fixed flex items-center justify-center font-headline-sm text-on-secondary-fixed font-bold text-headline-sm">
+                    SM
+                  </div>
+<span class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-tertiary-container ring-2 ring-surface-container-lowest"></span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h3 class="font-headline-sm text-[16px] text-on-surface font-semibold">Sofia Martínez</h3>
+<span class="text-label-sm font-label-sm bg-surface-container-high text-on-surface-variant px-1.5 py-0.5 rounded font-medium">Inviter</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Online now • Native ES ⇄ EN</p>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-primary font-medium">Just now</span>
+</div>
+<div class="rounded-xl bg-surface-container-low p-3 space-y-2">
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-primary text-[18px] mt-0.5">format_quote</span>
+<p class="font-body-md text-body-sm text-on-surface font-medium">
+                  ¡Hola Alex! Bienvenido a Chorus 👋
+                </p>
+</div>
+<div class="pl-6 pt-1 border-t border-surface-container text-on-surface-variant font-translation-text text-translation-text flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[14px] text-primary">translate</span>
+<span>"Hello Alex! Welcome to Chorus 👋"</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-1">
+<span class="font-label-sm text-[12px] text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[15px] text-tertiary">check_circle</span> Type naturally in English • Auto-translates
+              </span>
+<button class="px-4 py-2 rounded-xl bg-primary text-on-primary font-label-md text-label-md flex items-center gap-1.5 shadow-sm hover:opacity-95 active:scale-95 transition-all font-semibold">
+<span>Reply in English</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- AI Tutor Card -->
+<div class="rounded-2xl bg-surface-container-lowest p-4 shadow-[0_4px_12px_rgba(0,0,0,0.05)] ring-1 ring-surface-container-high border-l-4 border-secondary space-y-3">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[24px]">smart_toy</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h3 class="font-headline-sm text-[16px] text-on-surface font-semibold">Chorus AI Tutor</h3>
+<span class="text-label-sm font-label-sm bg-secondary-fixed text-on-secondary-fixed px-1.5 py-0.5 rounded font-medium">Bot</span>
+</div>
+<p class="font-label-sm text-label-sm text-tertiary font-medium">Always available</p>
+</div>
+</div>
+<span class="w-2.5 h-2.5 rounded-full bg-tertiary-container mt-2"></span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+              Ask me anything about Spanish grammar, phrasing, or practice a conversation!
+            </p>
+<div class="flex flex-wrap gap-2 pt-1">
+<button class="px-3 py-1.5 rounded-full bg-surface-container-low text-primary font-label-md text-label-sm ring-1 ring-outline-variant/30 flex items-center gap-1 hover:bg-surface-container active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[14px]">psychology</span>
+<span>Explain "por vs para"</span>
+</button>
+<button class="px-3 py-1.5 rounded-full bg-surface-container-low text-primary font-label-md text-label-sm ring-1 ring-outline-variant/30 flex items-center gap-1 hover:bg-surface-container active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[14px]">forum</span>
+<span>Practice natural phrasing</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Word Collector & Library Card -->
+<section class="rounded-2xl bg-surface-container-lowest p-5 shadow-[0_4px_12px_rgba(0,0,0,0.05)] ring-1 ring-surface-container-high space-y-4">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-10 h-10 rounded-xl bg-primary-fixed flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">menu_book</span>
+</div>
+<div>
+<h2 class="font-headline-sm text-[17px] text-on-surface font-semibold">Word Collector &amp; Library</h2>
+<p class="font-label-sm text-label-sm text-on-surface-variant">3 words ready for your deck today</p>
+</div>
+</div>
+<span class="font-label-sm text-label-sm bg-tertiary/10 text-tertiary px-2 py-1 rounded-full font-semibold">Ready</span>
+</div>
+<div class="grid grid-cols-3 gap-2">
+<div class="p-2.5 rounded-xl bg-surface-container-low text-center ring-1 ring-surface-container">
+<span class="font-headline-sm text-label-md text-on-surface block font-bold">bienvenido</span>
+<span class="font-label-sm text-[11px] text-on-surface-variant block">welcome</span>
+</div>
+<div class="p-2.5 rounded-xl bg-surface-container-low text-center ring-1 ring-surface-container">
+<span class="font-headline-sm text-label-md text-on-surface block font-bold">charlar</span>
+<span class="font-label-sm text-[11px] text-on-surface-variant block">to chat</span>
+</div>
+<div class="p-2.5 rounded-xl bg-surface-container-low text-center ring-1 ring-surface-container">
+<span class="font-headline-sm text-label-md text-on-surface block font-bold">aprender</span>
+<span class="font-label-sm text-[11px] text-on-surface-variant block">to learn</span>
+</div>
+</div>
+<div class="pt-1 flex flex-col gap-2">
+<button class="w-full py-2.5 px-4 rounded-xl bg-primary text-on-primary font-label-md text-label-md flex items-center justify-center gap-2 shadow-sm hover:bg-primary-container active:scale-95 transition-all font-semibold">
+<span class="material-symbols-outlined text-[18px]">bookmark_add</span>
+<span>Collect &amp; Save</span>
+</button>
+<p class="text-center font-label-sm text-label-sm text-on-surface-variant">
+            Build your custom vocabulary deck automatically as you chat
+          </p>
+</div>
+</section>
+<!-- Future Roadmap / Sneak Peek Showcase Section -->
+<section class="space-y-3 pt-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-secondary text-[20px]">upcoming</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold">Sneak Peek Showcase</h2>
+</div>
+<span class="font-label-sm text-label-sm text-secondary bg-secondary-fixed px-2 py-0.5 rounded-full font-semibold">Upcoming Roadmap</span>
+</div>
+<div class="space-y-3">
+<!-- Card 1: Video Calls -->
+<div class="rounded-2xl bg-surface-container-lowest p-4 ring-1 ring-surface-container-high shadow-sm relative overflow-hidden space-y-3">
+<div class="flex items-center justify-between">
+<span class="text-label-sm font-label-sm bg-secondary-fixed text-on-secondary-fixed px-2 py-0.5 rounded font-medium">Coming Soon</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">lock</span>
+</div>
+<div class="relative h-28 w-full rounded-xl overflow-hidden">
+<img alt="Real-time AI Audio Sync Preview" class="w-full h-full object-cover" data-alt="A clean modern language learning video interface preview showing dynamic bilingual subtitle captions in English and Spanish on a soft light minimalist backdrop with high aesthetic clarity" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSlF2Ta-kQjfQYQh8kzGmSW-hF8ay2jOn3j2ilue6RPUr5qCLGySeIAMoj0vLmS9yUqNyldPc989uzutAHbW25rRjifvD-Pll8pD5z2eIajWVkq_wqguKOqsT7ynvywampi2fRSkuF2v-xshLuZRGtnxByqhJrNMsmvUHIfo9BUHIJyVO8eSqN7XzcJZAyKokE7gqJai2PBMvULmhwMiwH_vV8HAO-4Wgtvuf4OiU">
+<div class="absolute inset-0 bg-gradient-to-t from-on-surface/60 to-transparent flex items-end p-2.5">
+<span class="text-surface font-label-sm text-label-sm font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">subtitles</span> Real-time AI Audio Sync
+                </span>
+</div>
+</div>
+<div>
+<h3 class="font-headline-sm text-[16px] text-on-surface font-semibold">Live Audio &amp; Video Calls with Real-Time Subtitles</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+              Practice face-to-face with native speakers accompanied by live streaming bilingual transcription.
+            </p>
+</div>
+<div class="pt-1">
+<button class="w-full py-2 px-3 rounded-xl bg-surface-container-low hover:bg-surface-container text-secondary ring-1 ring-outline-variant/30 font-label-md text-label-md flex items-center justify-center gap-1.5 font-semibold transition-all active:scale-[0.98]">
+<span>🔔</span>
+<span>Notify Me (1.4k interested)</span>
+</button>
+</div>
+</div>
+<!-- Card 2: Study Pods -->
+<div class="rounded-2xl bg-surface-container-lowest p-4 ring-1 ring-surface-container-high shadow-sm space-y-3">
+<div class="flex items-center justify-between">
+<span class="text-label-sm font-label-sm bg-surface-container text-on-surface-variant px-2 py-0.5 rounded font-medium">Upcoming</span>
+<div class="flex items-center gap-1 text-on-surface-variant text-label-sm font-label-sm">
+<span class="material-symbols-outlined text-[16px]">group</span>
+<span>3-8 members / room</span>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-11 h-11 rounded-xl bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined">forum</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-[15px] text-on-surface font-semibold">Community Study Pods &amp; Group Practice Rooms</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Daily topic prompt rooms moderated by bilingual host learners.</p>
+</div>
+</div>
+<div class="pt-1">
+<button class="w-full py-2 px-3 rounded-xl bg-surface-container-low hover:bg-surface-container text-secondary ring-1 ring-outline-variant/30 font-label-md text-label-md flex items-center justify-center gap-1.5 font-semibold transition-all active:scale-[0.98]">
+<span>🔔</span>
+<span>Notify Me (890 interested)</span>
+</button>
+</div>
+</div>
+<!-- Card 3: Teacher Marketplace -->
+<div class="rounded-2xl bg-surface-container-lowest p-4 ring-1 ring-surface-container-high shadow-sm space-y-3">
+<div class="flex items-center justify-between">
+<span class="text-label-sm font-label-sm bg-surface-container text-on-surface-variant px-2 py-0.5 rounded font-medium">Upcoming</span>
+<div class="flex items-center gap-1 text-primary text-label-sm font-label-sm font-semibold">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>4.9 Tutor Rating Avg</span>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-11 h-11 rounded-xl bg-surface-container-highest text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined">verified_user</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-[15px] text-on-surface font-semibold">Verified Teacher Marketplace &amp; 1-on-1 Lessons</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Book tailored conversational lessons from accredited educators directly in Chorus.</p>
+</div>
+</div>
+<div class="pt-1">
+<button class="w-full py-2 px-3 rounded-xl bg-surface-container-low hover:bg-surface-container text-secondary ring-1 ring-outline-variant/30 font-label-md text-label-md flex items-center justify-center gap-1.5 font-semibold transition-all active:scale-[0.98]">
+<span>🔔</span>
+<span>Notify Me (2.1k interested)</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-margin-mobile py-2 max-w-md mx-auto bg-surface-container-lowest dark:bg-inverse-surface rounded-t-xl shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+<a class="flex flex-col items-center justify-center bg-primary-fixed dark:bg-primary-container text-on-primary-fixed dark:text-on-primary-container rounded-full px-5 py-1.5 transition-all duration-200 active:scale-95" href="#">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">chat_bubble</span>
+<span class="font-label-sm text-label-sm font-semibold">Chats</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-3 py-1.5 hover:text-primary dark:hover:text-inverse-primary transition-colors duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined text-[22px]">hub</span>
+<span class="font-label-sm text-label-sm font-medium">Hub</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-3 py-1.5 hover:text-primary dark:hover:text-inverse-primary transition-colors duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined text-[22px]">school</span>
+<span class="font-label-sm text-label-sm font-medium">Learn</span>
+</a>
+</nav>
+</div>
+</body></html>

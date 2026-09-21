@@ -1,0 +1,344 @@
+<!DOCTYPE html><html class="light" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>Chorus - Login &amp; Sign Up</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "secondary-fixed": "#e9ddff",
+            "outline-variant": "#c3c6d7",
+            "tertiary": "#006242",
+            "secondary": "#6b38d4",
+            "surface-container-high": "#dce9ff",
+            "surface-tint": "#0053db",
+            "surface": "#f8f9ff",
+            "background": "#f8f9ff",
+            "surface-container": "#e5eeff",
+            "surface-dim": "#cbdbf5",
+            "on-error": "#ffffff",
+            "on-secondary-fixed-variant": "#5516be",
+            "tertiary-fixed-dim": "#4edea3",
+            "on-primary-fixed": "#00174b",
+            "error-container": "#ffdad6",
+            "on-secondary-fixed": "#23005c",
+            "primary-fixed-dim": "#b4c5ff",
+            "primary-fixed": "#dbe1ff",
+            "primary": "#004ac6",
+            "on-background": "#0b1c30",
+            "on-tertiary-fixed-variant": "#005236",
+            "on-primary-container": "#eeefff",
+            "on-surface-variant": "#434655",
+            "on-secondary": "#ffffff",
+            "inverse-primary": "#b4c5ff",
+            "inverse-surface": "#213145",
+            "secondary-fixed-dim": "#d0bcff",
+            "tertiary-container": "#007d55",
+            "on-tertiary-container": "#bdffdb",
+            "surface-bright": "#f8f9ff",
+            "on-tertiary-fixed": "#002113",
+            "on-surface": "#0b1c30",
+            "on-primary": "#ffffff",
+            "on-primary-fixed-variant": "#003ea8",
+            "on-secondary-container": "#fffbff",
+            "outline": "#737686",
+            "surface-variant": "#d3e4fe",
+            "inverse-on-surface": "#eaf1ff",
+            "surface-container-lowest": "#ffffff",
+            "primary-container": "#2563eb",
+            "surface-container-highest": "#d3e4fe",
+            "error": "#ba1a1a",
+            "secondary-container": "#8455ef",
+            "tertiary-fixed": "#6ffbbe",
+            "on-tertiary": "#ffffff",
+            "surface-container-low": "#eff4ff",
+            "on-error-container": "#93000a"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "gutter-mobile": "12px",
+            "stack-sm": "8px",
+            "stack-lg": "24px",
+            "stack-md": "16px",
+            "margin-mobile": "16px",
+            "unit": "4px"
+          },
+          "fontFamily": {
+            "headline-sm": ["Plus Jakarta Sans"],
+            "body-md": ["Be Vietnam Pro"],
+            "body-sm": ["Be Vietnam Pro"],
+            "translation-text": ["Be Vietnam Pro"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "headline-lg": ["Plus Jakarta Sans"],
+            "label-sm": ["Inter"],
+            "body-lg": ["Be Vietnam Pro"],
+            "label-md": ["Inter"]
+          },
+          "fontSize": {
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    /* Smooth focus outlines */
+    input:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px #004ac6;
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex justify-center selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- Mobile Viewport Shell (390px max-width container) -->
+<main class="w-full max-w-[420px] min-h-screen bg-surface flex flex-col justify-between px-margin-mobile py-stack-md relative overflow-x-hidden shadow-[0px_8px_32px_rgba(11,28,48,0.04)]">
+<!-- Atmospheric subtle gradient blur -->
+<div class="absolute -top-24 -left-20 w-64 h-64 bg-primary-fixed rounded-full blur-3xl opacity-30 pointer-events-none"></div>
+<div class="absolute -top-12 -right-16 w-56 h-56 bg-secondary-fixed rounded-full blur-3xl opacity-25 pointer-events-none"></div>
+<div class="relative z-10">
+<!-- 1. Top Bar -->
+<nav class="flex justify-between items-center w-full mb-stack-md">
+<button aria-label="Back to Home" class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-variant/50 active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[22px]">arrow_back</span>
+</button>
+<!-- Language Switcher Pill -->
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container-lowest shadow-[0px_4px_12px_rgba(0,0,0,0.04)] hover:bg-surface-container-low active:scale-95 transition-all border border-surface-container" type="button">
+<span class="material-symbols-outlined text-primary text-[18px]">language</span>
+<span class="font-label-md text-label-md text-on-surface font-semibold">EN</span>
+<span class="material-symbols-outlined text-outline text-[16px]">expand_more</span>
+</button>
+</nav>
+<!-- 2. Brand Header -->
+<header class="flex flex-col items-center text-center mt-2 mb-stack-md">
+<div class="w-14 h-14 rounded-xl p-1.5 bg-surface-container-lowest shadow-[0px_4px_16px_rgba(0,74,198,0.12)] flex items-center justify-center mb-stack-sm ring-1 ring-surface-container-highest">
+<img alt="Chorus" class="w-full h-full object-contain rounded-lg" src="https://lh3.googleusercontent.com/aida/AEtjO1UaLls6R_EZSsFIRge1ajxF1Bc6dSefgsXUvZ7UT7r8DY9YMGuzCX2RSRl_0xZ2dfOg2dfZYusSIZIGEIvqXhW4F-2_PuuyRAYbFuFIubjZ5eNCpHUIvxAmkA-Zz1OMGyQfiSMgulwKYaxrVnDObcq-f5ipOyw6p2_HQQ_dJ6T3_OHo7GNpK5p0Jq6o0oJ6WU2KXJgguSCF8yMUpKvRdZFYMlRTPn22Cx9XpiveStNF">
+</div>
+<div class="flex items-center gap-1">
+<h1 class="font-headline-md text-headline-md text-primary tracking-tight font-extrabold">Chorus</h1>
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-secondary mb-1"></span>
+</div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface mt-1" id="page-title">Welcome back</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant max-w-[280px] mt-1" id="page-subtitle">
+          Log in to continue your multilingual conversations.
+        </p>
+</header>
+<!-- 3. Segmented Tab Control -->
+<div class="p-1 bg-surface-container-high rounded-xl flex items-center mb-stack-lg relative" role="tablist">
+<button aria-selected="true" class="flex-1 py-2 rounded-lg font-label-md text-label-md font-bold text-primary bg-surface-container-lowest shadow-[0px_2px_8px_rgba(0,0,0,0.06)] transition-all" id="tab-login" role="tab" type="button">
+          Log In
+        </button>
+<button aria-selected="false" class="flex-1 py-2 rounded-lg font-label-md text-label-md font-semibold text-on-surface-variant hover:text-on-surface transition-all" id="tab-signup" role="tab" type="button">Join Waitlist</button>
+</div>
+<!-- 4. Social Login -->
+<div class="flex flex-col gap-stack-md">
+<button class="w-full h-12 px-4 rounded-xl bg-surface-container-lowest border border-outline-variant/60 flex items-center justify-center gap-3 shadow-[0px_4px_12px_rgba(0,0,0,0.04)] hover:bg-surface-container-low active:scale-[0.98] transition-all" type="button">
+<!-- Official Google "G" Icon -->
+<svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
+<path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
+<path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
+<path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"></path>
+<path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"></path>
+</svg>
+<span class="font-label-md text-label-md text-on-surface font-semibold">Continue with Google</span>
+</button>
+<!-- Divider -->
+<div class="relative flex items-center justify-center my-1">
+<div class="w-full border-t border-surface-container-highest"></div>
+<span class="absolute px-3 bg-surface font-label-sm text-label-sm text-outline">or log in with email</span>
+</div>
+<!-- 5. Form Inputs -->
+<form class="space-y-stack-md" id="auth-form" onsubmit="event.preventDefault();">
+<!-- Extra Name field for Sign Up toggle (hidden initially) -->
+<div class="hidden flex-col gap-1" id="field-name">
+<label class="font-label-md text-label-md text-on-surface-variant font-medium" for="name">Full Name</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-outline text-[20px]">person</span>
+<input class="w-full h-12 pl-11 pr-4 rounded-xl bg-surface-container-lowest border border-outline-variant/60 font-body-md text-body-md text-on-surface placeholder:text-outline/70 transition-all" id="name" placeholder="Elena Vance" type="text">
+</div>
+</div>
+<!-- Email Input -->
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-on-surface-variant font-medium" for="email">Email address</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-outline text-[20px]">mail</span>
+<input class="w-full h-12 pl-11 pr-4 rounded-xl bg-surface-container-lowest border border-outline-variant/60 font-body-md text-body-md text-on-surface placeholder:text-outline/70 transition-all" id="email" placeholder="alex@example.com" required="" type="email">
+</div>
+</div>
+<!-- Password Input -->
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-on-surface-variant font-medium" for="password">Password</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-outline text-[20px]">lock</span>
+<input class="w-full h-12 pl-11 pr-11 rounded-xl bg-surface-container-lowest border border-outline-variant/60 font-body-md text-body-md text-on-surface placeholder:text-outline/70 transition-all" id="password" placeholder="••••••••" required="" type="password">
+<button aria-label="Toggle password visibility" class="absolute right-3.5 text-outline hover:text-on-surface-variant transition-colors" id="toggle-password" type="button">
+<span class="material-symbols-outlined text-[20px]" id="eye-icon">visibility</span>
+</button>
+</div>
+</div>
+<!-- Remember Me & Forgot Password Row -->
+<div class="flex items-center justify-between pt-0.5" id="row-remember">
+<label class="flex items-center gap-2 cursor-pointer select-none">
+<input checked="" class="w-4 h-4 rounded text-primary focus:ring-primary focus:ring-offset-0 border-outline-variant cursor-pointer" type="checkbox">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Remember me</span>
+</label>
+<button class="font-body-sm text-body-sm font-semibold text-primary hover:text-on-primary-fixed-variant transition-colors" id="btn-forgot-password" type="button">
+              Forgot password?
+            </button>
+</div>
+<!-- 6. Primary Action Button -->
+<button class="w-full h-12 mt-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-headline-sm text-[16px] font-semibold flex items-center justify-center gap-2 shadow-[0px_4px_16px_rgba(0,74,198,0.25)] active:scale-[0.98] transition-all" id="btn-submit" type="submit">
+<span id="btn-text" class="">Log In to Chorus</span>
+<span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+</form>
+</div>
+<!-- 7. Reset Password Helper / Expandable Banner -->
+<div class="hidden mt-stack-md p-stack-md rounded-xl bg-secondary-fixed/40 border-l-4 border-secondary shadow-[0px_4px_12px_rgba(107,56,212,0.06)] animate-in fade-in transition-all" id="reset-helper-sheet">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2 text-secondary">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<h3 class="font-headline-sm text-body-md font-bold text-on-secondary-fixed">Reset your password</h3>
+</div>
+<button class="text-on-secondary-fixed-variant hover:opacity-75" id="close-reset-sheet" type="button">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+<p class="font-body-sm text-body-sm text-on-secondary-fixed-variant mt-1.5">
+          Enter your email above and we'll send you an instant secure recovery link with learning progress preserved.
+        </p>
+<button class="mt-3 w-full py-2 bg-secondary text-on-secondary font-label-md text-label-md rounded-lg font-semibold active:scale-95 transition-all shadow-sm" type="button">
+          Send Recovery Link
+        </button>
+</div>
+<!-- Social login coming soon teaser chip -->
+<div class="mt-stack-lg flex items-center justify-center">
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high/60 border border-surface-container-highest">
+<span class="material-symbols-outlined text-[14px] text-secondary">schedule</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">WhatsApp, Apple &amp; Facebook login coming soon</span>
+</div>
+</div>
+</div>
+<!-- 8. Footer & Teaser -->
+<footer class="pt-stack-md pb-stack-sm flex flex-col items-center text-center gap-stack-sm relative z-10">
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+<span id="footer-prompt" class="">Don't have an account?</span>
+<button class="font-semibold text-primary hover:underline ml-1" id="btn-toggle-mode" type="button">Join Waitlist</button>
+</p>
+<p class="font-label-sm text-label-sm text-outline max-w-[320px] leading-relaxed">
+        By continuing, you agree to Chorus's 
+        <a class="underline hover:text-on-surface" href="#">Terms of Service</a> and 
+        <a class="underline hover:text-on-surface" href="#">Privacy Policy</a>.
+      </p>
+</footer>
+</main>
+<!-- Interactive State Script -->
+<script>
+    const tabLogin = document.getElementById('tab-login');
+    const tabSignup = document.getElementById('tab-signup');
+    const fieldName = document.getElementById('field-name');
+    const rowRemember = document.getElementById('row-remember');
+    const pageTitle = document.getElementById('page-title');
+    const pageSubtitle = document.getElementById('page-subtitle');
+    const btnSubmit = document.getElementById('btn-submit');
+    const btnText = document.getElementById('btn-text');
+    const footerPrompt = document.getElementById('footer-prompt');
+    const btnToggleMode = document.getElementById('btn-toggle-mode');
+    const togglePassword = document.getElementById('toggle-password');
+    const passwordInput = document.getElementById('password');
+    const eyeIcon = document.getElementById('eye-icon');
+    const btnForgotPassword = document.getElementById('btn-forgot-password');
+    const resetHelperSheet = document.getElementById('reset-helper-sheet');
+    const closeResetSheet = document.getElementById('close-reset-sheet');
+
+    let isLoginMode = true;
+
+    function updateMode(login) {
+      isLoginMode = login;
+      if (isLoginMode) {
+        tabLogin.classList.add('bg-surface-container-lowest', 'text-primary', 'shadow-[0px_2px_8px_rgba(0,0,0,0.06)]', 'font-bold');
+        tabLogin.classList.remove('text-on-surface-variant', 'font-semibold');
+        tabLogin.setAttribute('aria-selected', 'true');
+
+        tabSignup.classList.remove('bg-surface-container-lowest', 'text-primary', 'shadow-[0px_2px_8px_rgba(0,0,0,0.06)]', 'font-bold');
+        tabSignup.classList.add('text-on-surface-variant', 'font-semibold');
+        tabSignup.setAttribute('aria-selected', 'false');
+
+        fieldName.classList.add('hidden');
+        rowRemember.classList.remove('hidden');
+        pageTitle.textContent = "Welcome back";
+        pageSubtitle.textContent = "Log in to continue your multilingual conversations.";
+        btnText.textContent = "Log In to Chorus";
+        footerPrompt.textContent = "Don't have an account?";
+        btnToggleMode.textContent = "Sign Up";
+      } else {
+        tabSignup.classList.add('bg-surface-container-lowest', 'text-primary', 'shadow-[0px_2px_8px_rgba(0,0,0,0.06)]', 'font-bold');
+        tabSignup.classList.remove('text-on-surface-variant', 'font-semibold');
+        tabSignup.setAttribute('aria-selected', 'true');
+
+        tabLogin.classList.remove('bg-surface-container-lowest', 'text-primary', 'shadow-[0px_2px_8px_rgba(0,0,0,0.06)]', 'font-bold');
+        tabLogin.classList.add('text-on-surface-variant', 'font-semibold');
+        tabLogin.setAttribute('aria-selected', 'false');
+
+        fieldName.classList.remove('hidden');
+        rowRemember.classList.add('hidden');
+        pageTitle.textContent = "Create your account";
+        pageSubtitle.textContent = "Start speaking fluently with AI-assisted conversations.";
+        btnText.textContent = "Create Chorus Account";
+        footerPrompt.textContent = "Already have an account?";
+        btnToggleMode.textContent = "Log In";
+      }
+    }
+
+    tabLogin.addEventListener('click', () => updateMode(true));
+    tabSignup.addEventListener('click', () => updateMode(false));
+    btnToggleMode.addEventListener('click', () => updateMode(!isLoginMode));
+
+    // Show/Hide password logic
+    togglePassword.addEventListener('click', () => {
+      const isPassword = passwordInput.getAttribute('type') === 'password';
+      passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+      eyeIcon.textContent = isPassword ? 'visibility_off' : 'visibility';
+    });
+
+    // Forgot password drawer toggle
+    btnForgotPassword.addEventListener('click', () => {
+      resetHelperSheet.classList.toggle('hidden');
+    });
+
+    closeResetSheet.addEventListener('click', () => {
+      resetHelperSheet.classList.add('hidden');
+    });
+  </script>
+
+
+</body></html>
