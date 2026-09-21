@@ -1,0 +1,340 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Profile Setup: Goals &amp; Interests</title>
+<!-- Google Fonts: Plus Jakarta Sans, Be Vietnam Pro, Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&amp;family=Inter:wght@500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700;800&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration Script -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-tertiary": "#ffffff",
+            "secondary-container": "#8455ef",
+            "on-surface-variant": "#434655",
+            "surface-container-high": "#dce9ff",
+            "primary": "#004ac6",
+            "tertiary-fixed": "#6ffbbe",
+            "tertiary": "#006242",
+            "on-secondary-fixed-variant": "#5516be",
+            "on-primary-fixed": "#00174b",
+            "inverse-primary": "#b4c5ff",
+            "on-error-container": "#93000a",
+            "on-tertiary-container": "#bdffdb",
+            "on-primary": "#ffffff",
+            "outline-variant": "#c3c6d7",
+            "tertiary-fixed-dim": "#4edea3",
+            "surface-tint": "#0053db",
+            "surface-container": "#e5eeff",
+            "primary-container": "#2563eb",
+            "background": "#f8f9ff",
+            "surface-container-low": "#eff4ff",
+            "on-secondary": "#ffffff",
+            "secondary-fixed": "#e9ddff",
+            "inverse-on-surface": "#eaf1ff",
+            "error-container": "#ffdad6",
+            "tertiary-container": "#007d55",
+            "on-tertiary-fixed": "#002113",
+            "primary-fixed-dim": "#b4c5ff",
+            "on-tertiary-fixed-variant": "#005236",
+            "on-error": "#ffffff",
+            "on-secondary-container": "#fffbff",
+            "on-background": "#0b1c30",
+            "inverse-surface": "#213145",
+            "on-primary-container": "#eeefff",
+            "on-secondary-fixed": "#23005c",
+            "on-surface": "#0b1c30",
+            "error": "#ba1a1a",
+            "secondary": "#6b38d4",
+            "outline": "#737686",
+            "surface": "#f8f9ff",
+            "surface-bright": "#f8f9ff",
+            "surface-container-lowest": "#ffffff",
+            "secondary-fixed-dim": "#d0bcff",
+            "on-primary-fixed-variant": "#003ea8",
+            "surface-dim": "#cbdbf5",
+            "surface-container-highest": "#d3e4fe",
+            "surface-variant": "#d3e4fe",
+            "primary-fixed": "#dbe1ff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "gutter-mobile": "12px",
+            "stack-lg": "24px",
+            "margin-mobile": "16px",
+            "stack-md": "16px",
+            "stack-sm": "8px",
+            "unit": "4px"
+          },
+          "fontFamily": {
+            "body-sm": ["Be Vietnam Pro"],
+            "label-sm": ["Inter"],
+            "headline-lg": ["Plus Jakarta Sans"],
+            "body-md": ["Be Vietnam Pro"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "body-lg": ["Be Vietnam Pro"],
+            "headline-sm": ["Plus Jakarta Sans"],
+            "label-md": ["Inter"],
+            "translation-text": ["Be Vietnam Pro"]
+          },
+          "fontSize": {
+            "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+            "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Outlined';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 20px;
+      line-height: 1;
+      display: inline-block;
+      text-transform: none;
+      letter-spacing: normal;
+      word-wrap: normal;
+      white-space: nowrap;
+      direction: ltr;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface min-h-screen font-body-md antialiased flex flex-col items-center">
+<!-- Mobile Container Frame (Max 448px) -->
+<div class="w-full max-w-md min-h-screen bg-surface flex flex-col relative pb-36">
+<!-- Top Navigation Anchor (Shared Components JSON execution) -->
+<header class="fixed top-0 left-0 right-0 max-w-md mx-auto z-50 flex justify-between items-center px-margin-mobile h-14 bg-surface dark:bg-inverse-surface shadow-sm transition-all duration-200">
+<!-- Leading Icon: arrow_back -->
+<button aria-label="Go back" class="p-2 -ml-2 rounded-full text-primary dark:text-inverse-primary hover:bg-surface-container-high dark:hover:bg-on-surface-variant active:scale-95 transition-all duration-200 flex items-center justify-center" type="button">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<!-- Headline: Profile Setup -->
+<div class="flex flex-col items-center">
+<h1 class="text-headline-sm font-headline-sm text-primary dark:text-inverse-primary tracking-tight">Profile Setup</h1>
+<span class="text-label-sm font-label-sm text-on-surface-variant font-semibold">Step 3 of 3</span>
+</div>
+<!-- Trailing Action: Skip -->
+<button class="text-label-md font-label-md text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high dark:hover:bg-on-surface-variant hover:text-on-surface px-2 py-1.5 rounded-lg active:scale-95 transition-all duration-200 font-semibold" type="button">
+        Skip
+      </button>
+</header>
+<!-- Linear Step Progress Bar (100% Filled for Step 3) -->
+<div class="w-full bg-surface-container-highest h-1.5 mt-14 sticky top-14 z-40">
+<div class="bg-primary h-1.5 w-full rounded-full transition-all duration-500"></div>
+</div>
+<!-- Main Content Area -->
+<main class="flex-1 px-margin-mobile pt-6 space-y-stack-lg">
+<!-- Header Intro Block -->
+<section class="space-y-stack-sm">
+<div class="inline-flex items-center gap-1.5 px-3 py-1 bg-surface-container-low rounded-full border border-surface-variant">
+<span class="material-symbols-outlined text-primary text-sm" data-icon="flag">flag</span>
+<span class="text-label-sm font-label-sm text-primary font-bold">Final Step</span>
+</div>
+<h2 class="text-headline-md font-headline-md text-on-surface tracking-tight leading-snug">
+          Set your daily pace &amp; interests
+        </h2>
+<p class="text-body-sm font-body-sm text-on-surface-variant">
+          We'll tailor daily word recommendations and conversation starters.
+        </p>
+</section>
+<!-- Section 1: Daily Practice Commitment -->
+<section class="space-y-stack-sm">
+<div class="flex items-center justify-between">
+<h3 class="text-headline-sm font-headline-sm text-on-surface text-base">
+            Daily Learning Commitment
+          </h3>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Pace</span>
+</div>
+<div aria-label="Daily Practice Commitment" class="space-y-3" role="radiogroup">
+<!-- Option 1: Casual -->
+<label class="group block relative p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/60 hover:border-outline-variant transition-all cursor-pointer shadow-sm active:scale-[0.99]">
+<input class="sr-only" name="daily_rhythm" type="radio" value="casual">
+<div class="flex items-start justify-between gap-3">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="font-headline-sm text-sm font-bold text-on-surface">Casual</span>
+<span class="text-label-sm font-label-sm px-2 py-0.5 rounded-full bg-surface-container text-primary font-semibold">5 mins / day</span>
+<span class="text-label-sm font-label-sm px-1.5 py-0.5 rounded bg-tertiary-fixed/40 text-tertiary font-bold">+10 XP</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant leading-relaxed">
+                  A quick chat and a few new words.
+                </p>
+</div>
+<div class="w-5 h-5 rounded-full border-2 border-outline-variant group-hover:border-primary flex items-center justify-center mt-0.5">
+<div class="w-2.5 h-2.5 rounded-full bg-transparent"></div>
+</div>
+</div>
+</label>
+<!-- Option 2: Regular (Selected by default) -->
+<label class="group block relative p-4 rounded-xl bg-surface-container-low border-2 border-primary-container shadow-md transition-all cursor-pointer active:scale-[0.99] ring-2 ring-primary/10">
+<input checked="" class="sr-only" name="daily_rhythm" type="radio" value="regular">
+<!-- Popular Badge -->
+<div class="absolute -top-2.5 right-4 px-2.5 py-0.5 bg-primary-container text-on-primary rounded-full text-label-sm font-label-sm font-bold shadow-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>Popular</span>
+</div>
+<div class="flex items-start justify-between gap-3">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="font-headline-sm text-sm font-bold text-primary">Regular</span>
+<span class="text-label-sm font-label-sm px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-semibold">10 mins / day</span>
+<span class="text-label-sm font-label-sm px-1.5 py-0.5 rounded bg-tertiary-fixed/60 text-tertiary font-bold">+25 XP</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface font-medium leading-relaxed">
+                  Balanced daily conversation &amp; review. Most popular!
+                </p>
+</div>
+<div class="w-5 h-5 rounded-full bg-primary flex items-center justify-center mt-0.5 shadow-sm">
+<span class="material-symbols-outlined text-on-primary text-sm font-bold" data-icon="check">check</span>
+</div>
+</div>
+</label>
+<!-- Option 3: Intensive -->
+<label class="group block relative p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/60 hover:border-outline-variant transition-all cursor-pointer shadow-sm active:scale-[0.99]">
+<input class="sr-only" name="daily_rhythm" type="radio" value="intensive">
+<div class="flex items-start justify-between gap-3">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="font-headline-sm text-sm font-bold text-on-surface">Intensive</span>
+<span class="text-label-sm font-label-sm px-2 py-0.5 rounded-full bg-surface-container text-primary font-semibold">20 mins / day</span>
+<span class="text-label-sm font-label-sm px-1.5 py-0.5 rounded bg-tertiary-fixed/40 text-tertiary font-bold">+50 XP</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant leading-relaxed">
+                  Deep immersion and accelerated vocabulary building.
+                </p>
+</div>
+<div class="w-5 h-5 rounded-full border-2 border-outline-variant group-hover:border-primary flex items-center justify-center mt-0.5">
+<div class="w-2.5 h-2.5 rounded-full bg-transparent"></div>
+</div>
+</div>
+</label>
+</div>
+</section>
+<!-- Section 2: Conversation Topics of Interest -->
+<section class="space-y-stack-sm pt-2">
+<div class="flex items-baseline justify-between">
+<h3 class="text-headline-sm font-headline-sm text-on-surface text-base">
+            What do you love talking about?
+          </h3>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Pick at least 2</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">
+          Used to personalize your AI tutor and daily dialogues.
+        </p>
+<!-- Multi-select Pill Tag Cloud -->
+<div class="flex flex-wrap gap-2.5 pt-1">
+<!-- Food & Tapas (Selected) -->
+<button class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-primary text-on-primary font-label-md text-label-md shadow-sm active:scale-95 transition-all" type="button">
+<span>☕️</span>
+<span>Food &amp; Tapas</span>
+<span class="material-symbols-outlined text-sm ml-0.5" data-icon="check">check</span>
+</button>
+<!-- Travel & Adventures (Selected) -->
+<button class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-primary text-on-primary font-label-md text-label-md shadow-sm active:scale-95 transition-all" type="button">
+<span>✈️</span>
+<span>Travel &amp; Adventures</span>
+<span class="material-symbols-outlined text-sm ml-0.5" data-icon="check">check</span>
+</button>
+<!-- Music & Arts (Selected) -->
+<button class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-primary text-on-primary font-label-md text-label-md shadow-sm active:scale-95 transition-all" type="button">
+<span>🎵</span>
+<span>Music &amp; Arts</span>
+<span class="material-symbols-outlined text-sm ml-0.5" data-icon="check">check</span>
+</button>
+<!-- Work & Careers (Unselected) -->
+<button class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-surface-container-lowest border border-outline-variant text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high active:scale-95 transition-all" type="button">
+<span>💼</span>
+<span>Work &amp; Careers</span>
+</button>
+<!-- Sports & Fitness (Unselected) -->
+<button class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-surface-container-lowest border border-outline-variant text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high active:scale-95 transition-all" type="button">
+<span>⚽️</span>
+<span>Sports &amp; Fitness</span>
+</button>
+<!-- Movies & Shows (Selected) -->
+<button class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-primary text-on-primary font-label-md text-label-md shadow-sm active:scale-95 transition-all" type="button">
+<span>🎬</span>
+<span>Movies &amp; Shows</span>
+<span class="material-symbols-outlined text-sm ml-0.5" data-icon="check">check</span>
+</button>
+<!-- Daily Life & Culture (Unselected) -->
+<button class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-surface-container-lowest border border-outline-variant text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high active:scale-95 transition-all" type="button">
+<span>🌍</span>
+<span>Daily Life &amp; Culture</span>
+</button>
+<!-- Books & Tech (Unselected) -->
+<button class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-surface-container-lowest border border-outline-variant text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high active:scale-95 transition-all" type="button">
+<span>📚</span>
+<span>Books &amp; Tech</span>
+</button>
+</div>
+</section>
+<!-- Section 3: Learning Notification Toggle Card -->
+<section class="pt-2">
+<div class="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/60 shadow-sm flex items-center justify-between gap-4">
+<div class="flex items-start gap-3">
+<div class="w-10 h-10 rounded-full bg-secondary-fixed/50 flex items-center justify-center text-secondary shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-xl" data-icon="notifications" style="font-variation-settings: 'FILL' 1;">notifications</span>
+</div>
+<div>
+<h4 class="font-headline-sm text-sm font-bold text-on-surface">Daily Practice Nudge</h4>
+<p class="text-body-sm font-body-sm text-on-surface-variant leading-snug mt-0.5">
+                Receive one friendly reminder when your practice queue is ready.
+              </p>
+</div>
+</div>
+<!-- iOS / Modern Switch (ON State) -->
+<label class="relative inline-flex items-center cursor-pointer shrink-0">
+<input checked="" class="sr-only peer" type="checkbox">
+<div class="w-12 h-6 bg-surface-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</section>
+</main>
+<!-- Bottom Action Area (Sticky Drawer on Mobile) -->
+<div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto p-4 bg-surface/90 backdrop-blur-md border-t border-transparent z-40 flex flex-col items-center gap-2">
+<!-- XP Reward Pill Badge -->
+<div class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-md text-label-md shadow-sm border border-tertiary-fixed-dim">
+<span class="material-symbols-outlined text-sm" data-icon="card_giftcard" style="font-variation-settings: 'FILL' 1;">card_giftcard</span>
+<span class="font-bold">+50 XP Profile Bonus unlocked!</span>
+<span>🎁</span>
+</div>
+<!-- Primary Action Button -->
+<button class="w-full py-3.5 px-6 rounded-xl bg-primary text-on-primary font-headline-sm text-base font-bold flex items-center justify-center gap-2.5 shadow-lg shadow-primary/20 hover:bg-primary-container active:scale-[0.98] transition-all duration-200" type="button">
+<span>Complete Profile &amp; Start Chatting</span>
+<span class="material-symbols-outlined text-xl" data-icon="rocket_launch">rocket_launch</span>
+</button>
+<p class="text-label-sm font-label-sm text-on-surface-variant/80 text-center">
+        You can adjust these goals anytime in settings
+      </p>
+</div>
+</div>
+</body></html>

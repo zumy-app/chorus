@@ -1,0 +1,266 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Chorus - Profile Setup: Personal Identity</title>
+<!-- Google Fonts: Plus Jakarta Sans, Be Vietnam Pro, Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&amp;family=Inter:wght@500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700;800&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-tertiary": "#ffffff",
+            "secondary-container": "#8455ef",
+            "on-surface-variant": "#434655",
+            "surface-container-high": "#dce9ff",
+            "primary": "#004ac6",
+            "tertiary-fixed": "#6ffbbe",
+            "tertiary": "#006242",
+            "on-secondary-fixed-variant": "#5516be",
+            "on-primary-fixed": "#00174b",
+            "inverse-primary": "#b4c5ff",
+            "on-error-container": "#93000a",
+            "on-tertiary-container": "#bdffdb",
+            "on-primary": "#ffffff",
+            "outline-variant": "#c3c6d7",
+            "tertiary-fixed-dim": "#4edea3",
+            "surface-tint": "#0053db",
+            "surface-container": "#e5eeff",
+            "primary-container": "#2563eb",
+            "background": "#f8f9ff",
+            "surface-container-low": "#eff4ff",
+            "on-secondary": "#ffffff",
+            "secondary-fixed": "#e9ddff",
+            "inverse-on-surface": "#eaf1ff",
+            "error-container": "#ffdad6",
+            "tertiary-container": "#007d55",
+            "on-tertiary-fixed": "#002113",
+            "primary-fixed-dim": "#b4c5ff",
+            "on-tertiary-fixed-variant": "#005236",
+            "on-error": "#ffffff",
+            "on-secondary-container": "#fffbff",
+            "on-background": "#0b1c30",
+            "inverse-surface": "#213145",
+            "on-primary-container": "#eeefff",
+            "on-secondary-fixed": "#23005c",
+            "on-surface": "#0b1c30",
+            "error": "#ba1a1a",
+            "secondary": "#6b38d4",
+            "outline": "#737686",
+            "surface": "#f8f9ff",
+            "surface-bright": "#f8f9ff",
+            "surface-container-lowest": "#ffffff",
+            "secondary-fixed-dim": "#d0bcff",
+            "on-primary-fixed-variant": "#003ea8",
+            "surface-dim": "#cbdbf5",
+            "surface-container-highest": "#d3e4fe",
+            "surface-variant": "#d3e4fe",
+            "primary-fixed": "#dbe1ff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "gutter-mobile": "12px",
+            "stack-lg": "24px",
+            "margin-mobile": "16px",
+            "stack-md": "16px",
+            "stack-sm": "8px",
+            "unit": "4px"
+          },
+          "fontFamily": {
+            "body-sm": ["Be Vietnam Pro"],
+            "label-sm": ["Inter"],
+            "headline-lg": ["Plus Jakarta Sans"],
+            "body-md": ["Be Vietnam Pro"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "body-lg": ["Be Vietnam Pro"],
+            "headline-sm": ["Plus Jakarta Sans"],
+            "label-md": ["Inter"],
+            "translation-text": ["Be Vietnam Pro"]
+          },
+          "fontSize": {
+            "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+            "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "translation-text": ["14px", { "lineHeight": "20px", "fontWeight": "500" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface antialiased min-h-screen flex justify-center">
+<!-- Mobile Container / App Shell Canvas -->
+<main class="w-full max-w-md bg-surface min-h-screen flex flex-col relative pb-32">
+<!-- TopAppBar from JSON Anchor -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-mobile h-14 bg-surface dark:bg-inverse-surface shadow-sm max-w-md mx-auto right-0">
+<button aria-label="Go back" class="p-1.5 -ml-1 text-primary dark:text-inverse-primary rounded-full hover:bg-surface-container-high dark:hover:bg-on-surface-variant hover:text-on-surface active:scale-95 transition-all duration-200 flex items-center justify-center" type="button">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<div class="flex flex-col items-center">
+<h1 class="text-headline-sm font-headline-sm text-primary dark:text-inverse-primary font-bold">Profile Setup</h1>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Step 1 of 3</span>
+</div>
+
+</header>
+<!-- Progress Track (Immediately below TopAppBar) -->
+<div class="w-full pt-14 px-margin-mobile">
+<div class="h-1.5 w-full bg-surface-container rounded-full overflow-hidden mt-2">
+<div class="h-full bg-tertiary-container rounded-full transition-all duration-500" style="width: 33.33%;"></div>
+</div>
+</div>
+<!-- Scrollable Content Canvas -->
+<div class="px-margin-mobile pt-stack-md flex flex-col gap-stack-lg">
+<!-- Hero Section -->
+<section class="flex flex-col gap-1">
+<h2 class="text-headline-md font-headline-md text-on-surface tracking-tight">Let's set up your profile</h2>
+<p class="text-body-sm font-body-sm text-on-surface-variant leading-relaxed">
+          Introduce yourself to the Chorus community. Your language partner will see this.
+        </p><p class="text-label-sm font-label-sm text-outline flex items-center gap-1 mt-1"><span class="text-primary font-bold">*</span> Indicates required field</p>
+</section>
+<!-- Avatar Picker Card (Bento Level 1 elevation) -->
+<section class="bg-surface-container-lowest rounded-xl p-5 shadow-[0px_4px_12px_rgba(0,0,0,0.05)] flex flex-col items-center gap-4">
+<!-- Interactive Avatar Preview Circle -->
+<div class="relative group">
+<div class="w-24 h-24 rounded-full bg-primary-container flex items-center justify-center text-on-primary shadow-md transition-colors duration-300" id="avatar-preview">
+<span class="font-headline-lg text-headline-lg tracking-normal font-bold select-none">AL</span>
+</div>
+<button aria-label="Change photo" class="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-on-primary shadow-md flex items-center justify-center border-2 border-surface-container-lowest hover:bg-primary-container active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="photo_camera">photo_camera</span>
+</button>
+</div>
+<!-- Palette Theme Picker -->
+<div class="flex flex-col items-center gap-2">
+<span class="text-label-sm font-label-sm text-outline">Avatar Mood</span>
+<div class="flex items-center gap-2.5" id="color-palette">
+<button aria-label="Theme blue" class="w-7 h-7 rounded-full bg-primary-container ring-2 ring-offset-2 ring-primary transition-all active:scale-90" data-color="bg-primary-container" type="button"></button>
+<button aria-label="Theme emerald" class="w-7 h-7 rounded-full bg-tertiary-container hover:opacity-90 transition-all active:scale-90" data-color="bg-tertiary-container" type="button"></button>
+<button aria-label="Theme purple" class="w-7 h-7 rounded-full bg-secondary hover:opacity-90 transition-all active:scale-90" data-color="bg-secondary" type="button"></button>
+<button aria-label="Theme violet" class="w-7 h-7 rounded-full bg-secondary-container hover:opacity-90 transition-all active:scale-90" data-color="bg-secondary-container" type="button"></button>
+<button aria-label="Theme coral" class="w-7 h-7 rounded-full bg-error hover:opacity-90 transition-all active:scale-90" data-color="bg-error" type="button"></button>
+</div>
+</div>
+<button class="text-label-md font-label-md text-primary hover:underline flex items-center gap-1 active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[16px]" data-icon="upload">upload</span>
+          Upload custom photo
+        </button>
+</section>
+<!-- Identity Form Fields -->
+<form class="flex flex-col gap-4" onsubmit="event.preventDefault()">
+<!-- Name Row -->
+<div class="grid grid-cols-2 gap-3">
+<div class="flex flex-col gap-1.5">
+<label class="text-label-md font-label-md text-on-surface" for="first-name">First Name <span class="text-primary font-bold">*</span></label>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3.5 py-2.5 text-body-md font-body-md text-on-surface focus:outline-none focus:border-primary-container focus:ring-0 transition-colors shadow-sm" id="first-name" placeholder="First name" type="text" value="Alex">
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-label-md font-label-md text-on-surface" for="last-name">Last Name <span class="text-outline font-normal text-label-sm">(Optional)</span></label>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3.5 py-2.5 text-body-md font-body-md text-on-surface focus:outline-none focus:border-primary-container focus:ring-0 transition-colors shadow-sm" id="last-name" placeholder="Last name" type="text" value="Morgan">
+</div>
+</div>
+<!-- Display Name / Username with Validation Feedback -->
+<div class="flex flex-col gap-1.5">
+<div class="flex justify-between items-center">
+<label class="text-label-md font-label-md text-on-surface" for="username">Display Name / Handle <span class="text-primary font-bold">*</span></label>
+<span class="inline-flex items-center gap-1 text-label-sm font-label-sm text-tertiary-container font-semibold">
+<span class="material-symbols-outlined text-[15px]" data-icon="check_circle" data-weight="fill" style="font-variation-settings: &quot;FILL&quot; 1;">check_circle</span>
+              Available
+            </span>
+</div>
+<div class="relative flex items-center">
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg pl-3.5 pr-10 py-2.5 text-body-md font-body-md text-on-surface focus:outline-none focus:border-primary-container focus:ring-0 transition-colors shadow-sm" id="username" type="text" value="@alex_m">
+<span class="absolute right-3 text-tertiary-container pointer-events-none flex items-center">
+<span class="material-symbols-outlined text-[20px]" data-icon="verified_user">verified_user</span>
+</span>
+</div>
+</div><div class="flex flex-col gap-1.5"><div class="flex justify-between items-center"><div class="flex items-center gap-1.5"><label class="text-label-md font-label-md text-on-surface" for="phone-number">Mobile Phone Number <span class="text-primary font-bold">*</span></label></div><span class="text-label-sm font-label-sm text-primary font-medium bg-surface-container px-2 py-0.5 rounded-full">Security</span></div><div class="flex gap-2 items-center"><button type="button" aria-label="Country code selector" class="flex items-center gap-1.5 px-3 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg text-body-md font-body-md text-on-surface hover:bg-surface-container-low transition-colors shadow-sm"><span class="text-[18px]">🇺🇸</span><span class="font-medium text-label-md">+1</span><span class="material-symbols-outlined text-[18px] text-outline" data-icon="expand_more">expand_more</span></button><div class="relative flex-1 flex items-center"><input id="phone-number" type="tel" placeholder="(555) 000-0000" class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3.5 py-2.5 text-body-md font-body-md text-on-surface focus:outline-none focus:border-primary-container focus:ring-0 transition-colors shadow-sm placeholder:text-outline"><span class="absolute right-3 text-outline pointer-events-none flex items-center"><span class="material-symbols-outlined text-[20px]" data-icon="phone_iphone">phone_iphone</span></span></div></div><div class="flex items-start gap-1.5 text-outline text-label-sm font-label-sm pt-0.5"><span class="material-symbols-outlined text-[15px] text-tertiary-container mt-0.5 shrink-0" data-icon="lock">lock</span><span class="">Used only for secure login and account recovery. Never shared publicly.</span></div></div>
+<!-- Short Bio with AI/Humanist Accent -->
+<div class="flex flex-col gap-1.5">
+<div class="flex justify-between items-center">
+<label class="text-label-md font-label-md text-on-surface" for="bio">About You (Bio) <span class="text-primary font-bold">*</span> <span class="text-outline font-normal text-label-sm">(min 20 chars)</span></label>
+<span class="text-label-sm font-label-sm text-outline">74/160</span>
+</div>
+<div class="relative rounded-lg bg-surface-container-lowest border border-outline-variant focus-within:border-primary-container transition-colors shadow-sm p-1">
+<textarea class="w-full bg-transparent border-0 resize-none text-body-md font-body-md text-on-surface focus:ring-0 p-2.5 placeholder:text-outline" id="bio" placeholder="Tell partners what you like to talk about (e.g. coffee, travel, music)..." rows="3">Love discovering new cultures, indie music, and trying local tapas! ☕️✈️</textarea>
+<!-- Contextual Chat/Linguistic Hint Badge -->
+<div class="px-2.5 py-1.5 bg-surface-container-low rounded-md flex items-center justify-between">
+<div class="flex items-center gap-1.5 text-secondary">
+<span class="material-symbols-outlined text-[16px]" data-icon="auto_awesome">auto_awesome</span>
+<span class="text-label-sm font-label-sm font-medium">Topic Suggestion: Travel &amp; Food</span>
+</div>
+<button class="text-label-sm font-label-sm text-primary hover:underline font-semibold" type="button">Inspire me</button>
+</div>
+</div>
+</div>
+<!-- Location Field -->
+<div class="flex flex-col gap-1.5">
+<div class="flex justify-between items-center">
+<label class="text-label-md font-label-md text-on-surface" for="location">City / Location <span class="text-outline font-normal text-label-sm">(Optional)</span></label>
+<span class="text-label-sm font-label-sm text-outline">Optional</span>
+</div>
+<div class="relative flex items-center">
+<span class="absolute left-3 text-outline pointer-events-none flex items-center">
+<span class="material-symbols-outlined text-[20px]" data-icon="location_on">location_on</span>
+</span>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg pl-10 pr-3.5 py-2.5 text-body-md font-body-md text-on-surface focus:outline-none focus:border-primary-container focus:ring-0 transition-colors shadow-sm" id="location" placeholder="Where are you based?" type="text" value="Madrid, Spain">
+</div>
+</div>
+</form>
+</div>
+<!-- Sticky Bottom CTA Area (Docked full width inside container) -->
+<div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-surface-container-lowest/95 backdrop-blur-md px-margin-mobile pt-3 pb-6 flex flex-col gap-2 shadow-[0px_-4px_16px_rgba(0,0,0,0.06)] z-40">
+<button class="w-full bg-primary-container hover:bg-primary text-on-primary py-3.5 px-6 rounded-xl font-label-md text-label-md flex items-center justify-center gap-2 shadow-sm active:scale-[0.98] transition-all font-bold tracking-wide" type="button">
+<span class="">Continue to Languages</span>
+<span class="material-symbols-outlined text-[20px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<p class="text-center text-label-sm font-label-sm text-outline leading-tight">
+        You can always change your profile details later in Settings.
+      </p>
+</div>
+</main>
+<script>
+    // Micro-interaction for mood palette switcher
+    const paletteButtons = document.querySelectorAll('#color-palette button');
+    const avatarPreview = document.getElementById('avatar-preview');
+
+    paletteButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Reset rings
+        paletteButtons.forEach(b => {
+          b.classList.remove('ring-2', 'ring-offset-2', 'ring-primary');
+        });
+        // Set active ring
+        btn.classList.add('ring-2', 'ring-offset-2', 'ring-primary');
+        
+        // Change avatar background color
+        const targetColorClass = btn.getAttribute('data-color');
+        avatarPreview.className = `w-24 h-24 rounded-full flex items-center justify-center text-on-primary shadow-md transition-colors duration-300 ${targetColorClass}`;
+      });
+    });
+  </script>
+
+
+
+
+</body></html>

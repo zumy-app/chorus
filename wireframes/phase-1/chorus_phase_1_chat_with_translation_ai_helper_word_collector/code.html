@@ -1,0 +1,492 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Chorus • Mobile Chat with Sofia Martínez</title>
+<!-- Google Fonts: Plus Jakarta Sans, Inter, Be Vietnam Pro -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;1,400&amp;family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS v3 with plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration verbatim -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-tertiary-container": "#bdffdb",
+            "primary-fixed-dim": "#b4c5ff",
+            "surface-bright": "#f8f9ff",
+            "primary-container": "#2563eb",
+            "tertiary-fixed": "#6ffbbe",
+            "surface-container-highest": "#d3e4fe",
+            "tertiary-container": "#007d55",
+            "on-tertiary-fixed": "#002113",
+            "secondary": "#6b38d4",
+            "on-secondary-container": "#fffbff",
+            "on-surface": "#0b1c30",
+            "on-primary-fixed-variant": "#003ea8",
+            "surface-container-low": "#eff4ff",
+            "inverse-on-surface": "#eaf1ff",
+            "on-tertiary": "#ffffff",
+            "on-tertiary-fixed-variant": "#005236",
+            "on-error-container": "#93000a",
+            "surface-tint": "#0053db",
+            "inverse-surface": "#213145",
+            "secondary-fixed-dim": "#d0bcff",
+            "primary-fixed": "#dbe1ff",
+            "surface-container": "#e5eeff",
+            "secondary-container": "#8455ef",
+            "primary": "#004ac6",
+            "on-secondary-fixed": "#23005c",
+            "inverse-primary": "#b4c5ff",
+            "background": "#f8f9ff",
+            "on-secondary": "#ffffff",
+            "error": "#ba1a1a",
+            "outline-variant": "#c3c6d7",
+            "tertiary-fixed-dim": "#4edea3",
+            "on-primary": "#ffffff",
+            "on-surface-variant": "#434655",
+            "secondary-fixed": "#e9ddff",
+            "surface-variant": "#d3e4fe",
+            "on-secondary-fixed-variant": "#5516be",
+            "surface": "#f8f9ff",
+            "on-primary-fixed": "#00174b",
+            "tertiary": "#006242",
+            "on-error": "#ffffff",
+            "outline": "#737686",
+            "error-container": "#ffdad6",
+            "surface-dim": "#cbdbf5",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-high": "#dce9ff",
+            "on-background": "#0b1c30",
+            "on-primary-container": "#eeefff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "margin-mobile": "16px",
+            "gutter-mobile": "12px",
+            "unit": "4px",
+            "stack-sm": "8px",
+            "stack-lg": "24px",
+            "stack-md": "16px"
+          },
+          "fontFamily": {
+            "headline-sm": [
+              "Plus Jakarta Sans"
+            ],
+            "headline-md": [
+              "Plus Jakarta Sans"
+            ],
+            "label-md": [
+              "Inter"
+            ],
+            "body-sm": [
+              "Be Vietnam Pro"
+            ],
+            "body-lg": [
+              "Be Vietnam Pro"
+            ],
+            "label-sm": [
+              "Inter"
+            ],
+            "headline-lg": [
+              "Plus Jakarta Sans"
+            ],
+            "body-md": [
+              "Be Vietnam Pro"
+            ],
+            "translation-text": [
+              "Be Vietnam Pro"
+            ]
+          },
+          "fontSize": {
+            "headline-sm": [
+              "20px",
+              {
+                "lineHeight": "28px",
+                "fontWeight": "600"
+              }
+            ],
+            "headline-md": [
+              "24px",
+              {
+                "lineHeight": "32px",
+                "letterSpacing": "-0.01em",
+                "fontWeight": "700"
+              }
+            ],
+            "label-md": [
+              "13px",
+              {
+                "lineHeight": "18px",
+                "letterSpacing": "0.01em",
+                "fontWeight": "600"
+              }
+            ],
+            "body-sm": [
+              "14px",
+              {
+                "lineHeight": "20px",
+                "fontWeight": "400"
+              }
+            ],
+            "body-lg": [
+              "18px",
+              {
+                "lineHeight": "28px",
+                "fontWeight": "400"
+              }
+            ],
+            "label-sm": [
+              "11px",
+              {
+                "lineHeight": "16px",
+                "letterSpacing": "0.03em",
+                "fontWeight": "500"
+              }
+            ],
+            "headline-lg": [
+              "30px",
+              {
+                "lineHeight": "38px",
+                "letterSpacing": "-0.02em",
+                "fontWeight": "700"
+              }
+            ],
+            "body-md": [
+              "16px",
+              {
+                "lineHeight": "24px",
+                "fontWeight": "400"
+              }
+            ],
+            "translation-text": [
+              "14px",
+              {
+                "lineHeight": "20px",
+                "fontWeight": "500"
+              }
+            ]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      font-size: 20px;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .material-symbols-fill {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    /* Custom subtle AI insight purple glow */
+    .ai-insight-glow {
+      box-shadow: 0 4px 16px -2px rgba(107, 56, 212, 0.12), 0 2px 6px -1px rgba(107, 56, 212, 0.08);
+    }
+    /* Hide scrollbars gracefully for clean mobile canvas */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface-container text-on-surface antialiased min-h-screen flex justify-center selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- Mobile Screen Shell Simulation (Max-w-md viewport) -->
+<div class="w-full max-w-md bg-background min-h-screen flex flex-col shadow-2xl relative overflow-x-hidden pb-4">
+<!-- TOP HEADER / APP BAR (Context: Sub-chat with back action, so BottomNavBar suppressed as per Destination Rule) -->
+<header class="sticky top-0 z-40 bg-surface-container-lowest/95 backdrop-blur-md shadow-sm">
+<div class="flex items-center justify-between px-margin-mobile py-2.5">
+<!-- Back and Profile Context -->
+<div class="flex items-center gap-2.5">
+<button aria-label="Go back to chat list" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container text-on-surface-variant active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<!-- Avatar with Online indicator and Level Tag -->
+<div class="relative">
+<div class="w-10 h-10 rounded-full overflow-hidden ring-2 ring-primary-fixed">
+<img class="w-full h-full object-cover" data-alt="A brightly lit, authentic portrait of Sofia Martínez, a warm and cheerful young woman with curly brown hair in an airy Madrid cafe setting. She wears an indigo casual knit sweater, smiling directly at the camera with confident, friendly eyes. The photography utilizes warm natural sunlight and soft blur highlights, echoing modern linguistic exchange aesthetics." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCxbN0nmEU-4Ewk1YhNOrVJ9qio6LUpZFRVIqZKI1DX1xkZcghqDASVfl3hujlPiyZSb0-eZkUAJ_tvsLPL-NdE0KwDMxVXAW9MVtfRFJUz4pFyv-bTPU78ldVyOhZXAMQkhZs_z_-gMuHieBC6TmwTjAii1HPjMJvqAAw1WPXBaGyOsEYUOUYlrFeBeOcGYY71jopr2aiHPTtsn18a_MXylVhzA8AvjF4fDAgDk38">
+</div>
+<!-- Online status green dot -->
+<span class="absolute bottom-0 right-0 w-3 h-3 bg-tertiary-fixed-dim border-2 border-surface-container-lowest rounded-full ring-1 ring-tertiary-container"></span>
+</div>
+<!-- Name & Subtext -->
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight text-[16px] leading-tight font-bold">Sofia Martínez</span>
+<span class="inline-flex items-center justify-center px-1.5 py-0.2 bg-secondary-fixed text-on-secondary-fixed text-label-sm font-label-sm rounded-full text-[10px]">B2</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+              Native Spanish • Learning English
+            </span>
+</div>
+</div>
+<!-- Top Header Action Controls -->
+<div class="flex items-center gap-2">
+<!-- Language pair indicator pill -->
+<button class="flex items-center gap-1 px-2.5 py-1 bg-surface-container-low hover:bg-surface-container text-on-primary-fixed-variant rounded-full text-label-sm font-label-sm border border-outline-variant/40 active:scale-95 transition-all" type="button">
+<span class="font-bold tracking-wide">ES</span>
+<span class="material-symbols-outlined text-[14px]" data-icon="sync_alt">sync_alt</span>
+<span class="font-bold tracking-wide">EN</span>
+</button>
+<!-- Ask AI Pill / Drawer Activator -->
+<button class="flex items-center gap-1 bg-secondary-fixed hover:bg-secondary-fixed-dim text-on-secondary-fixed px-2.5 py-1 rounded-full text-label-sm font-label-sm active:scale-95 transition-all shadow-sm" id="toggle-ai-btn" type="button">
+<span class="material-symbols-outlined text-[16px] text-secondary" data-icon="auto_awesome" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<span class="font-semibold">Ask AI</span>
+</button>
+</div>
+</div>
+<!-- Quick Session Learning Goal Bar -->
+<div class="px-margin-mobile py-1.5 bg-surface-container-low/70 flex items-center justify-between text-label-sm font-label-sm text-on-surface-variant border-b border-surface-variant/30">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[15px]" data-icon="local_fire_department" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<span class="text-on-surface font-medium">Daily Streak: 12 days</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="text-tertiary font-semibold">Today's Focus:</span>
+<span>Subjunctive Mood</span>
+</div>
+</div>
+</header>
+<!-- MAIN MESSAGE STREAM CANVAS -->
+<main class="flex-1 px-margin-mobile py-4 space-y-5 overflow-y-auto no-scrollbar">
+<!-- Date Divider -->
+<div class="flex items-center justify-center">
+<span class="px-3 py-1 bg-surface-container-low text-on-surface-variant text-label-sm font-label-sm rounded-full shadow-xs">
+          Today, October 24
+        </span>
+</div>
+<!-- RECEIVED MESSAGE (Sofia Martínez) with AI Insight & Word Highlights -->
+<div class="flex flex-col items-start max-w-[92%] space-y-2">
+<!-- Message metadata -->
+<div class="flex items-center gap-2 px-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">Sofia Martínez</span>
+<span class="font-label-sm text-label-sm text-outline">10:42 AM</span>
+</div>
+<!-- Incoming Message Bubble Container (Level 1 Elevation) -->
+<div class="bg-surface-container-lowest border border-outline-variant/50 rounded-2xl rounded-tl-sm p-3.5 shadow-sm space-y-2.5 w-full">
+<!-- Original Spanish Text -->
+<div class="font-body-md text-body-md text-on-surface leading-relaxed">
+            ¡Hola Alex! ¿Qué tal tu <span class="bg-primary-fixed/60 text-on-primary-fixed font-medium px-1 py-0.5 rounded cursor-pointer hover:bg-primary-fixed transition-colors" title="Vocabulary: first day">primer día</span> aprendiendo español? <span class="border-b-2 border-secondary font-medium cursor-pointer text-secondary" title="Subjunctive Trigger">Espero</span> que te <span class="border-b-2 border-secondary font-medium cursor-pointer text-secondary" title="Subjunctive form">guste</span> Madrid cuando <span class="bg-secondary-fixed text-on-secondary-fixed px-1 py-0.5 rounded font-medium cursor-pointer hover:bg-secondary-fixed-dim transition-colors" title="Subjunctive of venir">vengas</span>.
+          </div>
+<!-- AI Automatic Translation Accordion (AI-Enhanced visual token) -->
+<div class="bg-surface-container-low/80 rounded-xl p-2.5 border-l-[3px] border-secondary space-y-1">
+<div class="flex items-center justify-between text-label-sm font-label-sm">
+<span class="flex items-center gap-1 text-secondary font-semibold text-[11px]">
+<span class="material-symbols-outlined text-[13px]" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                Auto-translated (ES→EN)
+              </span>
+<button class="text-on-surface-variant hover:text-primary flex items-center gap-0.5 text-[11px]" type="button">
+<span class="material-symbols-outlined text-[14px]" data-icon="volume_up">volume_up</span>
+<span>Listen</span>
+</button>
+</div>
+<p class="font-translation-text text-translation-text text-on-surface-variant italic">
+              "Hey Alex! How is your first day learning Spanish? I hope you like Madrid when you come."
+            </p>
+</div>
+</div>
+<!-- Tap-to-Save Word Highlight Cards Grid (Bento mini-chips) -->
+<div class="w-full space-y-1.5 pt-0.5">
+<div class="flex items-center justify-between px-1">
+<span class="text-label-sm font-label-sm text-outline font-semibold tracking-wide uppercase text-[10px]">
+              Word Highlights Detected
+            </span>
+<button class="text-primary text-label-sm font-label-sm hover:underline flex items-center gap-0.5 font-semibold" type="button">
+<span class="material-symbols-outlined text-[13px]" data-icon="library_add">library_add</span>
+              + Add to Library
+            </button>
+</div>
+<!-- Interactive Word Badges Row -->
+<div class="flex flex-wrap gap-1.5">
+<!-- Chip 1 -->
+<button class="group flex items-center gap-1.5 px-2.5 py-1.5 bg-surface-container-lowest hover:bg-surface-container-low border border-outline-variant/60 rounded-lg shadow-xs active:scale-95 transition-all text-left" type="button">
+<span class="font-label-md text-label-md text-on-surface group-hover:text-primary font-semibold">primer día</span>
+<span class="text-outline-variant">•</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">First day</span>
+<span class="px-1 py-0.2 bg-tertiary-fixed text-on-tertiary-fixed rounded text-[9px] font-bold">A1</span>
+</button>
+<!-- Chip 2 -->
+<button class="group flex items-center gap-1.5 px-2.5 py-1.5 bg-surface-container-lowest hover:bg-surface-container-low border border-outline-variant/60 rounded-lg shadow-xs active:scale-95 transition-all text-left" type="button">
+<span class="font-label-md text-label-md text-on-surface group-hover:text-secondary font-semibold">espero</span>
+<span class="text-outline-variant">•</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">I hope</span>
+<span class="px-1 py-0.2 bg-surface-container-highest text-on-primary-fixed rounded text-[9px] font-bold">A2</span>
+</button>
+<!-- Chip 3 with Subjunctive Indicator -->
+<button class="group flex items-center gap-1.5 px-2.5 py-1.5 bg-secondary-fixed/30 hover:bg-secondary-fixed/50 border border-secondary/30 rounded-lg shadow-xs active:scale-95 transition-all text-left" type="button">
+<span class="material-symbols-outlined text-secondary text-[14px]" data-icon="bolt">bolt</span>
+<span class="font-label-md text-label-md text-secondary font-bold">vengas</span>
+<span class="text-outline-variant">•</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Subjunctive of venir</span>
+<span class="px-1 py-0.2 bg-secondary-container text-on-secondary-container rounded text-[9px] font-bold">B1</span>
+</button>
+</div>
+</div>
+</div>
+<!-- SENT MESSAGE (User Alex) Outgoing with Fluency Blue Tone -->
+<div class="flex flex-col items-end max-w-[88%] ml-auto space-y-1.5">
+<!-- Message metadata -->
+<div class="flex items-center gap-1.5 px-1">
+<span class="font-label-sm text-label-sm text-outline">10:44 AM</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">You (Alex)</span>
+</div>
+<!-- Outgoing message bubble -->
+<div class="bg-primary text-on-primary rounded-2xl rounded-tr-sm p-3.5 shadow-sm space-y-2 w-full">
+<!-- Sent Spanish sentence -->
+<p class="font-body-md text-body-md text-on-primary leading-relaxed">
+            Todo va muy bien. Estoy emocionado de practicar contigo.
+          </p>
+<!-- Toggleable translation sub-strip for outgoing -->
+<div class="bg-on-primary/10 rounded-lg p-2 text-on-primary-container border-l-2 border-primary-fixed flex items-start gap-1.5">
+<span class="material-symbols-outlined text-primary-fixed text-[15px] shrink-0 mt-0.5" data-icon="translate">translate</span>
+<p class="font-body-sm text-body-sm text-on-primary-fixed text-[13px] leading-snug">
+              "Everything is going great. I am excited to practice with you."
+            </p>
+</div>
+</div>
+<!-- Read receipts indicator -->
+<div class="flex items-center gap-1 text-label-sm font-label-sm text-primary font-medium pr-1">
+<span class="material-symbols-outlined text-[16px] text-primary" data-icon="done_all">done_all</span>
+<span class="text-[11px]">Read by Sofia</span>
+</div>
+</div>
+<!-- CONTEXTUAL AI HELPER & GRAMMAR DRAWER (Phase 1 AI Feature) -->
+<section class="mt-4 pt-1">
+<div class="bg-surface-container-lowest rounded-2xl p-4 border border-secondary/20 shadow-md ai-insight-glow relative overflow-hidden">
+<!-- Top Drawer Bar / Grab Indicator & Title -->
+<div class="w-10 h-1 bg-outline-variant/60 rounded-full mx-auto mb-3"></div>
+<div class="flex items-center justify-between pb-2 border-b border-surface-variant/40">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 rounded-lg bg-secondary-fixed flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[18px]" data-icon="psychology" style="font-variation-settings: 'FILL' 1;">psychology</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface text-[15px] leading-none font-bold">Chorus AI Assistant</h3>
+<span class="font-label-sm text-label-sm text-secondary font-medium">Contextual Grammar Insight</span>
+</div>
+</div>
+<span class="px-2 py-0.5 bg-secondary-fixed/40 text-secondary text-label-sm font-label-sm rounded-full font-semibold">Active</span>
+</div>
+<!-- Insight Note: Subjunctive Trigger Explanation -->
+<div class="mt-3 space-y-2.5">
+<div class="bg-secondary-fixed/15 rounded-xl p-3 border border-secondary/15">
+<div class="flex items-center gap-1.5 text-secondary font-bold text-label-md font-label-md mb-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="lightbulb" style="font-variation-settings: 'FILL' 1;">lightbulb</span>
+<span>Why did Sofia say "Espero que te guste"?</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-[13px] leading-relaxed">
+                In Spanish, verbs of wishing and hoping (like <strong class="text-on-surface font-semibold">esperar que</strong>) automatically trigger the <strong class="text-secondary font-semibold">subjunctive mood</strong> because Madrid's enjoyment is an imagined wish rather than a factual certainty.
+              </p>
+</div>
+<!-- Friendly AI Tutor Sparky Bubble Snippet -->
+<div class="flex items-start gap-2.5 bg-surface-container-low rounded-xl p-2.5">
+<div class="w-7 h-7 rounded-full bg-tertiary-fixed flex items-center justify-center text-tertiary font-bold text-xs shrink-0 ring-1 ring-tertiary">
+<span class="material-symbols-outlined text-[15px]" data-icon="spark" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+</div>
+<div class="flex-1 text-[12px] leading-snug text-on-surface-variant font-body-sm">
+<span class="font-semibold text-on-surface block">AI Tutor Tip:</span>
+                You can easily use <span class="font-medium text-primary">"Ojalá"</span> or <span class="font-medium text-primary">"Espero que"</span> whenever you want to express hope! Try answering: <em class="text-on-surface">"Espero ver el museo del Prado."</em>
+</div>
+</div>
+<!-- Quick contextual prompt suggestions pills -->
+<div class="pt-1">
+<p class="font-label-sm text-label-sm text-outline font-semibold mb-1.5">Ask AI about this conversation:</p>
+<div class="flex flex-wrap gap-1.5">
+<button class="px-2.5 py-1 bg-surface-bright hover:bg-surface-container border border-outline-variant/60 rounded-full text-label-sm font-label-sm text-on-surface-variant hover:text-primary transition-all active:scale-95 flex items-center gap-1" type="button">
+<span>Explain "vengas" vs "vienes"</span>
+<span class="material-symbols-outlined text-[13px]" data-icon="north_east">north_east</span>
+</button>
+<button class="px-2.5 py-1 bg-surface-bright hover:bg-surface-container border border-outline-variant/60 rounded-full text-label-sm font-label-sm text-on-surface-variant hover:text-primary transition-all active:scale-95 flex items-center gap-1" type="button">
+<span>How do I reply naturally?</span>
+<span class="material-symbols-outlined text-[13px]" data-icon="north_east">north_east</span>
+</button>
+<button class="px-2.5 py-1 bg-surface-bright hover:bg-surface-container border border-outline-variant/60 rounded-full text-label-sm font-label-sm text-on-surface-variant hover:text-primary transition-all active:scale-95 flex items-center gap-1" type="button">
+<span>Practice 3 subjunctive phrases</span>
+<span class="material-symbols-outlined text-[13px]" data-icon="north_east">north_east</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Bottom Spacer for Input fixed area -->
+<div class="h-4"></div>
+</main>
+<!-- FLOATING INPUT COMPOSER DOCK (Level 2 Elevation) -->
+<footer class="sticky bottom-0 z-30 bg-surface-container-lowest/98 backdrop-blur-md px-margin-mobile pt-2 pb-3 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] border-t border-surface-variant/40">
+<!-- Real-time bilingual draft indicator banner -->
+<div class="flex items-center justify-between pb-1.5 px-1 text-label-sm font-label-sm text-on-surface-variant">
+<div class="flex items-center gap-1 text-primary">
+<span class="material-symbols-outlined text-[14px]" data-icon="translate">translate</span>
+<span class="font-medium text-[11px]">Real-time Translation Preview: ON</span>
+</div>
+<span class="text-outline text-[11px]">Typing in English will suggest Spanish</span>
+</div>
+<!-- Main Input Bar Cluster -->
+<div class="flex items-center gap-2">
+<!-- Attachment / Add Media Button -->
+<button aria-label="Add photo or learning note" class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface-variant active:scale-95 transition-all shrink-0" type="button">
+<span class="material-symbols-outlined text-[22px]" data-icon="add">add</span>
+</button>
+<!-- Message Field Capsule -->
+<div class="flex-1 flex items-center bg-surface-container-low rounded-full px-3.5 py-1.5 border border-outline-variant/40 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+<input class="w-full bg-transparent border-0 p-0 text-body-sm font-body-sm text-on-surface placeholder:text-outline focus:ring-0 focus:outline-none" placeholder="Type in English or Spanish..." type="text" value="¡Por supuesto! ¿Qué me recomiendas visitar?">
+<!-- AI Hint within input -->
+<button class="p-1 text-secondary hover:text-secondary-container active:scale-90 transition-transform" title="Get AI response recommendation" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="auto_awesome" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</button>
+</div>
+<!-- Voice Dictation Button -->
+<button aria-label="Record voice note for pronunciation feedback" class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface-variant active:scale-95 transition-all shrink-0" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="mic">mic</span>
+</button>
+<!-- Send Button with Fluency Blue Theme Token -->
+<button aria-label="Send message" class="w-10 h-10 flex items-center justify-center rounded-full bg-primary hover:bg-primary-container text-on-primary shadow-sm active:scale-90 transition-all shrink-0" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="send" style="font-variation-settings: 'FILL' 1;">send</span>
+</button>
+</div>
+<!-- Safe Area Bar Indicator -->
+<div class="w-32 h-1 bg-outline-variant/50 rounded-full mx-auto mt-2.5"></div>
+</footer>
+</div>
+<!-- Micro-interaction Script for Interactive Demonstration -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const toggleAiBtn = document.getElementById('toggle-ai-btn');
+      const grammarDrawer = document.querySelector('section');
+
+      if (toggleAiBtn && grammarDrawer) {
+        toggleAiBtn.addEventListener('click', () => {
+          grammarDrawer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          grammarDrawer.classList.add('ring-2', 'ring-secondary');
+          setTimeout(() => {
+            grammarDrawer.classList.remove('ring-2', 'ring-secondary');
+          }, 1200);
+        });
+      }
+    });
+  </script>
+</body></html>
