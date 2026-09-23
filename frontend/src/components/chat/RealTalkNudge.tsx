@@ -26,13 +26,17 @@ export default function RealTalkNudge({ chatId, onSendToInput }: Props) {
 
   const current = prompts[idx % Math.max(1, prompts.length)]
   const unitTitle = dashboard?.currentUnit?.title
+  // `text` is the learner-facing instruction; `targetPhrase` is the sendable
+  // target-language sentence. Show the phrase, caption the instruction, and
+  // only ever send the phrase to the input.
+  const phrase = current?.targetPhrase || current?.text || ''
 
   const send = useCallback(async () => {
     if (!current) return
     try { await learningAPI.markRealTalkUsed(current.id) } catch {}
-    onSendToInput(current.text)
+    onSendToInput(phrase)
     setDismissed(true)
-  }, [current, onSendToInput])
+  }, [current, phrase, onSendToInput])
 
   const next = useCallback(() => setIdx(i => (i + 1) % Math.max(1, prompts.length)), [prompts.length])
 
@@ -55,8 +59,14 @@ export default function RealTalkNudge({ chatId, onSendToInput }: Props) {
           </div>
           <p className="font-body-sm text-body-sm text-on-primary-container/90 mb-3">Try this in the chat:</p>
           <div className="bg-on-primary-container/10 p-3 rounded-xl border border-on-primary-container/10 mb-4">
-            <p className="font-headline-sm text-headline-sm font-bold tracking-tight">“{current.text}”</p>
+            <p className="font-headline-sm text-headline-sm font-bold tracking-tight">“{phrase}”</p>
           </div>
+          {current.targetPhrase && (
+            <p className="font-body-sm text-body-sm text-on-primary-container/70 mb-1">{current.text}</p>
+          )}
+          {current.whyUseful && (
+            <p className="font-body-sm text-body-sm text-on-primary-container/70 mb-3">💡 {current.whyUseful}</p>
+          )}
           <div className="flex items-center gap-2">
             <button onClick={send} className="flex-1 bg-on-primary text-primary font-label-md text-label-md px-4 py-2.5 rounded-full shadow-sm hover:bg-surface-container-low transition flex items-center justify-center gap-2">
               Send to Input <span className="material-symbols-outlined text-[18px]">keyboard_return</span>

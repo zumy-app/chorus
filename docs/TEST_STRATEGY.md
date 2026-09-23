@@ -96,6 +96,13 @@ A test that fails intermittently is a **P0 bug in the test**, not "CI noise":
    the skip.
 4. Never add `time.Sleep`-based assertions to new tests; use channels with
    timeouts or poll with deadlines.
+5. Jest `jest.mock()` factories must be self-contained: never dereference
+   module-scope variables at factory-evaluation time. ESM imports hoist above
+   module statements, so `default: mockApi` reads `undefined` (the `mock`
+   prefix only silences the static check, not the ordering hazard — it
+   surfaced here as a cryptic `window.dispatchEvent` crash). Inline literals
+   in the factory, or closures that defer the read to call time
+   (`getX: (...a) => mockApi.getX(...a)`).
 
 ## 7. Local Commands
 
