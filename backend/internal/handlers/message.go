@@ -25,6 +25,7 @@ type MessageHandler struct {
 	wsHub              *services.WebSocketHub
 	translation        *services.TranslationService
 	wordMining         *services.WordMiningQueueService
+	grammarQueue       *services.GrammarQueueService
 	learningProfile    *services.LearningProfileService
 	receiptService     *services.ReceiptService
 	inboxService       *services.InboxService
@@ -60,6 +61,13 @@ func NewMessageHandler(
 func (h *MessageHandler) SetWordMining(q *services.WordMiningQueueService, lp *services.LearningProfileService) {
 	h.wordMining = q
 	h.learningProfile = lp
+}
+
+// SetGrammarQueue attaches the async AI grammar pipeline so every sent message
+// fans out per-learner analysis jobs. Results return per-user over the
+// WebSocket ("grammar_analysis") as jobs complete.
+func (h *MessageHandler) SetGrammarQueue(q *services.GrammarQueueService) {
+	h.grammarQueue = q
 }
 
 // SetReceiptService attaches the read/delivery receipt service so delivered
@@ -264,6 +272,36 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 			}
 		}
 
+	// Auto grammar analysis: enqueue a durable AI analysis job for every
+	// participant learning the message language (sender included — they may
+	// be practicing their target language). Completions fan out per-user
+	// over the WebSocket as "grammar_analysis" events. Each recipient's
+	// grammar_auto toggle is respected; failures only warn (messaging must
+	// never break because analysis did).
+		if h.grammarQueue != nil && sourceLang != "" && sourceLang != "auto" {
+		grammarLang := miningLanguageFor(message.Text, sourceLang)
+		for _, uid := range userIDs {
+			if uid == "" {
+				continue
+			}
+			if !h.targetLanguageMatches(context.Background(), uid, grammarLang) {
+				continue
+			}
+			// Skip users whose native language is the message language:
+			// analysis is for learners, not native speakers (e.g. don't
+			// analyze Alice's own English for Alice, only for Bob).
+			if u := h.resolveUser(uid); u != nil && strings.EqualFold(strings.TrimSpace(u.NativeLanguage), grammarLang) {
+				continue
+			}
+			if !h.grammarAutoEnabled(uid) {
+				continue
+			}
+			if _, err := h.grammarQueue.EnqueueForAnalysis(uid, chatID, message.ID, message.Text, grammarLang, nativeSourceFor(uid, grammarLang, h)); err != nil {
+				log.Printf("[Grammar] auto-enqueue for user %s: %v", uid, err)
+			}
+		}
+	}
+
 		// Premium feature tiers: resolve the sender's entitlements to decide
 		// whether this message may be translated and with what priority.
 		priority := 0
@@ -426,9 +464,29 @@ func (h *MessageHandler) targetLanguageMatches(ctx context.Context, userID, lang
 	return profile.MiningEnabled
 }
 
+// grammarAutoEnabled reports whether the user wants automatic grammar analysis
+// (FR-25 grammar_auto toggle). Missing settings or read errors fall back to
+// enabled — analysis is additive and never blocks messaging.
+func (h *MessageHandler) grammarAutoEnabled(userID string) bool {
+	if h.settingsService == nil {
+		return true
+	}
+	fs, err := h.settingsService.GetFeatureSettings(userID)
+	if err != nil {
+		log.Printf("[Grammar] read feature settings for %s: %v (defaulting to enabled)", userID, err)
+		return true
+	}
+	return fs.GrammarAuto
+}
+
 // nativeSourceFor returns the user's native language (for mining prompts) or
-// "en" when it cannot be resolved.
+// "en" when it cannot be resolved. The users table is authoritative: the
+// learning-profile lookup with an empty native would default to "en" and can
+// return a bogus (target, en) profile for users whose native is e.g. Spanish.
 func nativeSourceFor(userID, targetLang string, h *MessageHandler) string {
+	if u := h.resolveUser(userID); u != nil && strings.TrimSpace(u.NativeLanguage) != "" {
+		return u.NativeLanguage
+	}
 	if h.learningProfile == nil {
 		return "en"
 	}

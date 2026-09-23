@@ -23,6 +23,7 @@ import TeacherDashboardScreen from '../screens/TeacherDashboardScreen';
 import PayoutsScreen from '../screens/PayoutsScreen';
 import ConfirmBookingScreen from '../screens/ConfirmBookingScreen';
 import StreakRecoveryScreen from '../screens/StreakRecoveryScreen';
+import AssignmentsScreen from '../screens/AssignmentsScreen';
 import CallScreen from '../screens/CallScreen';
 import UniversalSearchScreen from '../screens/UniversalSearchScreen';
 import { COLOR, TYPOGRAPHY } from '../theme';
@@ -52,6 +53,7 @@ export type LearnStackParamList = {
   LearningRoadmap: undefined;
   RealTalkHub: undefined;
   StreakRecovery: undefined;
+  Assignments: undefined;
 };
 
 export type ProfileStackParamList = {
@@ -158,6 +160,11 @@ const LearnTab = () => (
       name="StreakRecovery"
       component={StreakRecoveryScreen}
       options={{ title: 'Recover Streak' }}
+    />
+    <LearnStack.Screen
+      name="Assignments"
+      component={AssignmentsScreen}
+      options={{ title: 'Assignments' }}
     />
   </LearnStack.Navigator>
 );

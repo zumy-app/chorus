@@ -107,6 +107,7 @@ export default function Learn() {
               { label: 'Vocabulary', icon: 'menu_book', onClick: () => navigate('/learn/vocabulary') },
               { label: 'Scenarios', icon: 'record_voice_over', onClick: () => navigate('/learn/scenarios') },
               { label: 'Real Talk', icon: 'forum', onClick: () => navigate('/learn/real-talk') },
+              { label: 'Grammar', icon: 'extension', onClick: () => startSession('grammar') },
             ].map(a => (
               <button key={a.label} onClick={a.onClick} className="bg-surface-container-lowest rounded-2xl p-3 flex flex-col items-center gap-1 shadow-[0px_4px_12px_rgba(0,0,0,0.05)]">
                 <span className="material-symbols-outlined text-primary">{a.icon}</span>

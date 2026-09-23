@@ -24,6 +24,7 @@ jest.mock('../../services/api', () => ({
   default: {
     login: jest.fn(),
     verify2FA: jest.fn(),
+    featureFlags: jest.fn(() => Promise.resolve({})),
   },
 }));
 

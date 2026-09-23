@@ -30,6 +30,23 @@ type LearningHandler struct {
 	seed         *services.SeedQueueService
 	queue        *services.SRSQueueService
 	practice     *services.PracticeService
+
+	// V3 learning engine: grammar drills, async grading, teacher assignments,
+	// daily real-talk set.
+	grammarPoints *services.GrammarPointService
+	grading       *services.GradingQueueService
+	teacherAssign *services.TeacherAssignmentService
+	realTalk      *services.RealTalkService
+}
+
+// WithV3Engines wires the V3 learning engine services (optional — nil leaves
+// the endpoints disabled).
+func (h *LearningHandler) WithV3Engines(grammar *services.GrammarPointService, grading *services.GradingQueueService, teacherAssign *services.TeacherAssignmentService, realTalk *services.RealTalkService) *LearningHandler {
+	h.grammarPoints = grammar
+	h.grading = grading
+	h.teacherAssign = teacherAssign
+	h.realTalk = realTalk
+	return h
 }
 
 func NewLearningHandler(
@@ -502,6 +519,9 @@ func (h *LearningHandler) RealTalkPrompts(c *gin.Context) {
 	userID := c.GetString("userID")
 	target := c.Query("targetLanguage")
 	native := c.Query("nativeLanguage")
+	if native == "" {
+		native = "en"
+	}
 	profile, err := h.profiles.GetProfile(c.Request.Context(), userID, target, native)
 	if err != nil {
 		WriteError(c, middleware.ErrInternal("Failed to load profile"))
@@ -511,10 +531,29 @@ func (h *LearningHandler) RealTalkPrompts(c *gin.Context) {
 	if profile.ActiveUnitID != "" {
 		unitTitle = h.curriculum.GetUnitTitle(c.Request.Context(), profile.ActiveUnitID)
 	}
-	prompts := []models.RealTalkPrompt{
-		{ID: "rt-1", Category: "Icebreakers", Text: "What is the first thing you usually do when you wake up?"},
-		{ID: "rt-2", Category: "Deep Dives", Text: "Describe your favorite weekend activity and why it helps you relax."},
-		{ID: "rt-3", Category: "Task-Based", Text: "Order a coffee and ask for a receipt, phrased naturally."},
+
+	prompts := []models.RealTalkPrompt{}
+	// Daily cached colloquial set from the seeded catalogue (plan V3 Phase 7);
+	// the static trio is only a last-resort fallback for vocab-only pairs.
+	if h.realTalk != nil {
+		courseID, err := h.realTalk.CourseForPair(c.Request.Context(), native, target)
+		if err == nil && courseID != "" {
+			level := profile.CurrentCEFRLevel
+			if level == "" {
+				level = "A1"
+			}
+			set, err := h.realTalk.DailyPromptSet(c.Request.Context(), courseID, level)
+			if err == nil && len(set) > 0 {
+				prompts = set
+			}
+		}
+	}
+	if len(prompts) == 0 {
+		prompts = []models.RealTalkPrompt{
+			{ID: "rt-1", Category: "Icebreakers", Text: "What is the first thing you usually do when you wake up?"},
+			{ID: "rt-2", Category: "Deep Dives", Text: "Describe your favorite weekend activity and why it helps you relax."},
+			{ID: "rt-3", Category: "Task-Based", Text: "Order a coffee and ask for a receipt, phrased naturally."},
+		}
 	}
 	if unitTitle != "" {
 		prompts = append(prompts, models.RealTalkPrompt{ID: "rt-0", Category: "Unit goal", Text: "Practice something from your current unit: " + unitTitle, SourcePrompt: true})
@@ -539,4 +578,171 @@ func (h *LearningHandler) RecoverStreak(c *gin.Context) {
 	userID := c.GetString("userID")
 	_, _ = h.sessions.BookRecovery(c.Request.Context(), userID, target, native)
 	c.JSON(http.StatusOK, gin.H{"data": models.StreakRecoverResult{Recovered: true}})
+}
+
+// ---------------------------------------------------------------------------
+// V3 engine: grammar drills
+// ---------------------------------------------------------------------------
+
+func (h *LearningHandler) GrammarDueDrills(c *gin.Context) {
+	if h.grammarPoints == nil {
+		WriteError(c, middleware.ErrInternal("Grammar engine not configured"))
+		return
+	}
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "5"))
+	if limit <= 0 || limit > 20 {
+		limit = 5
+	}
+	items, err := h.grammarPoints.GetDueItems(c.Request.Context(), c.GetString("userID"), c.Query("targetLanguage"), limit)
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to load grammar drills"))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": items})
+}
+
+func (h *LearningHandler) GrammarMicroLesson(c *gin.Context) {
+	if h.grammarPoints == nil {
+		WriteError(c, middleware.ErrInternal("Grammar engine not configured"))
+		return
+	}
+	lesson, err := h.grammarPoints.GetMicroLesson(c.Request.Context(), c.Param("pointId"))
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to load grammar lesson"))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": lesson})
+}
+
+func (h *LearningHandler) GrammarRecordAttempt(c *gin.Context) {
+	if h.grammarPoints == nil {
+		WriteError(c, middleware.ErrInternal("Grammar engine not configured"))
+		return
+	}
+	var req models.RecordGrammarAttemptRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		WriteError(c, middleware.ErrValidation("Invalid request"))
+		return
+	}
+	if err := h.grammarPoints.RecordItemAttempt(c.Request.Context(), c.GetString("userID"), c.Param("itemId"), req.Correct, req.Quality); err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to record grammar attempt"))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{"ok": true}})
+}
+
+// ---------------------------------------------------------------------------
+// V3 engine: async grading jobs (polling fallback for the 202 + WS push flow)
+// ---------------------------------------------------------------------------
+
+func (h *LearningHandler) GetGradingJob(c *gin.Context) {
+	if h.grading == nil {
+		WriteError(c, middleware.ErrInternal("Grading engine not configured"))
+		return
+	}
+	job, err := h.grading.GetJob(c.Request.Context(), c.Param("jobId"), c.GetString("userID"))
+	if err != nil {
+		WriteError(c, middleware.ErrNotFound("Grading job not found"))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": job})
+}
+
+// ---------------------------------------------------------------------------
+// V3 engine: teacher assignments
+// ---------------------------------------------------------------------------
+
+func (h *LearningHandler) CreateAssignment(c *gin.Context) {
+	if h.teacherAssign == nil {
+		WriteError(c, middleware.ErrInternal("Assignment engine not configured"))
+		return
+	}
+	var req models.CreateTeacherAssignmentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		WriteError(c, middleware.ErrValidation("Invalid request"))
+		return
+	}
+	assignment, err := h.teacherAssign.CreateAssignment(c.Request.Context(), c.GetString("userID"), req)
+	if err != nil {
+		WriteError(c, middleware.ErrValidation(err.Error()))
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"data": assignment})
+}
+
+func (h *LearningHandler) ListTeacherAssignments(c *gin.Context) {
+	if h.teacherAssign == nil {
+		WriteError(c, middleware.ErrInternal("Assignment engine not configured"))
+		return
+	}
+	assignments, err := h.teacherAssign.ListTeacherAssignments(c.Request.Context(), c.GetString("userID"))
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to load assignments"))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": assignments})
+}
+
+func (h *LearningHandler) ListStudentAssignments(c *gin.Context) {
+	if h.teacherAssign == nil {
+		WriteError(c, middleware.ErrInternal("Assignment engine not configured"))
+		return
+	}
+	assignments, err := h.teacherAssign.ListStudentAssignments(c.Request.Context(), c.GetString("userID"))
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to load assignments"))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": assignments})
+}
+
+func (h *LearningHandler) GetAssignment(c *gin.Context) {
+	if h.teacherAssign == nil {
+		WriteError(c, middleware.ErrInternal("Assignment engine not configured"))
+		return
+	}
+	assignment, err := h.teacherAssign.GetAssignment(c.Request.Context(), c.GetString("userID"), c.Param("assignmentId"))
+	if err != nil {
+		WriteError(c, middleware.ErrNotFound("Assignment not found"))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": assignment})
+}
+
+// SubmitAssignment accepts the student's work: the submission is durable
+// immediately and AI grading is enqueued asynchronously (202 + job_id; the
+// result is pushed over WebSocket as "grade_result").
+func (h *LearningHandler) SubmitAssignment(c *gin.Context) {
+	if h.teacherAssign == nil {
+		WriteError(c, middleware.ErrInternal("Assignment engine not configured"))
+		return
+	}
+	var req models.SubmitAssignmentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		WriteError(c, middleware.ErrValidation("Invalid request"))
+		return
+	}
+	submission, jobID, err := h.teacherAssign.SubmitAssignment(c.Request.Context(), c.GetString("userID"), c.Param("assignmentId"), req)
+	if err != nil {
+		WriteError(c, middleware.ErrValidation(err.Error()))
+		return
+	}
+	c.JSON(http.StatusAccepted, gin.H{"data": gin.H{"submission": submission, "gradingJobId": jobID}})
+}
+
+func (h *LearningHandler) ReviewAssignment(c *gin.Context) {
+	if h.teacherAssign == nil {
+		WriteError(c, middleware.ErrInternal("Assignment engine not configured"))
+		return
+	}
+	var req models.ReviewAssignmentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		WriteError(c, middleware.ErrValidation("Invalid request"))
+		return
+	}
+	if _, err := h.teacherAssign.ReviewAssignment(c.Request.Context(), c.GetString("userID"), c.Param("assignmentId"), req); err != nil {
+		WriteError(c, middleware.ErrValidation(err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{"ok": true}})
 }

@@ -63,12 +63,14 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       # Backend build + vet + test
-      - name: Backend build/vet/test
+      # -short skips timing/perf/soak suites (routing, perf, soak) — they run
+      # in full on main via mobile-blackbox. Keeps PR feedback fast + flake-free.
+      - name: Backend build/vet/test (short)
         working-directory: backend
         run: |
           go build ./...
           go vet ./...
-          go test ./...
+          go test -short ./...
 
       # Frontend build + test
       - name: Frontend build/test
@@ -78,12 +80,13 @@ jobs:
           npm run build
           npm test
 
-      # Mobile test (jest)
+      # Mobile test (jest, runInBand: parallel workers flake on timer
+      # teardown — see TEST_STRATEGY.md flaky-test policy)
       - name: Mobile test
         working-directory: mobile
         run: |
           npm ci --no-audit --no-fund
-          npm test
+          npx jest --runInBand --silent
 
       # Compose stacks valid
       - name: Validate compose files
@@ -97,6 +100,15 @@ jobs:
 
       - name: Release gate (offline)
         run: bash deploy/ci/verify-release-gate.sh --offline
+
+      # MVP daily-release gates (all offline, <10s each):
+      # - API contract: backend routes <-> shared client <-> app wiring
+      # - Maestro flows: native e2e YAML valid + selectors live
+      - name: API contract gate (offline)
+        run: bash deploy/ci/verify-api-contract.sh
+
+      - name: Maestro flows gate (offline)
+        run: bash deploy/ci/verify-maestro.sh
 
   # ---------------------------------------------------------------------------
   # 1b) Mocked E2E gate — hard-fail learning + Sparky + negative cases (PR + main)
@@ -213,6 +225,154 @@ jobs:
         run: |
           npm ci --no-audit --no-fund || npm install --no-audit --no-fund
           npm run acceptance:green
+      # Live migration safety: Migrate() twice against the real Postgres.
+      # Catches non-idempotent migrations before they can break daily deploys.
+      - name: Live migration double-run
+        working-directory: backend
+        env:
+          DATABASE_URL: postgres://messenger:password@localhost:5432/messenger_dev?sslmode=disable
+        run: go test ./internal/database/ -run TestMigrations_DoubleRunLive -v -count=1
+      # Live flags probe: seeded alice (general user) must see stable flags ON
+      # and admin-only flags OFF — the exact Release 1 visibility contract.
+      - name: Live feature-flags probe (general user visibility)
+        env:
+          API: http://localhost:8080/api/v1
+        run: |
+          TOKEN=$(python3 -c "
+          import json, urllib.request
+          req = urllib.request.Request('$API/auth/login',
+              data=json.dumps({'username': 'alice.en-es@chorus.test', 'password': 'ChorusDev2026!'}).encode(),
+              headers={'Content-Type': 'application/json'})
+          print(json.load(urllib.request.urlopen(req))['tokens']['accessToken'])
+          ")
+          FLAGS=$(curl -fsS -H "Authorization: Bearer $TOKEN" "$API/users/me/flags")
+          echo "$FLAGS" | python3 -c "
+          import json, sys
+          flags = json.load(sys.stdin)['flags']
+          stable_on = ['grammar_insights', 'word_collector', 'feature_voting']
+          admin_off = ['video_calls', 'teacher_marketplace', 'payout_teacher', 'gdpr_export']
+          bad = [k for k in stable_on if flags.get(k) is not True]
+          bad += [k for k in admin_off if flags.get(k) is not False]
+          if bad:
+              print(f'FLAG VISIBILITY VIOLATION: {bad} in {flags}', file=sys.stderr)
+              sys.exit(1)
+          print('flags visibility OK: stable ON, admin-only OFF for general user')
+          "
+      - name: Dump backend log on failure
+        if: failure()
+        run: tail -n 100 /tmp/backend.log || true
+
+  # ---------------------------------------------------------------------------
+  # 1d) Android native build gate (PR + main) — catches native breakage before
+  #     the Play Store does. assembleDebug is the same artifact Maestro installs.
+  # ---------------------------------------------------------------------------
+  android-build:
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - name: Install mobile deps
+        working-directory: mobile
+        run: npm ci --no-audit --no-fund
+      - name: Assemble Android debug APK
+        working-directory: mobile/android
+        run: ./gradlew assembleDebug --no-daemon -q
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # 1e) Maestro native e2e on emulator (main only + manual dispatch)
+  #     Real APK + real backend + real Postgres: login -> chat -> send -> flags.
+  #     PRs get the offline verify-maestro.sh gate (fast); main gets the full
+  #     emulator run so every daily release is native-verified.
+  # ---------------------------------------------------------------------------
+  mobile-native:
+    needs: [test, android-build, mobile-blackbox]
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: messenger_dev
+          POSTGRES_USER: messenger
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U messenger -d messenger_dev"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgres://messenger:password@localhost:5432/messenger_dev?sslmode=disable
+      REDIS_URL: localhost:6379
+      JWT_SECRET: ci-maestro-secret-change-me
+      PORT: 8080
+      # Emulator reaches the host backend via 10.0.2.2; the app build bakes the
+      # API origin from EXPO_PUBLIC_API_URL at build time.
+      EXPO_PUBLIC_API_URL: http://10.0.2.2:8080
+      MAESTRO_TEST_USER_EMAIL: alice.en-es@chorus.test
+      MAESTRO_TEST_USER_PASSWORD: ChorusDev2026!
+      MAESTRO_RUN_ID: ci-${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: backend/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - name: Build backend + seed + start
+        working-directory: backend
+        run: |
+          go build ./...
+          go run ./cmd/server --seed-dev
+          nohup go run ./cmd/server > /tmp/backend.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://localhost:8080/health >/dev/null 2>&1 && break; sleep 2; done
+          curl -fsS http://localhost:8080/health >/dev/null
+      - name: Install mobile deps + build debug APK
+        working-directory: mobile
+        run: |
+          npm ci --no-audit --no-fund
+          ./android/gradlew -p android assembleDebug --no-daemon -q
+      - name: Install Maestro
+        run: |
+          curl -Ls https://get.maestro.mobile.dev | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      - name: Run Maestro flows on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          script: |
+            adb install -r mobile/android/app/build/outputs/apk/debug/app-debug.apk
+            $HOME/.maestro/bin/maestro test mobile/maestro/login.yaml mobile/maestro/chat-send-message.yaml mobile/maestro/flags-gate.yaml
       - name: Dump backend log on failure
         if: failure()
         run: tail -n 100 /tmp/backend.log || true
@@ -238,7 +398,7 @@ jobs:
   # 3) Build + push dev snapshot images (main only)
   # ---------------------------------------------------------------------------
   images:
-    needs: [test, security, e2e-mocked, mobile-blackbox]
+    needs: [test, security, e2e-mocked, mobile-blackbox, android-build]
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_dev == 'true')
     runs-on: ubuntu-latest
     steps:
@@ -406,7 +566,7 @@ jobs:
   # 6) Notify on failure (Slack webhook, optional)
   # ---------------------------------------------------------------------------
   notify-failure:
-    needs: [test, security, e2e-mocked, mobile-blackbox, deploy-dev, promote-prod]
+    needs: [test, security, e2e-mocked, mobile-blackbox, android-build, mobile-native, deploy-dev, promote-prod]
     if: failure() && (github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     steps:

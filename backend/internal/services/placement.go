@@ -11,12 +11,27 @@ import (
 	"time"
 
 	"github.com/chorus/messenger/internal/models"
+	"github.com/lib/pq"
 )
 
 const (
-	placementTotalQuestions = 12
-	placementItemsPerLevel  = 3
+	// 20-item structure: 8 receptive_vocab -> 8 grammar_production -> 4 discourse_reading.
+	placementTotalQuestions = 20
+	// Below this many calibrated items the bank is padded with fallback MCQs so
+	// the adaptive engine always has enough signal to converge.
+	placementMinBankItems = 10
 )
+
+// placementModuleQuota fixes the module mix and ordering of the redesigned
+// assessment (plan V3 Phase 1).
+var placementModuleQuota = []struct {
+	module string
+	quota  int
+}{
+	{"receptive_vocab", 8},
+	{"grammar_production", 8},
+	{"discourse_reading", 4},
+}
 
 // PlacementService runs an adaptive (IRT-lite) placement test. It samples
 // vocabulary/grammar items across CEFR bands, moves the ability estimate up or
@@ -96,8 +111,8 @@ func (s *PlacementService) AnswerPlacement(ctx context.Context, userID, attemptI
 	}
 
 	item := meta.Items[meta.ItemIndex]
-	correct := normalizeAnswer(answer) == normalizeAnswer(item.Correct)
-	meta.Ability = updatePlacementAbility(meta.Ability, levelToValue(item.CEFR), correct)
+	correct := gradePlacementAnswer(item, answer)
+	meta.Ability = updatePlacementAbility(meta.Ability, itemDifficulty(item), correct)
 
 	// Record the response.
 	promptJSON, _ := json.Marshal(map[string]any{"text": item.Prompt})
@@ -202,68 +217,65 @@ func (s *PlacementService) buildItemBank(ctx context.Context, targetLang, native
 		return buildPlacementFallback(), nil
 	}
 
-	// Load the course's core lexical items, preferring lower frequency rank
-	// (questions keep a clear "which Spanish word means X?" shape, so only items
-	// with an English gloss are usable).
+	// Calibrated item bank first (plan V3): placement_items rows seeded from the
+	// deploy-synced SQL files. The hardcoded fallback bank only runs when the
+	// course has no calibrated items at all.
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT cefr_level, display_text, COALESCE(translations->>'en','')
-		FROM lexical_items
-		WHERE course_id = $1
-		ORDER BY cefr_level, frequency_rank NULLS LAST, display_text`, cap.ActiveCourseID)
+		SELECT id::text, cefr_level, module, item_type, COALESCE(prompt::text,'{}'), choices, correct, accept_variants, difficulty_value
+		FROM placement_items
+		WHERE course_id = $1 AND is_active = true
+		ORDER BY cefr_level, difficulty_value`, cap.ActiveCourseID)
 	if err != nil {
 		return nil, err
 	}
-
-	termInfo := map[string]string{}     // term -> english gloss
-	levelTerms := map[string][]string{} // cefr -> ordered terms
+	bank := map[string][]placementItem{}
+	total := 0
 	for rows.Next() {
-		var level, term, trans string
-		if err := rows.Scan(&level, &term, &trans); err != nil {
-			continue
+		var it placementItem
+		var promptJSON string
+		var choices, variants pq.StringArray
+		if err := rows.Scan(&it.Ref, &it.CEFR, &it.Module, &it.Type, &promptJSON, &choices, &it.Correct, &variants, &it.Difficulty); err != nil {
+			rows.Close()
+			return nil, err
 		}
-		if trans == "" {
-			continue
+		var p any
+		if json.Unmarshal([]byte(promptJSON), &p) == nil {
+			it.Prompt = p
+		} else {
+			it.Prompt = map[string]any{"text": it.Correct}
 		}
-		if _, ok := termInfo[term]; ok {
-			continue
+		it.Choices = choices
+		it.AcceptVariants = variants
+		if it.Difficulty == 0 {
+			it.Difficulty = levelToValue(it.CEFR)
 		}
-		termInfo[term] = trans
-		levelTerms[level] = append(levelTerms[level], term)
+		bank[it.Module] = append(bank[it.Module], it)
+		total++
 	}
 	rows.Close()
 
-	if len(termInfo) == 0 {
+	if total == 0 {
 		return buildPlacementFallback(), nil
 	}
 
-	// Global distractor pool (any distinct term in the course).
-	pool := make([]string, 0, len(termInfo))
-	for t := range termInfo {
-		pool = append(pool, t)
-	}
-
+	// Fixed module structure: 8 receptive -> 8 grammar production -> 4 discourse.
 	items := []placementItem{}
-	idx := 0
-	for _, level := range []string{"A1", "A2", "B1", "B2"} {
-		targets := levelTerms[level]
-		if len(targets) > placementItemsPerLevel {
-			targets = targets[:placementItemsPerLevel]
+	for _, mq := range placementModuleQuota {
+		mod := bank[mq.module]
+		if len(mod) > mq.quota {
+			mod = mod[:mq.quota]
 		}
-		for _, term := range targets {
-			items = append(items, placementItem{
-				Ref:     fmt.Sprintf("%s-vocab-%d", level, idx),
-				Type:    "vocabulary",
-				CEFR:    level,
-				Prompt:  fmt.Sprintf("Which Spanish word means %q?", termInfo[term]),
-				Choices: buildChoices(term, pool),
-				Correct: term,
-			})
-			idx++
-		}
+		items = append(items, mod...)
 	}
 
-	if len(items) < placementTotalQuestions-1 {
-		items = append(items, buildPlacementFallback()...)
+	// Thin banks are topped up with fallback MCQs (never exceed the 20 cap).
+	if len(items) < placementMinBankItems {
+		for _, fb := range buildPlacementFallback() {
+			if len(items) >= placementTotalQuestions {
+				break
+			}
+			items = append(items, fb)
+		}
 	}
 	if len(items) > placementTotalQuestions {
 		items = items[:placementTotalQuestions]
@@ -272,27 +284,34 @@ func (s *PlacementService) buildItemBank(ctx context.Context, targetLang, native
 }
 
 func buildPlacementFallback() []placementItem {
-	return []placementItem{
+	fb := []placementItem{
 		// A1: Present tense verbs, basic greetings & word order
-		{Ref: "A1-verb-1", Type: "verb_conjugation", CEFR: "A1", Prompt: "Present Tense: Complete \"Ella ____ (hablar) tres idiomas fluidamente.\"", Choices: shuffleStrings([]string{"habla", "hablo", "hablan", "hablar"}, "A1-verb-1"), Correct: "habla"},
-		{Ref: "A1-grammar-1", Type: "grammar", CEFR: "A1", Prompt: "Verb Estar vs Ser: \"Yo ____ estudiando en la biblioteca ahora mismo.\"", Choices: shuffleStrings([]string{"estoy", "soy", "es", "somos"}, "A1-grammar-1"), Correct: "estoy"},
-		{Ref: "A1-syntax-1", Type: "sentence_structure", CEFR: "A1", Prompt: "Sentence Construction: Select the correct word order:", Choices: shuffleStrings([]string{"Me gusta mucho el café", "Café el me gusta mucho", "Gusta me el café mucho", "Mucho me café gusta"}, "A1-syntax-1"), Correct: "Me gusta mucho el café"},
+		{Ref: "A1-verb-1", Type: "verb_conjugation", Module: "grammar_production", CEFR: "A1", Prompt: "Present Tense: Complete \"Ella ____ (hablar) tres idiomas fluidamente.\"", Choices: shuffleStrings([]string{"habla", "hablo", "hablan", "hablar"}, "A1-verb-1"), Correct: "habla"},
+		{Ref: "A1-grammar-1", Type: "grammar", Module: "grammar_production", CEFR: "A1", Prompt: "Verb Estar vs Ser: \"Yo ____ estudiando en la biblioteca ahora mismo.\"", Choices: shuffleStrings([]string{"estoy", "soy", "es", "somos"}, "A1-grammar-1"), Correct: "estoy"},
+		{Ref: "A1-syntax-1", Type: "sentence_structure", Module: "grammar_production", CEFR: "A1", Prompt: "Sentence Construction: Select the correct word order:", Choices: shuffleStrings([]string{"Me gusta mucho el café", "Café el me gusta mucho", "Gusta me el café mucho", "Mucho me café gusta"}, "A1-syntax-1"), Correct: "Me gusta mucho el café"},
 
 		// A2: Preterite vs Imperfect tenses, plans & direct object pronouns
-		{Ref: "A2-verb-1", Type: "tense_distinction", CEFR: "A2", Prompt: "Preterite Tense: \"Ayer nosotros ____ (ir) a la playa todo el día.\"", Choices: shuffleStrings([]string{"fuimos", "bamos", "iremos", "fueron"}, "A2-verb-1"), Correct: "fuimos"},
-		{Ref: "A2-verb-2", Type: "tense_distinction", CEFR: "A2", Prompt: "Imperfect Tense: \"Cuando era niño, siempre ____ (vivir) en Madrid.\"", Choices: shuffleStrings([]string{"vivía", "viví", "viviré", "vivo"}, "A2-verb-2"), Correct: "vivía"},
-		{Ref: "A2-syntax-1", Type: "pronouns", CEFR: "A2", Prompt: "Object Pronoun Placement: \"¿Le diste el libro a María? Sí, ____ di ayer.\"", Choices: shuffleStrings([]string{"se lo", "le lo", "lo se", "me lo"}, "A2-syntax-1"), Correct: "se lo"},
+		{Ref: "A2-verb-1", Type: "tense_distinction", Module: "grammar_production", CEFR: "A2", Prompt: "Preterite Tense: \"Ayer nosotros ____ (ir) a la playa todo el día.\"", Choices: shuffleStrings([]string{"fuimos", "bamos", "iremos", "fueron"}, "A2-verb-1"), Correct: "fuimos"},
+		{Ref: "A2-verb-2", Type: "tense_distinction", Module: "grammar_production", CEFR: "A2", Prompt: "Imperfect Tense: \"Cuando era niño, siempre ____ (vivir) en Madrid.\"", Choices: shuffleStrings([]string{"vivía", "viví", "viviré", "vivo"}, "A2-verb-2"), Correct: "vivía"},
+		{Ref: "A2-syntax-1", Type: "pronouns", Module: "grammar_production", CEFR: "A2", Prompt: "Object Pronoun Placement: \"¿Le diste el libro a María? Sí, ____ di ayer.\"", Choices: shuffleStrings([]string{"se lo", "le lo", "lo se", "me lo"}, "A2-syntax-1"), Correct: "se lo"},
 
 		// B1: Present Subjunctive, Conditionals & Complex Relative Clauses
-		{Ref: "B1-verb-1", Type: "subjunctive_mood", CEFR: "B1", Prompt: "Present Subjunctive: \"Dudo que ellos ____ (llegar) a tiempo a la reunión.\"", Choices: shuffleStrings([]string{"lleguen", "llegarán", "llegan", "llegaron"}, "B1-verb-1"), Correct: "lleguen"},
-		{Ref: "B1-grammar-1", Type: "conditional_clause", CEFR: "B1", Prompt: "Hypothetical Condition: \"Si tuviera suficiente dinero, ____ (comprar) una casa.\"", Choices: shuffleStrings([]string{"compraría", "compro", "compraré", "compraba"}, "B1-grammar-1"), Correct: "compraría"},
-		{Ref: "B1-syntax-1", Type: "sentence_structure", CEFR: "B1", Prompt: "Relative Clause: \"El autor ____ libro leímos dará una conferencia mañana.\"", Choices: shuffleStrings([]string{"cuyo", "que", "quien", "cual"}, "B1-syntax-1"), Correct: "cuyo"},
+		{Ref: "B1-verb-1", Type: "subjunctive_mood", Module: "grammar_production", CEFR: "B1", Prompt: "Present Subjunctive: \"Dudo que ellos ____ (llegar) a tiempo a la reunión.\"", Choices: shuffleStrings([]string{"lleguen", "llegarán", "llegan", "llegaron"}, "B1-verb-1"), Correct: "lleguen"},
+		{Ref: "B1-grammar-1", Type: "conditional_clause", Module: "grammar_production", CEFR: "B1", Prompt: "Hypothetical Condition: \"Si tuviera suficiente dinero, ____ (comprar) una casa.\"", Choices: shuffleStrings([]string{"compraría", "compro", "compraré", "compraba"}, "B1-grammar-1"), Correct: "compraría"},
+		{Ref: "B1-syntax-1", Type: "sentence_structure", Module: "grammar_production", CEFR: "B1", Prompt: "Relative Clause: \"El autor ____ libro leímos dará una conferencia mañana.\"", Choices: shuffleStrings([]string{"cuyo", "que", "quien", "cual"}, "B1-syntax-1"), Correct: "cuyo"},
 
 		// B2: College/Academic Writing Level - Imperfect Subjunctive, Advanced Discourse & Syntax Nuance
-		{Ref: "B2-verb-1", Type: "imperfect_subjunctive", CEFR: "B2", Prompt: "Past Subjunctive Hypothesis: \"Si hubieras estudiado más, ____ (obtener) mejores resultados en el examen académico.\"", Choices: shuffleStrings([]string{"habrías obtenido", "obtuviste", "obtengas", "obtendrás"}, "B2-verb-1"), Correct: "habrías obtenido"},
-		{Ref: "B2-discourse-1", Type: "academic_discourse", CEFR: "B2", Prompt: "College Academic Writing: Choose the best concessive connector to synthesize contrasting arguments in an essay: \"El proyecto presenta beneficios; ____, debemos analizar los riesgos socioeconómicos a largo plazo.\"", Choices: shuffleStrings([]string{"no obstante", "así que", "porque", "entonces"}, "B2-discourse-1"), Correct: "no obstante"},
-		{Ref: "B2-syntax-1", Type: "advanced_syntax", CEFR: "B2", Prompt: "Advanced Syntactic Register: Select the sentence that demonstrates proper formal academic prose:", Choices: shuffleStrings([]string{"Es fundamental que se consideren las repercusiones éticas del estudio.", "Es bueno que piensen en las cosas éticas del estudio.", "Tienen que ver la ética del estudio siempre.", "Hay que mirar si la ética del estudio está bien."}, "B2-syntax-1"), Correct: "Es fundamental que se consideren las repercusiones éticas del estudio."},
+		{Ref: "B2-verb-1", Type: "imperfect_subjunctive", Module: "grammar_production", CEFR: "B2", Prompt: "Past Subjunctive Hypothesis: \"Si hubieras estudiado más, ____ (obtener) mejores resultados en el examen académico.\"", Choices: shuffleStrings([]string{"habrías obtenido", "obtuviste", "obtengas", "obtendrás"}, "B2-verb-1"), Correct: "habrías obtenido"},
+		{Ref: "B2-discourse-1", Type: "academic_discourse", Module: "discourse_reading", CEFR: "B2", Prompt: "College Academic Writing: Choose the best concessive connector to synthesize contrasting arguments in an essay: \"El proyecto presenta beneficios; ____, debemos analizar los riesgos socioeconómicos a largo plazo.\"", Choices: shuffleStrings([]string{"no obstante", "así que", "porque", "entonces"}, "B2-discourse-1"), Correct: "no obstante"},
+		{Ref: "B2-syntax-1", Type: "advanced_syntax", Module: "discourse_reading", CEFR: "B2", Prompt: "Advanced Syntactic Register: Select the sentence that demonstrates proper formal academic prose:", Choices: shuffleStrings([]string{"Es fundamental que se consideren las repercusiones éticas del estudio.", "Es bueno que piensen en las cosas éticas del estudio.", "Tienen que ver la ética del estudio siempre.", "Hay que mirar si la ética del estudio está bien."}, "B2-syntax-1"), Correct: "Es fundamental que se consideren las repercusiones éticas del estudio."},
 	}
+	// Wrap plain-text prompts + seed difficulty so fallback items flow through
+	// the same rendering/grading path as calibrated bank items.
+	for i := range fb {
+		fb[i].Prompt = map[string]any{"text": fb[i].Prompt}
+		fb[i].Difficulty = levelToValue(fb[i].CEFR)
+	}
+	return fb
 }
 
 func (s *PlacementService) startUnitID(ctx context.Context, level, targetLang, nativeLang string) string {
@@ -354,12 +373,15 @@ func (s *PlacementService) loadMeta(ctx context.Context, attemptID, userID strin
 // ---------------------------------------------------------------------------
 
 type placementItem struct {
-	Ref     string   `json:"ref"`
-	Type    string   `json:"type"`
-	CEFR    string   `json:"cefr"`
-	Prompt  string   `json:"prompt"`
-	Choices []string `json:"choices"`
-	Correct string   `json:"correct"`
+	Ref            string   `json:"ref"`
+	Type           string   `json:"type"`   // L2_to_L1_context, gap_fill_type, sentence_reconstruction, passage_mcq
+	Module         string   `json:"module"` // receptive_vocab, grammar_production, discourse_reading
+	CEFR           string   `json:"cefr"`
+	Prompt         any      `json:"prompt"` // rich JSONB payload; fallback items wrap plain text
+	Choices        []string `json:"choices"`
+	Correct        string   `json:"correct"`
+	AcceptVariants []string `json:"acceptVariants"`
+	Difficulty     int      `json:"difficulty"`
 }
 
 type placementMeta struct {
@@ -457,9 +479,15 @@ func readinessWithinLevel(level string, ability int) int {
 }
 
 func q(attemptID string, item placementItem) models.PlacementQuestion {
+	prompt := item.Prompt
+	if prompt == nil {
+		prompt = map[string]any{"text": ""}
+	}
+	// Old in-flight attempts persisted the prompt as a plain string; keep that
+	// shape so resume rendering never breaks.
 	return models.PlacementQuestion{
-		Ref: item.Ref, ItemType: item.Type, CEFRLevel: item.CEFR,
-		Prompt:  map[string]any{"text": item.Prompt},
+		Ref: item.Ref, ItemType: item.Type, Module: item.Module, CEFRLevel: item.CEFR,
+		Prompt:  prompt,
 		Choices: item.Choices,
 	}
 }
@@ -471,21 +499,72 @@ func scoreForPlacement(correct bool) int {
 	return 0
 }
 
-// updatePlacementAbility moves the ability estimate toward the item difficulty
-// on correct answers and away on errors, always in the direction the answer
-// implies. A small base step guarantees a correct answer never lowers the
-// estimate (and a wrong answer never raises it) even when the item difficulty
-// is far from the current estimate.
+// itemDifficulty resolves the IRT b-parameter for an item. Calibrated bank
+// items carry an explicit difficulty_value; fallback items default to their
+// CEFR band anchor.
+func itemDifficulty(item placementItem) int {
+	if item.Difficulty > 0 {
+		return item.Difficulty
+	}
+	return levelToValue(item.CEFR)
+}
+
+// gradePlacementAnswer checks the typed/selected answer against the correct
+// form plus any accepted variants using level-aware normalization.
+func gradePlacementAnswer(item placementItem, answer string) bool {
+	candidates := append([]string{item.Correct}, item.AcceptVariants...)
+	for _, expected := range candidates {
+		if normalizeAnswerForLevel(answer, expected, item.CEFR) {
+			return true
+		}
+	}
+	return false
+}
+
+// normalizeAnswerForLevel compares a learner answer to the expected form.
+// A1/A2 are forgiving: case-insensitive, whitespace-collapsed, accents stripped
+// (early learners should not fail on "esta" vs "está"). B1+ require diacritics
+// to match exactly — accent accuracy is part of what is being assessed.
+func normalizeAnswerForLevel(answer, expected, cefr string) bool {
+	a := collapseWhitespace(strings.TrimSpace(strings.ToLower(answer)))
+	e := collapseWhitespace(strings.TrimSpace(strings.ToLower(expected)))
+	if a == "" || e == "" {
+		return false
+	}
+	if cefr == "A1" || cefr == "A2" {
+		return stripDiacritics(a) == stripDiacritics(e)
+	}
+	return a == e
+}
+
+var diacriticReplacer = strings.NewReplacer(
+	"á", "a", "é", "e", "í", "i", "ó", "o", "ú", "u", "ü", "u",
+	"ñ", "n", "ç", "c", "¡", "", "¿", "",
+)
+
+func stripDiacritics(s string) string {
+	return diacriticReplacer.Replace(s)
+}
+
+func collapseWhitespace(s string) string {
+	return strings.Join(strings.Fields(s), " ")
+}
+
+// updatePlacementAbility moves the ability estimate with an IRT-lite logistic
+// update (plan V3 Phase 1). P(theta, b) is the 1-parameter logistic probability
+// of a correct response; a correct answer gains 80*(1-P) and a wrong answer
+// loses 80*P, so items far below the learner's level barely move the estimate
+// while items near the boundary carry the most information.
 func updatePlacementAbility(ability float64, itemValue int, correct bool) float64 {
 	const (
-		baseStep = 25.0
-		slope    = 0.35
+		logisticScale = 100.0 // steepness on the 0-1000 ability scale
+		maxStep       = 80.0
 	)
-	value := float64(itemValue)
+	p := 1.0 / (1.0 + math.Exp(-(ability-float64(itemValue))/logisticScale))
 	if correct {
-		ability += baseStep + slope*math.Max(0, value-ability)
+		ability += maxStep * (1.0 - p)
 	} else {
-		ability -= baseStep + slope*math.Max(0, ability-value)
+		ability -= maxStep * p
 	}
 	if ability < 0 {
 		ability = 0
@@ -494,42 +573,6 @@ func updatePlacementAbility(ability float64, itemValue int, correct bool) float6
 		ability = 1000
 	}
 	return ability
-}
-
-// buildChoices returns a shuffled 4-option set for a placement question. The
-// correct term is included; the first three distinct distractor terms come from
-// the pool, topped up from a curated list when the course bank is thin. The
-// correct answer is never hard-coded to a fixed position.
-func buildChoices(correct string, pool []string) []string {
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	choices := []string{correct}
-	used := map[string]bool{correct: true}
-
-	for _, idx := range rng.Perm(len(pool)) {
-		if len(choices) == 4 {
-			break
-		}
-		t := pool[idx]
-		if !used[t] {
-			choices = append(choices, t)
-			used[t] = true
-		}
-	}
-
-	// Refill with common Spanish words when the bank can't supply enough
-	// distractors. These never collide with the seeded course terms and can't be
-	// the correct answer for a different question's fixed option (each item
-	// builds its own pool).
-	for _, curated := range []string{"es", "también", "porque", "después", "siempre", "nunca", "muy", "ahora"} {
-		if len(choices) == 4 {
-			break
-		}
-		if !used[curated] {
-			choices = append(choices, curated)
-			used[curated] = true
-		}
-	}
-	return shuffleStrings(choices, correct)
 }
 
 // shuffleStrings returns a deterministic-ish copy with the slice order

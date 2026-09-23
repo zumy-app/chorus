@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/chorus/messenger/internal/models"
 )
 
 // LearningAIService wraps the grammar provider chain for learning-specific LLM
@@ -228,4 +230,75 @@ func stripCodeFence(s string) string {
 		}
 	}
 	return b.String()
+}
+
+// GradeProduction evaluates a learner's produced text against the task prompt
+// and returns a structured result (score, feedback, corrections, CEFR band).
+// It powers the async grading queue (plan V3 Phase 4). Returns the provider
+// used, or "heuristic-fallback" when no endpoint answered — the queue then
+// still completes the job with a deterministic offline grade.
+func (s *LearningAIService) GradeProduction(ctx context.Context, p models.GradingJobPayload) (*models.GradingJobResult, string, error) {
+	if !s.HasProviders() {
+		return heuristicGrade(p), "heuristic-fallback", nil
+	}
+	nativeName := languageName(p.NativeLanguage)
+	if nativeName == "" {
+		nativeName = "English"
+	}
+	targetName := languageName(p.TargetLanguage)
+
+	system := fmt.Sprintf(`You are an experienced %s language teacher grading a learner exercise. Grade fairly at the learner's CEFR level (%s). Return ONLY strict JSON:
+{"score": 0-10 integer, "maxScore": 10, "feedback": "2-4 sentences of encouraging, specific feedback written in %s", "corrections": [{"span": "the learner's exact wrong text", "correction": "the corrected text", "grammarTag": "short grammar concept", "explanation": "one-sentence why, in %s"}], "cefrBand": "A1|A2|B1|B2", "accuracyScore": 0.0-1.0}`,
+		targetName, p.CEFRLevel, nativeName, nativeName)
+
+	userPayload, _ := json.Marshal(map[string]any{
+		"task_type":     p.TaskType,
+		"prompt":        p.Prompt,
+		"user_text":     p.UserText,
+		"cefr_level":    p.CEFRLevel,
+		"focus_grammar": p.FocusGrammar,
+		"focus_vocab":   p.FocusVocab,
+	})
+
+	raw, err := s.complete(ctx, system, string(userPayload), nativeName)
+	if err != nil {
+		return heuristicGrade(p), "heuristic-fallback", err
+	}
+	var out models.GradingJobResult
+	if err := parseStrictJSON(raw, &out); err != nil {
+		return heuristicGrade(p), "heuristic-fallback", fmt.Errorf("grading parse: %w", err)
+	}
+	if out.MaxScore == 0 {
+		out.MaxScore = 10
+	}
+	if out.Score > out.MaxScore {
+		out.Score = out.MaxScore
+	}
+	return &out, "ai", nil
+}
+
+// heuristicGrade is the deterministic offline grader used when no AI endpoint
+// is reachable: length-based engagement score with actionable feedback, so the
+// async pipeline always resolves a job instead of hanging the UI skeleton.
+func heuristicGrade(p models.GradingJobPayload) *models.GradingJobResult {
+	words := strings.Fields(p.UserText)
+	res := &models.GradingJobResult{MaxScore: 10, CEFRBand: p.CEFRLevel}
+	switch {
+	case len(words) >= 40:
+		res.Score = 8
+	case len(words) >= 20:
+		res.Score = 6
+	case len(words) >= 8:
+		res.Score = 4
+	case len(words) > 0:
+		res.Score = 2
+	default:
+		res.Score = 0
+	}
+	if p.FocusGrammar != "" && strings.Contains(strings.ToLower(p.UserText), strings.ToLower(p.FocusGrammar)) {
+		res.Score = min(res.Score+1, 10)
+	}
+	res.AccuracyScore = float64(res.Score) / 10.0
+	res.Feedback = "Offline review: your response was recorded and will be re-graded with full AI feedback when the tutor engine is reachable. Keep writing!"
+	return res
 }

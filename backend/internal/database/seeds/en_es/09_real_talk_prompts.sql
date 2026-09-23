@@ -1,4 +1,6 @@
 -- 09_real_talk_prompts.sql: Colloquial Real-Talk Prompts for Chat and Practice
+DELETE FROM real_talk_prompts WHERE course_id = 'c0000000-0000-0000-0000-000000000001';
+
 INSERT INTO real_talk_prompts (
     course_id, cefr_level, category, prompt_for_learner, target_phrase, why_useful, follow_up_chunks, is_active
 )
@@ -42,5 +44,4 @@ VALUES
         'Native formula for introducing depth and outside references into a debate.',
         '["¿Y qué decía?","Me lo tienes que pasar","Justo lo estaba comentando ayer"]'::jsonb,
         true
-    )
-ON CONFLICT DO NOTHING;
+    );

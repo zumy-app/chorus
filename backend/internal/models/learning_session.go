@@ -108,6 +108,7 @@ type SessionQuestion struct {
 	ActivityType string        `json:"activityType"`
 	PromptType   string        `json:"promptType"`
 	Prompt       SessionPrompt `json:"prompt"`
+	DrillType    string        `json:"drillType,omitempty"` // grammar drill: cloze, mcq, reconstruction
 }
 
 type SessionPrompt struct {

@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import '../../i18n'
 
 vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn(), useParams: () => ({}) }))
-vi.mock('../../store', () => ({ useStore: (s:any)=>s({ user: { id:'u1', targetLanguages:['es'], nativeLanguage:'en', displayName:'Test' } }) }))
+vi.mock('../../store', () => ({ useStore: (s:any)=>s({ user: { id:'u1', targetLanguages:['es'], nativeLanguage:'en', displayName:'Test' }, rolloutFlags: { video_calls: true } }) }))
 vi.mock('../../components/AppHeader', () => ({ default: () => null }))
 vi.mock('../../components/BottomNav', () => ({ default: () => null }))
 vi.mock('../../services/api', () => ({

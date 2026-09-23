@@ -1,4 +1,5 @@
 -- 01_course.sql: Spanish for English Speakers Course and Capabilities
+-- (legacy-id adoption runs first in 00_adopt_legacy_ids.sql)
 INSERT INTO curriculum_courses (
     id, native_language, target_language, title, version, support_tier, is_active
 )

@@ -10,6 +10,9 @@ import (
 )
 
 func TestSoakZeroLoss_PersistBeforeAck(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping soak test in short mode")
+	}
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("sqlmock: %v", err)
@@ -31,6 +34,9 @@ func TestSoakZeroLoss_PersistBeforeAck(t *testing.T) {
 }
 
 func TestSoakZeroLoss_ConcurrentHubNoDrop(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping soak test in short mode")
+	}
 	rdb, _ := newTestRedis(t)
 	hub := NewWebSocketHub(rdb, "soak-s1")
 	go hub.Run()
