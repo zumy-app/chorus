@@ -12,6 +12,7 @@ import {
   Modal,
   Linking,
   Alert,
+  ScrollView,
 } from 'react-native';
 import storage from '../utils/storage';
 import apiService from '../services/api';
@@ -59,8 +60,49 @@ export default function ChatScreen({ route, navigation }: any) {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestMessageId = useRef<string | null>(null);
   // Pending async Sparky job (Phase 1). The WS "sparky_result" branch resolves
-  // it by id; a ref (not state) keeps the WS subscription stable.
+  // it by id; a ref (not state) keeps the WS subscription stable. The id is
+  // also persisted so killing the app mid-answer doesn't orphan the job —
+  // reopening the sheet resyncs via GET /sparky/jobs/:jobId (same pattern as
+  // grammar jobs on web).
   const sparkyJobRef = useRef<string | null>(null);
+  const SPARKY_PENDING_KEY = 'sparky_pending_job';
+
+  // Reopen recovery: if a previous session left a pending job for this chat,
+  // adopt it and resolve its current state immediately.
+  const openSparkySheet = useCallback(async () => {
+    setDeepDiveVisible(true);
+    try {
+      const raw = await storage.getItem(SPARKY_PENDING_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      if (!saved?.jobId || saved?.chatId !== chatId || sparkyJobRef.current) return;
+      sparkyJobRef.current = saved.jobId;
+      setSparkyLoading(true);
+      try {
+        const job: any = await (apiService as any).sparkyJob(saved.jobId);
+        if (job?.status === 'done') {
+          const content = job.content || 'Done';
+          setSparkyMessages(prev => [...prev, { role: 'assistant', content, jobId: saved.jobId }]);
+          setSparkyError('');
+          setSparkyLoading(false);
+          sparkyJobRef.current = null;
+          await storage.removeItem(SPARKY_PENDING_KEY).catch(() => {});
+        } else if (job?.status === 'failed') {
+          const msg = job.error || 'Failed to get answer';
+          setSparkyError(msg);
+          setSparkyMessages(prev => [...prev, { role: 'assistant', content: msg }]);
+          setSparkyLoading(false);
+          sparkyJobRef.current = null;
+          await storage.removeItem(SPARKY_PENDING_KEY).catch(() => {});
+        }
+        // processing/streaming: stay loading, the WS event will deliver.
+      } catch {
+        // Resync failed (offline?) — stay loading, the WS event may deliver.
+      }
+    } catch {
+      // Corrupted storage — ignore.
+    }
+  }, [chatId]);
 
   const nativeLanguage = currentUser?.nativeLanguage || 'en';
   const targetLang = currentUser?.targetLanguages?.[0]?.toUpperCase();
@@ -136,12 +178,14 @@ export default function ChatScreen({ route, navigation }: any) {
           setSparkyError('');
           setSparkyLoading(false);
           sparkyJobRef.current = null;
+          storage.removeItem(SPARKY_PENDING_KEY).catch(() => {});
         } else if (payload.status === 'failed') {
           const msg = payload.error || 'Failed to get answer';
           setSparkyError(msg);
           setSparkyMessages(prev => [...prev, { role: 'assistant', content: msg }]);
           setSparkyLoading(false);
           sparkyJobRef.current = null;
+          storage.removeItem(SPARKY_PENDING_KEY).catch(() => {});
         }
         // "processing" keeps the typing indicator until tokens arrive.
       }
@@ -656,7 +700,7 @@ export default function ChatScreen({ route, navigation }: any) {
       {/* Sparky FAB */}
       <TouchableOpacity
         style={styles.sparkyFab}
-        onPress={() => setDeepDiveVisible(true)}
+        onPress={openSparkySheet}
         accessibilityLabel="Ask Sparky">
         <Text style={styles.sparkyFabIcon}>🤖</Text>
         <View style={styles.sparkyDot} />
@@ -668,7 +712,9 @@ export default function ChatScreen({ route, navigation }: any) {
         transparent
         animationType="slide"
         onRequestClose={() => setDeepDiveVisible(false)}>
-        <View style={styles.sheetOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.sheetOverlay}>
           <TouchableOpacity
             style={styles.sheetBackdrop}
             activeOpacity={1}
@@ -685,7 +731,11 @@ export default function ChatScreen({ route, navigation }: any) {
                 <Text style={styles.sheetClose}>✕</Text>
               </TouchableOpacity>
             </View>
-            <View style={styles.sheetBody}>
+            <ScrollView
+              style={styles.sheetBodyScroll}
+              contentContainerStyle={styles.sheetBody}
+              keyboardShouldPersistTaps="handled"
+              testID="sparky-scroll">
               <View style={styles.sheetIntro}>
                 <Text style={styles.sheetIntroTitle}>Sparky's Insight</Text>
                 <Text style={styles.sheetIntroText}>Let's look at that last sentence.</Text>
@@ -706,7 +756,7 @@ export default function ChatScreen({ route, navigation }: any) {
                 (sparkyMessages[sparkyMessages.length - 1] as any)?.jobId === sparkyJobRef.current
               ) && <Text testID="sparky-loading" style={styles.typingText}>Sparky is typing…</Text>}
               {sparkyError ? <Text testID="sparky-error" style={{ color: 'red', fontSize: 12 }}>{sparkyError}</Text> : null}
-            </View>
+            </ScrollView>
             <View style={styles.sheetInputRow}>
               <TextInput
                 style={styles.sheetInput}
@@ -750,6 +800,7 @@ export default function ChatScreen({ route, navigation }: any) {
                     });
                     if (asked?.jobId) {
                       sparkyJobRef.current = asked.jobId;
+                      await storage.setItem(SPARKY_PENDING_KEY, JSON.stringify({ jobId: asked.jobId, chatId })).catch(() => {});
                       return;
                     }
                     throw new Error('Sparky queue did not return a job');
@@ -773,7 +824,7 @@ export default function ChatScreen({ route, navigation }: any) {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
       <Modal visible={!!grammarModal} transparent animationType="slide" onRequestClose={()=>setGrammarModal(null)}>
         <View style={styles.sheetOverlay}><TouchableOpacity style={styles.sheetBackdrop} activeOpacity={1} onPress={()=>setGrammarModal(null)} />
@@ -1247,6 +1298,13 @@ const styles = StyleSheet.create({
   },
   sheetBody: {
     paddingVertical: 16,
+  },
+  // Scrollable message area: shrinks inside the sheet's maxHeight so long
+  // answers scroll instead of pushing the input row off-screen (the
+  // disappearing-input bug). The input row stays pinned below.
+  sheetBodyScroll: {
+    flexGrow: 0,
+    flexShrink: 1,
   },
   sheetIntro: {
     alignItems: 'center',

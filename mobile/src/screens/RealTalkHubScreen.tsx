@@ -45,7 +45,7 @@ export default function RealTalkHubScreen({ navigation }: any) {
 
   const useInChat = useCallback(async (prompt: RealTalkPrompt) => {
     try { await apiService.markRealTalkUsed(prompt.id); } catch {}
-    await storage.setItem('realTalkDraft', prompt.text);
+    await storage.setItem('realTalkDraft', prompt.targetPhrase || prompt.text);
     navigation.navigate('ChatsTab' as never);
   }, [navigation]);
 
@@ -83,7 +83,9 @@ export default function RealTalkHubScreen({ navigation }: any) {
           <View style={styles.cardTop}>
             <View style={styles.category}><Text style={styles.categoryText}>{prompt.category}</Text></View>
           </View>
-          <Text style={styles.prompt}>“{prompt.text}”</Text>
+          <Text style={styles.prompt}>“{prompt.targetPhrase || prompt.text}”</Text>
+          {prompt.targetPhrase ? <Text style={styles.instruction}>{prompt.text}</Text> : null}
+          {prompt.whyUseful ? <Text style={styles.instruction}>💡 {prompt.whyUseful}</Text> : null}
           <View style={styles.cardBottom}>
             <Text style={styles.hint}>Try using target language</Text>
             <Pressable onPress={() => useInChat(prompt)} style={styles.useButton}><Text style={styles.useButtonText}>Use in Chat →</Text></Pressable>
@@ -119,6 +121,7 @@ const styles = StyleSheet.create({
   category: { backgroundColor: COLOR.secondaryFixed, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
   categoryText: { ...TYPOGRAPHY.labelSm, color: COLOR.onSecondaryFixed, fontFamily: FONTS.label },
   prompt: { ...TYPOGRAPHY.bodyLg, color: COLOR.onSurface, fontFamily: FONTS.body, lineHeight: 24 },
+  instruction: { ...TYPOGRAPHY.bodySm, color: COLOR.onSurfaceVariant, fontFamily: FONTS.body },
   cardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: COLOR.outlineVariant, paddingTop: 8, marginTop: 4 },
   hint: { ...TYPOGRAPHY.labelSm, color: COLOR.outline, fontFamily: FONTS.label },
   useButton: { backgroundColor: COLOR.primary, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 8 },

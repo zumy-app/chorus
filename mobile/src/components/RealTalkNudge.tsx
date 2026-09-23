@@ -26,12 +26,17 @@ export default function RealTalkNudge({ chatId, onSendToInput }: Props) {
   }, [user, targetLanguage, nativeLanguage, chatId]);
 
   const current = prompts[idx % Math.max(1, prompts.length)];
+  // `text` is the learner-facing instruction ("Politely state your
+  // perspective…"); `targetPhrase` is the sendable target-language sentence.
+  // The card shows the phrase prominently with the instruction as context,
+  // and Send to Input inserts the phrase — never the instruction.
+  const phrase = current?.targetPhrase || current?.text || '';
   const send = useCallback(async () => {
     if (!current) return;
     try { await apiService.markRealTalkUsed(current.id); } catch {}
-    onSendToInput(current.text);
+    onSendToInput(phrase);
     setDismissed(true);
-  }, [current, onSendToInput]);
+  }, [current, phrase, onSendToInput]);
 
   if (dismissed || !current) return null;
 
@@ -43,7 +48,9 @@ export default function RealTalkNudge({ chatId, onSendToInput }: Props) {
         <View style={styles.body}>
           <Text style={styles.title}>Sparky’s Nudge</Text>
           <Text style={styles.subtitle}>Try this in the chat:</Text>
-          <View style={styles.promptCard}><Text style={styles.prompt}>“{current.text}”</Text></View>
+          <View style={styles.promptCard}><Text style={styles.prompt}>“{phrase}”</Text></View>
+          {current.targetPhrase ? <Text style={styles.caption}>{current.text}</Text> : null}
+          {current.whyUseful ? <Text style={styles.caption}>💡 {current.whyUseful}</Text> : null}
           <View style={styles.actions}>
             <Pressable onPress={send} style={styles.primaryButton}><Text style={styles.primaryText}>Send to Input</Text></Pressable>
             <Pressable onPress={() => setIdx((i) => (i + 1) % Math.max(1, prompts.length))} style={styles.shuffle}><Text style={styles.shuffleText}>↻</Text></Pressable>
@@ -66,6 +73,7 @@ const styles = StyleSheet.create({
   subtitle: { ...TYPOGRAPHY.bodySm, color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.body },
   promptCard: { backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: RADIUS.lg, padding: SPACING.stackSm, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', marginVertical: 4 },
   prompt: { ...TYPOGRAPHY.headlineSm, color: COLOR.onPrimaryContainer, fontFamily: FONTS.headline, fontSize: 16 },
+  caption: { ...TYPOGRAPHY.bodySm, color: 'rgba(255,255,255,0.75)', fontFamily: FONTS.body, fontSize: 12 },
   actions: { flexDirection: 'row', gap: SPACING.stackSm, marginTop: 4 },
   primaryButton: { flex: 1, backgroundColor: COLOR.surfaceContainerLowest, borderRadius: 999, paddingVertical: 10, alignItems: 'center' },
   primaryText: { ...TYPOGRAPHY.labelMd, color: COLOR.primary, fontFamily: FONTS.label },

@@ -46,7 +46,7 @@ export default function RealTalkHub() {
   const useInChat = useCallback(async (prompt: RealTalkPrompt) => {
     setUsedId(prompt.id)
     try { await learningAPI.markRealTalkUsed(prompt.id) } catch {}
-    localStorage.setItem('realTalkDraft', prompt.text)
+    localStorage.setItem('realTalkDraft', prompt.targetPhrase || prompt.text)
     localStorage.setItem('realTalkPromptId', prompt.id)
     navigate('/chat')
   }, [navigate])
@@ -103,7 +103,13 @@ export default function RealTalkHub() {
                 </span>
                 {usedId === prompt.id && <span className="font-label-sm text-label-sm text-tertiary flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">check</span> Used</span>}
               </div>
-              <p className="font-body-lg text-body-lg text-on-surface leading-relaxed">“{prompt.text}”</p>
+              <p className="font-body-lg text-body-lg text-on-surface leading-relaxed">“{prompt.targetPhrase || prompt.text}”</p>
+              {prompt.targetPhrase && (
+                <p className="font-body-sm text-body-sm text-on-surface-variant">{prompt.text}</p>
+              )}
+              {prompt.whyUseful && (
+                <p className="font-body-sm text-body-sm text-on-surface-variant">💡 {prompt.whyUseful}</p>
+              )}
               <div className="flex items-center justify-between pt-2 border-t border-surface-variant/50">
                 <span className="font-body-sm text-body-sm text-outline flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">lightbulb</span> Try using target language</span>
                 <button onClick={() => useInChat(prompt)} className="bg-primary text-on-primary font-label-md text-label-md px-6 py-2 rounded-full hover:bg-primary/90 transition active:scale-95 flex items-center gap-2">
