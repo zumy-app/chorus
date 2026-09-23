@@ -10,6 +10,7 @@ import ReportModal from './ReportModal'
 import EmojiPicker from './EmojiPicker'
 import ForwardDialog from './ForwardDialog'
 import { moderationAPI, api, messageAPI } from '../services/api'
+import { useFeatureFlag } from '../hooks/useFeatureFlag'
 import { wsService } from '../services/websocket'
 import { formatDistanceToNow } from 'date-fns'
 import CallScreen from './CallScreen'
@@ -18,6 +19,7 @@ import RealTalkNudge from './chat/RealTalkNudge'
 export default function ChatArea() {
   const { t } = useTranslation()
   const { activeChat, messages, user, chats, entitlements, sendMessage, sendAttachment, sendLocation, deleteMessage, forwardMessage, pinMessage, unpinMessage, typingUsers, presence, fetchPresence } = useStore()
+  const { enabled: callsEnabled } = useFeatureFlag('video_calls')
   const [inputText, setInputText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [showLangSettings, setShowLangSettings] = useState(false)
@@ -383,44 +385,48 @@ export default function ChatArea() {
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <button
-            onClick={async () => {
-              if (!activeChat) return
-              setCallError('')
-              try {
-                const res = await api.post<{ session: { id: string } }>('/calls/initiate', { chatId: activeChat.id, type: 'audio' })
-                setActiveCall({ id: res.data.session.id, chatId: activeChat.id, type: 'audio' })
-              } catch (e: unknown) {
-                const msg = e instanceof Error ? e.message : 'Failed to start call'
-                setCallError(msg)
-                setTimeout(() => setCallError(''), 3000)
-              }
-            }}
-            className="w-10 h-10 flex items-center justify-center text-primary hover:bg-surface-variant/20 rounded-full transition active:scale-95"
-            title={t('chat.startCall', { defaultValue: 'Start audio call' })}
-            aria-label={t('chat.startCall', { defaultValue: 'Start audio call' })}
-          >
-            <span className="material-symbols-outlined">call</span>
-          </button>
-          <button
-            onClick={async () => {
-              if (!activeChat) return
-              setCallError('')
-              try {
-                const res = await api.post<{ session: { id: string } }>('/calls/initiate', { chatId: activeChat.id, type: 'video' })
-                setActiveCall({ id: res.data.session.id, chatId: activeChat.id, type: 'video' })
-              } catch (e: unknown) {
-                const msg = e instanceof Error ? e.message : 'Failed to start call'
-                setCallError(msg)
-                setTimeout(() => setCallError(''), 3000)
-              }
-            }}
-            className="w-10 h-10 flex items-center justify-center text-primary hover:bg-surface-variant/20 rounded-full transition active:scale-95"
-            title="Start video call"
-            aria-label="Start video call"
-          >
-            <span className="material-symbols-outlined">videocam</span>
-          </button>
+          {callsEnabled && (
+            <>
+              <button
+                onClick={async () => {
+                  if (!activeChat) return
+                  setCallError('')
+                  try {
+                    const res = await api.post<{ session: { id: string } }>('/calls/initiate', { chatId: activeChat.id, type: 'audio' })
+                    setActiveCall({ id: res.data.session.id, chatId: activeChat.id, type: 'audio' })
+                  } catch (e: unknown) {
+                    const msg = e instanceof Error ? e.message : 'Failed to start call'
+                    setCallError(msg)
+                    setTimeout(() => setCallError(''), 3000)
+                  }
+                }}
+                className="w-10 h-10 flex items-center justify-center text-primary hover:bg-surface-variant/20 rounded-full transition active:scale-95"
+                title={t('chat.startCall', { defaultValue: 'Start audio call' })}
+                aria-label={t('chat.startCall', { defaultValue: 'Start audio call' })}
+              >
+                <span className="material-symbols-outlined">call</span>
+              </button>
+              <button
+                onClick={async () => {
+                  if (!activeChat) return
+                  setCallError('')
+                  try {
+                    const res = await api.post<{ session: { id: string } }>('/calls/initiate', { chatId: activeChat.id, type: 'video' })
+                    setActiveCall({ id: res.data.session.id, chatId: activeChat.id, type: 'video' })
+                  } catch (e: unknown) {
+                    const msg = e instanceof Error ? e.message : 'Failed to start call'
+                    setCallError(msg)
+                    setTimeout(() => setCallError(''), 3000)
+                  }
+                }}
+                className="w-10 h-10 flex items-center justify-center text-primary hover:bg-surface-variant/20 rounded-full transition active:scale-95"
+                title="Start video call"
+                aria-label="Start video call"
+              >
+                <span className="material-symbols-outlined">videocam</span>
+              </button>
+            </>
+          )}
           <button
             onClick={() => setShowLangSettings(true)}
             className="w-10 h-10 flex items-center justify-center text-primary hover:bg-surface-variant/20 rounded-full transition active:scale-95"

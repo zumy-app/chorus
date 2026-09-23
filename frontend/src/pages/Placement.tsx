@@ -18,7 +18,67 @@ export default function Placement() {
   const [answered, setAnswered] = useState(0)
   const [result, setResult] = useState<PlacementResult | null>(null)
   const [loading, setLoading] = useState(true)
-  const [selected, setSelected] = useState<string | null>(null)
+  const [answer, setAnswer] = useState<string | null>(null)
+  const [typed, setTyped] = useState('')
+  const [built, setBuilt] = useState<string[]>([])
+
+  const prompt: any = question
+    ? typeof question.prompt === 'object' && question.prompt !== null
+      ? (question.prompt as any)
+      : { text: String(question.prompt ?? '') }
+    : {}
+
+  const resetAnswer = () => {
+    setAnswer(null)
+    setTyped('')
+    setBuilt([])
+  }
+
+  useEffect(() => {
+    if (question?.itemType === 'gap_fill_type') setAnswer(typed.trim() || null)
+  }, [typed, question?.itemType])
+  useEffect(() => {
+    setAnswer(built.length ? built.join(' ') : null)
+  }, [built])
+
+  const submit = useCallback(async () => {
+    if (!attemptId || !answer) return
+    setLoading(true)
+    try {
+      const res = await learningAPI.answerPlacement(attemptId, answer)
+      resetAnswer()
+      // If a PlacementResult came back, the test is complete.
+      if ('estimatedCefr' in res && (res as PlacementResult).estimatedCefr) {
+        setResult(res as PlacementResult)
+      } else {
+        const next = res as StartPlacementResponse
+        setQuestion(next.question)
+        setAnswered(answered + 1)
+        setAttemptId(next.attemptId)
+      }
+    } catch {
+      // progress response
+    } finally {
+      setLoading(false)
+    }
+  }, [attemptId, answer, answered])
+
+  const skip = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await learningAPI.skipPlacement(targetLanguage, nativeLanguage)
+      setResult(res)
+    } catch {
+      setResult({ attemptId: '', estimatedCefr: 'A1', readinessScore: 0, activeUnitId: '' })
+    } finally {
+      setLoading(false)
+    }
+  }, [targetLanguage, nativeLanguage])
+
+  const isReconstruction = question?.itemType === 'sentence_reconstruction'
+  const isGapFill = question?.itemType === 'gap_fill_type'
+  const isPassage = question?.itemType === 'passage_mcq'
+  const hasChoices = (question?.choices?.length ?? 0) > 0
 
   useEffect(() => {
     setLoading(true)
@@ -31,41 +91,6 @@ export default function Placement() {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [targetLanguage, nativeLanguage])
-
-  const submit = useCallback(async () => {
-    if (!attemptId || !selected) return
-    setLoading(true)
-    try {
-      const res = await learningAPI.answerPlacement(attemptId, selected)
-      setSelected(null)
-      // If a PlacementResult came back, the test is complete.
-      if ('estimatedCefr' in res && (res as PlacementResult).estimatedCefr) {
-        setResult(res as PlacementResult)
-      } else {
-        const next = res as StartPlacementResponse
-        setQuestion(next.question)
-        setAnswered(answered + 1)
-        setQuestion(next.question)
-        setAttemptId(next.attemptId)
-      }
-    } catch {
-      // progress response
-    } finally {
-      setLoading(false)
-    }
-  }, [attemptId, selected, answered])
-
-  const skip = useCallback(async () => {
-    setLoading(true)
-    try {
-      const res = await learningAPI.skipPlacement(targetLanguage, nativeLanguage)
-      setResult(res)
-    } catch {
-      setResult({ attemptId: '', estimatedCefr: 'A1', readinessScore: 0, activeUnitId: '' })
-    } finally {
-      setLoading(false)
-    }
   }, [targetLanguage, nativeLanguage])
 
   return (
@@ -104,25 +129,93 @@ export default function Placement() {
             <div className="bg-surface-container-lowest rounded-[1.5rem] p-6 shadow-[0px_4px_12px_rgba(0,0,0,0.05)] flex flex-col gap-5">
               <div className="flex items-center gap-2">
                 <span className="bg-secondary-fixed-dim/30 text-secondary font-label-sm text-label-sm px-3 py-1 rounded-full">{question.cefrLevel}</span>
-                <span className="font-label-sm text-label-sm text-on-surface-variant">{question.itemType}</span>
+                <span className="font-label-sm text-label-sm text-on-surface-variant">{question.module ? `${question.module} · ` : ''}{question.itemType}</span>
               </div>
-              <h2 className="font-headline-md text-headline-md text-on-surface">{typeof question.prompt === 'object' ? (question.prompt as any).text : question.prompt}</h2>
-              <div className="flex flex-col gap-2">
-                {(question.choices || []).map((choice, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setSelected(choice)}
-                    className={`rounded-xl px-4 py-3 font-body-md text-body-md text-left transition-colors ${
-                      selected === choice ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface'
-                    }`}
-                  >
-                    {choice}
-                  </button>
-                ))}
-              </div>
+
+              {isPassage && prompt.passage && (
+                <>
+                  <p className="font-body-md text-body-md text-on-surface leading-relaxed">{prompt.passage}</p>
+                  <h2 className="font-headline-md text-headline-md text-on-surface">{prompt.question}</h2>
+                </>
+              )}
+
+              {isGapFill && prompt.sentence_with_blank && (
+                <>
+                  <h2 className="font-headline-md text-headline-md text-on-surface">{prompt.sentence_with_blank}</h2>
+                  <input
+                    value={typed}
+                    onChange={e => setTyped(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') submit() }}
+                    autoFocus
+                    autoCapitalize="none"
+                    placeholder="Type the missing word"
+                    className="bg-surface-container rounded-xl px-4 py-3 font-body-lg text-body-lg text-on-surface outline-none"
+                  />
+                  {prompt.translation && <p className="font-body-sm text-body-sm text-on-surface-variant">{prompt.translation}</p>}
+                </>
+              )}
+
+              {isReconstruction && (
+                <>
+                  <h2 className="font-headline-md text-headline-md text-on-surface">{prompt.instruction ?? 'Order the words to make a correct sentence.'}</h2>
+                  <div className="bg-surface-container rounded-xl px-4 py-3 min-h-14 flex flex-wrap gap-2 items-center">
+                    {built.length === 0 && <span className="font-body-md text-body-md text-outline">Tap the words in order</span>}
+                    {built.map((w, i) => (
+                      <button key={`${w}-${i}`} onClick={() => setBuilt(built.filter((_, idx) => idx !== i))} className="bg-primary text-on-primary font-body-md text-body-md px-3 py-1 rounded-full">
+                        {w}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {(prompt.words ?? []).map((w: string, i: number) => {
+                      const used = built.filter(b => b === w).length
+                      const total = (prompt.words ?? []).filter((x: string) => x === w).length
+                      const exhausted = used >= total
+                      return (
+                        <button key={`${w}-${i}`} disabled={exhausted} onClick={() => setBuilt([...built, w])} className={`font-body-md text-body-md px-3 py-1 rounded-full ${exhausted ? 'opacity-30 bg-surface-container-high text-on-surface-variant' : 'bg-surface-container-high text-on-surface'}`}>
+                          {w}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
+
+              {!isPassage && !isGapFill && !isReconstruction && (
+                <>
+                  {prompt.sentence && (
+                    <p className="font-body-lg text-body-lg text-on-surface-variant">
+                      {String(prompt.sentence).split(prompt.target_word ?? '\u0000').map((part: string, i: number, arr: string[]) => (
+                        <span key={i}>
+                          {part}
+                          {i < arr.length - 1 && <span className="text-primary font-bold">{prompt.target_word}</span>}
+                        </span>
+                      ))}
+                    </p>
+                  )}
+                  <h2 className="font-headline-md text-headline-md text-on-surface">{prompt.context_translation ?? prompt.text ?? ''}</h2>
+                </>
+              )}
+
+              {hasChoices && !isGapFill && !isReconstruction && (
+                <div className="flex flex-col gap-2">
+                  {(question.choices || []).map((choice, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setAnswer(choice)}
+                      className={`rounded-xl px-4 py-3 font-body-md text-body-md text-left transition-colors ${
+                        answer === choice ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface'
+                      }`}
+                    >
+                      {choice}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <button
                 onClick={submit}
-                disabled={!selected}
+                disabled={!answer || loading}
                 className="bg-primary text-on-primary font-label-md text-label-md px-4 py-2.5 rounded-full disabled:opacity-40"
               >
                 {'Check'}

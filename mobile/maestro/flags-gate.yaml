@@ -1,0 +1,21 @@
+# Maestro — Release 1 flags gate: admin-only surfaces stay hidden for general users.
+# Expects login.yaml to have run first (authenticated as a NON-admin test user).
+# Asserts the calls header buttons (gated on video_calls) are NOT rendered.
+appId: host.exp.Exponent
+---
+- assertVisible:
+    text: "Chats"
+    timeout: 15000
+- tapOn:
+    index: 0
+    optional: true
+- assertVisible:
+    text: "Type a message*"
+    timeout: 15000
+# Call buttons are 📞 / 📹 header actions; they must be absent for general users.
+- assertNotVisible:
+    text: "📞"
+    timeout: 5000
+- assertNotVisible:
+    text: "📹"
+    timeout: 5000

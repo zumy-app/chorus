@@ -1,6 +1,6 @@
 import { create } from 'zustand'
-import type { User, Chat, Message, Entitlements, TranslationBlocked, GrammarJob, PresenceStatus } from '@chorus/shared'
-import { chatAPI, messageAPI, adminAPI, authAPI, grammarAPI, presenceAPI } from '../services/api'
+import type { User, Chat, Message, Entitlements, RolloutFlags, TranslationBlocked, GrammarJob, PresenceStatus } from '@chorus/shared'
+import { chatAPI, messageAPI, adminAPI, authAPI, grammarAPI, presenceAPI, flagsAPI } from '../services/api'
 import { wsService } from '../services/websocket'
 
 // --- Slug helpers ---
@@ -55,6 +55,7 @@ export function findChatBySlug(chats: Chat[], slug: string, currentUserId?: stri
 interface AppState {
   user: User | null
   entitlements: Entitlements | null
+  rolloutFlags: RolloutFlags | null
   isAdmin: boolean
   isModerator: boolean
   userRole: string
@@ -70,6 +71,8 @@ interface AppState {
   setUser: (user: User | null) => void
   setEntitlements: (entitlements: Entitlements | null) => void
   refreshEntitlements: () => Promise<void>
+  setRolloutFlags: (flags: RolloutFlags | null) => void
+  refreshRolloutFlags: () => Promise<void>
   setAdmin: (isAdmin: boolean) => void
   setRole: (role: string) => void
   refreshAdminStatus: () => Promise<void>
@@ -118,6 +121,7 @@ function directChatParticipantIds(chats: Chat[], currentUserId?: string): string
 export const useStore = create<AppState>((set, get) => ({
   user: null,
   entitlements: null,
+  rolloutFlags: null,
   isAdmin: false,
   isModerator: false,
   userRole: '',
@@ -137,6 +141,15 @@ export const useStore = create<AppState>((set, get) => ({
       set({ entitlements })
     } catch (error) {
       console.error('Failed to load entitlements:', error)
+    }
+  },
+  setRolloutFlags: (rolloutFlags) => set({ rolloutFlags }),
+  refreshRolloutFlags: async () => {
+    try {
+      const rolloutFlags = await flagsAPI.getMyFlags()
+      set({ rolloutFlags })
+    } catch (error) {
+      console.error('Failed to load rollout flags:', error)
     }
   },
   setAdmin: (isAdmin) => set({ isAdmin }),

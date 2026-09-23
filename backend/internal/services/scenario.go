@@ -238,7 +238,7 @@ func (s *ScenarioService) SendMessage(ctx context.Context, userID, runID, messag
 
 	var reply models.ScenarioAIReply
 	if s.ai != nil && s.ai.HasProviders() {
-		reply = s.genAIReply(ctx, userID, scenarioID, targetLang, nativeLang, phase, message, currentPhase, runCoveredIntents(ctx, s.db, runID))
+		reply = s.genAIReply(ctx, userID, scenarioID, runID, targetLang, nativeLang, phase, message, currentPhase, runCoveredIntents(ctx, s.db, runID))
 	}
 	if reply.AIMessage == "" {
 		reply = scriptedReply(phase, message, intents, phaseComplete, scaffold)
@@ -375,22 +375,68 @@ func (s *ScenarioService) touchChunkVocabulary(ctx context.Context, userID, targ
 	_ = intents
 }
 
-func (s *ScenarioService) genAIReply(ctx context.Context, userID, scenarioID, targetLang, nativeLang string, phase *models.ScenarioPhase, message string, currentPhase int, covered []string) models.ScenarioAIReply {
+// scenarioAITimeout bounds the AI partner call. A stalled upstream must never
+// hold the request thread hostage: past the window the transaction cleanly
+// falls back to the scripted partner so the learner keeps playing (plan V3
+// Phase 3).
+const scenarioAITimeout = 3 * time.Second
+
+// genAIReply builds the full structured prompt tree from the phase's teaching
+// metadata (scaffold hints, AI follow-up, success examples, chunk bank), the
+// scenario's role card, and the live turn history, then asks the AI partner
+// for the next in-character reply under a hard timeout.
+func (s *ScenarioService) genAIReply(ctx context.Context, userID, scenarioID, runID, targetLang, nativeLang string, phase *models.ScenarioPhase, message string, currentPhase int, covered []string) models.ScenarioAIReply {
+	// Role card + CEFR anchor for the scene.
+	var roleName, roleDesc, cefr string
+	_ = s.db.QueryRowContext(ctx, `
+		SELECT COALESCE(ai_role_name,''), COALESCE(ai_role_description,''), cefr_level
+		FROM scenario_scripts WHERE id = $1`, scenarioID).Scan(&roleName, &roleDesc, &cefr)
+	if cefr == "" {
+		cefr = "A1"
+	}
+
+	// Recent turn history so the partner has conversational memory.
+	history := []map[string]string{}
+	if runID != "" {
+		if turns, err := s.getTurns(ctx, runID); err == nil {
+			for _, t := range turns {
+				if len(history) >= 8 {
+					break
+				}
+				history = append(history, map[string]string{"speaker": t.Speaker, "text": t.Text})
+			}
+		}
+	}
+
 	payload := map[string]any{
 		"scenario":        scenarioID,
 		"target_language": targetLang,
 		"native_language": nativeLang,
-		"cefr_level":      "A1",
+		"cefr_level":      cefr,
+		"ai_role": map[string]any{
+			"name":        roleName,
+			"description": roleDesc,
+		},
 		"current_phase": map[string]any{
+			"ordinal":          currentPhase,
 			"title":            phase.Title,
 			"learner_goal":     phase.LearnerGoal,
 			"required_intents": phase.RequiredIntents,
+			"scaffold_hints":   phase.ScaffoldHints,
+			"ai_follow_up":     phase.AIFollowUp,
+			"success_examples": phase.SuccessExamples,
+			"chunk_bank":       phase.ChunkBank,
 		},
-		"history":         covered,
+		"covered_intents": covered,
+		"history":         history,
 		"learner_message": message,
 	}
-	rep, err := s.ai.GenerateScenarioReply(ctx, payload)
+
+	tctx, cancel := context.WithTimeout(ctx, scenarioAITimeout)
+	defer cancel()
+	rep, err := s.ai.GenerateScenarioReply(tctx, payload)
 	if err != nil {
+		log.Printf("[Scenario] AI partner unavailable (%v); scripted fallback takes over", err)
 		return models.ScenarioAIReply{}
 	}
 	reply := models.ScenarioAIReply{
@@ -433,7 +479,8 @@ func (s *ScenarioService) capability(ctx context.Context, nativeLang, targetLang
 func (s *ScenarioService) getPhases(ctx context.Context, scenarioID string) ([]models.ScenarioPhase, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id::text, scenario_id::text, ordinal, title, learner_goal,
-		       required_intents, chunk_bank
+		       required_intents, COALESCE(scaffold_hints::text,'[]'),
+		       COALESCE(ai_follow_up,''), COALESCE(success_examples::text,'[]'), chunk_bank
 		FROM scenario_phases WHERE scenario_id = $1 ORDER BY ordinal`, scenarioID)
 	if err != nil {
 		return nil, err
@@ -443,9 +490,22 @@ func (s *ScenarioService) getPhases(ctx context.Context, scenarioID string) ([]m
 	for rows.Next() {
 		var ph models.ScenarioPhase
 		var chunkJSON []byte
+		var hintsJSON, examplesJSON string
 		if err := rows.Scan(&ph.ID, &ph.ScenarioID, &ph.Ordinal, &ph.Title, &ph.LearnerGoal,
-			pq.Array(&ph.RequiredIntents), &chunkJSON); err != nil {
+			pq.Array(&ph.RequiredIntents), &hintsJSON, &ph.AIFollowUp, &examplesJSON, &chunkJSON); err != nil {
 			return nil, err
+		}
+		if len(hintsJSON) > 0 {
+			var hints any
+			if json.Unmarshal([]byte(hintsJSON), &hints) == nil {
+				ph.ScaffoldHints = hints
+			}
+		}
+		if len(examplesJSON) > 0 {
+			var ex any
+			if json.Unmarshal([]byte(examplesJSON), &ex) == nil {
+				ph.SuccessExamples = ex
+			}
 		}
 		if len(chunkJSON) > 0 {
 			var chunks []models.Chunk

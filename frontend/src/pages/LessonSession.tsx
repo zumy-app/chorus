@@ -21,6 +21,7 @@ export default function LessonSession() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [answer, setAnswer] = useState('')
+  const [built, setBuilt] = useState<string[]>([])
   const [feedback, setFeedback] = useState<{ correct: boolean; message: string; correctAnswer?: string } | null>(null)
   const [done, setDone] = useState(false)
   const [xp, setXp] = useState(0)
@@ -63,6 +64,7 @@ export default function LessonSession() {
   const next = useCallback(async () => {
     setFeedback(null)
     setAnswer('')
+    setBuilt([])
     if (index + 1 < items.length) {
       setIndex(index + 1)
       return
@@ -74,6 +76,8 @@ export default function LessonSession() {
   }, [index, items.length, sessionId])
 
   const current = items[index]
+  const isReconstruction = current?.drillType === 'reconstruction'
+  const builtAnswer = built.length ? built.join(' ') : ''
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -127,7 +131,49 @@ export default function LessonSession() {
               )}
             </div>
 
-            {current.prompt.choices && current.prompt.choices.length > 0 ? (
+            {isReconstruction ? (
+              <div className="flex flex-col gap-3">
+                <div className="bg-surface-container rounded-xl px-4 py-3 min-h-14 flex flex-wrap gap-2 items-center">
+                  {built.length === 0 && <span className="font-body-md text-body-md text-outline">Tap the words in order</span>}
+                  {built.map((w, i) => (
+                    <button
+                      key={`${w}-${i}`}
+                      onClick={() => setBuilt(built.filter((_, idx) => idx !== i))}
+                      disabled={!!feedback}
+                      className="bg-primary text-on-primary font-body-md text-body-md px-3 py-1 rounded-full"
+                    >
+                      {w}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(current.prompt.choices ?? []).map((w, i) => {
+                    const used = built.filter(b => b === w).length
+                    const total = (current.prompt.choices ?? []).filter((x) => x === w).length
+                    const exhausted = used >= total
+                    return (
+                      <button
+                        key={`${w}-${i}`}
+                        disabled={exhausted || !!feedback}
+                        onClick={() => setBuilt([...built, w])}
+                        className={`font-body-md text-body-md px-3 py-1 rounded-full ${
+                          exhausted ? 'opacity-30 bg-surface-container-high text-on-surface-variant' : 'bg-surface-container-high text-on-surface'
+                        }`}
+                      >
+                        {w}
+                      </button>
+                    )
+                  })}
+                </div>
+                <button
+                  onClick={() => builtAnswer && submit(builtAnswer)}
+                  disabled={!builtAnswer || !!feedback}
+                  className="bg-primary text-on-primary font-label-md text-label-md px-4 py-2.5 rounded-full disabled:opacity-40"
+                >
+                  {'Check'}
+                </button>
+              </div>
+            ) : current.prompt.choices && current.prompt.choices.length > 0 ? (
               <div className="flex flex-col gap-2">
                 {current.prompt.choices.map((choice, i) => (
                   <button

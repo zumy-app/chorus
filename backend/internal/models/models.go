@@ -27,6 +27,7 @@ type User struct {
 	NativeLanguage  string    `json:"nativeLanguage" db:"native_language"`
 	TargetLanguages []string  `json:"targetLanguages" db:"target_languages"`
 	Role            string    `json:"role" db:"role"` // member, moderator, admin
+	BetaAccess      bool      `json:"betaAccess" db:"beta_access"`
 	CreatedAt       time.Time `json:"createdAt" db:"created_at"`
 	LastActiveAt    time.Time `json:"lastActiveAt" db:"last_active_at"`
 	// Plan is the stored billing plan ("free" or "premium"). Entitlements are

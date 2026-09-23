@@ -4,11 +4,15 @@
   "private": true,
   "scripts": {
     "android": "react-native run-android",
+    "android:usb": "powershell -ExecutionPolicy Bypass -File ./run-android-usb.ps1",
+    "android:avd": "powershell -ExecutionPolicy Bypass -File ./run-android-avd.ps1",
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
     "web": "npx expo start --web",
-    "test": "jest"
+    "test": "jest",
+    "maestro:test": "maestro test maestro/login.yaml maestro/chat-send-message.yaml maestro/flags-gate.yaml",
+    "maestro:validate": "bash ../deploy/ci/verify-maestro.sh"
   },
   "dependencies": {
     "@expo/metro-config": "~54.0.14",

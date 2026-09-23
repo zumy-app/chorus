@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import storage from '../utils/storage';
 import apiService from '../services/api';
+import featureFlags from '../utils/featureFlags';
 import webSocketService from '../services/websocket';
 import { Message, WebSocketMessage, User, apiErrorMessage } from '@chorus/shared';
 import { COLOR, FONTS } from '../theme';
@@ -31,7 +32,7 @@ export default function ChatScreen({ route, navigation }: any) {
   const [translateAsType, setTranslateAsType] = useState(false);
   const [deepDiveVisible, setDeepDiveVisible] = useState(false);
   const [sparkyInput, setSparkyInput] = useState('');
-  const [sparkyMessages, setSparkyMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
+  const [sparkyMessages, setSparkyMessages] = useState<{ role: 'user' | 'assistant'; content: string; jobId?: string }[]>([]);
   const [sparkyLoading, setSparkyLoading] = useState(false);
   const [sparkyError, setSparkyError] = useState('');
   const [replyTo, setReplyTo] = useState<Message | null>(null);
@@ -47,9 +48,19 @@ export default function ChatScreen({ route, navigation }: any) {
   const [reportTarget, setReportTarget] = useState<{ type: 'user' | 'message'; userId?: string; messageId?: string; chatId?: string } | null>(null);
   const [reportReason, setReportReason] = useState('spam');
   const [isBlocked, setIsBlocked] = useState(false);
+  const [callsEnabled, setCallsEnabled] = useState(featureFlags.isEnabled('video_calls'));
+  // Async grammar analysis jobs keyed by messageId. The backend fans out one
+  // job per learner per message; results arrive as "grammar_analysis" WS
+  // events (or via GET /grammar/analyze/:jobId on resync).
+  const [grammarJobs, setGrammarJobs] = useState<Record<string, any>>({});
+  const [grammarModal, setGrammarModal] = useState<any | null>(null);
+  const [grammarLoadingId, setGrammarLoadingId] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestMessageId = useRef<string | null>(null);
+  // Pending async Sparky job (Phase 1). The WS "sparky_result" branch resolves
+  // it by id; a ref (not state) keeps the WS subscription stable.
+  const sparkyJobRef = useRef<string | null>(null);
 
   const nativeLanguage = currentUser?.nativeLanguage || 'en';
   const targetLang = currentUser?.targetLanguages?.[0]?.toUpperCase();
@@ -85,6 +96,55 @@ export default function ChatScreen({ route, navigation }: any) {
         else receipts.push({ messageId: payload.messageId, chatId, userId: uid, status });
         return { ...m, receipts };
       }));
+    } else if (message.type === 'grammar_analysis') {
+      // Per-user fanout: payload carries {jobId, messageId, chatId, status,
+      // analysis?, providerUsed?, error?}. Ignore events for other chats.
+      const key = payload.messageId || payload.jobId;
+      if (key && (!payload.chatId || payload.chatId === chatId)) {
+        setGrammarJobs((prev: any) => ({ ...prev, [key]: payload }));
+      }
+    } else if (message.type === 'sparky_result') {
+      // Async Sparky answer: {jobId, chatId, status, content?, providerUsed?,
+      // error?}. Phase 2 streams tokens as status "streaming" deltas, then a
+      // final "done" with the full cleaned content. Only the matching pending
+      // question resolves.
+      if (payload.jobId && payload.jobId === sparkyJobRef.current) {
+        if (payload.status === 'streaming') {
+          const delta = payload.content || '';
+          if (!delta) return;
+          setSparkyMessages(prev => {
+            const last = prev[prev.length - 1];
+            if (last && last.role === 'assistant' && (last as any).jobId === payload.jobId) {
+              const next = [...prev];
+              next[next.length - 1] = { ...last, content: last.content + delta };
+              return next;
+            }
+            return [...prev, { role: 'assistant', content: delta, jobId: payload.jobId }];
+          });
+        } else if (payload.status === 'done') {
+          const content = payload.content || 'Done';
+          setSparkyMessages(prev => {
+            const last = prev[prev.length - 1];
+            if (last && last.role === 'assistant' && (last as any).jobId === payload.jobId) {
+              // Replace the streamed partial with the full cleaned answer.
+              const next = [...prev];
+              next[next.length - 1] = { ...last, content };
+              return next;
+            }
+            return [...prev, { role: 'assistant', content, jobId: payload.jobId }];
+          });
+          setSparkyError('');
+          setSparkyLoading(false);
+          sparkyJobRef.current = null;
+        } else if (payload.status === 'failed') {
+          const msg = payload.error || 'Failed to get answer';
+          setSparkyError(msg);
+          setSparkyMessages(prev => [...prev, { role: 'assistant', content: msg }]);
+          setSparkyLoading(false);
+          sparkyJobRef.current = null;
+        }
+        // "processing" keeps the typing indicator until tokens arrive.
+      }
     } else if (message.type === 'user_typing' && payload.chatId === chatId) {
       setTyping(payload.isTyping === true);
     } else if (message.type === 'call_incoming' && payload.chatId === chatId) {
@@ -159,6 +219,9 @@ export default function ChatScreen({ route, navigation }: any) {
   };
   useEffect(() => {
     let mounted = true;
+    featureFlags.init().then(() => {
+      if (mounted) setCallsEnabled(featureFlags.isEnabled('video_calls'));
+    });
     apiService.getChat(chatId).then(c => {
       if (!mounted) return;
       const other = (c.participants || []).find((p:any)=>p.user?.id !== currentUser?.id)?.user;
@@ -173,12 +236,16 @@ export default function ChatScreen({ route, navigation }: any) {
       headerTitleStyle: { fontSize: 18, fontWeight: '600', color: COLOR.primary },
       headerRight: () => (
         <View style={{ flexDirection: 'row', gap: 6, marginRight: 4, alignItems: 'center' }}>
-          <TouchableOpacity onPress={() => startCall('audio')} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: COLOR.primaryContainer, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: '#fff', fontSize: 16 }}>📞</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => startCall('video')} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: COLOR.primary, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: '#fff', fontSize: 14 }}>📹</Text>
-          </TouchableOpacity>
+          {callsEnabled && (
+            <>
+              <TouchableOpacity onPress={() => startCall('audio')} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: COLOR.primaryContainer, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: '#fff', fontSize: 16 }}>📞</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => startCall('video')} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: COLOR.primary, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: '#fff', fontSize: 14 }}>📹</Text>
+              </TouchableOpacity>
+            </>
+          )}
           <TouchableOpacity
             onPress={() => {
               Alert.alert('Chat actions', `${otherName || 'User'}`, [
@@ -195,7 +262,7 @@ export default function ChatScreen({ route, navigation }: any) {
         </View>
       ),
     });
-  }, [navigation, chatName, chatId, otherName, otherUserId, isBlocked]);
+  }, [navigation, chatName, chatId, otherName, otherUserId, isBlocked, callsEnabled]);
 
   useEffect(() => {
     loadCurrentUser();
@@ -313,6 +380,39 @@ export default function ChatScreen({ route, navigation }: any) {
     }
   };
 
+  // Manual grammar analysis request (mirrors web MessageBubble): submits an
+  // async job; the result arrives via the "grammar_analysis" WS event above
+  // (or GET /grammar/analyze/:jobId on resync). Cache hot-path returns done.
+  const handleGrammarAnalyze = async (item: Message) => {
+    if (grammarLoadingId) return;
+    setGrammarLoadingId(item.id);
+    try {
+      const sourceLang = (item as any).originalLanguage || 'en';
+      const res: any = await (apiService as any).grammarAnalyzeAI({
+        text: item.text,
+        language: sourceLang,
+        nativeLanguage,
+        messageId: item.id,
+        chatId,
+      });
+      if (res?.status === 'done' && res?.analysis) {
+        setGrammarJobs((prev: any) => ({
+          ...prev,
+          [item.id]: { jobId: res.jobId || '', messageId: item.id, chatId, status: 'done', analysis: res.analysis, providerUsed: res.providerUsed || 'cache' },
+        }));
+      } else if (res?.jobId) {
+        setGrammarJobs((prev: any) => ({
+          ...prev,
+          [item.id]: { jobId: res.jobId, messageId: item.id, chatId, status: res.status || 'queued' },
+        }));
+      }
+    } catch {
+      // Grammar request failed — non-fatal; badge simply stays requestable.
+    } finally {
+      setGrammarLoadingId(null);
+    }
+  };
+
   const renderMessage = ({ item }: { item: Message }) => {
     const isOwn = item.senderId === currentUser?.id;
     const isPinned = pinned.some((p:any)=>p.message.id===item.id)
@@ -384,6 +484,37 @@ export default function ChatScreen({ route, navigation }: any) {
               </Text>
             </TouchableOpacity>
           )}
+          {(() => {
+            const job = (grammarJobs as any)[item.id];
+            const busy = job?.status === 'queued' || job?.status === 'processing' || grammarLoadingId === item.id;
+            if (job?.status === 'done' && job?.analysis) {
+              return (
+                <TouchableOpacity
+                  onPress={() => setGrammarModal({ message: item, analysis: job.analysis, provider: job.providerUsed })}
+                  style={styles.grammarBadge}
+                  testID={`grammar-badge-${item.id}`}>
+                  <Text style={styles.grammarBadgeText}>
+                    ✨ Grammar · {job.analysis.difficulty || 'analysis ready'}
+                  </Text>
+                </TouchableOpacity>
+              );
+            }
+            if (busy) {
+              return (
+                <View style={styles.grammarBadgeMuted} testID={`grammar-pending-${item.id}`}>
+                  <Text style={styles.grammarBadgeMutedText}>✨ Analyzing grammar…</Text>
+                </View>
+              );
+            }
+            return (
+              <TouchableOpacity
+                onPress={() => handleGrammarAnalyze(item)}
+                style={styles.grammarRequest}
+                testID={`grammar-request-${item.id}`}>
+                <Text style={styles.grammarRequestText}>✨ Grammar</Text>
+              </TouchableOpacity>
+            );
+          })()}
           {isOwn && (() => {
             const receipts: any[] = (item as any).receipts || [];
             let status: 'sent'|'delivered'|'read' = 'sent';
@@ -569,7 +700,11 @@ export default function ChatScreen({ route, navigation }: any) {
                   <Text style={m.role === 'user' ? { color: '#fff' } : styles.sheetTutorText}>{m.content}</Text>
                 </View>
               ))}
-              {sparkyLoading && <Text testID="sparky-loading" style={styles.typingText}>Sparky is typing…</Text>}
+              {sparkyLoading && !(
+                sparkyJobRef.current != null &&
+                sparkyMessages.length > 0 &&
+                (sparkyMessages[sparkyMessages.length - 1] as any)?.jobId === sparkyJobRef.current
+              ) && <Text testID="sparky-loading" style={styles.typingText}>Sparky is typing…</Text>}
               {sparkyError ? <Text testID="sparky-error" style={{ color: 'red', fontSize: 12 }}>{sparkyError}</Text> : null}
             </View>
             <View style={styles.sheetInputRow}>
@@ -590,27 +725,93 @@ export default function ChatScreen({ route, navigation }: any) {
                 onPress={async () => {
                   const query = sparkyInput.trim();
                   if (!query || sparkyLoading) return;
-                  const contextText = messages[0]?.text || query;
+                  // Sparky context = the last 3 non-empty messages (newest
+                  // first in this list), so follow-ups like "analyze the last
+                  // message" resolve against real conversation context.
+                  const contextText =
+                    messages.filter((m: any) => m?.text?.trim()).slice(0, 3).map((m: any) =>
+                      `${m.senderId === currentUser?.id ? 'Me' : (m.sender?.displayName || 'Them')}: ${m.text}`
+                    ).join('\n') || query;
                   const lang = currentUser?.targetLanguages?.[0] || 'es';
                   const nativeLang = currentUser?.nativeLanguage || 'en';
                   setSparkyInput('');
                   setSparkyError('');
                   setSparkyMessages(prev => [...prev, { role: 'user', content: query }]);
                   setSparkyLoading(true);
+                  // Phase 1: async job first — 202 instantly, answer via WS.
+                  // Falls back to the sync path only if the queue is down.
                   try {
-                    const res: any = await (apiService as any).grammarLearn(contextText, lang, nativeLang, 'custom', query);
-                    const content = res?.content || 'Done';
-                    setSparkyMessages(prev => [...prev, { role: 'assistant', content }]);
-                  } catch (e: any) {
-                    const msg = apiErrorMessage(e, 'Failed to get answer');
-                    setSparkyError(msg);
-                    setSparkyMessages(prev => [...prev, { role: 'assistant', content: msg }]);
-                  } finally {
-                    setSparkyLoading(false);
+                    const asked: any = await (apiService as any).sparkyAsk({
+                      context: contextText,
+                      query,
+                      language: lang,
+                      nativeLanguage: nativeLang,
+                      chatId,
+                    });
+                    if (asked?.jobId) {
+                      sparkyJobRef.current = asked.jobId;
+                      return;
+                    }
+                    throw new Error('Sparky queue did not return a job');
+                  } catch (asyncErr: any) {
+                    // Queue unavailable — fall back to the sync path (60s
+                    // budget). If that fails too, surface its error.
+                    try {
+                      const res: any = await (apiService as any).grammarLearn(contextText, lang, nativeLang, 'custom', query);
+                      const content = res?.content || 'Done';
+                      setSparkyMessages(prev => [...prev, { role: 'assistant', content }]);
+                    } catch (e: any) {
+                      const msg = apiErrorMessage(e, 'Failed to get answer');
+                      setSparkyError(msg);
+                      setSparkyMessages(prev => [...prev, { role: 'assistant', content: msg }]);
+                    } finally {
+                      setSparkyLoading(false);
+                    }
                   }
                 }}>
                 <Text style={styles.sheetSendText}>➤</Text>
               </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      <Modal visible={!!grammarModal} transparent animationType="slide" onRequestClose={()=>setGrammarModal(null)}>
+        <View style={styles.sheetOverlay}><TouchableOpacity style={styles.sheetBackdrop} activeOpacity={1} onPress={()=>setGrammarModal(null)} />
+          <View style={styles.sheet}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <View style={styles.sheetTitleRow}>
+                <Text style={styles.sheetTitleIcon}>✨</Text>
+                <Text style={styles.sheetTitle}>Grammar analysis{grammarModal?.analysis?.difficulty ? ` · ${grammarModal.analysis.difficulty}` : ''}</Text>
+              </View>
+              <TouchableOpacity onPress={()=>setGrammarModal(null)}><Text style={styles.sheetClose}>✕</Text></TouchableOpacity>
+            </View>
+            <View style={styles.sheetBody}>
+              <Text style={styles.grammarBodyText} numberOfLines={2}>{grammarModal?.message?.text}</Text>
+              {!!grammarModal?.analysis?.summary && (
+                <><Text style={styles.grammarSectionTitle}>Summary</Text><Text style={styles.grammarBodyText}>{grammarModal.analysis.summary}</Text></>
+              )}
+              {!!grammarModal?.analysis?.sentenceStructure && (
+                <><Text style={styles.grammarSectionTitle}>Structure</Text><Text style={styles.grammarBodyText}>{grammarModal.analysis.sentenceStructure}</Text></>
+              )}
+              {(grammarModal?.analysis?.keyPhrases || []).length > 0 && (
+                <><Text style={styles.grammarSectionTitle}>Key phrases</Text>{grammarModal.analysis.keyPhrases.slice(0, 4).map((k: any, i: number) => (
+                  <Text key={i} style={styles.grammarBodyText}>• {k.phrase} — {k.translation}</Text>
+                ))}</>
+              )}
+              {(grammarModal?.analysis?.grammarNotes || []).length > 0 && (
+                <><Text style={styles.grammarSectionTitle}>Notes</Text>{grammarModal.analysis.grammarNotes.slice(0, 3).map((n: any, i: number) => (
+                  <Text key={i} style={styles.grammarBodyText}>• {n.title}: {n.explanation}</Text>
+                ))}</>
+              )}
+              {(grammarModal?.analysis?.detailedBreakdown || []).length > 0 && (
+                <><Text style={styles.grammarSectionTitle}>Breakdown</Text>{grammarModal.analysis.detailedBreakdown.slice(0, 6).map((b: any, i: number) => (
+                  <Text key={i} style={styles.grammarBodyText}>• {b.text} — {b.translation || b.role || ''}</Text>
+                ))}</>
+              )}
+              {!!grammarModal?.provider && (
+                <Text style={[styles.grammarBodyText, { marginTop: 12, fontSize: 11 }]}>via {grammarModal.provider}</Text>
+              )}
             </View>
           </View>
         </View>
@@ -766,6 +967,49 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLOR.primary,
     fontWeight: '600',
+  },
+  grammarBadge: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    backgroundColor: '#eef2ff',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  grammarBadgeText: {
+    fontSize: 12,
+    color: COLOR.primary,
+    fontWeight: '700',
+  },
+  grammarBadgeMuted: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  grammarBadgeMutedText: {
+    fontSize: 12,
+    color: COLOR.onSurfaceVariant,
+    fontStyle: 'italic',
+  },
+  grammarRequest: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  grammarRequestText: {
+    fontSize: 12,
+    color: COLOR.onSurfaceVariant,
+    fontWeight: '600',
+  },
+  grammarSectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLOR.onSurface,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  grammarBodyText: {
+    fontSize: 13,
+    color: COLOR.onSurfaceVariant,
+    lineHeight: 18,
   },
   checkRow: {
     alignItems: 'flex-end',

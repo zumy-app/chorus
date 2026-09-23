@@ -23,6 +23,9 @@ func p95(durs []time.Duration) time.Duration {
 }
 
 func TestPerf_NFR1_TranslationCacheHit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping perf benchmark in short mode")
+	}
 	rdb, _ := newTestRedis(t)
 	provider := &fakeProvider{}
 	svc := NewTranslationService(provider, rdb, 0)
@@ -50,6 +53,9 @@ func TestPerf_NFR1_TranslationCacheHit(t *testing.T) {
 }
 
 func TestPerf_NFR1_TranslationLearnedWordSkip(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping perf benchmark in short mode")
+	}
 	provider := &fakeProvider{}
 	svc := NewTranslationService(provider, nil, 0)
 	svc.SetKnownWordsResolver(knownResolver("hola", "mundo"))
@@ -72,6 +78,9 @@ func TestPerf_NFR1_TranslationLearnedWordSkip(t *testing.T) {
 }
 
 func TestPerf_NFR2_MessagePersistBeforeAck(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping perf benchmark in short mode")
+	}
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("sqlmock: %v", err)
@@ -99,6 +108,9 @@ func TestPerf_NFR2_MessagePersistBeforeAck(t *testing.T) {
 }
 
 func TestPerf_NFR2_WebSocketFanout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping perf benchmark in short mode")
+	}
 	rdb, _ := newTestRedis(t)
 	hub := NewWebSocketHub(rdb, "perf-hub")
 	go hub.Run()
@@ -124,6 +136,9 @@ func TestPerf_NFR2_WebSocketFanout(t *testing.T) {
 }
 
 func TestPerf_NFR3_HistoryPagination(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping perf benchmark in short mode")
+	}
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("sqlmock: %v", err)
@@ -148,6 +163,9 @@ func TestPerf_NFR3_HistoryPagination(t *testing.T) {
 }
 
 func TestPerf_SearchLatency(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping perf benchmark in short mode")
+	}
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("sqlmock: %v", err)

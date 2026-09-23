@@ -48,6 +48,7 @@ Thumbs.db
 
 # Logs
 *.log
+mobile/logs/
 
 # Docker
 docker-compose.override.yml

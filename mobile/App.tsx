@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import storage from './src/utils/storage';
+import featureFlags from './src/utils/featureFlags';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
 
 import LandingScreen from './src/screens/LandingScreen';
@@ -38,6 +39,9 @@ export default function App() {
   const checkAuth = async () => {
     try {
       const token = await storage.getItem('accessToken');
+      if (token) {
+        await featureFlags.init();
+      }
       setIsAuthenticated(!!token);
     } catch (error) {
       console.error('Auth check failed:', error);

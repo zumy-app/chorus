@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Pressable, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { COLOR, FONTS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../theme';
 import apiService from '../services/api';
 import storage from '../utils/storage';
+import webSocketService from '../services/websocket';
 import type { SessionQuestion, User } from '@chorus/shared';
 
 export default function LessonSessionScreen({ navigation }: any) {
@@ -14,10 +15,15 @@ export default function LessonSessionScreen({ navigation }: any) {
   const [items, setItems] = useState<SessionQuestion[]>([]);
   const [index, setIndex] = useState(0);
   const [answer, setAnswer] = useState('');
+  const [built, setBuilt] = useState<string[]>([]); // reconstruction: tapped word order
   const [feedback, setFeedback] = useState<{ correct: boolean; message: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [xp, setXp] = useState(0);
+  // Live WebSocket connection state (V3: transient session state mirrors over
+  // WS; grading results arrive as "grade_result" pushes).
+  const [wsConnected, setWsConnected] = useState(false);
+  const [gradeNotice, setGradeNotice] = useState<string | null>(null);
 
   const targetLanguage = user?.targetLanguages?.[0] ?? 'es';
   const nativeLanguage = user?.nativeLanguage ?? 'en';
@@ -32,6 +38,21 @@ export default function LessonSessionScreen({ navigation }: any) {
         }
       }
     });
+  }, []);
+
+  // WebSocket live state: connected indicator + async grade_result pushes.
+  useEffect(() => {
+    webSocketService.connect();
+    const offMsg = (webSocketService as any).onMessage?.((msg: any) => {
+      if (msg?.type === 'grade_result' && msg?.data?.feedback) {
+        setGradeNotice(`AI feedback ready: ${msg.data.feedback}`);
+      }
+    });
+    const offRc = (webSocketService as any).onReconnect?.(() => setWsConnected(true));
+    return () => {
+      offMsg?.();
+      offRc?.();
+    };
   }, []);
 
   useEffect(() => {
@@ -66,6 +87,7 @@ export default function LessonSessionScreen({ navigation }: any) {
   const next = useCallback(async () => {
     setFeedback(null);
     setAnswer('');
+    setBuilt([]);
     if (index + 1 < items.length) {
       setIndex(index + 1);
       return;
@@ -76,6 +98,19 @@ export default function LessonSessionScreen({ navigation }: any) {
 
   const current = items[index];
 
+  // Grammar drills: reconstruction items build the sentence from word chips;
+  // cloze items type the missing form; mcq items keep the choice buttons.
+  const isReconstruction = current?.drillType === 'reconstruction';
+  const builtAnswer = useMemo(() => (built.length ? built.join(' ') : ''), [built]);
+  useEffect(() => {
+    // Keep the typed answer in sync when the item changes.
+    setAnswer('');
+    setBuilt([]);
+  }, [index]);
+
+  const tapWord = useCallback((w: string) => setBuilt((b) => [...b, w]), []);
+  const untapWord = useCallback((i: number) => setBuilt((b) => b.filter((_, idx) => idx !== i)), []);
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <View style={styles.topBar}>
@@ -85,7 +120,14 @@ export default function LessonSessionScreen({ navigation }: any) {
         <Text style={styles.counter}>
           {items.length > 0 ? `${Math.min(index + 1, items.length)} / ${items.length}` : ''}
         </Text>
+        <View style={[styles.wsDot, wsConnected ? styles.wsDotOn : styles.wsDotOff]} />
       </View>
+
+      {gradeNotice ? (
+        <Pressable style={styles.gradeNotice} onPress={() => setGradeNotice(null)}>
+          <Text style={styles.gradeNoticeText}>{gradeNotice}</Text>
+        </Pressable>
+      ) : null}
 
       {done ? (
         <View style={styles.doneWrap}>
@@ -100,10 +142,48 @@ export default function LessonSessionScreen({ navigation }: any) {
         <View style={styles.card}>
           <View style={styles.badgeRow}>
             <Text style={styles.badge}>{current.activityType}</Text>
+            {current.drillType ? <Text style={styles.badgeSub}>{current.drillType}</Text> : null}
           </View>
           <Text style={styles.promptText}>{current.prompt.text}</Text>
           {current.prompt.source ? <Text style={styles.promptSource}>{current.prompt.source}</Text> : null}
-          {current.prompt.choices && current.prompt.choices.length > 0 ? (
+
+          {isReconstruction ? (
+            <View>
+              <View style={styles.builtRow}>
+                {built.length === 0 ? (
+                  <Text style={styles.builtPlaceholder}>Tap the words in order</Text>
+                ) : (
+                  built.map((w, i) => (
+                    <Pressable key={`${w}-${i}`} style={styles.chipBuilt} onPress={() => untapWord(i)}>
+                      <Text style={styles.chipBuiltText}>{w}</Text>
+                    </Pressable>
+                  ))
+                )}
+              </View>
+              <View style={styles.chipRow}>
+                {(current.prompt.choices ?? []).map((w, i) => {
+                  const used = built.filter((b) => b === w).length;
+                  const total = (current.prompt.choices ?? []).filter((x) => x === w).length;
+                  const exhausted = used >= total;
+                  return (
+                    <Pressable
+                      key={`${w}-${i}`}
+                      style={[styles.chip, exhausted && styles.chipUsed]}
+                      disabled={exhausted || !!feedback || submitting}
+                      onPress={() => tapWord(w)}>
+                      <Text style={exhausted ? styles.chipTextUsed : styles.chipText}>{w}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <Pressable
+                style={[styles.sendButtonWide, (!builtAnswer || submitting) && styles.disabled]}
+                disabled={!builtAnswer || submitting || !!feedback}
+                onPress={() => submit(builtAnswer)}>
+                <Text style={styles.sendButtonText}>Check</Text>
+              </Pressable>
+            </View>
+          ) : current.prompt.choices && current.prompt.choices.length > 0 ? (
             <View style={styles.choices}>
               {current.prompt.choices.map((choice, i) => (
                 <Pressable key={i} style={styles.choice} onPress={() => submit(choice)} disabled={!!feedback || submitting}>
@@ -155,9 +235,15 @@ const styles = StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: SPACING.stackMd },
   back: { ...TYPOGRAPHY.labelMd, color: COLOR.onSurfaceVariant, fontFamily: FONTS.label },
   counter: { ...TYPOGRAPHY.labelSm, color: COLOR.onSurfaceVariant, fontFamily: FONTS.label },
+  wsDot: { width: 8, height: 8, borderRadius: 4 },
+  wsDotOn: { backgroundColor: '#007C55' },
+  wsDotOff: { backgroundColor: COLOR.outline },
+  gradeNotice: { backgroundColor: 'rgba(0,74,198,0.10)', borderRadius: RADIUS.lg, padding: SPACING.stackMd, marginBottom: SPACING.stackSm },
+  gradeNoticeText: { ...TYPOGRAPHY.bodySm, color: COLOR.primary, fontFamily: FONTS.body },
   card: { ...SHADOWS.elevation1, backgroundColor: COLOR.surfaceContainerLowest, borderRadius: RADIUS.xl, padding: SPACING.stackLg, gap: SPACING.stackMd },
-  badgeRow: { flexDirection: 'row' },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   badge: { ...TYPOGRAPHY.labelSm, color: COLOR.secondary, backgroundColor: 'rgba(208,188,255,0.3)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, overflow: 'hidden', fontFamily: FONTS.label },
+  badgeSub: { ...TYPOGRAPHY.labelSm, color: COLOR.onSurfaceVariant, fontFamily: FONTS.label },
   promptText: { ...TYPOGRAPHY.headlineMd, color: COLOR.onSurface, fontFamily: FONTS.headline },
   promptSource: { ...TYPOGRAPHY.bodyLg, color: COLOR.onSurfaceVariant, marginTop: 2, fontFamily: FONTS.body },
   choices: { gap: SPACING.stackSm },
@@ -166,7 +252,18 @@ const styles = StyleSheet.create({
   inputRow: { flexDirection: 'row', gap: SPACING.stackSm, alignItems: 'center' },
   input: { flex: 1, backgroundColor: COLOR.surfaceContainer, borderRadius: RADIUS.lg, paddingHorizontal: SPACING.stackMd, paddingVertical: 12, color: COLOR.onSurface, fontFamily: FONTS.body },
   sendButton: { backgroundColor: COLOR.primary, borderRadius: RADIUS.lg, paddingHorizontal: 18, paddingVertical: 12 },
+  sendButtonWide: { backgroundColor: COLOR.primary, borderRadius: RADIUS.lg, paddingHorizontal: 18, paddingVertical: 12, alignItems: 'center' },
   sendButtonText: { color: COLOR.onPrimary, fontSize: 18, fontFamily: FONTS.label },
+  disabled: { opacity: 0.4 },
+  builtRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, backgroundColor: COLOR.surfaceContainer, borderRadius: RADIUS.lg, padding: SPACING.stackMd, minHeight: 56 },
+  builtPlaceholder: { ...TYPOGRAPHY.bodyMd, color: COLOR.outline, fontFamily: FONTS.body },
+  chipBuilt: { backgroundColor: COLOR.primary, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
+  chipBuiltText: { ...TYPOGRAPHY.bodyMd, color: COLOR.onPrimary, fontFamily: FONTS.body },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { backgroundColor: COLOR.surfaceContainerHigh, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
+  chipUsed: { opacity: 0.3 },
+  chipText: { ...TYPOGRAPHY.bodyMd, color: COLOR.onSurface, fontFamily: FONTS.body },
+  chipTextUsed: { ...TYPOGRAPHY.bodyMd, color: COLOR.onSurfaceVariant, fontFamily: FONTS.body },
   submittingRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.stackSm },
   submittingText: { ...TYPOGRAPHY.labelSm, color: COLOR.onSurfaceVariant, fontFamily: FONTS.label },
   feedback: { borderRadius: RADIUS.lg, padding: SPACING.stackMd, gap: SPACING.stackSm },

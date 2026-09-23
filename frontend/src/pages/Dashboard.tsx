@@ -4,11 +4,13 @@ import AppHeader from '../components/AppHeader'
 import BottomNav from '../components/BottomNav'
 import { useStore } from '../store'
 import { chatAPI, learningAPI, api } from '../services/api'
+import { useFeatureFlag } from '../hooks/useFeatureFlag'
 import type { Chat, LearningDashboard, CallSession } from '@chorus/shared'
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const user = useStore(s => s.user)
+  const { enabled: callsEnabled } = useFeatureFlag('video_calls')
   const [chats, setChats] = useState<Chat[]>([])
   const [calls, setCalls] = useState<CallSession[]>([])
   const [learning, setLearning] = useState<LearningDashboard | null>(null)
@@ -22,7 +24,7 @@ export default function Dashboard() {
     setLoading(true)
     Promise.allSettled([
       chatAPI.getChats(),
-      api.get<CallSession[]>('/calls/history?limit=6').then(r => r.data).catch(() => [] as CallSession[]),
+      callsEnabled ? api.get<CallSession[]>('/calls/history?limit=6').then(r => r.data).catch(() => [] as CallSession[]) : Promise.resolve([] as CallSession[]),
       learningAPI.getDashboard(targetLanguage, nativeLanguage).catch(() => null),
     ]).then(results => {
       if (!active) return
@@ -118,6 +120,7 @@ export default function Dashboard() {
                   </div>
                 </div>
 
+                {callsEnabled && (
                 <div data-testid="dashboard-calls-panel" className="lg:col-span-4 bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/20 p-5 flex flex-col">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2"><span className="material-symbols-outlined text-secondary text-[20px]">video_call</span> Calls</h2>
@@ -152,6 +155,7 @@ export default function Dashboard() {
                     <button onClick={() => navigate('/search')} className="flex-1 bg-surface-container-high text-on-surface font-label-md text-label-md py-2.5 rounded-full">Search calls</button>
                   </div>
                 </div>
+                )}
 
                 <div data-testid="dashboard-learning-panel" className="lg:col-span-4 flex flex-col gap-4">
                   <div className="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/20 p-5">

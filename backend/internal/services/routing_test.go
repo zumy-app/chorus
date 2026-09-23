@@ -23,6 +23,9 @@ func newTestRedis(t *testing.T) (*redis.Client, *miniredis.Miniredis) {
 }
 
 func TestCrossServerRoutingRoundTrip(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping timing-dependent routing test in short mode")
+	}
 	mr, _ := newTestRedis(t)
 	_ = mr
 	rdb, _ := newTestRedis(t)
@@ -103,6 +106,9 @@ func TestCrossServerRoutingRoundTrip(t *testing.T) {
 }
 
 func TestRoutingFallsBackToLocalWhenRegistryMissing(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping timing-dependent routing test in short mode")
+	}
 	rdb, _ := newTestRedis(t)
 	ctx := context.Background()
 	hub := NewWebSocketHub(rdb, "server-s1")
@@ -128,6 +134,9 @@ func TestRoutingFallsBackToLocalWhenRegistryMissing(t *testing.T) {
 }
 
 func TestHandleServerMessageMarksDelivered(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping timing-dependent routing test in short mode")
+	}
 	rdb, _ := newTestRedis(t)
 	hub := NewWebSocketHub(rdb, "server-s2")
 	go hub.Run()

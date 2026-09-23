@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -1347,6 +1348,23 @@ func (s *GrammarService) regexPatternsToGrammarPatterns(text, language string) [
 // for a given text. Supported actions: breakdown, examples, flashcards, custom.
 // Prompts ask for plain text responses, so the result is returned as-is without
 // attempting JSON parsing.
+// GenerateSparkyAnswer answers a free-form question about conversation context.
+// Thin wrapper over the "custom" learning-content path so async Sparky jobs and
+// the web AI Tutor share the exact same prompt and fallback behavior. Returns
+// the plain-text answer and the producing provider ("offline" when no AI
+// endpoints are configured and the local fallback answered).
+func (s *GrammarService) GenerateSparkyAnswer(contextText, language, nativeLanguage, query string) (string, string, error) {
+	c, err := s.GenerateLearningContent(contextText, language, nativeLanguage, "custom", query)
+	if err != nil {
+		return "", "", err
+	}
+	provider := "ai"
+	if len(s.endpoints) == 0 {
+		provider = "offline"
+	}
+	return c.Content, provider, nil
+}
+
 func (s *GrammarService) GenerateLearningContent(text, language, nativeLanguage, action, customQuery string) (*models.LearningContent, error) {
 	if len(s.endpoints) == 0 {
 		return &models.LearningContent{
@@ -1430,7 +1448,43 @@ Format each line strictly as: "Q: [target word or phrase]? A: [native translatio
 `, langName, nativeLangName, text)
 
 	case "custom":
-		prompt = fmt.Sprintf(`<role>You are an intuitive, friendly, and practical language tutor teaching %s to a %s speaker.</role>
+		prompt = sparkyPrompt(langName, nativeLangName, text, customQuery)
+
+	default:
+		return nil, fmt.Errorf("unknown learning action: %s", action)
+	}
+
+	// Use a 30-second timeout so the AI Tutor panel doesn't hang indefinitely.
+	result, providerUsed, err := s.callGrammarAPI(prompt, nativeLangName, false)
+	if err != nil {
+		logutil.Warnf("[Grammar] all AI endpoints failed for learning content, using offline fallback: %v", err)
+		return s.fallbackLearningContent(text, language, nativeLanguage, action, customQuery), nil
+	}
+	log.Printf("[Grammar] Learning content via %q", providerUsed)
+
+	// Strip any markdown fences the model may have added despite being told not to.
+	cleaned := stripCodeFences(result)
+	if cleaned == "" {
+		cleaned = "No response generated. Please try again."
+	}
+
+	// The prompts explicitly request plain text, so return the response directly
+	// without attempting JSON parsing. This avoids the "Learning content generated."
+	// placeholder that appeared when JSON parsing failed on valid plain-text responses.
+	nextActions := nextActionsFor(action)
+	return &models.LearningContent{
+		Action:           action,
+		Content:          cleaned,
+		Details:          []string{},
+		SuggestedActions: nextActions,
+	}, nil
+}
+
+// sparkyPrompt builds the free-form Sparky prompt. Shared by the sync "custom"
+// learning-content path and the async streaming Sparky path so both answer
+// with the exact same instructions.
+func sparkyPrompt(langName, nativeLangName, text, customQuery string) string {
+	return fmt.Sprintf(`<role>You are an intuitive, friendly, and practical language tutor teaching %s to a %s speaker.</role>
 
 <task>
 Answer the student's question about the text in a helpful, warm, and highly educational peer-to-peer style. Keep your explanation brief, direct, and completely free of textbook jargon.
@@ -1447,21 +1501,12 @@ Text: "%s"
 Student Question: "%s"
 </context>
 `, langName, nativeLangName, nativeLangName, text, customQuery)
+}
 
-	default:
-		return nil, fmt.Errorf("unknown learning action: %s", action)
-	}
-
-	// Use a 30-second timeout so the AI Tutor panel doesn't hang indefinitely.
-	result, providerUsed, err := s.callGrammarAPI(prompt, nativeLangName, false)
-	if err != nil {
-		logutil.Warnf("[Grammar] all AI endpoints failed for learning content, using offline fallback: %v", err)
-		return s.fallbackLearningContent(text, language, nativeLanguage, action, customQuery), nil
-	}
-	log.Printf("[Grammar] Learning content via %q", providerUsed)
-
-	// Strip any markdown fences the model may have added despite being told not to.
-	cleaned := strings.TrimSpace(result)
+// stripCodeFences removes markdown fences models sometimes add despite being
+// told not to.
+func stripCodeFences(s string) string {
+	cleaned := strings.TrimSpace(s)
 	if strings.HasPrefix(cleaned, "```") {
 		if idx := strings.Index(cleaned, "\n"); idx != -1 {
 			cleaned = cleaned[idx+1:]
@@ -1470,20 +1515,233 @@ Student Question: "%s"
 			cleaned = strings.TrimSpace(cleaned[:idx])
 		}
 	}
-	if cleaned == "" {
-		cleaned = "No response generated. Please try again."
+	return cleaned
+}
+
+// GenerateSparkyAnswerStream answers a free-form Sparky question, invoking
+// onToken for each streamed content delta as the provider produces it, and
+// returning the full cleaned answer. It mirrors callGrammarAPI's endpoint
+// chain (cooldowns, failover): when an endpoint cannot stream, it falls back
+// to that endpoint's one-shot call so the answer still arrives (just without
+// live tokens). Implements SparkyAnswerStreamer for SparkyQueueService.
+func (s *GrammarService) GenerateSparkyAnswerStream(ctx context.Context, contextText, language, nativeLanguage, query string, onToken func(delta string)) (string, string, error) {
+	langName := languageCodeToName(language)
+	nativeLangName := languageCodeToName(nativeLanguage)
+	if langName == "" {
+		langName = language
+	}
+	if nativeLangName == "" {
+		nativeLangName = nativeLanguage
+	}
+	prompt := sparkyPrompt(langName, nativeLangName, contextText, query)
+
+	var lastErr error
+	tried := 0
+	for _, ep := range s.endpoints {
+		if until, cooling := s.coolDownFor(ep.Name); cooling {
+			logutil.Debugf("[Grammar] skipping endpoint %s (cooling down until %s)",
+				ep.Name, until.Format(time.RFC3339))
+			continue
+		}
+		tried++
+		full, streamErr := ep.callStream(ctx, prompt, nativeLangName, onToken)
+		if streamErr == nil {
+			cleaned := stripCodeFences(full)
+			if cleaned == "" {
+				cleaned = "No response generated. Please try again."
+			}
+			return cleaned, ep.Name, nil
+		}
+		// Streaming unsupported/failed mid-flight: fall back to one-shot on
+		// the same endpoint before moving down the chain.
+		logutil.Warnf("[Grammar] endpoint %s stream failed (%v) — falling back to one-shot", ep.Name, streamErr)
+		oneShot, err := ep.call(ctx, prompt, nativeLangName, false)
+		if err == nil {
+			cleaned := stripCodeFences(oneShot)
+			if cleaned == "" {
+				cleaned = "No response generated. Please try again."
+			}
+			return cleaned, ep.Name, nil
+		}
+		lastErr = err
+		s.markFailure(ep.Name, err)
+		logutil.Warnf("[Grammar] endpoint %s one-shot failed: %v — trying next", ep.Name, err)
+	}
+	if tried == 0 {
+		return "", "", fmt.Errorf("all %d endpoints cooling down or unavailable: %w", len(s.endpoints), lastErr)
+	}
+	return "", "", fmt.Errorf("all %d endpoints exhausted: %w", len(s.endpoints), lastErr)
+}
+
+// callStream POSTs a streaming chat completion and invokes onToken for each
+// content delta in arrival order, returning the concatenated full text.
+// OpenAI-compatible endpoints use SSE ("stream": true); Ollama uses NDJSON
+// ("stream": true on /api/chat). A dedicated client without an overall
+// timeout is used: the stream stays open as long as tokens flow, governed by
+// ctx (the queue worker cancels on shutdown; Phase 3 adds a per-job deadline).
+func (ep *GrammarEndpoint) callStream(ctx context.Context, prompt, nativeLangName string, onToken func(delta string)) (string, error) {
+	systemMsg := fmt.Sprintf(`You are a friendly language tutor teaching a student who speaks %s. Follow the user's instructions for the response format.`, nativeLangName)
+
+	var apiPath string
+	var body []byte
+	var err error
+	if ep.ProviderType == "ollama" {
+		apiPath = "/api/chat"
+		ollamaReq := ollamaChatRequest{
+			Model: ep.Model,
+			Messages: []grammarChatMessage{
+				{Role: "system", Content: systemMsg},
+				{Role: "user", Content: prompt},
+			},
+			Stream: true,
+			Options: map[string]any{
+				"temperature": 0.3,
+				"num_predict": 4096,
+			},
+		}
+		body, err = json.Marshal(ollamaReq)
+	} else {
+		apiPath = "/chat/completions"
+		streamReq := struct {
+			Model       string               `json:"model"`
+			Messages    []grammarChatMessage `json:"messages"`
+			Temperature float64              `json:"temperature"`
+			MaxTokens   int                  `json:"max_tokens,omitempty"`
+			Stream      bool                 `json:"stream"`
+		}{
+			Model: ep.Model,
+			Messages: []grammarChatMessage{
+				{Role: "system", Content: systemMsg},
+				{Role: "user", Content: prompt},
+			},
+			Temperature: 0.3,
+			MaxTokens:   4096,
+			Stream:      true,
+		}
+		body, err = json.Marshal(streamReq)
+	}
+	if err != nil {
+		return "", fmt.Errorf("grammar marshal stream request: %w", err)
 	}
 
-	// The prompts explicitly request plain text, so return the response directly
-	// without attempting JSON parsing. This avoids the "Learning content generated."
-	// placeholder that appeared when JSON parsing failed on valid plain-text responses.
-	nextActions := nextActionsFor(action)
-	return &models.LearningContent{
-		Action:           action,
-		Content:          cleaned,
-		Details:          []string{},
-		SuggestedActions: nextActions,
-	}, nil
+	req, err := http.NewRequestWithContext(ctx, "POST", ep.APIURL+apiPath, bytes.NewReader(body))
+	if err != nil {
+		return "", fmt.Errorf("grammar create stream request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "text/event-stream")
+	if ep.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+ep.APIKey)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("grammar stream request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return "", translation.NewHTTPStatusError(ep.Name, resp.StatusCode, string(respBody))
+	}
+
+	var full strings.Builder
+	if ep.ProviderType == "ollama" {
+		if err := parseOllamaNDJSON(resp.Body, func(delta string) {
+			full.WriteString(delta)
+			if onToken != nil {
+				onToken(delta)
+			}
+		}); err != nil {
+			return "", err
+		}
+	} else {
+		if err := parseOpenAISSE(resp.Body, func(delta string) {
+			full.WriteString(delta)
+			if onToken != nil {
+				onToken(delta)
+			}
+		}); err != nil {
+			return "", err
+		}
+	}
+	out := strings.TrimSpace(full.String())
+	if out == "" {
+		return "", fmt.Errorf("%w: empty stream from %s", translation.ErrEmptyResponse, ep.Name)
+	}
+	return out, nil
+}
+
+// parseOpenAISSE consumes a text/event-stream body, invoking onToken for each
+// choices[0].delta.content payload until the [DONE] terminator.
+func parseOpenAISSE(r io.Reader, onToken func(delta string)) error {
+	scanner := bufio.NewScanner(r)
+	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, ":") {
+			continue // heartbeat / comment
+		}
+		if !strings.HasPrefix(line, "data:") {
+			continue
+		}
+		payload := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+		if payload == "[DONE]" {
+			return nil
+		}
+		var chunk struct {
+			Choices []struct {
+				Delta struct {
+					Content string `json:"content"`
+				} `json:"delta"`
+			} `json:"choices"`
+		}
+		if err := json.Unmarshal([]byte(payload), &chunk); err != nil {
+			return fmt.Errorf("decode SSE chunk: %w", err)
+		}
+		for _, ch := range chunk.Choices {
+			if ch.Delta.Content != "" && onToken != nil {
+				onToken(ch.Delta.Content)
+			}
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("read SSE stream: %w", err)
+	}
+	return nil
+}
+
+// parseOllamaNDJSON consumes Ollama's newline-delimited /api/chat stream,
+// invoking onToken for each message.content until done:true.
+func parseOllamaNDJSON(r io.Reader, onToken func(delta string)) error {
+	scanner := bufio.NewScanner(r)
+	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+		var msg struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+			Done bool `json:"done"`
+		}
+		if err := json.Unmarshal([]byte(line), &msg); err != nil {
+			return fmt.Errorf("decode ollama stream line: %w", err)
+		}
+		if msg.Message.Content != "" && onToken != nil {
+			onToken(msg.Message.Content)
+		}
+		if msg.Done {
+			return nil
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("read ollama stream: %w", err)
+	}
+	return nil
 }
 
 // nextActionsFor returns sensible follow-up action suggestions based on what was just done.

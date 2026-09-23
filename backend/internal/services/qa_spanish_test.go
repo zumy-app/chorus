@@ -377,8 +377,8 @@ func TestScenarioServiceStartSpanishOpeningLineAndChunks(t *testing.T) {
 	mock.ExpectQuery("SELECT id::text, scaffold_level FROM scenario_runs").WithArgs("sc1", "user1").WillReturnRows(sqlmock.NewRows([]string{"id", "scaffold_level"}))
 	mock.ExpectQuery("INSERT INTO scenario_runs").WithArgs("user1", "sc1", "es", "en", "guided").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("run1"))
 	mock.ExpectExec("INSERT INTO scenario_turns").WithArgs("run1", "Hola. ¿Qué te gustaría pedir hoy?", "").WillReturnResult(sqlmock.NewResult(1, 1))
-	phaseRows := sqlmock.NewRows([]string{"id", "scenario_id", "ordinal", "title", "learner_goal", "required_intents", "chunk_bank"}).
-		AddRow("ph1", "sc1", 1, "Greeting", "Greet the barista.", "{greet}", []byte(`[{"text":"Hola, buenos días.","translation":"Hello, good morning."}]`))
+	phaseRows := sqlmock.NewRows([]string{"id", "scenario_id", "ordinal", "title", "learner_goal", "required_intents", "scaffold_hints", "ai_follow_up", "success_examples", "chunk_bank"}).
+		AddRow("ph1", "sc1", 1, "Greeting", "Greet the barista.", "{greet}", []byte(`[]`), "", []byte(`[]`), []byte(`[{"text":"Hola, buenos días.","translation":"Hello, good morning."}]`))
 	mock.ExpectQuery("scenario_phases").WithArgs("sc1").WillReturnRows(phaseRows)
 
 	resp, err := svc.StartScenario(context.Background(), "user1", "sc1", "es", "en")
@@ -413,9 +413,9 @@ func TestScenarioServiceSendSpanishAndAIReply(t *testing.T) {
 			AddRow("run1", "sc1", "in_progress", "es", "en", "guided", 1, 0, 0),
 	)
 	// phases
-	phaseRows := sqlmock.NewRows([]string{"id", "scenario_id", "ordinal", "title", "learner_goal", "required_intents", "chunk_bank"}).
-		AddRow("ph1", "sc1", 1, "Greeting", "Greet", "{greet}", []byte(`[{"text":"Hola, buenos días.","translation":"Hello"}]`)).
-		AddRow("ph2", "sc1", 2, "Order", "Order drink", "{order_drink}", []byte(`[{"text":"Quisiera un café","translation":"I would like a coffee"}]`))
+	phaseRows := sqlmock.NewRows([]string{"id", "scenario_id", "ordinal", "title", "learner_goal", "required_intents", "scaffold_hints", "ai_follow_up", "success_examples", "chunk_bank"}).
+		AddRow("ph1", "sc1", 1, "Greeting", "Greet", "{greet}", []byte(`[]`), "", []byte(`[]`), []byte(`[{"text":"Hola, buenos días.","translation":"Hello"}]`)).
+		AddRow("ph2", "sc1", 2, "Order", "Order drink", "{order_drink}", []byte(`[]`), "", []byte(`[]`), []byte(`[{"text":"Quisiera un café","translation":"I would like a coffee"}]`))
 	mock.ExpectQuery("scenario_phases").WithArgs("sc1").WillReturnRows(phaseRows)
 	// insert user turn
 	mock.ExpectExec("INSERT INTO scenario_turns").WithArgs("run1", "Hola, buenos días", 1).WillReturnResult(sqlmock.NewResult(1, 1))
@@ -426,9 +426,9 @@ func TestScenarioServiceSendSpanishAndAIReply(t *testing.T) {
 	// covered intents again
 	mock.ExpectQuery("SELECT COVERED_intents FROM scenario_runs").WithArgs("run1").WillReturnRows(sqlmock.NewRows([]string{"covered_intents"}).AddRow([]byte(`{}`)))
 	// phases for completion check
-	phaseRows2 := sqlmock.NewRows([]string{"id", "scenario_id", "ordinal", "title", "learner_goal", "required_intents", "chunk_bank"}).
-		AddRow("ph1", "sc1", 1, "Greeting", "Greet", "{greet}", []byte(`[]`)).
-		AddRow("ph2", "sc1", 2, "Order", "Order", "{order_drink}", []byte(`[]`))
+	phaseRows2 := sqlmock.NewRows([]string{"id", "scenario_id", "ordinal", "title", "learner_goal", "required_intents", "scaffold_hints", "ai_follow_up", "success_examples", "chunk_bank"}).
+		AddRow("ph1", "sc1", 1, "Greeting", "Greet", "{greet}", []byte(`[]`), "", []byte(`[]`), []byte(`[]`)).
+		AddRow("ph2", "sc1", 2, "Order", "Order", "{order_drink}", []byte(`[]`), "", []byte(`[]`), []byte(`[]`))
 	mock.ExpectQuery("scenario_phases").WithArgs("sc1").WillReturnRows(phaseRows2)
 	// update run
 	mock.ExpectExec("UPDATE scenario_runs SET current_phase_ordinal").WithArgs("run1", 2, sqlmock.AnyArg(), 50, "in_progress", false).WillReturnResult(sqlmock.NewResult(1, 1))
@@ -464,8 +464,8 @@ func TestScenarioRequestHintReturnsChunks(t *testing.T) {
 			AddRow("run1", "user1", "sc1", "es", "en", "in_progress", "guided", 1, "[]", []byte(`{}`), 0, 0, time.Now()),
 	)
 	mock.ExpectQuery("SELECT id::text, run_id::text, ordinal, speaker, text").WithArgs("run1").WillReturnRows(sqlmock.NewRows([]string{"id", "run_id", "ordinal", "speaker", "text", "translation", "phase_ordinal", "evaluation"}))
-	phaseRows := sqlmock.NewRows([]string{"id", "scenario_id", "ordinal", "title", "learner_goal", "required_intents", "chunk_bank"}).
-		AddRow("ph1", "sc1", 1, "Greeting", "Greet", "{greet}", []byte(`[{"text":"Hola, buenos días.","translation":"Hello"}]`))
+	phaseRows := sqlmock.NewRows([]string{"id", "scenario_id", "ordinal", "title", "learner_goal", "required_intents", "scaffold_hints", "ai_follow_up", "success_examples", "chunk_bank"}).
+		AddRow("ph1", "sc1", 1, "Greeting", "Greet", "{greet}", []byte(`[]`), "", []byte(`[]`), []byte(`[{"text":"Hola, buenos días.","translation":"Hello"}]`))
 	mock.ExpectQuery("scenario_phases").WithArgs("sc1").WillReturnRows(phaseRows)
 
 	chunks, err := svc.RequestHint(context.Background(), "user1", "run1")

@@ -57,6 +57,7 @@ type GrammarDrillItem struct {
 	ID                string   `json:"id"`
 	GrammarPointID    string   `json:"grammarPointId"`
 	PointTitle        string   `json:"pointTitle"`
+	CEFRLevel         string   `json:"cefrLevel,omitempty"`
 	Ordinal           int      `json:"ordinal"`
 	ItemType          string   `json:"itemType"`
 	Prompt            string   `json:"prompt"`

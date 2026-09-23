@@ -37,7 +37,7 @@ import { useStore } from './store'
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const { isAdmin, isModerator, setUser, setEntitlements, setAdmin, refreshAdminStatus, refreshEntitlements } = useStore()
+  const { isAdmin, isModerator, setUser, setEntitlements, setRolloutFlags, setAdmin, refreshAdminStatus, refreshEntitlements, refreshRolloutFlags } = useStore()
   const navigate = useNavigate()
   const presenceHeartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -70,6 +70,7 @@ function App() {
           setIsAuthenticated(true)
           refreshAdminStatus()
           refreshEntitlements()
+          refreshRolloutFlags()
           wsService.connect(token)
           startPresenceReporting()
         } catch (error) {
@@ -83,7 +84,7 @@ function App() {
     }
 
     checkAuth()
-  }, [setUser, setAdmin, refreshAdminStatus, refreshEntitlements])
+  }, [setUser, setAdmin, refreshAdminStatus, refreshEntitlements, refreshRolloutFlags])
 
   const handleLogin = async (tokens: { accessToken: string; refreshToken: string }) => {
     localStorage.setItem('accessToken', tokens.accessToken)
@@ -94,6 +95,7 @@ function App() {
     setIsAuthenticated(true)
     refreshAdminStatus()
     refreshEntitlements()
+    refreshRolloutFlags()
     wsService.connect(tokens.accessToken)
     startPresenceReporting()
     navigate('/chat')
@@ -104,6 +106,7 @@ function App() {
     localStorage.removeItem('refreshToken')
     setUser(null)
     setEntitlements(null)
+    setRolloutFlags(null)
     setAdmin(false)
     setIsAuthenticated(false)
     wsService.disconnect()

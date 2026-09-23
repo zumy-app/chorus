@@ -57,6 +57,7 @@ func AuthMiddleware(authService *services.AuthService, userService *services.Use
 
 		c.Set("userID", userID)
 		c.Set("userRole", role)
+		c.Set("userBetaAccess", user.BetaAccess)
 		c.Next()
 	}
 }

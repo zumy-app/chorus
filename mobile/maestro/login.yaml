@@ -1,0 +1,18 @@
+# Maestro — Release 1 smoke: cold start -> login -> chat list visible.
+# Run: MAESTRO_TEST_USER_EMAIL=... MAESTRO_TEST_USER_PASSWORD=... maestro test mobile/maestro/login.yaml
+# Env: EXPO_PUBLIC_API_URL must point at the backend under test (CI sets it to the
+# blackbox backend; local runs use the emulator alias 10.0.2.2 via app config).
+appId: host.exp.Exponent
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Master new languages*"
+- tapOn: "you@example.com"
+- inputText: "${MAESTRO_TEST_USER_EMAIL}"
+- tapOn: "Enter your password"
+- inputText: "${MAESTRO_TEST_USER_PASSWORD}"
+- tapOn: "Log In"
+# MainTabs landing assertion: Chats tab bar is visible after auth + flags fetch.
+- assertVisible:
+    text: "Chats"
+    timeout: 20000

@@ -6,9 +6,9 @@ INSERT INTO scenario_scripts (
 )
 VALUES
     (
-        's0000000-0000-0000-0000-000000000001',
+        'd0000000-0000-0000-0000-000000000001',
         'c0000000-0000-0000-0000-000000000001',
-        'u0000000-0000-0000-0000-000000000004',
+        'a0000000-0000-0000-0000-000000000004',
         'ordering-coffee',
         'Ordering Coffee',
         'service',
@@ -23,9 +23,9 @@ VALUES
         '{"required_phase_count":5,"required_intents":["greet","order_drink","specify_milk","ask_price","say_thanks"],"min_score":700}'::jsonb
     ),
     (
-        's0000000-0000-0000-0000-000000000002',
+        'd0000000-0000-0000-0000-000000000002',
         'c0000000-0000-0000-0000-000000000001',
-        'u0000000-0000-0000-0000-000000000011',
+        'a0000000-0000-0000-0000-000000000011',
         'hotel-checkin',
         'Hotel Check-In',
         'travel',
@@ -58,7 +58,7 @@ INSERT INTO scenario_phases (
 )
 VALUES
     (
-        's0000000-0000-0000-0000-000000000001', 1, 'Greeting & Base Order',
+        'd0000000-0000-0000-0000-000000000001', 1, 'Greeting & Base Order',
         'Greet the barista and order a coffee.',
         ARRAY['greet','order_drink'],
         '["Start with Hola or Buenos días","Use Quisiera un café or Para mí un café"]'::jsonb,
@@ -67,7 +67,7 @@ VALUES
         '[{"text":"Quisiera un café","translation":"I would like a coffee"},{"text":"Para llevar","translation":"To go"},{"text":"Por favor","translation":"Please"}]'::jsonb
     ),
     (
-        's0000000-0000-0000-0000-000000000001', 2, 'Milk & Temperature',
+        'd0000000-0000-0000-0000-000000000001', 2, 'Milk & Temperature',
         'Specify your milk preference or drink temperature.',
         ARRAY['specify_milk'],
         '["Mention con leche de avena, con leche desnatada, or solo"]'::jsonb,
@@ -76,7 +76,7 @@ VALUES
         '[{"text":"Con leche de avena","translation":"With oat milk"},{"text":"Sin azúcar","translation":"Without sugar"},{"text":"Templado","translation":"Lukewarm"}]'::jsonb
     ),
     (
-        's0000000-0000-0000-0000-000000000001', 3, 'Size & Extras',
+        'd0000000-0000-0000-0000-000000000001', 3, 'Size & Extras',
         'Choose the size or add a pastry.',
         ARRAY['specify_size'],
         '["You can say grande, mediano, or add un cruasán"]'::jsonb,
@@ -85,7 +85,7 @@ VALUES
         '[{"text":"Tamaño mediano","translation":"Medium size"},{"text":"Y un cruasán","translation":"And a croissant"},{"text":"Nada más","translation":"Nothing else"}]'::jsonb
     ),
     (
-        's0000000-0000-0000-0000-000000000001', 4, 'Price & Payment',
+        'd0000000-0000-0000-0000-000000000001', 4, 'Price & Payment',
         'Ask how much it costs and state how you will pay.',
         ARRAY['ask_price','pay_method'],
         '["Ask ¿Cuánto es? and offer tarjeta or efectivo"]'::jsonb,
@@ -94,7 +94,7 @@ VALUES
         '[{"text":"¿Cuánto es?","translation":"How much is it?"},{"text":"Con tarjeta","translation":"With card"},{"text":"En efectivo","translation":"In cash"}]'::jsonb
     ),
     (
-        's0000000-0000-0000-0000-000000000001', 5, 'Farewell & Politeness',
+        'd0000000-0000-0000-0000-000000000001', 5, 'Farewell & Politeness',
         'Say thank you and have a good day.',
         ARRAY['say_thanks'],
         '["Say Muchas gracias, hasta luego or que tengas buen día"]'::jsonb,

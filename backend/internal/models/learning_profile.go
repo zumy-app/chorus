@@ -148,10 +148,13 @@ type LevelSelectionRequest struct {
 }
 
 type RealTalkPrompt struct {
-	ID           string `json:"id"`
-	Category     string `json:"category"`
-	Text         string `json:"text"`
-	SourcePrompt bool   `json:"sourcePrompt,omitempty"`
+	ID             string   `json:"id"`
+	Category       string   `json:"category"`
+	Text           string   `json:"text"`
+	SourcePrompt   bool     `json:"sourcePrompt,omitempty"`
+	TargetPhrase   string   `json:"targetPhrase,omitempty"`
+	WhyUseful      string   `json:"whyUseful,omitempty"`
+	FollowUpChunks []string `json:"followUpChunks,omitempty"`
 }
 
 type StreakRecoverResult struct {

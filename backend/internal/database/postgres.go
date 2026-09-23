@@ -26,6 +26,9 @@ func Connect(databaseURL string) (*sql.DB, error) {
 
 func Migrate(db *sql.DB) error {
 	migrations := []string{
+		// Required by gen_random_bytes() (referral codes) on fresh databases.
+		// gen_random_uuid() is core since PG13, but pgcrypto covers both.
+		`CREATE EXTENSION IF NOT EXISTS pgcrypto`,
 		// Phase 1: Core tables
 		`CREATE TABLE IF NOT EXISTS users (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -559,6 +562,33 @@ func Migrate(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_grammar_jobs_user_created ON grammar_jobs(user_id, created_at DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_grammar_jobs_status ON grammar_jobs(status, next_attempt_at)`,
 		`CREATE INDEX IF NOT EXISTS idx_grammar_jobs_message ON grammar_jobs(message_id)`,
+
+		// Sparky async jobs (Phase 1 of the AI-response redesign): same durable
+		// outbox pattern as grammar_jobs. POST /sparky/ask returns 202 + job id
+		// instantly; the worker answers via the provider chain and fans the
+		// result out per-user over the WebSocket ("sparky_result"). A job holds
+		// the conversation context + the user's question so the answer survives
+		// app backgrounding and is resyncable via GET /sparky/jobs/:jobId.
+		`CREATE TABLE IF NOT EXISTS sparky_jobs (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			chat_id UUID REFERENCES chats(id) ON DELETE CASCADE,
+			context TEXT NOT NULL,
+			query TEXT NOT NULL,
+			language VARCHAR(10) NOT NULL,
+			native_language VARCHAR(10) NOT NULL,
+			status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'done', 'failed')),
+			result TEXT,
+			provider_used VARCHAR(50),
+			attempts INTEGER NOT NULL DEFAULT 0,
+			last_error TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			next_attempt_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			processing_at TIMESTAMP,
+			completed_at TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_sparky_jobs_user_created ON sparky_jobs(user_id, created_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_sparky_jobs_status ON sparky_jobs(status, next_attempt_at)`,
 
 		// -------------------------------------------------------------------
 		// FR-30 Quality pipeline — lineage + cross-model evaluation
@@ -1449,6 +1479,116 @@ func Migrate(db *sql.DB) error {
 
 		`ALTER TABLE curriculum_lesson_steps DROP CONSTRAINT IF EXISTS curriculum_lesson_steps_type_check`,
 		`ALTER TABLE curriculum_lesson_steps ADD CONSTRAINT curriculum_lesson_steps_type_check CHECK (type IN ('intro','mcq','cloze','free_recall','translation','listening','speaking','production','chat_prompt','explanation','reading_passage','gap_fill','writing'))`,
+
+		// Release 1: feature flags
+		`CREATE TABLE IF NOT EXISTS feature_flags (
+			key TEXT PRIMARY KEY,
+			description TEXT NOT NULL,
+			default_state BOOL NOT NULL DEFAULT FALSE,
+			admin_only BOOL NOT NULL DEFAULT FALSE,
+			beta_access BOOL NOT NULL DEFAULT FALSE,
+			stable BOOL NOT NULL DEFAULT FALSE,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		)`,
+		`CREATE TABLE IF NOT EXISTS feature_flag_overrides (
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			flag_key TEXT NOT NULL REFERENCES feature_flags(key) ON DELETE CASCADE,
+			enabled BOOL NOT NULL,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			PRIMARY KEY (user_id, flag_key)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_feature_flag_overrides_flag ON feature_flag_overrides(flag_key)`,
+
+		// Release 1: user profile extensions
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS city TEXT`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS cover_photo_url TEXT`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS beta_access BOOL NOT NULL DEFAULT FALSE`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS xp_total INT NOT NULL DEFAULT 0`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS xp_level INT NOT NULL DEFAULT 1`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS streak_days INT NOT NULL DEFAULT 0`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS streak_last_activity_date DATE`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_completed BOOL NOT NULL DEFAULT FALSE`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_step INT NOT NULL DEFAULT 0`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS safe_learning_pledge BOOL NOT NULL DEFAULT FALSE`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS safe_learning_pledged_at TIMESTAMPTZ`,
+
+		// Release 1: language profile extensions
+		`ALTER TABLE user_language_profiles ADD COLUMN IF NOT EXISTS daily_commitment TEXT NOT NULL DEFAULT 'regular'`,
+		`ALTER TABLE user_language_profiles ADD COLUMN IF NOT EXISTS interests TEXT[] NOT NULL DEFAULT '{}'`,
+		`ALTER TABLE user_language_profiles ADD COLUMN IF NOT EXISTS notifications_enabled BOOL NOT NULL DEFAULT TRUE`,
+
+		// Release 1: onboarding checkpoints
+		`CREATE TABLE IF NOT EXISTS onboarding_checkpoints (
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			step INT NOT NULL,
+			completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			data JSONB,
+			PRIMARY KEY (user_id, step)
+		)`,
+
+		// Release 1: XP system
+		`CREATE TABLE IF NOT EXISTS xp_events (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			event_type TEXT NOT NULL,
+			xp_awarded INT NOT NULL,
+			reference_id TEXT,
+			awarded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			UNIQUE (user_id, event_type, reference_id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_xp_events_user_date ON xp_events(user_id, awarded_at DESC)`,
+		`CREATE TABLE IF NOT EXISTS xp_daily_caps (
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			date DATE NOT NULL,
+			event_type TEXT NOT NULL,
+			count INT NOT NULL DEFAULT 0,
+			PRIMARY KEY (user_id, date, event_type)
+		)`,
+
+		// Release 1: partner matching
+		`CREATE TABLE IF NOT EXISTS partner_match_scores (
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			partner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			match_score SMALLINT NOT NULL,
+			match_reasons TEXT[] NOT NULL DEFAULT '{}',
+			computed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			PRIMARY KEY (user_id, partner_id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_partner_match_score ON partner_match_scores(user_id, match_score DESC)`,
+
+		// Release 1: waitlist referral
+		`ALTER TABLE waitlist_entries ADD COLUMN IF NOT EXISTS referral_code TEXT UNIQUE DEFAULT encode(gen_random_bytes(6), 'hex')`,
+		`ALTER TABLE waitlist_entries ADD COLUMN IF NOT EXISTS referred_by_code TEXT REFERENCES waitlist_entries(referral_code)`,
+		`ALTER TABLE waitlist_entries ADD COLUMN IF NOT EXISTS referral_count INT NOT NULL DEFAULT 0`,
+		`ALTER TABLE waitlist_entries ADD COLUMN IF NOT EXISTS position INT`,
+		`CREATE INDEX IF NOT EXISTS idx_waitlist_entries_referral_code ON waitlist_entries(referral_code)`,
+
+		// Release 1: feature interest + device tokens
+		`CREATE TABLE IF NOT EXISTS feature_interest (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			feature_key TEXT NOT NULL,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			UNIQUE (user_id, feature_key)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_feature_interest_key ON feature_interest(feature_key)`,
+		`CREATE TABLE IF NOT EXISTS device_tokens (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			token TEXT NOT NULL,
+			platform TEXT NOT NULL CHECK (platform IN ('android', 'ios')),
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			UNIQUE (user_id, token)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_device_tokens_user ON device_tokens(user_id)`,
+
+		// Release 1: notification preferences
+		`ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS push_notifications_enabled BOOL NOT NULL DEFAULT TRUE`,
+		`ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS daily_reminder_time TIME`,
+		`ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS marketing_emails_enabled BOOL NOT NULL DEFAULT TRUE`,
 	}
 
 	for _, migration := range migrations {

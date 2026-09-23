@@ -67,6 +67,12 @@ import type {
   VocabularyCard,
   WaitlistEntry,
   WaitlistRequest,
+  GrammarDrillItem,
+  GrammarMicroLesson,
+  GradingJob,
+  TeacherAssignment,
+  AssignmentSubmission,
+  CreateTeacherAssignmentRequest,
 } from './types'
 
 export interface StorageAdapter {
@@ -99,16 +105,26 @@ function qs(params: Record<string, string | number | boolean | null | undefined>
  * to React, which unmounts the tree ("Objects are not valid as a React
  * child"). Always pass errors for display through here.
  *
- * Contract: server message wins; HTTP-ish failures without one (network
- * errors, generic axios failures) fall back to curated copy; plain thrown
- * Errors (e.g. typed client helpers) keep their message.
+ * Contract: server message wins; a request that never got a response (server
+ * unreachable, wrong base URL, airplane mode) returns dedicated connectivity
+ * copy so screens never misreport it as e.g. "invalid credentials"; other
+ * HTTP-ish failures fall back to curated copy; plain thrown Errors (e.g.
+ * typed client helpers) keep their message.
  */
+export const NETWORK_UNREACHABLE_MESSAGE =
+  "Couldn't reach the server. Check your connection and API URL, then try again."
+
 export function apiErrorMessage(err: unknown, fallback = 'Something went wrong'): string {
   const data = (err as any)?.response?.data
   const raw = data?.error ?? data?.message
   if (typeof raw === 'string' && raw) return raw
   if (raw && typeof (raw as any).message === 'string' && (raw as any).message) {
     return (raw as any).message
+  }
+  // Axios populates `request` when the request was sent but no response came
+  // back (DNS/timeout/refused). That is always connectivity, never credentials.
+  if ((err as any)?.isAxiosError === true && (err as any)?.request && !(err as any)?.response) {
+    return NETWORK_UNREACHABLE_MESSAGE
   }
   const httpLike =
     !!(err as any)?.response || !!(err as any)?.request || (err as any)?.isAxiosError === true
@@ -719,13 +735,20 @@ export function createApiClient(options: ApiClientOptions) {
       action: string,
       customQuery?: string
     ) => {
-      const response = await client.post('/grammar/learn', {
-        text,
-        language,
-        nativeLanguage,
-        action,
-        customQuery,
-      })
+      // Synchronous LLM call: ~8s typical, 10s global timeout is marginal
+      // (on a phone over USB reverse + Metro dev it exceeds 10s and surfaces
+      // as a misleading "couldn't reach the server"). Dedicated 60s budget.
+      const response = await client.post(
+        '/grammar/learn',
+        {
+          text,
+          language,
+          nativeLanguage,
+          action,
+          customQuery,
+        },
+        { timeout: 60000 }
+      )
       return response.data.data
     },
 
@@ -736,6 +759,38 @@ export function createApiClient(options: ApiClientOptions) {
 
     getReport: async (language: string) => {
       const response = await client.get(`/grammar/report${qs({ language })}`)
+      return response.data
+    },
+  }
+
+  // Sparky async answers (AI-response redesign Phase 1). POST /sparky/ask
+  // returns 202 + job id instantly; the answer arrives per-user over the
+  // WebSocket "sparky_result" event (streaming deltas in Phase 2) and is
+  // resyncable via getJob after reconnect/backgrounding.
+  const sparky = {
+    ask: async (data: {
+      context: string
+      query: string
+      language: string
+      nativeLanguage: string
+      chatId?: string
+    }) => {
+      const response = await client.post<{ jobId: string; status: string }>(
+        '/sparky/ask',
+        data
+      )
+      return response.data
+    },
+
+    getJob: async (jobId: string) => {
+      const response = await client.get<{
+        jobId: string
+        chatId: string
+        status: string
+        content?: string
+        providerUsed?: string
+        error?: string
+      }>(`/sparky/jobs/${jobId}`)
       return response.data
     },
   }
@@ -871,6 +926,62 @@ export function createApiClient(options: ApiClientOptions) {
     },
     completeSession: async (sessionId: string) => {
       const response = await client.post<{ data: LearningSession }>(`/learning/sessions/${sessionId}/complete`)
+      return response.data.data
+    },
+
+    // V3 grammar engine: due drills, micro-lessons, attempt recording
+    getGrammarDueDrills: async (targetLanguage: string, limit?: number) => {
+      const response = await client.get<{ data: GrammarDrillItem[] }>(
+        `/learning/grammar/due${qs({ targetLanguage, limit })}`
+      )
+      return response.data.data
+    },
+    getGrammarMicroLesson: async (pointId: string) => {
+      const response = await client.get<{ data: GrammarMicroLesson }>(`/learning/grammar/points/${pointId}`)
+      return response.data.data
+    },
+    recordGrammarAttempt: async (itemId: string, correct: boolean, quality: number, latencyMs?: number) => {
+      const response = await client.post<{ data: { ok: boolean } }>(`/learning/grammar/items/${itemId}/attempt`, {
+        correct, quality, latencyMs,
+      })
+      return response.data.data
+    },
+
+    // V3 async grading: polling fallback for the 202 + WebSocket push flow
+    getGradingJob: async (jobId: string) => {
+      const response = await client.get<{ data: GradingJob }>(`/learning/grading-jobs/${jobId}`)
+      return response.data.data
+    },
+
+    // V3 teacher assignments
+    createAssignment: async (data: CreateTeacherAssignmentRequest) => {
+      const response = await client.post<{ data: TeacherAssignment }>('/learning/teacher/assignments', data)
+      return response.data.data
+    },
+    listTeacherAssignments: async () => {
+      const response = await client.get<{ data: TeacherAssignment[] }>('/learning/teacher/assignments')
+      return response.data.data ?? []
+    },
+    listStudentAssignments: async () => {
+      const response = await client.get<{ data: TeacherAssignment[] }>('/learning/assignments')
+      return response.data.data ?? []
+    },
+    getAssignment: async (assignmentId: string) => {
+      const response = await client.get<{ data: TeacherAssignment }>(`/learning/assignments/${assignmentId}`)
+      return response.data.data
+    },
+    submitAssignment: async (assignmentId: string, content: any) => {
+      const response = await client.post<{ data: { submission: AssignmentSubmission; gradingJobId: string } }>(
+        `/learning/assignments/${assignmentId}/submit`,
+        { content }
+      )
+      return response.data.data
+    },
+    reviewAssignment: async (assignmentId: string, teacherFeedback: any, score?: number) => {
+      const response = await client.post<{ data: { ok: boolean } }>(
+        `/learning/assignments/${assignmentId}/review`,
+        { teacherFeedback, score }
+      )
       return response.data.data
     },
 
@@ -1131,6 +1242,13 @@ export function createApiClient(options: ApiClientOptions) {
     },
   }
 
+  const flags = {
+    getMyFlags: async () => {
+      const response = await client.get<{ flags: import('./types').RolloutFlags }>('/users/me/flags')
+      return response.data.flags
+    },
+  }
+
   const teacher = {
     getMyApplication: async () => {
       const response = await client.get<{ application: import('./types').TeacherApplication | null }>('/teachers/me')
@@ -1224,6 +1342,7 @@ export function createApiClient(options: ApiClientOptions) {
     vocabulary,
     billing,
     grammar,
+    sparky,
     translation,
     learning,
     contacts,
@@ -1236,5 +1355,6 @@ export function createApiClient(options: ApiClientOptions) {
     payouts,
     search,
     health,
+    flags,
   }
 }

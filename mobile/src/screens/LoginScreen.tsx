@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import storage from '../utils/storage';
 import apiService from '../services/api';
+import featureFlags from '../utils/featureFlags';
 import AuthLayout from '../components/AuthLayout';
 import DevAccountSwitcher from '../components/DevAccountSwitcher';
 import { COLOR, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../theme';
@@ -57,6 +58,7 @@ export default function LoginScreen({ navigation }: any) {
         await storage.setItem('accessToken', response.tokens.accessToken);
         await storage.setItem('refreshToken', response.tokens.refreshToken);
         await storage.setItem('user', JSON.stringify(response.user));
+        await featureFlags.init();
         navigation.replace('MainTabs');
       }
     } catch (error: any) {
@@ -74,6 +76,7 @@ export default function LoginScreen({ navigation }: any) {
       await storage.setItem('accessToken', r.tokens.accessToken);
       await storage.setItem('refreshToken', r.tokens.refreshToken);
       await storage.setItem('user', JSON.stringify(r.user));
+      await featureFlags.init();
       navigation.replace('MainTabs');
     } catch (e: any) { Alert.alert('Failed', apiErrorMessage(e, 'Invalid code')) }
     finally { setLoading(false) }

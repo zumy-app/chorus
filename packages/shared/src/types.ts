@@ -58,6 +58,9 @@ export interface User {
   phoneVerified?: boolean
   phoneVerifiedAt?: string | null
   twoFactorEnabled?: boolean
+  // Feature-flag tier: admins see all flags, beta users see stable+beta flags,
+  // general users see only stable flags. Controlled server-side.
+  betaAccess?: boolean
 }
 
 export interface PhoneStatus {
@@ -88,6 +91,37 @@ export interface FeatureFlags {
   translationCharLimit?: number | null
   translationWordLimit?: number | null
 }
+
+// Rollout feature flags resolved server-side via GET /users/me/flags.
+// Admin users receive every flag as true; beta users receive stable+beta tiers;
+// general users receive only stable flags.
+// Keys match backend FeatureFlagService seed definitions.
+export type RolloutFlagKey =
+  | 'grammar_insights'
+  | 'word_collector'
+  | 'feature_voting'
+  | 'referral_bump'
+  | 'google_oauth'
+  | 'push_notifications'
+  | 'word_flashcards'
+  | 'ai_writing_assistant'
+  | 'placement_test'
+  | 'scenario_roleplay'
+  | 'voice_message'
+  | 'media_sharing'
+  | 'document_sharing'
+  | 'video_calls'
+  | 'study_pods'
+  | 'teacher_marketplace'
+  | 'payout_teacher'
+  | 'xp_leaderboard'
+  | 'group_chat'
+  | 'gdpr_export'
+  | 'social_feed'
+  | 'learning_v3_engine'
+  | 'redis_session_cache'
+
+export type RolloutFlags = Record<RolloutFlagKey, boolean>
 
 // Resolved subscription view from GET /users/me/subscription. EffectivePlan is
 // the plan after any grace window is applied.
@@ -809,6 +843,7 @@ export interface SessionQuestion {
   activityType: string
   promptType: string
   prompt: SessionPrompt
+  drillType?: string
 }
 
 export interface SessionAnswerRequest {
@@ -911,9 +946,12 @@ export interface LessonStepResult {
 // Placement
 // ---------------------------------------------------------------------------
 
+export type PlacementModule = 'receptive_vocab' | 'grammar_production' | 'discourse_reading'
+
 export interface PlacementQuestion {
   id: string
   ref: string
+  module?: PlacementModule
   itemType: string
   cefrLevel: CefrLevel
   prompt: any
@@ -1040,6 +1078,9 @@ export interface RealTalkPrompt {
   category: string
   text: string
   sourcePrompt?: boolean
+  targetPhrase?: string
+  whyUseful?: string
+  followUpChunks?: string[]
 }
 
 export interface StreakRecoverResult {
@@ -1382,6 +1423,7 @@ export interface GrammarDrillItem {
   id: string
   grammarPointId: string
   pointTitle: string
+  cefrLevel?: string
   ordinal: number
   itemType: GrammarItemType
   prompt: string
@@ -1480,6 +1522,18 @@ export interface AssignmentSubmission {
   score?: number
   submittedAt: string
   reviewedAt?: string
+}
+
+export interface CreateTeacherAssignmentRequest {
+  studentId: string
+  bookingId?: string
+  type: 'vocabulary_push' | 'reading' | 'writing' | 'scenario' | 'lesson' | 'mixed'
+  title: string
+  instructions?: string
+  content: any
+  dueDate?: string
+  targetLanguage: string
+  nativeLanguage?: string
 }
 
 export interface StudentProgressSummary {
