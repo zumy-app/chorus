@@ -26,7 +26,7 @@
 | **frontend_engineer** | `frontend` | `frontend/src/pages/*`, `components/*`, `App.tsx` routes | `npm run build` + `vitest` green |
 | **mobile_engineer** | `mobile` | `mobile/src/screens/*`, `components/MainTabs.tsx`, `App.tsx` | `npx tsc --noEmit` + `jest` green |
 | **teacher** | `teacher` | Learning-content review for Home copy + marketplace copy | Sign-off on CEFR/linguistics |
-| **sre** | `infra` | `docker-compose.yml`, `start-android.ps1:19` flags, `L4 LB`, `/health:433` `commit` | `verify-release-gate.sh` + device boot |
+| **sre** | `infra` | `docker-compose.yml`, `start-android-avd.ps1:19` flags, `L4 LB`, `/health:433` `commit` | `verify-release-gate.sh` + device boot |
 | **reviewer** | `review` | Diff review + `release_gate:13` (wireframe + build + security + BA sign-off) | `PASS/CHANGES-REQUIRED` |
 
 Common contract `roles.py:97` — mobile-first, web parity, Postgres durable, Redis never source of truth, wireframes ARE spec.
@@ -46,7 +46,7 @@ BA: slice spec (Gherkin + wireframe PNG refs + API contract)  →  QA: write FAI
 1. **BA gate:** `docs/REQUIREMENTS_SLICE_<id>.md` exists, references `wireframes/<folder>/code.html:line` + `REQUIREMENTS_MASTER.md` FR + `backend/cmd/server/main.go:line` contract. No spec → QA cannot start.
 2. **QA gate (red):** `testRefs` listed in `crew/phase_status.json` + `TDD_RESCUE_SPEC.md:12` style run is **red** on purpose (proves gap). `npm test` shows 1 fail.
 3. **Impl gate (green):** `go vet 0`, `go test ./... 0`, `frontend tsc && vite build 0` + `NO_LEAK` (`grep chorus.test dist → 0`), `mobile tsc 0`, `jest` green.
-4. **QA verify gate (device):** `.\start-android.ps1` boots, `curl /health` `commit` == HEAD (`health.go:39`), AVD `MainTabs` navigation reaches new screen, `e2e/tests` + `acceptance/tests` green, `verify-wireframe-parity.sh` row flips `GAP → PASS`.
+4. **QA verify gate (device):** `.\start-android-avd.ps1` boots, `curl /health` `commit` == HEAD (`health.go:39`), AVD `MainTabs` navigation reaches new screen, `e2e/tests` + `acceptance/tests` green, `verify-wireframe-parity.sh` row flips `GAP → PASS`.
 5. **BA sign-off gate:** BA checks device screenshot vs wireframe PNG (e.g., home brain hero) + copy; marks `docs/WIREFRAME_TRACE.md:60` row `PASS` and signs `Gap sign-off Sheet` (`docs/GAP_SIGNOFF.md`). Only then `crew/state.py` may set slice `DONE`.
 
 **If any gate red → slice stays `PENDING`, `phase_complete()` false, supervisor loops.**

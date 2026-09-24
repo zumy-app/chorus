@@ -830,7 +830,7 @@ MIT
 
 ## Android Automation Script
 
-A Windows PowerShell script (`start-android.ps1`) that automates the whole Android development workflow:
+A Windows PowerShell script (`start-android-avd.ps1`) that automates the whole Android development workflow:
 
 - Ensures **ADB** (platform‑tools) is on the path (skips if already present)
 - Creates an **AVD** if one does not exist
@@ -843,12 +843,12 @@ The script skips any step that is already satisfied, so re‑running it is safe.
 
 ### Where is the script?
 
-The script lives in the project root as **`start-android.ps1`**.  
+The script lives in the project root as **`start-android-avd.ps1`**.  
 You can run it from PowerShell:
 
 ```powershell
 # From the project root (or any location with the full path)
-.\start-android.ps1
+.\start-android-avd.ps1
 ```
 
 ### Configuration
@@ -876,7 +876,7 @@ Edit the small configuration block at the top of the file:
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 # Run
-.\start-android.ps1
+.\start-android-avd.ps1
 ```
 
 The script will output coloured logs for each step and, once finished, the Android emulator will be running, Expo will be starting, and the mobile app will attempt to connect to your backend via the generated URL.

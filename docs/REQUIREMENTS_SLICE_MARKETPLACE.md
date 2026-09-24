@@ -646,7 +646,7 @@ All `main.go:638-668` marketplace routes are **protected** `r.Group("/api/v1")` 
   - Existing `frontend vitest` + `mobile jest` show exactly **+N** new pass (6 frontend + 6 mobile), 0 fail
   - `backend` tests show `dev_seed.go:31` SeedDevData idempotent (counts stable on second run)
 - [ ] **Device-parity gate (not just `npm test`):**
-  - `.\start-android.ps1` boots AVD `emulator-5554 device` + `adb shell getprop sys.boot_completed` == `1`
+  - `.\start-android-avd.ps1` boots AVD `emulator-5554 device` + `adb shell getprop sys.boot_completed` == `1`
   - `curl -fsS http://localhost:8080/health | jq .commit` == `git rev-parse HEAD` (proves `backend/internal/observability/health.go:39` `CHORUS_BUILD_COMMIT` is fresh — `docs/TDD_RESCUE_SPEC.md:52` `S-SMOKE-02`)
   - On AVD, Marketplace flows render without crash; keyboard/tap on search triggers browse; Profile Book Trial navigates; Confirm sticky CTA tappable; TrialCredits Find a Tutor works; Teacher Dashboard premium card visible; Payouts methods add/remove works
   - `verify-wireframe-parity.sh` (or `docs/WIREFRAME_TRACE.md:60` audit) row for `browse_tutors`, `tutor_profile_sofia`, `confirm_trial_booking`, `trial_credit_dashboard`, `teacher_dashboard`, `teacher_earnings_overview`, `payout_settings_history` flipped `GAP → PASS`

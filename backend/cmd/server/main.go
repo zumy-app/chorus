@@ -1173,7 +1173,7 @@ func logDatabaseDiagnostics(db *sql.DB, dsn string) {
 
 // buildCommit returns the git commit this backend was built from, used by the
 // /health payload so start scripts can verify the served binary matches HEAD.
-// Set CHORUS_BUILD_COMMIT at build/start time (start-android.ps1 does this);
+// Set CHORUS_BUILD_COMMIT at build/start time (start-android-avd.ps1 does this);
 // falls back to "dev" when unknown (plain `go run`).
 func buildCommit() string {
 	if c := os.Getenv("CHORUS_BUILD_COMMIT"); c != "" {

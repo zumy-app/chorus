@@ -297,7 +297,7 @@ Home v2 itself requires **no new backend endpoint** — it is static. The only r
 - Every Home v2 element (TopNav, Hero, Bridging, Ecosystem 4 cards + mockup, Pricing 2 tiers, Mission, Final CTA, Footer) must exist on **both** `frontend/src/pages/Landing.tsx:851` and `mobile/src/screens/LandingScreen.tsx:96` in the same PR. `docs/WIREFRAME_TRACE.md:27` `chorus_home` + `28` `chorus_home_desktop` + `29` `chorus_home_desktop_v2` + `31-34` mobile variants all map to the same route (`/` web unauth, auth stack mobile) — they stay `PASS` but note "implemented as v2".
 - Navigation: web `Fixed TopNav` (`position:sticky`) with anchors `href="#features" "#pricing" "#about"` matching `section id="features" id="pricing" id="about"`; mobile `TouchableOpacity onPress scrollToSection('features'|'pricing'|'about'|…)` (existing `sectionY`/`registerSection` pattern `LandingScreen.tsx:48-55`). Both must scroll correctly.
 - i18n: Current `Landing.tsx:47` ships 10-language `STRINGS` (en/zh/hi/es/ar/fr/bn/pt/ru/ur) with full translation of stale hero/features/pricing. **Home v2 English is canonical** for BA sign-off; i18n re-translation of new hero/ecosystem/mission copy is **out of scope for S-HOME-01..04** (file follow-up slices if needed). Impl must either keep i18n plumbing but replace every string that overlaps v2 copy, or ship en-only for v2 sections with comment `// TODO S-HOME-i18n`. Stale translations of deleted sections must be deleted too — no orphan keys.
-- Device boot: `.\start-android.ps1` boots `emulator-5554 device` + `adb shell getprop sys.boot_completed 1` + `curl /health` `commit == HEAD` (`backend/internal/observability/health.go:39` `CHORUS_BUILD_COMMIT`) — per `docs/TDD_RESCUE_SPEC.md:52` `S-SMOKE-02` and `docs/CREWAI_GAP_CLOSURE_PLAN.md:162`.
+- Device boot: `.\start-android-avd.ps1` boots `emulator-5554 device` + `adb shell getprop sys.boot_completed 1` + `curl /health` `commit == HEAD` (`backend/internal/observability/health.go:39` `CHORUS_BUILD_COMMIT`) — per `docs/TDD_RESCUE_SPEC.md:52` `S-SMOKE-02` and `docs/CREWAI_GAP_CLOSURE_PLAN.md:162`.
 
 ### File refs index
 
@@ -332,7 +332,7 @@ Home v2 itself requires **no new backend endpoint** — it is static. The only r
   - Existing `frontend vitest` + `mobile jest` show exactly **+N** new pass, 0 fail
   - `e2e/acceptance/tests/p0-foundation.ts:17` `GET /health 200` still pass
 - [ ] **Device-parity gate (not just `npm test`):**
-  - `.\start-android.ps1` boots AVD `emulator-5554 device` + `adb shell getprop sys.boot_completed` == `1`
+  - `.\start-android-avd.ps1` boots AVD `emulator-5554 device` + `adb shell getprop sys.boot_completed` == `1`
   - `curl -fsS http://localhost:8080/health | jq .commit` == `git rev-parse HEAD` (proves `backend/internal/observability/health.go:39` `CHORUS_BUILD_COMMIT` is fresh — `docs/TDD_RESCUE_SPEC.md:52` `S-SMOKE-02`)
   - On AVD, navigate Landing unauthenticated: hero visible, scroll to `#features`/`#pricing`/`#about` each reachable (web anchor + mobile `scrollToSection`), final CTA button taps to Register/Login (or Waitlist) without crash
   - `verify-wireframe-parity.sh` (or `docs/WIREFRAME_TRACE.md:58` audit) row for `chorus_home*` flipped from stale copy to `PASS (v2)` + GAP count note 62→? for home only

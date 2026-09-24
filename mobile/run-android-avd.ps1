@@ -11,7 +11,7 @@
   4. Builds + installs + launches the debug APK on the emulator.
 
   NOTE: the emulator is CPU-heavy on this PC. If it stutters, prefer
-  ./run-android-usb.ps1 with a physical phone over USB.
+  ../run-android-usb.ps1 with a physical phone over USB.
 
 .EXAMPLE
   ./run-android-avd.ps1
