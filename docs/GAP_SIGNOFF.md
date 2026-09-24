@@ -114,5 +114,5 @@ Marketplace **6 GAPs → PASS** (8 table rows, 6 logical slices) — still **GAP
 ## 5. Next Steps (not in this PR)
 
 - Reviewer: `docs/RELEASE_GATE.md` wireframe + build + security + BA sign-off → `PASS` or `CHANGES-REQUIRED`
-- SRE: `.\start-android.ps1` AVD `emulator-5554 device` + `curl /health | jq .commit == HEAD` + marketplace flow Browse→Profile→Confirm→TrialCredits→Dashboard→Payouts on AVD
+- SRE: `.\start-android-avd.ps1` AVD `emulator-5554 device` + `curl /health | jq .commit == HEAD` + marketplace flow Browse→Profile→Confirm→TrialCredits→Dashboard→Payouts on AVD
 - BA: Update `REQUIREMENTS_MASTER.md` `§5.1` marketplace status 1/13→10/13 if reviewer passes

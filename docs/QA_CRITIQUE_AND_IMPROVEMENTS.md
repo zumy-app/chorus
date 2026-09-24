@@ -417,7 +417,7 @@ Feature: C-05 Teacher apply — UI form → pending → browse visibility after 
 Feature: AVD parity — every C-01..C-05 journey reachable on emulator 10.0.2.2
 
   Scenario: AVD boot + health
-    Given emulator-5554 device booted via start-android.ps1
+    Given emulator-5554 device booted via start-android-avd.ps1
     Then adb shell getprop sys.boot_completed is 1 and curl http://10.0.2.2:8080/health 200 {status:healthy, commit:HEAD}
 
   Scenario: AVD web parity — C-01..C-04 on 10.0.2.2 Chrome

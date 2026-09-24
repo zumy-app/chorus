@@ -3,6 +3,9 @@
   Run the Chorus mobile app on a physical Android device over USB/ADB.
 
 .DESCRIPTION
+  0. Preflight: verifies adb/node exist, syncs mobile/node_modules when stale
+     (missing react-native-dotenv 500s every Metro bundle), and smoke-loads
+     metro.config.js before touching the device.
   1. Picks the attached USB device (or -DeviceId).
   2. Ensures the Chorus backend is running (starts it if needed; auto-falls
      back to port 8090 when 8080 is taken by another service).
@@ -18,12 +21,13 @@
 param(
   [string]$DeviceId = "",
   [int]$Port = 8080,
-  [switch]$ResetCache
+  [switch]$ResetCache,
+  [switch]$SkipDepsCheck
 )
 
 $ErrorActionPreference = "Stop"
-$MobileDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$RepoRoot = Split-Path -Parent $MobileDir
+$RepoRoot = $PSScriptRoot
+$MobileDir = Join-Path $RepoRoot "mobile"
 $BackendDir = Join-Path $RepoRoot "backend"
 $LogDir = Join-Path $MobileDir "logs"
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
@@ -33,6 +37,36 @@ function Test-ChorusHealth([string]$Url) {
     $r = curl.exe -s -m 3 "$Url/health" 2>$null
     return ($r -match '"status"\s*:\s*"healthy"')
   } catch { return $false }
+}
+
+# --- 0. Preflight: toolchain + JS deps in sync ---
+# A present-but-stale node_modules is a silent killer: e.g. a missing
+# react-native-dotenv aborts every Babel transform and Metro serves HTTP 500
+# to the phone. Fail fast here instead of after the gradle build.
+if (-not (Get-Command adb -ErrorAction SilentlyContinue)) { throw "adb not found on PATH. Install Android platform-tools (ANDROID_HOME=$env:ANDROID_HOME) and re-run." }
+if (-not (Get-Command node -ErrorAction SilentlyContinue)) { throw "node not found on PATH. Install Node.js LTS and re-run." }
+if (-not $SkipDepsCheck) {
+  $sharedIndex = Join-Path $RepoRoot "packages\shared\src\index.ts"
+  Push-Location $MobileDir
+  try {
+    $dotenvOk = $false
+    try { $null = & node -e "require.resolve('react-native-dotenv')" 2>$null; $dotenvOk = ($LASTEXITCODE -eq 0) } catch { $dotenvOk = $false }
+    $metroOk = $false
+    try { $null = & node -e "require('./metro.config.js')" 2>$null; $metroOk = ($LASTEXITCODE -eq 0) } catch { $metroOk = $false }
+    $needInstall = (-not $dotenvOk) -or (-not $metroOk) -or (-not (Test-Path $sharedIndex)) -or (-not (Test-Path (Join-Path $MobileDir "node_modules")))
+    if ($needInstall) {
+      Write-Host "==> JS deps out of sync (dotenv:$dotenvOk metro-config:$metroOk shared-src:$(Test-Path $sharedIndex)) - running npm install ..." -ForegroundColor Cyan
+      npm install 2>&1 | ForEach-Object { Write-Host "  $_" }
+      if ($LASTEXITCODE -ne 0) { throw "npm install failed (exit $LASTEXITCODE)" }
+      try { $null = & node -e "require.resolve('react-native-dotenv'); require('./metro.config.js')" 2>$null; $stillOk = ($LASTEXITCODE -eq 0) } catch { $stillOk = $false }
+      if (-not $stillOk) { throw "Deps still broken after npm install (dotenv/metro.config.js won't load). Fix mobile/package.json and re-run." }
+      Write-Host "==> JS deps synced" -ForegroundColor Green
+    } else {
+      Write-Host "==> JS deps OK (dotenv + metro.config.js load)" -ForegroundColor Green
+    }
+  } finally { Pop-Location }
+} else {
+  Write-Host "==> Skipped deps check (SkipDepsCheck)" -ForegroundColor Yellow
 }
 
 # --- 1. Pick USB device (skip emulators) ---
@@ -130,7 +164,7 @@ if (-not $metroUp) {
 # --- 5. Build + install + launch on the phone ---
 Write-Host "==> Building + installing on $DeviceId (gradle assembleDebug, first run takes minutes) ..." -ForegroundColor Cyan
 Set-Location $MobileDir
-& npx react-native run-android --deviceId $DeviceId
+& npx react-native run-android --device $DeviceId
 if ($LASTEXITCODE -ne 0) { throw "run-android failed (exit $LASTEXITCODE)" }
 
 Write-Host ""

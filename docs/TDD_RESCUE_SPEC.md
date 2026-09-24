@@ -5,7 +5,7 @@
 
 ## 0. Why TDD fixes the hollow app
 
-Previous CrewAI marked `crew/phase_status.json:58` `DONE` after `crew/autonomous_flow.py:1` dry-run with `sqlmock`. Real `start-android.ps1:1` hit `backend/internal/services/teacher.go:60` unterminated string and `mobile/src/screens/LearnScreen.tsx:34` silent `.catch(()=>{})`. TDD reverses the flow: **no DONE without a failing test that proves the requirement**.
+Previous CrewAI marked `crew/phase_status.json:58` `DONE` after `crew/autonomous_flow.py:1` dry-run with `sqlmock`. Real `start-android-avd.ps1:1` hit `backend/internal/services/teacher.go:60` unterminated string and `mobile/src/screens/LearnScreen.tsx:34` silent `.catch(()=>{})`. TDD reverses the flow: **no DONE without a failing test that proves the requirement**.
 
 ## 1. BA Sliced Requirements (traceable to REQUIREMENTS.md)
 
@@ -49,7 +49,7 @@ Previous CrewAI marked `crew/phase_status.json:58` `DONE` after `crew/autonomous
 | ID | BA Requirement | Source |
 |---|---|---|
 | S-SMOKE-01 | `go vet ./...` + `go build ./...` + `go test ./...` exit 0 on `backend/` (real, not mocked — catches `teacher.go:60` syntax). | Global DoD `REQUIREMENTS_MASTER.md:18` |
-| S-SMOKE-02 | `start-android.ps1:319` boots `postgres`+`redis` healthy, backend `/health` returns `commit==HEAD` via `observability/health.go:39` + `CHORUS_BUILD_COMMIT`. | Rescue C3 |
+| S-SMOKE-02 | `start-android-avd.ps1:319` boots `postgres`+`redis` healthy, backend `/health` returns `commit==HEAD` via `observability/health.go:39` + `CHORUS_BUILD_COMMIT`. | Rescue C3 |
 | S-SMOKE-03 | `go run ./cmd/server --seed-dev` provisions `alice.en-es@chorus.test / bob.es-en@chorus.test / sofia.tutor@chorus.test / chorus-dev-invite-2026` (`dev_seed.go:16`). | Acceptance fixtures |
 | S-SMOKE-04 | `ALLOW_OPEN_REGISTRATION` flag (`config.go:89` + `handlers/auth.go:68`) permits register without invite on dev (`true`) else invite-gated. | Rescue C2 |
 

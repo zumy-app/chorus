@@ -1,14 +1,16 @@
 ﻿<#
 .SYNOPSIS
-    Start Chorus Android development environment.
+    Start Chorus Android development environment on an emulator (AVD).
 
 .DESCRIPTION
     Sets up Android SDK/AVD, starts emulator, starts Docker infra
     (PostgreSQL, Redis), starts Go backend with hot-reload, and runs
     Expo for Android. Skips steps that are already satisfied.
 
+    For a physical phone over USB, use run-android-usb.ps1 instead.
+
     Run from repo root:
-        .\start-android.ps1
+        .\start-android-avd.ps1
 
     Environment variables (optional):
         ANDROID_SDK_ROOT  - path to Android SDK (default: %LOCALAPPDATA%\Android\Sdk)
