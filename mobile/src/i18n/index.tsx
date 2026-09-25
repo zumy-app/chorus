@@ -114,7 +114,10 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     const sync = () => setLangState(current);
     listeners.add(sync);
     // Boot: explicit stored choice wins; otherwise device locale (pre-auth).
-    // Post-auth callers refine via applyImplicitLanguage().
+    // Post-auth callers refine via applyImplicitLanguage(). The `current`
+    // guard keeps a slower boot read from clobbering a language that login
+    // already applied (boot does one storage read; login does network first,
+    // but convergence must not depend on that ordering).
     (async () => {
       const stored = await readStoredChoice();
       if (stored) {
@@ -125,6 +128,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
         }
         return;
       }
+      if (current !== 'en') return;
       const dev = deviceLocale();
       if (dev && dev !== current) {
         current = dev;
