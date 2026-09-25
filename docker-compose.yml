@@ -34,22 +34,6 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # MinIO (S3-compatible local object store for telemetry & asset archiving)
-  minio:
-    image: minio/minio:latest
-    container_name: chorus-minio
-    mem_limit: 256m
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadminpassword
-    command: server /data --console-address ":9001"
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - minio_data:/data
-    restart: unless-stopped
-
   # Go Backend API — stateless, horizontally scalable behind the L4 LB
   backend:
     build:
@@ -296,7 +280,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  minio_data:
   postgres_data:
   redis_data:
   ollama_data:
