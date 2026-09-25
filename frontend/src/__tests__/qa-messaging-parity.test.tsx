@@ -141,6 +141,7 @@ describe('QA messaging parity — web', () => {
   })
 
   it('translate toggle: renders and switches via localStorage (parity mobile AsyncStorage)', () => {
+    useStore.setState({ rolloutFlags: { translate_as_you_type: true } as any })
     renderChat()
     const toggle = screen.getByRole('switch')
     expect(toggle.getAttribute('aria-checked')).toBe('false')
@@ -148,6 +149,12 @@ describe('QA messaging parity — web', () => {
     expect(localStorage.getItem('translateAsType')).toBe('1')
     fireEvent.click(toggle)
     expect(localStorage.getItem('translateAsType')).toBe('0')
+    useStore.setState({ rolloutFlags: null as any })
+  })
+
+  it('translate toggle hidden when flag off (general user)', () => {
+    renderChat()
+    expect(screen.queryByRole('switch')).toBeNull()
   })
 
   it('typing: direct user typing indicator appears (FR-9)', () => {

@@ -112,6 +112,7 @@ export type RolloutFlagKey =
   | 'document_sharing'
   | 'location_sharing'
   | 'real_talk'
+  | 'translate_as_you_type'
   | 'video_calls'
   | 'study_pods'
   | 'teacher_marketplace'

@@ -59,6 +59,7 @@ export default function ChatScreen({ route, navigation }: any) {
   const [locationEnabled, setLocationEnabled] = useState(featureFlags.isEnabled('location_sharing'));
   const [voiceEnabled, setVoiceEnabled] = useState(featureFlags.isEnabled('voice_message'));
   const [realTalkEnabled, setRealTalkEnabled] = useState(featureFlags.isEnabled('real_talk'));
+  const [translateTypeEnabled, setTranslateTypeEnabled] = useState(featureFlags.isEnabled('translate_as_you_type'));
   // Async grammar analysis jobs keyed by messageId. The backend fans out one
   // job per learner per message; results arrive as "grammar_analysis" WS
   // events (or via GET /grammar/analyze/:jobId on resync).
@@ -135,7 +136,7 @@ export default function ChatScreen({ route, navigation }: any) {
     } else if (message.type === 'message_deleted' && payload.chatId === chatId) {
       setMessages((prev: any) => prev.filter((m: any) => m.id !== payload.messageId));
     } else if ((message.type === 'message_pinned' || message.type === 'message_unpinned') && payload.chatId === chatId) {
-      apiService.getPinnedMessages(chatId).then(setPinned).catch(()=>{});
+      apiService.getPinnedMessages(chatId).then(p => setPinned(p ?? [])).catch(()=>{});
     } else if ((message.type === 'message_delivered' || message.type === 'message_read') && payload.chatId === chatId) {
       const status = message.type === 'message_read' ? 'read' : 'delivered';
       const uid = payload.userId || '';
@@ -280,6 +281,7 @@ export default function ChatScreen({ route, navigation }: any) {
       setLocationEnabled(featureFlags.isEnabled('location_sharing'));
       setVoiceEnabled(featureFlags.isEnabled('voice_message'));
       setRealTalkEnabled(featureFlags.isEnabled('real_talk'));
+      setTranslateTypeEnabled(featureFlags.isEnabled('translate_as_you_type'));
     });
     apiService.getChat(chatId).then(c => {
       if (!mounted) return;
@@ -326,7 +328,7 @@ export default function ChatScreen({ route, navigation }: any) {
   useEffect(() => {
     loadCurrentUser();
     loadMessages();
-    apiService.getPinnedMessages(chatId).then(setPinned).catch(()=>{});
+    apiService.getPinnedMessages(chatId).then(p => setPinned(p ?? [])).catch(()=>{});
     webSocketService.connect();
 
     const unsubscribe = webSocketService.onMessage(handleWebSocket);
@@ -653,6 +655,8 @@ export default function ChatScreen({ route, navigation }: any) {
         </View>
       )}
       <View style={styles.inputArea}>
+      {translateTypeEnabled && (
+      <>
         <View style={styles.toggleRow}>
           <TouchableOpacity
             style={styles.toggleLabel}
@@ -679,6 +683,8 @@ export default function ChatScreen({ route, navigation }: any) {
             <Text style={styles.livePreviewText}>{inputText}</Text>
           </View>
         )}
+      </>
+      )}
 
         {uploading && <View style={{padding:6, alignItems:'center'}}><ActivityIndicator size="small" color={COLOR.primary} /><Text style={{fontSize:11, color:COLOR.onSurfaceVariant}}>{s.chat.uploading}</Text></View>}
         <View style={styles.inputRow}>
@@ -895,7 +901,7 @@ export default function ChatScreen({ route, navigation }: any) {
             <Text style={{fontSize:13, color:COLOR.onSurfaceVariant, marginBottom:8}} numberOfLines={2}>{actionMsg?.text}</Text>
             <TouchableOpacity style={styles.actionRow} onPress={()=>{setReplyTo(actionMsg); setActionMsg(null)}}><Text style={styles.actionText}>{s.chat.reply}</Text></TouchableOpacity>
             <TouchableOpacity style={styles.actionRow} onPress={async()=>{ if(!actionMsg) return; const c=actionMsg; setActionMsg(null); try{ const chats=await apiService.getChats(); setForwardChats(chats.filter((x:any)=>x.id!==chatId)); setForwardMsg(c)}catch{}}}><Text style={styles.actionText}>{s.chat.forward}</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.actionRow} onPress={async()=>{ if(!actionMsg) return; const m=actionMsg; const isPinned=pinned.some((p:any)=>p.message.id===m.id); setActionMsg(null); try{ if(isPinned) await apiService.unpinMessage(chatId,m.id); else await apiService.pinMessage(chatId,m.id); const p=await apiService.getPinnedMessages(chatId); setPinned(p)}catch{}}}><Text style={styles.actionText}>📌 {actionMsg && pinned.some((p:any)=>p.message.id===actionMsg.id) ? s.chat.unpinAction : s.chat.pin}</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.actionRow} onPress={async()=>{ if(!actionMsg) return; const m=actionMsg; const isPinned=pinned.some((p:any)=>p.message.id===m.id); setActionMsg(null); try{ if(isPinned) await apiService.unpinMessage(chatId,m.id); else await apiService.pinMessage(chatId,m.id); const p=await apiService.getPinnedMessages(chatId); setPinned(p ?? [])}catch{}}}><Text style={styles.actionText}>📌 {actionMsg && pinned.some((p:any)=>p.message.id===actionMsg.id) ? s.chat.unpinAction : s.chat.pin}</Text></TouchableOpacity>
             {actionMsg?.senderId===currentUser?.id && <TouchableOpacity style={styles.actionRow} onPress={async()=>{ if(!actionMsg) return; const id=actionMsg.id; setActionMsg(null); try{ await apiService.deleteMessage(chatId,id); setMessages(prev=>prev.filter(m=>m.id!==id))}catch{}}}><Text style={[styles.actionText,{color:'red'}]}>{s.chat.delete}</Text></TouchableOpacity>}
             {actionMsg && actionMsg.senderId !== currentUser?.id && <TouchableOpacity style={styles.actionRow} onPress={()=>{ const m=actionMsg; setActionMsg(null); if(m) openReport({ type:'message', messageId: m.id, chatId, userId: m.senderId }) }}><Text style={styles.actionText}>{s.chat.reportMsg}</Text></TouchableOpacity>}
             <TouchableOpacity style={[styles.actionRow,{marginTop:8}]} onPress={()=>setActionMsg(null)}><Text style={[styles.actionText,{textAlign:'center', color:COLOR.onSurfaceVariant}]}>{s.chat.cancelAction}</Text></TouchableOpacity>

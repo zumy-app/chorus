@@ -27,6 +27,7 @@ export default function ChatArea() {
   const { enabled: locationEnabled } = useFeatureFlag('location_sharing')
   const { enabled: voiceEnabled } = useFeatureFlag('voice_message')
   const { enabled: realTalkEnabled } = useFeatureFlag('real_talk')
+  const { enabled: translateTypeEnabled } = useFeatureFlag('translate_as_you_type')
   const [inputText, setInputText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [showLangSettings, setShowLangSettings] = useState(false)
@@ -76,13 +77,13 @@ export default function ChatArea() {
 
   useEffect(() => {
     if (!activeChat) { setPinned([]); return }
-    messageAPI.getPinnedMessages(activeChat.id).then(r => setPinned(r as any)).catch(()=>setPinned([]))
+    messageAPI.getPinnedMessages(activeChat.id).then(r => setPinned((r ?? []) as any)).catch(()=>setPinned([]))
     const handler = (msg: { type: string; data: any }) => {
       if (msg.type === 'message_pinned' && msg.data?.chatId === activeChat.id) {
-        messageAPI.getPinnedMessages(activeChat.id).then(r => setPinned(r as any)).catch(()=>{})
+        messageAPI.getPinnedMessages(activeChat.id).then(r => setPinned((r ?? []) as any)).catch(()=>{})
       }
       if (msg.type === 'message_unpinned' && msg.data?.chatId === activeChat.id) {
-        messageAPI.getPinnedMessages(activeChat.id).then(r => setPinned(r as any)).catch(()=>{})
+        messageAPI.getPinnedMessages(activeChat.id).then(r => setPinned((r ?? []) as any)).catch(()=>{})
       }
     }
     const unsub = wsService.onMessage(handler as any)
@@ -588,6 +589,7 @@ export default function ChatArea() {
       {/* Input Area */}
       <div className="bg-surface border-t border-outline-variant px-4 pt-3 pb-4">
         {/* Translate as I type toggle */}
+        {translateTypeEnabled && (
         <div className="flex items-center justify-between mb-3 px-1">
           <button
             type="button"
@@ -614,6 +616,7 @@ export default function ChatArea() {
             />
           </button>
         </div>
+        )}
 
         {/* Other participants typing */}
         {activeChat.type === 'group' ? (
@@ -637,7 +640,7 @@ export default function ChatArea() {
         )}
 
         {/* Live translation preview while typing */}
-        {translateAsType && inputText.trim() && (
+        {translateTypeEnabled && translateAsType && inputText.trim() && (
           <div className="mb-3 rounded-xl border border-secondary/30 bg-secondary-fixed/10 px-3 py-2">
             <div className="text-xs text-secondary flex items-center gap-1 mb-1">
               <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
