@@ -151,6 +151,7 @@ const canSeeFlashcards = useFeatureFlag('word_flashcards') // false until promot
 | `media_sharing` | Photo/video sharing in chat | ✓ | — | — | R4 |
 | `document_sharing` | PDF/doc sharing in chat | ✓ | — | — | R4 |
 | `real_talk` | RealTalk practice prompts (nudge + hub) | ✓ | — | — | R4 |
+| `translate_as_you_type` | Live translate-as-you-type toggle in chat | ✓ | — | — | R4 |
 | `video_calls` | WebRTC audio/video calls | ✓ | — | — | R6 |
 | `study_pods` | Group study pods | ✓ | — | — | R7 |
 | `teacher_marketplace` | Teacher booking & payouts | ✓ | — | — | R8 |
@@ -836,6 +837,7 @@ INSERT INTO feature_flags (key, description, admin_only, beta_access, stable) VA
     ('document_sharing',     'PDF/doc sharing in chat',                TRUE,  FALSE, FALSE),
     ('location_sharing',     'Location sharing in chat',               TRUE,  FALSE, FALSE),
     ('real_talk',            'RealTalk practice prompts (nudge + hub)', TRUE,  FALSE, FALSE),
+    ('translate_as_you_type', 'Live translate-as-you-type toggle', TRUE,  FALSE, FALSE),
     ('video_calls',          'WebRTC audio/video calls',               TRUE,  FALSE, FALSE),
     ('study_pods',           'Group study pods',                       TRUE,  FALSE, FALSE),
     ('teacher_marketplace',  'Teacher booking & payouts',              TRUE,  FALSE, FALSE),

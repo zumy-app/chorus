@@ -290,6 +290,7 @@ func DefaultFlags() []FeatureFlagRow {
 		{Key: "document_sharing", Description: "PDF/doc sharing in chat", DefaultState: false, AdminOnly: true, BetaAccess: false, Stable: false},
 		{Key: "location_sharing", Description: "Location sharing in chat", DefaultState: false, AdminOnly: true, BetaAccess: false, Stable: false},
 		{Key: "real_talk", Description: "RealTalk practice prompts (nudge + hub)", DefaultState: false, AdminOnly: true, BetaAccess: false, Stable: false},
+		{Key: "translate_as_you_type", Description: "Live translate-as-you-type toggle in chat", DefaultState: false, AdminOnly: true, BetaAccess: false, Stable: false},
 		{Key: "video_calls", Description: "WebRTC audio/video calls", DefaultState: false, AdminOnly: true, BetaAccess: false, Stable: false},
 		{Key: "study_pods", Description: "Group study pods", DefaultState: false, AdminOnly: true, BetaAccess: false, Stable: false},
 		{Key: "teacher_marketplace", Description: "Teacher booking & payouts", DefaultState: false, AdminOnly: true, BetaAccess: false, Stable: false},

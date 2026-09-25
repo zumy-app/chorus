@@ -125,12 +125,20 @@ describe('QA messaging parity — mobile', () => {
     mockApi.getMessages.mockResolvedValue([]);
   });
 
-  it('translateAsType toggle parity: renders and toggles', async () => {
+  it('translateAsType toggle parity: renders and toggles when flag enabled', async () => {
+    await featureFlags.setOverride('translate_as_you_type', true);
     const { getByText } = render(<ChatScreen route={route} navigation={navigation} />);
     await waitFor(() => expect(getByText('Translate as I type')).toBeTruthy());
     const toggle = getByText('Translate as I type');
     fireEvent.press(toggle);
     expect(getByText('Translate as I type')).toBeTruthy();
+    await featureFlags.clearOverride('translate_as_you_type');
+  });
+
+  it('translateAsType toggle hidden when flag off (general user)', async () => {
+    const { queryByText } = render(<ChatScreen route={route} navigation={navigation} />);
+    await waitFor(() => expect(mockApi.getMessages).toHaveBeenCalled());
+    expect(queryByText('Translate as I type')).toBeNull();
   });
 
   it('receipts: own message shows checkmarks matching receipts state', async () => {
