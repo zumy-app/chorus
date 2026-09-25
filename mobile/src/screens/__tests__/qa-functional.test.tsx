@@ -5,6 +5,13 @@ let mockNavigate: jest.Mock;
 let mockGoBack: jest.Mock;
 let mockRouteParams: Record<string, any> = {};
 
+jest.mock('../../utils/featureFlags', () => ({
+  __esModule: true,
+  // Exercise the Learn entries with all flags on (mirrors an admin session);
+  // gating-off behavior is covered by defaults elsewhere.
+  default: { isEnabled: jest.fn(() => true), init: jest.fn(() => Promise.resolve()) },
+}));
+
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: mockNavigate, goBack: mockGoBack, getParent: () => ({ navigate: mockNavigate }) }),
   useRoute: () => ({ params: mockRouteParams }),

@@ -160,19 +160,25 @@ export default function LoginScreen({ navigation }: any) {
           </TouchableOpacity>
         )}
 
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>{s.auth.orContinue}</Text>
-          <View style={styles.dividerLine} />
-        </View>
+        {featureFlags.isEnabled('google_oauth') && (
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>{s.auth.orContinue}</Text>
+            <View style={styles.dividerLine} />
+          </View>
+        )}
 
-        <TouchableOpacity style={styles.googleButton}>
-          <Text style={styles.googleButtonText}>G</Text>
-          <Text style={styles.googleButtonLabel}>{s.auth.google}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.appleButton}>
-          <Text style={styles.appleButtonText}>{s.auth.apple}</Text>
-        </TouchableOpacity>
+        {featureFlags.isEnabled('google_oauth') && (
+          <>
+            <TouchableOpacity style={styles.googleButton}>
+              <Text style={styles.googleButtonText}>G</Text>
+              <Text style={styles.googleButtonLabel}>{s.auth.google}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.appleButton}>
+              <Text style={styles.appleButtonText}>{s.auth.apple}</Text>
+            </TouchableOpacity>
+          </>
+        )}
 
         <View style={styles.bottom}>
           <Text style={styles.bottomText}>{s.auth.newHere}</Text>

@@ -699,10 +699,13 @@ func main() {
 		protected.GET("/chats/:chatId/gallery", galleryHandler.GetChatGallery)
 
 		// File / document sharing (task 6.6): multipart upload → media message.
-		protected.POST("/chats/:chatId/attachments", attachmentHandler.SendAttachment)
+		// Release-gated: clients hide the attach button unless media or
+		// document sharing is on; the route enforces the document tier.
+		protected.POST("/chats/:chatId/attachments", middleware.RequireFlag(featureFlagService, "document_sharing"), attachmentHandler.SendAttachment)
 
 		// Location sharing (task 6.7): validated lat/lng → location message.
-		protected.POST("/chats/:chatId/location", locationHandler.SendLocation)
+		// Release-gated alongside the client 📍 button.
+		protected.POST("/chats/:chatId/location", middleware.RequireFlag(featureFlagService, "location_sharing"), locationHandler.SendLocation)
 
 		// Phase 2: Search routes (task 6.3 — universal message+media search)
 		protected.GET("/messages/search", searchHandler.SearchMessages)

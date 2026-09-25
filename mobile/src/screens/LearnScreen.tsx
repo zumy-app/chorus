@@ -13,6 +13,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLOR, FONTS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../theme';
 import apiService from '../services/api';
 import storage from '../utils/storage';
+import featureFlags from '../utils/featureFlags';
 import type { LearnStackParamList } from '../components/MainTabs';
 import type { LearningDashboard, MonthlyActivityPoint, User } from '@chorus/shared';
 
@@ -27,6 +28,20 @@ export default function LearnScreen() {
   const [loading, setLoading] = useState(true);
 
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Release-gated entries (fail-closed until flags resolve).
+  const [placementOn, setPlacementOn] = useState(featureFlags.isEnabled('placement_test'));
+  const [scenariosOn, setScenariosOn] = useState(featureFlags.isEnabled('scenario_roleplay'));
+  const [tutorsOn, setTutorsOn] = useState(featureFlags.isEnabled('teacher_marketplace'));
+  useEffect(() => {
+    let mounted = true;
+    featureFlags.init().then(() => {
+      if (!mounted) return;
+      setPlacementOn(featureFlags.isEnabled('placement_test'));
+      setScenariosOn(featureFlags.isEnabled('scenario_roleplay'));
+      setTutorsOn(featureFlags.isEnabled('teacher_marketplace'));
+    });
+    return () => { mounted = false; };
+  }, []);
   const load = useCallback(() => {
     setLoading(true);
     setLoadError(null);
@@ -94,7 +109,7 @@ export default function LearnScreen() {
         </View>
       </View>
 
-      {pendingPlacement && d?.capability.supportTier === 'full_course' && (
+      {placementOn && pendingPlacement && d?.capability.supportTier === 'full_course' && (
         <View style={styles.placementCard}>
           <Text style={styles.cardTitle}>Find your starting level</Text>
           <Text style={styles.cardSubtitle}>Take a short placement test or start from the beginning.</Text>
@@ -167,6 +182,7 @@ export default function LearnScreen() {
           </View>
         </Pressable>
 
+        {scenariosOn && (
         <Pressable style={[styles.card, styles.halfCard, styles.aiCard]} onPress={() => navigation.navigate('Scenarios' as never)}>
           <View style={styles.aiGlowOverlay} />
           <View style={styles.roundIconSecondary}>
@@ -182,6 +198,7 @@ export default function LearnScreen() {
             <View style={[styles.miniFill, styles.miniFillSecondary, { width: `${d?.scenario.progressPct ?? 0}%` }]} />
           </View>
         </Pressable>
+        )}
       </View>
 
       {/* Grammar Deep Dive (full width) */}
@@ -205,7 +222,9 @@ export default function LearnScreen() {
         {[
           { label: 'Drills', glyph: '⚡', onPress: () => startSession('quick_drill') },
           { label: 'Vocabulary', glyph: '📖', onPress: () => navigation.navigate('VocabularyReview' as never) },
-          { label: 'Scenarios', glyph: '🎭', onPress: () => navigation.navigate('Scenarios' as never) },
+          ...(scenariosOn
+            ? [{ label: 'Scenarios', glyph: '🎭', onPress: () => navigation.navigate('Scenarios' as never) }]
+            : []),
           { label: 'Real Talk', glyph: '💬', onPress: () => navigation.navigate('RealTalkHub' as never) },
           { label: 'Grammar', glyph: '🧩', onPress: () => startSession('grammar') },
           { label: 'Assignments', glyph: '📝', onPress: () => navigation.navigate('Assignments' as never) },
@@ -217,6 +236,7 @@ export default function LearnScreen() {
         ))}
       </View>
 
+      {tutorsOn && (
       <Pressable style={styles.marketplaceCard} onPress={openTutors} testID="learn-find-tutors">
         <View style={styles.marketplaceIcon}><Text style={styles.roundIconText}>🏫</Text></View>
         <View style={styles.marketplaceBody}>
@@ -225,6 +245,7 @@ export default function LearnScreen() {
         </View>
         <Text style={styles.marketplaceChevron}>›</Text>
       </Pressable>
+      )}
 
       {/* Weekly Goal chart */}
       <View style={[styles.card, styles.weeklyCard]}>

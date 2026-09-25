@@ -254,3 +254,18 @@ Per `docs/GO_NO_GO.md` §5 + `docs/RELEASE_GATE.md` §7: `gate-on-dev.sh` log, `
 ## 11. Change log
 
 - 2026-08-31 — 14.4 initial runbook + Support SLO dashboard + `alerts-support.yml`, wired into Prometheus `rule_files` and `verify-support.sh`.
+
+## 12. Admin access bootstrap
+
+Admin is `users.role = 'admin'` (default `'member'`). There is no self-promotion
+endpoint (`PUT /admin/users/:id/role` itself requires admin), so the first admin
+on any environment is granted by direct SQL:
+
+```sql
+UPDATE users SET role = 'admin' WHERE email = 'uhsarp@gmail.com';
+```
+
+Verify: `GET /admin/features` with that user's token must return 200 (not 403).
+`uhsarp@gmail.com` is the permanent admin on dev and prod; do not demote it.
+The Admin Flags console (web) is the day-to-day tool afterwards — direct SQL is
+bootstrap-only.

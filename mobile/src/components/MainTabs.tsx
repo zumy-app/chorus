@@ -28,6 +28,8 @@ import CallScreen from '../screens/CallScreen';
 import UniversalSearchScreen from '../screens/UniversalSearchScreen';
 import { COLOR, TYPOGRAPHY } from '../theme';
 import { useStrings } from '../i18n';
+import featureFlags from '../utils/featureFlags';
+import { useEffect, useState } from 'react';
 
 export type MainTabsParamList = {
   ChatsTab: undefined;
@@ -240,10 +242,22 @@ const TAB_ICONS: Record<keyof MainTabsParamList, (props: { focused: boolean }) =
 
 export default function MainTabs() {
   const s = useStrings();
+  // Teacher marketplace is release-gated: the tab is hidden entirely for
+  // general users (fail-closed until flags resolve).
+  const [marketEnabled, setMarketEnabled] = useState(featureFlags.isEnabled('teacher_marketplace'));
+  useEffect(() => {
+    let mounted = true;
+    featureFlags.init().then(() => {
+      if (mounted) setMarketEnabled(featureFlags.isEnabled('teacher_marketplace'));
+    });
+    return () => { mounted = false; };
+  }, []);
   const tabs = [
     { name: 'ChatsTab' as const, component: ChatsTab, label: s.nav.chats },
     { name: 'LearnTab' as const, component: LearnTab, label: s.nav.learn },
-    { name: 'MarketplaceTab' as const, component: MarketplaceTab, label: s.nav.tutors },
+    ...(marketEnabled
+      ? [{ name: 'MarketplaceTab' as const, component: MarketplaceTab, label: s.nav.tutors }]
+      : []),
     { name: 'ProfileTab' as const, component: ProfileTab, label: s.nav.profile },
   ];
   return (

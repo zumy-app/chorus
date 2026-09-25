@@ -110,6 +110,7 @@ export type RolloutFlagKey =
   | 'voice_message'
   | 'media_sharing'
   | 'document_sharing'
+  | 'location_sharing'
   | 'video_calls'
   | 'study_pods'
   | 'teacher_marketplace'
@@ -122,6 +123,20 @@ export type RolloutFlagKey =
   | 'redis_session_cache'
 
 export type RolloutFlags = Record<RolloutFlagKey, boolean>
+
+// Full flag definition as managed through the admin console
+// (GET /admin/features). Tiers resolve per user: stable > beta_access >
+// admin_only > default_state; per-user overrides win over everything.
+export interface FeatureFlagDefinition {
+  key: string
+  description: string
+  defaultState: boolean
+  adminOnly: boolean
+  betaAccess: boolean
+  stable: boolean
+  createdAt: string
+  updatedAt: string
+}
 
 // Resolved subscription view from GET /users/me/subscription. EffectivePlan is
 // the plan after any grace window is applied.

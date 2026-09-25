@@ -9,6 +9,7 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import Waitlist from './pages/Waitlist'
 import AdminWaitlist from './pages/AdminWaitlist'
+import AdminFlags from './pages/AdminFlags'
 import Chat from './pages/Chat'
 import Learn from './pages/Learn'
 import Placement from './pages/Placement'
@@ -153,6 +154,14 @@ function App() {
             isAuthenticated && isAdmin
               ? <AdminWaitlist defaultTab="waitlist" />
               : <Navigate to={isAuthenticated ? (isModerator ? '/admin' : '/') : '/login'} />
+          }
+        />
+        <Route
+          path="/admin/flags"
+          element={
+            isAuthenticated && isAdmin
+              ? <AdminFlags />
+              : <Navigate to={isAuthenticated ? '/' : '/login'} />
           }
         />
         <Route
