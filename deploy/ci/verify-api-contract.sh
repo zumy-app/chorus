@@ -66,7 +66,7 @@ for entry in "${backend_routes_ere[@]}"; do
 done
 
 # Flag-gated routes must actually be gated (not just present).
-for gated in 'video_calls' 'teacher_marketplace' 'payout_teacher' 'gdpr_export' 'document_sharing' 'location_sharing'; do
+for gated in 'video_calls' 'teacher_marketplace' 'payout_teacher' 'gdpr_export' 'document_sharing' 'location_sharing' 'real_talk'; do
   if grep -q "RequireFlag(featureFlagService, \"$gated\")" "$MAIN"; then
     pass "route gate wired: $gated"
   else
@@ -100,11 +100,11 @@ for entry in "${client_methods[@]}"; do
 done
 
 # RolloutFlagKey must cover the backend seed set (prevents client/server key drift).
-for key in grammar_insights word_collector feature_voting referral_bump video_calls teacher_marketplace payout_teacher gdpr_export group_chat voice_message media_sharing document_sharing location_sharing google_oauth placement_test scenario_roleplay word_flashcards; do
+for key in grammar_insights word_collector feature_voting referral_bump video_calls teacher_marketplace payout_teacher gdpr_export group_chat voice_message media_sharing document_sharing location_sharing real_talk google_oauth placement_test scenario_roleplay word_flashcards; do
   if grep -q "'$key'" "$TYPES"; then pass "flag key in shared types: $key";
   else failc "flag key missing in shared types: $key"; fi
 done
-for key in grammar_insights word_collector feature_voting referral_bump video_calls teacher_marketplace payout_teacher gdpr_export voice_message media_sharing document_sharing location_sharing google_oauth; do
+for key in grammar_insights word_collector feature_voting referral_bump video_calls teacher_marketplace payout_teacher gdpr_export voice_message media_sharing document_sharing location_sharing real_talk google_oauth; do
   if grep -q "\"$key\"" "$ROOT/backend/internal/services/feature_flags.go"; then pass "flag key in backend seeds: $key";
   else failc "flag key missing in backend seeds: $key"; fi
 done
@@ -141,7 +141,7 @@ else
 fi
 
 # Composer attachments must be flag-gated (hide-until-enabled).
-for flag in media_sharing document_sharing location_sharing voice_message; do
+for flag in media_sharing document_sharing location_sharing voice_message real_talk; do
   if grep -q "$flag" "$ROOT/mobile/src/screens/ChatScreen.tsx"; then
     pass "mobile ChatScreen gates composer on $flag"
   else

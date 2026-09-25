@@ -32,6 +32,7 @@ export default function LearnScreen() {
   const [placementOn, setPlacementOn] = useState(featureFlags.isEnabled('placement_test'));
   const [scenariosOn, setScenariosOn] = useState(featureFlags.isEnabled('scenario_roleplay'));
   const [tutorsOn, setTutorsOn] = useState(featureFlags.isEnabled('teacher_marketplace'));
+  const [realTalkOn, setRealTalkOn] = useState(featureFlags.isEnabled('real_talk'));
   useEffect(() => {
     let mounted = true;
     featureFlags.init().then(() => {
@@ -39,6 +40,7 @@ export default function LearnScreen() {
       setPlacementOn(featureFlags.isEnabled('placement_test'));
       setScenariosOn(featureFlags.isEnabled('scenario_roleplay'));
       setTutorsOn(featureFlags.isEnabled('teacher_marketplace'));
+      setRealTalkOn(featureFlags.isEnabled('real_talk'));
     });
     return () => { mounted = false; };
   }, []);
@@ -225,7 +227,9 @@ export default function LearnScreen() {
           ...(scenariosOn
             ? [{ label: 'Scenarios', glyph: '🎭', onPress: () => navigation.navigate('Scenarios' as never) }]
             : []),
-          { label: 'Real Talk', glyph: '💬', onPress: () => navigation.navigate('RealTalkHub' as never) },
+          ...(realTalkOn
+            ? [{ label: 'Real Talk', glyph: '💬', onPress: () => navigation.navigate('RealTalkHub' as never) }]
+            : []),
           { label: 'Grammar', glyph: '🧩', onPress: () => startSession('grammar') },
           { label: 'Assignments', glyph: '📝', onPress: () => navigation.navigate('Assignments' as never) },
         ].map((a) => (

@@ -26,6 +26,7 @@ export default function ChatArea() {
   const attachmentsEnabled = mediaEnabled || docsEnabled
   const { enabled: locationEnabled } = useFeatureFlag('location_sharing')
   const { enabled: voiceEnabled } = useFeatureFlag('voice_message')
+  const { enabled: realTalkEnabled } = useFeatureFlag('real_talk')
   const [inputText, setInputText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [showLangSettings, setShowLangSettings] = useState(false)
@@ -571,7 +572,7 @@ export default function ChatArea() {
         <div ref={messagesEndRef} />
       </div>
 
-      <RealTalkNudge chatId={activeChat.id} onSendToInput={(text) => setInputText(text)} />
+      {realTalkEnabled && <RealTalkNudge chatId={activeChat.id} onSendToInput={(text) => setInputText(text)} />}
 
       {/* Reply preview */}
       {replyTo && (

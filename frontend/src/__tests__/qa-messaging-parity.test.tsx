@@ -200,10 +200,12 @@ describe('QA messaging parity — web', () => {
     expect(screen.getByText(/open in maps/i)).toBeTruthy()
   })
 
-  it('sparky FAB and RealTalkNudge parity both visible', () => {
+  it('sparky FAB visible; RealTalkNudge visible only when real_talk enabled', () => {
+    useStore.setState({ rolloutFlags: { real_talk: true } as any })
     renderChat()
     expect(screen.getByLabelText(/Ask Sparky/i)).toBeTruthy()
     expect(screen.getByTestId('realtalk-nudge')).toBeTruthy()
+    useStore.setState({ rolloutFlags: null as any })
   })
 
   it('document attach rejects >50MB and shows error', async () => {

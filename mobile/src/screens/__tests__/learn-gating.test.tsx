@@ -43,6 +43,7 @@ describe('LearnScreen release gating (general user)', () => {
     expect(queryByText('Quick Drills')).toBeTruthy();
     expect(queryByText('Find your starting level')).toBeNull();
     expect(queryByText('Scenarios')).toBeNull();
+    expect(queryByText('Real Talk')).toBeNull();
     expect(queryByText('Find a Tutor')).toBeNull();
     expect(queryByTestId('learn-find-tutors')).toBeNull();
   });

@@ -58,6 +58,7 @@ export default function ChatScreen({ route, navigation }: any) {
   const [docsEnabled, setDocsEnabled] = useState(featureFlags.isEnabled('document_sharing'));
   const [locationEnabled, setLocationEnabled] = useState(featureFlags.isEnabled('location_sharing'));
   const [voiceEnabled, setVoiceEnabled] = useState(featureFlags.isEnabled('voice_message'));
+  const [realTalkEnabled, setRealTalkEnabled] = useState(featureFlags.isEnabled('real_talk'));
   // Async grammar analysis jobs keyed by messageId. The backend fans out one
   // job per learner per message; results arrive as "grammar_analysis" WS
   // events (or via GET /grammar/analyze/:jobId on resync).
@@ -278,6 +279,7 @@ export default function ChatScreen({ route, navigation }: any) {
       setDocsEnabled(featureFlags.isEnabled('document_sharing'));
       setLocationEnabled(featureFlags.isEnabled('location_sharing'));
       setVoiceEnabled(featureFlags.isEnabled('voice_message'));
+      setRealTalkEnabled(featureFlags.isEnabled('real_talk'));
     });
     apiService.getChat(chatId).then(c => {
       if (!mounted) return;
@@ -640,7 +642,7 @@ export default function ChatScreen({ route, navigation }: any) {
           <Text style={styles.typingText}>{s.chat.typing}</Text>
         </View>
       )}
-      <RealTalkNudge chatId={chatId} onSendToInput={setInputText} />
+      {realTalkEnabled && <RealTalkNudge chatId={chatId} onSendToInput={setInputText} />}
       {replyTo && (
         <View style={{backgroundColor:'#e0e7ff', padding:8, flexDirection:'row', justifyContent:'space-between', alignItems:'center', borderTopWidth:1, borderTopColor:COLOR.outlineVariant}}>
           <View style={{borderLeftWidth:2, borderLeftColor:COLOR.primary, paddingLeft:8, flex:1}}>

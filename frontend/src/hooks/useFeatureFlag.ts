@@ -19,6 +19,7 @@ const DEFAULT_FLAGS: Record<RolloutFlagKey, boolean> = {
   media_sharing: false,
   document_sharing: false,
   location_sharing: false,
+  real_talk: false,
   video_calls: false,
   study_pods: false,
   teacher_marketplace: false,
