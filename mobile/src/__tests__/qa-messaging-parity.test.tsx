@@ -66,6 +66,7 @@ jest.mock('../services/api', () => ({
 }));
 
 import ChatScreen from '../screens/ChatScreen';
+import featureFlags from '../utils/featureFlags';
 
 const route = { params: { chatId: 'chat-1', chatName: 'Alice' } } as any;
 const navigation: any = { navigate: jest.fn(), setOptions: jest.fn(), goBack: jest.fn() };
@@ -170,10 +171,12 @@ describe('QA messaging parity — mobile', () => {
     mockApi.getMessages.mockResolvedValue([]);
   });
 
-  it('sparky FAB and RealTalkNudge parity both visible', async () => {
+  it('sparky FAB visible; RealTalkNudge visible only when real_talk enabled', async () => {
+    await featureFlags.setOverride('real_talk', true);
     const { getByText, UNSAFE_getAllByType } = render(<ChatScreen route={route} navigation={navigation} />);
     await waitFor(() => expect(getByText('realtalk-nudge')).toBeTruthy());
     expect(getByText('🤖')).toBeTruthy();
+    await featureFlags.clearOverride('real_talk');
   });
 
   it('pinned bar: renders when pinned messages exist and toggles', async () => {

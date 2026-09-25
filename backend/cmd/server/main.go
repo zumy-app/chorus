@@ -830,8 +830,8 @@ func main() {
 		protected.POST("/learning/scenario-runs/:runId/complete", learningHandler.CompleteScenario)
 
 		// Real-talk + streak
-		protected.GET("/learning/real-talk/prompts", learningHandler.RealTalkPrompts)
-		protected.POST("/learning/real-talk/prompts/:promptId/used", learningHandler.MarkRealTalkUsed)
+		protected.GET("/learning/real-talk/prompts", middleware.RequireFlag(featureFlagService, "real_talk"), learningHandler.RealTalkPrompts)
+		protected.POST("/learning/real-talk/prompts/:promptId/used", middleware.RequireFlag(featureFlagService, "real_talk"), learningHandler.MarkRealTalkUsed)
 		protected.POST("/learning/nudges/:nudgeId/dismiss", learningHandler.NudgeDismiss)
 		protected.POST("/learning/streak/recover", learningHandler.RecoverStreak)
 

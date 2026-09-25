@@ -109,7 +109,7 @@ func TestFeatureFlagService_DefaultFlags_ContainsCore(t *testing.T) {
 	for _, f := range flags {
 		m[f.Key] = true
 	}
-	required := []string{"grammar_insights", "word_collector", "feature_voting", "referral_bump", "video_calls", "teacher_marketplace", "voice_message", "media_sharing", "document_sharing", "location_sharing", "google_oauth", "group_chat", "gdpr_export", "payout_teacher", "learning_v3_engine", "redis_session_cache"}
+	required := []string{"grammar_insights", "word_collector", "feature_voting", "referral_bump", "video_calls", "teacher_marketplace", "voice_message", "media_sharing", "document_sharing", "location_sharing", "real_talk", "google_oauth", "group_chat", "gdpr_export", "payout_teacher", "learning_v3_engine", "redis_session_cache"}
 	for _, key := range required {
 		if !m[key] {
 			t.Errorf("expected default flag set to contain %q", key)

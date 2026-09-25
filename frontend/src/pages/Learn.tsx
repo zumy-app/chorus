@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import BottomNav from '../components/BottomNav'
 import AppHeader from '../components/AppHeader'
 import { learningAPI } from '../services/api'
+import { useFeatureFlag } from '../hooks/useFeatureFlag'
 import { useStore } from '../store'
 import type { LearningDashboard, MonthlyActivityPoint } from '@chorus/shared'
 
@@ -15,6 +16,8 @@ export default function Learn() {
   const navigate = useNavigate()
   const user = useStore(s => s.user)
   const [dashboard, setDashboard] = useState<LearningDashboard | null>(null)
+  const { enabled: scenariosEnabled } = useFeatureFlag('scenario_roleplay')
+  const { enabled: realTalkEnabled } = useFeatureFlag('real_talk')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
@@ -105,8 +108,12 @@ export default function Learn() {
             {[
               { label: 'Drills', icon: 'bolt', onClick: () => startSession('quick_drill') },
               { label: 'Vocabulary', icon: 'menu_book', onClick: () => navigate('/learn/vocabulary') },
-              { label: 'Scenarios', icon: 'record_voice_over', onClick: () => navigate('/learn/scenarios') },
-              { label: 'Real Talk', icon: 'forum', onClick: () => navigate('/learn/real-talk') },
+              ...(scenariosEnabled
+                ? [{ label: 'Scenarios', icon: 'record_voice_over', onClick: () => navigate('/learn/scenarios') }]
+                : []),
+              ...(realTalkEnabled
+                ? [{ label: 'Real Talk', icon: 'forum', onClick: () => navigate('/learn/real-talk') }]
+                : []),
               { label: 'Grammar', icon: 'extension', onClick: () => startSession('grammar') },
             ].map(a => (
               <button key={a.label} onClick={a.onClick} className="bg-surface-container-lowest rounded-2xl p-3 flex flex-col items-center gap-1 shadow-[0px_4px_12px_rgba(0,0,0,0.05)]">

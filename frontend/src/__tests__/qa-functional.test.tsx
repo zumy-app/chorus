@@ -18,8 +18,9 @@ vi.mock('react-router-dom', async () => {
   }
 })
 
+const { mockFlagsState } = vi.hoisted(() => ({ mockFlagsState: { value: null as any } }))
 vi.mock('../store', () => ({
-  useStore: (selector: any) => selector({ user: { id: 'u1', nativeLanguage: 'en', targetLanguages: ['es'] } }),
+  useStore: (selector: any) => selector({ user: { id: 'u1', nativeLanguage: 'en', targetLanguages: ['es'] }, rolloutFlags: mockFlagsState.value }),
 }))
 
 vi.mock('../components/AppHeader', () => ({ default: () => <div data-testid="app-header" /> }))
@@ -258,10 +259,12 @@ describe('QA daily drills — web', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/learn/vocabulary')
   })
   it('Learn scenarios card navigates', async () => {
+    mockFlagsState.value = { scenario_roleplay: true }
     render(<MemoryRouter><Learn /></MemoryRouter>)
     await waitFor(() => screen.getByText('Scenarios'))
     fireEvent.click(screen.getByText('Scenarios'))
     expect(mockNavigate).toHaveBeenCalledWith('/learn/scenarios')
+    mockFlagsState.value = null
   })
   it('LessonSession renders Spanish cloze with choices and feedback', async () => {
     mockSearch = '?mode=daily'
@@ -366,10 +369,14 @@ describe('QA marketplace — web', () => {
 
 describe('QA learn hub — web', () => {
   it('Learn hub shows sections', async () => {
+    mockFlagsState.value = { scenario_roleplay: true }
     render(<MemoryRouter><Learn /></MemoryRouter>)
     await waitFor(() => expect(screen.getByText('Drills')).toBeTruthy())
     expect(screen.getByText('Vocabulary')).toBeTruthy()
     expect(screen.getByText('Scenarios')).toBeTruthy()
+    // Release-gated: Real Talk hidden for general users.
+    expect(screen.queryByText('Real Talk')).toBeNull()
+    mockFlagsState.value = null
   })
   it('Learn Find a Tutor bridge exists', async () => {
     render(<MemoryRouter><Learn /></MemoryRouter>)

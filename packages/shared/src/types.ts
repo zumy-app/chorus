@@ -111,6 +111,7 @@ export type RolloutFlagKey =
   | 'media_sharing'
   | 'document_sharing'
   | 'location_sharing'
+  | 'real_talk'
   | 'video_calls'
   | 'study_pods'
   | 'teacher_marketplace'
