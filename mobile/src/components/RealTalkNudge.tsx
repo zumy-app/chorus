@@ -3,11 +3,13 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { COLOR, FONTS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../theme';
 import apiService from '../services/api';
 import storage from '../utils/storage';
+import { useStrings } from '../i18n';
 import type { RealTalkPrompt, User } from '@chorus/shared';
 
 type Props = { chatId?: string; onSendToInput: (text: string) => void };
 
 export default function RealTalkNudge({ chatId, onSendToInput }: Props) {
+  const s = useStrings();
   const [user, setUser] = useState<User | null>(null);
   const [prompts, setPrompts] = useState<RealTalkPrompt[]>([]);
   const [idx, setIdx] = useState(0);
@@ -46,13 +48,13 @@ export default function RealTalkNudge({ chatId, onSendToInput }: Props) {
       <View style={styles.row}>
         <View style={styles.icon}><Text style={styles.iconText}>✨</Text></View>
         <View style={styles.body}>
-          <Text style={styles.title}>Sparky’s Nudge</Text>
-          <Text style={styles.subtitle}>Try this in the chat:</Text>
+          <Text style={styles.title}>{s.realTalk.nudgeTitle}</Text>
+          <Text style={styles.subtitle}>{s.realTalk.nudgeSubtitle}</Text>
           <View style={styles.promptCard}><Text style={styles.prompt}>“{phrase}”</Text></View>
           {current.targetPhrase ? <Text style={styles.caption}>{current.text}</Text> : null}
           {current.whyUseful ? <Text style={styles.caption}>💡 {current.whyUseful}</Text> : null}
           <View style={styles.actions}>
-            <Pressable onPress={send} style={styles.primaryButton}><Text style={styles.primaryText}>Send to Input</Text></Pressable>
+            <Pressable onPress={send} style={styles.primaryButton}><Text style={styles.primaryText}>{s.realTalk.sendToInput}</Text></Pressable>
             <Pressable onPress={() => setIdx((i) => (i + 1) % Math.max(1, prompts.length))} style={styles.shuffle}><Text style={styles.shuffleText}>↻</Text></Pressable>
           </View>
         </View>

@@ -13,9 +13,12 @@ import storage from '../utils/storage';
 import apiService from '../services/api';
 import webSocketService from '../services/websocket';
 import { SUPPORTED_LANGUAGES, User, type PrivacyVisibility, DEV_ACCOUNTS, apiErrorMessage } from '@chorus/shared';
+import { useStrings, t, useAppLocale, setExplicitLanguage, applyImplicitLanguage, BUNDLED_LOCALES, type Locale } from '../i18n';
 import { COLOR, FONTS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../theme';
 
 export default function ProfileScreen({ navigation }: any) {
+  const s = useStrings();
+  const appLang = useAppLocale();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [nativeLanguage, setNativeLanguage] = useState('en');
@@ -53,7 +56,7 @@ export default function ProfileScreen({ navigation }: any) {
       setLastSeen(updated.lastSeenVisibility);
       setProfilePhoto(updated.profilePhotoVisibility);
       setContacts(updated.contactsVisibility);
-    } catch { Alert.alert('Error', 'Could not save privacy settings.'); }
+    } catch { Alert.alert(t('common.error'), t('profile.privacyFailB')); }
   };
 
   const loadUser = async () => {
@@ -90,7 +93,7 @@ export default function ProfileScreen({ navigation }: any) {
 
   const handleSave = async () => {
     if (!displayName.trim()) {
-      Alert.alert('Error', 'Display name cannot be empty');
+      Alert.alert(t('common.error'), t('profile.emptyNameB'));
       return;
     }
     setSaving(true);
@@ -102,9 +105,12 @@ export default function ProfileScreen({ navigation }: any) {
       });
       await storage.setItem('user', JSON.stringify(updated));
       setCurrentUser(updated);
-      Alert.alert('Saved', 'Profile updated successfully');
+      // A changed learning native refines the UI language (no-op with an
+      // explicit app-language pick). "App language" vs "I speak" stay separate.
+      await applyImplicitLanguage(updated.nativeLanguage);
+      Alert.alert(t('common.success'), t('profile.savedB'));
     } catch {
-      Alert.alert('Error', 'Could not save your profile. Please try again.');
+      Alert.alert(t('common.error'), t('profile.saveFailB'));
     } finally {
       setSaving(false);
     }
@@ -118,7 +124,7 @@ export default function ProfileScreen({ navigation }: any) {
       await apiService.logout();
       navigation.replace('Landing');
     } catch {
-      Alert.alert('Error', 'Could not log out. Please try again.');
+      Alert.alert(t('common.error'), t('profile.logoutFailB'));
       setLoggingOut(false);
     }
   };
@@ -143,9 +149,10 @@ export default function ProfileScreen({ navigation }: any) {
       await storage.setItem('accessToken', tokens.accessToken)
       await storage.setItem('refreshToken', tokens.refreshToken)
       await storage.setItem('user', JSON.stringify(user))
+      await applyImplicitLanguage(user.nativeLanguage)
       navigation.replace('MainTabs')
     } catch (e: any) {
-      Alert.alert('Switch failed', apiErrorMessage(e, 'Could not switch accounts. Please try again.'))
+      Alert.alert(t('profile.switchFailT'), apiErrorMessage(e, t('profile.switchFailB')))
     }
   }
 
@@ -155,19 +162,19 @@ export default function ProfileScreen({ navigation }: any) {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
-        <Text style={styles.title}>Profile</Text>
-        <Text style={styles.subtitle}>Manage your account and app preferences.</Text>
+        <Text style={styles.title}>{s.profile.title}</Text>
+        <Text style={styles.subtitle}>{s.profile.subtitle}</Text>
       </View>
       {isDev && (
         <View style={{ borderWidth: 1, borderColor: '#FDE68A', backgroundColor: '#FFFBEB', borderRadius: RADIUS.lg, padding: SPACING.stackMd, gap: 8, marginBottom: SPACING.stackMd }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 0.8, color: '#92400E' }}>DEV ONLY</Text>
-            <Text style={{ fontSize: 11, color: '#B45309', flex: 1 }}>Quick switch test account</Text>
+            <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 0.8, color: '#92400E' }}>{s.profile.devOnly}</Text>
+            <Text style={{ fontSize: 11, color: '#B45309', flex: 1 }}>{s.profile.devHint}</Text>
           </View>
           {DEV_ACCOUNTS.map((a) => (
             <TouchableOpacity key={a.email} onPress={() => handleDevSwitch(a)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'white', borderWidth: 1, borderColor: '#FDE68A', borderRadius: RADIUS.lg, paddingHorizontal: 12, paddingVertical: 10 }}>
               <View style={{ flex: 1, gap: 2 }}><Text style={{ fontSize: 13, fontWeight: '600', color: COLOR.onSurface }}>{a.label}</Text><Text style={{ fontSize: 11, color: COLOR.onSurfaceVariant }}>{a.email}</Text></View>
-              <Text style={{ fontSize: 12, color: COLOR.primary, marginLeft: 8 }}>Switch →</Text>
+              <Text style={{ fontSize: 12, color: COLOR.primary, marginLeft: 8 }}>{s.profile.switchAction}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -175,9 +182,9 @@ export default function ProfileScreen({ navigation }: any) {
 
       {/* Account */}
       <View style={styles.card}>
-        <Text style={styles.sectionHeader}>Account</Text>
+        <Text style={styles.sectionHeader}>{s.profile.account}</Text>
         <View style={styles.fieldRow}>
-          <Text style={styles.label}>Display Name</Text>
+          <Text style={styles.label}>{s.profile.displayName}</Text>
           <TextInput
             style={styles.input}
             value={displayName}
@@ -188,18 +195,46 @@ export default function ProfileScreen({ navigation }: any) {
         </View>
         <View style={styles.settingsRow}>
           <Text style={styles.settingsRowIcon}>⭐</Text>
-          <Text style={styles.settingsRowText}>Subscription</Text>
+          <Text style={styles.settingsRowText}>{s.profile.subscription}</Text>
           <View style={styles.planBadge}>
-            <Text style={styles.planBadgeText}>Free</Text>
+            <Text style={styles.planBadgeText}>{s.profile.free}</Text>
           </View>
+        </View>
+      </View>
+
+      {/* App language (interface) — separate from the learning languages below. */}
+      <View style={styles.card}>
+        <Text style={styles.sectionHeader}>{s.profile.appLanguage}</Text>
+        <Text style={[styles.settingsRowDesc, { paddingHorizontal: 16, paddingBottom: 8 }]}>{s.profile.appLanguageDesc}</Text>
+        <View style={[styles.languageGrid, { paddingHorizontal: 16, paddingBottom: 16 }]}>
+          {(BUNDLED_LOCALES as readonly string[]).map((code) => {
+            const info = SUPPORTED_LANGUAGES.find((l) => l.code === code);
+            return (
+              <TouchableOpacity
+                key={code}
+                style={[
+                  styles.languageButton,
+                  appLang === code && styles.languageButtonSelected,
+                ]}
+                onPress={() => setExplicitLanguage(code as Locale)}>
+                <Text
+                  style={[
+                    styles.languageButtonText,
+                    appLang === code && styles.languageButtonTextSelected,
+                  ]}>
+                  {info?.nativeName ?? code}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
 
       {/* Language */}
       <View style={styles.card}>
-        <Text style={styles.sectionHeader}>Language</Text>
+        <Text style={styles.sectionHeader}>{s.profile.language}</Text>
         <View style={styles.fieldRow}>
-          <Text style={styles.label}>Native Language</Text>
+          <Text style={styles.label}>{s.profile.nativeLang}</Text>
           <View style={styles.languageGrid}>
             {SUPPORTED_LANGUAGES.map((lang) => (
               <TouchableOpacity
@@ -221,7 +256,7 @@ export default function ProfileScreen({ navigation }: any) {
           </View>
         </View>
         <View style={styles.fieldRow}>
-          <Text style={styles.label}>Target Languages (learning)</Text>
+          <Text style={styles.label}>{s.profile.targetLangs}</Text>
           <View style={styles.languageGrid}>
             {SUPPORTED_LANGUAGES.filter((l) => l.code !== nativeLanguage).map((lang) => (
               <TouchableOpacity
@@ -246,16 +281,16 @@ export default function ProfileScreen({ navigation }: any) {
 
       {/* Privacy */}
       <View style={styles.card}>
-        <Text style={styles.sectionHeader}>Privacy</Text>
+        <Text style={styles.sectionHeader}>{s.profile.privacy}</Text>
         {privacyLoading ? <ActivityIndicator style={{margin: 16}} color={COLOR.primary} /> : <>
-        {( [ ['Last seen', lastSeen, 'lastSeenVisibility', setLastSeen], ['Profile photo', profilePhoto, 'profilePhotoVisibility', setProfilePhoto], ['Contacts', contacts, 'contactsVisibility', setContacts] ] as const).map(([label, val, field, setter]) => (
+        {( [ [s.profile.lastSeen, lastSeen, 'lastSeenVisibility', setLastSeen], [s.profile.profilePhoto, profilePhoto, 'profilePhotoVisibility', setProfilePhoto], [s.profile.contacts, contacts, 'contactsVisibility', setContacts] ] as const).map(([label, val, field, setter]) => (
           <View key={field} style={styles.settingsRow}>
             <Text style={styles.settingsRowIcon}>🔒</Text>
-            <View style={styles.settingsRowTextWrap}><Text style={styles.settingsRowText}>{label}</Text><Text style={styles.settingsRowDesc}>{val === 'everyone' ? 'Everyone' : val === 'contacts' ? 'My contacts' : 'Nobody'}</Text></View>
+            <View style={styles.settingsRowTextWrap}><Text style={styles.settingsRowText}>{label}</Text><Text style={styles.settingsRowDesc}>{val === 'everyone' ? s.profile.privacyEveryone : val === 'contacts' ? s.profile.privacyContactsDesc : s.profile.privacyNobody}</Text></View>
             <View style={styles.privacyOptions}>
               {(['everyone','contacts','nobody'] as PrivacyVisibility[]).map(opt => (
                 <TouchableOpacity key={opt} style={[styles.privacyChip, val === opt && styles.privacyChipSelected]} onPress={() => { (setter as any)(opt); updatePrivacy(field as any, opt) }}>
-                  <Text style={[styles.privacyChipText, val === opt && styles.privacyChipTextSelected]}>{opt === 'everyone' ? 'Everyone' : opt === 'contacts' ? 'Contacts' : 'Nobody'}</Text>
+                  <Text style={[styles.privacyChipText, val === opt && styles.privacyChipTextSelected]}>{opt === 'everyone' ? s.profile.privacyEveryone : opt === 'contacts' ? s.profile.privacyContacts : s.profile.privacyNobody}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -265,25 +300,25 @@ export default function ProfileScreen({ navigation }: any) {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.sectionHeader}>Two-factor authentication</Text>
+        <Text style={styles.sectionHeader}>{s.profile.twoFA}</Text>
         <View style={{padding: 16, gap: 8}}>
-          <Text style={styles.settingsRowDesc}>Phone: {phoneStatus?.phoneMasked || 'not set'} {phoneStatus?.phoneVerified ? '✓' : ''}  2FA: {phoneStatus?.twoFactorEnabled ? 'on' : 'off'}</Text>
+          <Text style={styles.settingsRowDesc}>{s.profile.phoneLabel} {phoneStatus?.phoneMasked || s.profile.notSet} {phoneStatus?.phoneVerified ? '✓' : ''}  {s.profile.twofaLabel} {phoneStatus?.twoFactorEnabled ? s.profile.on : s.profile.off}</Text>
           <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="+14155551234" keyboardType="phone-pad" />
-          <TouchableOpacity style={styles.saveButton} onPress={async()=>{ try{ const r=await (apiService as any).requestOTP(phone); Alert.alert('Sent', `Code sent to ${r.phoneMasked}`)} catch(e:any){ Alert.alert('Error', e.response?.data?.error||'Failed')}}}><Text style={styles.saveButtonText}>Send code</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.saveButton} onPress={async()=>{ try{ const r=await (apiService as any).requestOTP(phone); Alert.alert(t('profile.codeSentT'), t('profile.codeSentB', { phone: r.phoneMasked }))} catch(e:any){ Alert.alert(t('common.error'), e.response?.data?.error||t('auth.genericErrB'))}}}><Text style={styles.saveButtonText}>{s.profile.sendCode}</Text></TouchableOpacity>
           <TextInput style={styles.input} value={code} onChangeText={setCode} placeholder="123456" keyboardType="number-pad" maxLength={6} />
-          <TouchableOpacity style={styles.saveButton} onPress={async()=>{ try{ await (apiService as any).verifyPhone(phone, code); Alert.alert('Verified','Phone verified'); const s=await (apiService as any).getPhoneStatus(); setPhoneStatus(s)} catch(e:any){ Alert.alert('Error', e.response?.data?.error||'Invalid code')}}}><Text style={styles.saveButtonText}>Verify</Text></TouchableOpacity>
-          <TouchableOpacity style={[styles.saveButton, !phoneStatus?.phoneVerified && styles.buttonDisabled]} disabled={!phoneStatus?.phoneVerified} onPress={async()=>{ try{ const s=await (apiService as any).setTwoFactor(!phoneStatus?.twoFactorEnabled); setPhoneStatus(s); Alert.alert(s.twoFactorEnabled?'Enabled':'Disabled')} catch(e:any){ Alert.alert('Error', e.response?.data?.error||'Failed')}}}><Text style={styles.saveButtonText}>{phoneStatus?.twoFactorEnabled?'Disable 2FA':'Enable 2FA'}</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.saveButton} onPress={async()=>{ try{ await (apiService as any).verifyPhone(phone, code); Alert.alert(t('profile.verifiedT'),t('profile.verifiedB')); const s2=await (apiService as any).getPhoneStatus(); setPhoneStatus(s2)} catch(e:any){ Alert.alert(t('common.error'), e.response?.data?.error||t('auth.verify2faFailedB'))}}}><Text style={styles.saveButtonText}>{s.profile.verifyPhoneBtn}</Text></TouchableOpacity>
+          <TouchableOpacity style={[styles.saveButton, !phoneStatus?.phoneVerified && styles.buttonDisabled]} disabled={!phoneStatus?.phoneVerified} onPress={async()=>{ try{ const s2=await (apiService as any).setTwoFactor(!phoneStatus?.twoFactorEnabled); setPhoneStatus(s2); Alert.alert(s2.twoFactorEnabled?t('profile.enabledState'):t('profile.disabledState'))} catch(e:any){ Alert.alert(t('common.error'), e.response?.data?.error||t('auth.genericErrB'))}}}><Text style={styles.saveButtonText}>{phoneStatus?.twoFactorEnabled?s.profile.disable2fa:s.profile.enable2fa}</Text></TouchableOpacity>
         </View>
       </View>
 
       {/* AI Features */}
       <View style={[styles.card, styles.aiCard]}>
-        <Text style={[styles.sectionHeader, styles.aiSectionHeader]}>AI Features</Text>
+        <Text style={[styles.sectionHeader, styles.aiSectionHeader]}>{s.profile.aiFeatures}</Text>
         <View style={styles.settingsRow}>
           <Text style={styles.settingsRowIcon}>✨</Text>
           <View style={styles.settingsRowTextWrap}>
-            <Text style={styles.settingsRowText}>Auto-translation</Text>
-            <Text style={styles.settingsRowDesc}>Translate incoming messages</Text>
+            <Text style={styles.settingsRowText}>{s.profile.autoTranslate}</Text>
+            <Text style={styles.settingsRowDesc}>{s.profile.autoTranslateDesc}</Text>
           </View>
           <View style={styles.switchOn}>
             <View style={styles.switchThumb} />
@@ -292,26 +327,26 @@ export default function ProfileScreen({ navigation }: any) {
         <View style={styles.settingsRow}>
           <Text style={styles.settingsRowIcon}>📊</Text>
           <View style={styles.settingsRowTextWrap}>
-            <Text style={styles.settingsRowText}>Grammar Analysis</Text>
-            <Text style={styles.settingsRowDesc}>Moderate</Text>
+            <Text style={styles.settingsRowText}>{s.profile.grammarAnalysis}</Text>
+            <Text style={styles.settingsRowDesc}>{s.profile.moderate}</Text>
           </View>
           <Text style={styles.chevron}>›</Text>
         </View>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.sectionHeader}>🚫 Blocked users</Text>
-        {blocked.length === 0 ? <Text style={{padding:16, color: COLOR.onSurfaceVariant}}>No blocked users.</Text> : blocked.map((b:any)=>(
+        <Text style={styles.sectionHeader}>{s.profile.blockedUsers}</Text>
+        {blocked.length === 0 ? <Text style={{padding:16, color: COLOR.onSurfaceVariant}}>{s.profile.noBlocked}</Text> : blocked.map((b:any)=>(
           <View key={b.id} style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', padding:12, borderTopWidth:1, borderTopColor: COLOR.outlineVariant}}>
-            <Text style={{color: COLOR.onSurface, flex:1}}>{b.blocked?.displayName || b.blocked?.username || 'User'}</Text>
-            <TouchableOpacity style={{borderWidth:1, borderColor: COLOR.outlineVariant, borderRadius: 999, paddingHorizontal:12, paddingVertical:6}} onPress={async()=>{ try{ await (apiService as any).unblockUser(b.blockedId); setBlocked(prev=>prev.filter(x=>x.blockedId!==b.blockedId)) } catch{ Alert.alert('Error','Could not unblock')}}}>
-              <Text style={{color: COLOR.onSurface}}>Unblock</Text>
+            <Text style={{color: COLOR.onSurface, flex:1}}>{b.blocked?.displayName || b.blocked?.username || s.profile.userFallback}</Text>
+            <TouchableOpacity style={{borderWidth:1, borderColor: COLOR.outlineVariant, borderRadius: 999, paddingHorizontal:12, paddingVertical:6}} onPress={async()=>{ try{ await (apiService as any).unblockUser(b.blockedId); setBlocked(prev=>prev.filter(x=>x.blockedId!==b.blockedId)) } catch{ Alert.alert(t('common.error'),t('profile.unblockFailB'))}}}>
+              <Text style={{color: COLOR.onSurface}}>{s.profile.unblock}</Text>
             </TouchableOpacity>
           </View>
         ))}
       </View>
       <TouchableOpacity style={{backgroundColor: COLOR.primary, borderRadius: RADIUS.xl, padding: 16, alignItems:'center', marginTop: SPACING.stackSm}} onPress={()=>navigation.navigate('BecomeTeacher')}>
-        <Text style={styles.saveButtonText}>Become a Teacher</Text>
+        <Text style={styles.saveButtonText}>{s.profile.becomeTeacher}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -321,7 +356,7 @@ export default function ProfileScreen({ navigation }: any) {
         {saving ? (
           <ActivityIndicator color={COLOR.onPrimary} />
         ) : (
-          <Text style={styles.saveButtonText}>Save Changes</Text>
+          <Text style={styles.saveButtonText}>{s.profile.saveChanges}</Text>
         )}
       </TouchableOpacity>
 
@@ -332,7 +367,7 @@ export default function ProfileScreen({ navigation }: any) {
         {loggingOut ? (
           <ActivityIndicator color={COLOR.error} />
         ) : (
-          <Text style={styles.logoutButtonText}>Log Out</Text>
+          <Text style={styles.logoutButtonText}>{s.profile.logout}</Text>
         )}
       </TouchableOpacity>
     </ScrollView>

@@ -63,6 +63,7 @@ import ProfileScreen from '../ProfileScreen';
 import storage from '../../utils/storage';
 import apiService from '../../services/api';
 import webSocketService from '../../services/websocket';
+import { setExplicitLanguage } from '../../i18n';
 
 jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 const alertMock = Alert.alert as jest.Mock;
@@ -86,8 +87,11 @@ function renderProfile() {
   return { navigation, ui };
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.clearAllMocks();
+  // Pin UI language: the i18n module is process-global, and switching to Bob
+  // (native es) flips it to Spanish — without a reset, later tests inherit it.
+  await setExplicitLanguage('en');
 });
 
 describe('ProfileScreen dev quick-switch', () => {

@@ -22,7 +22,7 @@ describe('Marketplace slices — mobile jest placeholder (S-T-01..06) — TDD re
     expect(content).toContain('TrialCredits')
     expect(content).toContain('TeacherDashboard')
     expect(content).toContain('Payouts')
-    expect(content).toContain("label: 'Tutors'")
+    expect(content).toContain('label: s.nav.tutors')
     expect(content).toContain('glyph="🏫"')
   })
 

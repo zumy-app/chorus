@@ -33,6 +33,20 @@ import Dashboard from './pages/Dashboard'
 import { authAPI, presenceAPI } from './services/api'
 import { wsService } from './services/websocket'
 import { useStore } from './store'
+import i18n from './i18n'
+
+// UI language follows the profile's native language unless the user picked one
+// explicitly (persisted `preferredLanguage` wins). Applied on session restore
+// and on login so a Spanish-native user gets a Spanish UI automatically.
+function applyProfileLanguage(nativeLanguage?: string | null) {
+  try {
+    if (localStorage.getItem('preferredLanguage')) return
+  } catch {}
+  const base = (nativeLanguage || '').trim().toLowerCase().split(/[-_]/)[0]
+  if (base) {
+    i18n.changeLanguage(base).catch(() => {})
+  }
+}
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -67,6 +81,7 @@ function App() {
         try {
           const user = await authAPI.getMe()
           setUser(user)
+          applyProfileLanguage(user?.nativeLanguage)
           setIsAuthenticated(true)
           refreshAdminStatus()
           refreshEntitlements()
@@ -92,6 +107,7 @@ function App() {
 
     const user = await authAPI.getMe()
     setUser(user)
+    applyProfileLanguage(user?.nativeLanguage)
     setIsAuthenticated(true)
     refreshAdminStatus()
     refreshEntitlements()

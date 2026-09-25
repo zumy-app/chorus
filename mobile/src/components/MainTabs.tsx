@@ -27,6 +27,7 @@ import AssignmentsScreen from '../screens/AssignmentsScreen';
 import CallScreen from '../screens/CallScreen';
 import UniversalSearchScreen from '../screens/UniversalSearchScreen';
 import { COLOR, TYPOGRAPHY } from '../theme';
+import { useStrings } from '../i18n';
 
 export type MainTabsParamList = {
   ChatsTab: undefined;
@@ -84,136 +85,142 @@ const stackOptions = {
   headerTitleStyle: { fontWeight: '700' as const },
 };
 
-const ChatsTab = () => (
-  <ChatsStack.Navigator screenOptions={stackOptions}>
-    <ChatsStack.Screen
-      name="ChatList"
-      component={ChatListScreen}
-      options={{ title: 'Chorus' }}
-    />
-    <ChatsStack.Screen
-      name="Chat"
-      component={ChatScreen}
-      options={{ title: '' }}
-    />
-    <ChatsStack.Screen
-      name="NewChat"
-      component={NewChatScreen}
-      options={{ title: 'New Chat' }}
-    />
-    <ChatsStack.Screen
-      name="Call"
-      component={CallScreen}
-      options={{ title: 'Call', headerShown: false, presentation: 'fullScreenModal' }}
-    />
-    <ChatsStack.Screen
-      name="UniversalSearch"
-      component={UniversalSearchScreen}
-      options={{ title: 'Search' }}
-    />
-  </ChatsStack.Navigator>
-);
+// Each tab stack reads strings so header titles re-render on language change.
+const ChatsTab = () => {
+  const s = useStrings();
+  return (
+    <ChatsStack.Navigator screenOptions={stackOptions}>
+      <ChatsStack.Screen
+        name="ChatList"
+        component={ChatListScreen}
+        options={{ title: 'Chorus' }}
+      />
+      <ChatsStack.Screen
+        name="Chat"
+        component={ChatScreen}
+        options={{ title: '' }}
+      />
+      <ChatsStack.Screen
+        name="NewChat"
+        component={NewChatScreen}
+        options={{ title: s.nav.newChat }}
+      />
+      <ChatsStack.Screen
+        name="Call"
+        component={CallScreen}
+        options={{ title: s.nav.call, headerShown: false, presentation: 'fullScreenModal' }}
+      />
+      <ChatsStack.Screen
+        name="UniversalSearch"
+        component={UniversalSearchScreen}
+        options={{ title: s.nav.search }}
+      />
+    </ChatsStack.Navigator>
+  );
+};
 
-const LearnTab = () => (
-  <LearnStack.Navigator screenOptions={stackOptions}>
-    <LearnStack.Screen
-      name="Learn"
-      component={LearnScreen}
-      options={{ title: 'Learn' }}
-    />
-    <LearnStack.Screen
-      name="Placement"
-      component={PlacementScreen}
-      options={{ title: 'Placement Test' }}
-    />
-    <LearnStack.Screen
-      name="LessonSession"
-      component={LessonSessionScreen}
-      options={{ title: 'Practice' }}
-    />
-    <LearnStack.Screen
-      name="VocabularyReview"
-      component={VocabularyReviewScreen}
-      options={{ title: 'Vocabulary' }}
-    />
-    <LearnStack.Screen
-      name="Scenarios"
-      component={ScenariosScreen}
-      options={{ title: 'Scenarios' }}
-    />
-    <LearnStack.Screen
-      name="ScenarioRoleplay"
-      component={ScenarioRoleplayScreen}
-      options={{ title: 'Roleplay' }}
-    />
-    <LearnStack.Screen
-      name="LearningRoadmap"
-      component={LearningRoadmapScreen}
-      options={{ title: 'Roadmap' }}
-    />
-    <LearnStack.Screen
-      name="RealTalkHub"
-      component={RealTalkHubScreen}
-      options={{ title: 'Real Talk' }}
-    />
-    <LearnStack.Screen
-      name="StreakRecovery"
-      component={StreakRecoveryScreen}
-      options={{ title: 'Recover Streak' }}
-    />
-    <LearnStack.Screen
-      name="Assignments"
-      component={AssignmentsScreen}
-      options={{ title: 'Assignments' }}
-    />
-  </LearnStack.Navigator>
-);
+const LearnTab = () => {
+  const s = useStrings();
+  return (
+    <LearnStack.Navigator screenOptions={stackOptions}>
+      <LearnStack.Screen
+        name="Learn"
+        component={LearnScreen}
+        options={{ title: s.nav.learn }}
+      />
+      <LearnStack.Screen
+        name="Placement"
+        component={PlacementScreen}
+        options={{ title: s.nav.placementTest }}
+      />
+      <LearnStack.Screen
+        name="LessonSession"
+        component={LessonSessionScreen}
+        options={{ title: s.nav.practice }}
+      />
+      <LearnStack.Screen
+        name="VocabularyReview"
+        component={VocabularyReviewScreen}
+        options={{ title: s.nav.vocabulary }}
+      />
+      <LearnStack.Screen
+        name="Scenarios"
+        component={ScenariosScreen}
+        options={{ title: s.nav.scenarios }}
+      />
+      <LearnStack.Screen
+        name="ScenarioRoleplay"
+        component={ScenarioRoleplayScreen}
+        options={{ title: s.nav.roleplay }}
+      />
+      <LearnStack.Screen
+        name="LearningRoadmap"
+        component={LearningRoadmapScreen}
+        options={{ title: s.nav.roadmap }}
+      />
+      <LearnStack.Screen
+        name="RealTalkHub"
+        component={RealTalkHubScreen}
+        options={{ title: s.nav.realTalk }}
+      />
+      <LearnStack.Screen
+        name="StreakRecovery"
+        component={StreakRecoveryScreen}
+        options={{ title: s.nav.recoverStreak }}
+      />
+      <LearnStack.Screen
+        name="Assignments"
+        component={AssignmentsScreen}
+        options={{ title: s.nav.assignments }}
+      />
+    </LearnStack.Navigator>
+  );
+};
 
-const ProfileTab = () => (
-  <ProfileStack.Navigator screenOptions={stackOptions}>
-    <ProfileStack.Screen
-      name="Profile"
-      component={ProfileScreen}
-      options={{ title: 'Profile' }}
-    />
-    <ProfileStack.Screen
-      name="BecomeTeacher"
-      component={BecomeTeacherScreen}
-      options={{ title: 'Become a Teacher' }}
-    />
-  </ProfileStack.Navigator>
-);
+const ProfileTab = () => {
+  const s = useStrings();
+  return (
+    <ProfileStack.Navigator screenOptions={stackOptions}>
+      <ProfileStack.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{ title: s.nav.profile }}
+      />
+      <ProfileStack.Screen
+        name="BecomeTeacher"
+        component={BecomeTeacherScreen}
+        options={{ title: s.nav.becomeTeacher }}
+      />
+    </ProfileStack.Navigator>
+  );
+};
 
-const MarketplaceTab = () => (
-  <MarketplaceStack.Navigator screenOptions={stackOptions}>
-    <MarketplaceStack.Screen
-      name="BrowseTutors"
-      component={BrowseTutorsScreen}
-      options={{ title: 'Tutors' }}
-    />
-    <MarketplaceStack.Screen
-      name="TutorProfile"
-      component={TutorProfileScreen}
-      options={{ title: 'Tutor' }}
-    />
-    <MarketplaceStack.Screen name="ConfirmBooking" component={ConfirmBookingScreen} options={{ title: 'Confirm Booking' }} />
-    <MarketplaceStack.Screen
-      name="BecomeTeacher"
-      component={BecomeTeacherScreen}
-      options={{ title: 'Become a Teacher' }}
-    />
-    <MarketplaceStack.Screen name="TrialCredits" component={TrialCreditsScreen} options={{ title: 'Trial Credits' }} />
-    <MarketplaceStack.Screen name="TeacherDashboard" component={TeacherDashboardScreen} options={{ title: 'Dashboard' }} />
-    <MarketplaceStack.Screen name="Payouts" component={PayoutsScreen} options={{ title: 'Payouts' }} />
-  </MarketplaceStack.Navigator>
-);
-
-const TABS = [
-  { name: 'ChatsTab' as const, component: ChatsTab, label: 'Chats' },
-  { name: 'LearnTab' as const, component: LearnTab, label: 'Learn' },
-  { name: 'MarketplaceTab' as const, component: MarketplaceTab, label: 'Tutors' },
-  { name: 'ProfileTab' as const, component: ProfileTab, label: 'Profile' },
-];
+const MarketplaceTab = () => {
+  const s = useStrings();
+  return (
+    <MarketplaceStack.Navigator screenOptions={stackOptions}>
+      <MarketplaceStack.Screen
+        name="BrowseTutors"
+        component={BrowseTutorsScreen}
+        options={{ title: s.nav.tutors }}
+      />
+      <MarketplaceStack.Screen
+        name="TutorProfile"
+        component={TutorProfileScreen}
+        options={{ title: s.nav.tutor }}
+      />
+      <MarketplaceStack.Screen name="ConfirmBooking" component={ConfirmBookingScreen} options={{ title: s.nav.confirmBooking }} />
+      <MarketplaceStack.Screen
+        name="BecomeTeacher"
+        component={BecomeTeacherScreen}
+        options={{ title: s.nav.becomeTeacher }}
+      />
+      <MarketplaceStack.Screen name="TrialCredits" component={TrialCreditsScreen} options={{ title: s.nav.trialCredits }} />
+      <MarketplaceStack.Screen name="TeacherDashboard" component={TeacherDashboardScreen} options={{ title: s.nav.dashboard }} />
+      <MarketplaceStack.Screen name="Payouts" component={PayoutsScreen} options={{ title: s.nav.payouts }} />
+    </MarketplaceStack.Navigator>
+  );
+};
 
 function TabIcon({ focused, glyph }: { focused: boolean; glyph: string }) {
   return <Text style={[styles.tabIcon, focused && styles.tabIconFocused]}>{glyph}</Text>;
@@ -224,7 +231,7 @@ const TabIconLearn = (props: { focused: boolean }) => <TabIcon {...props} glyph=
 const TabIconMarketplace = (props: { focused: boolean }) => <TabIcon {...props} glyph="🏫" />;
 const TabIconProfile = (props: { focused: boolean }) => <TabIcon {...props} glyph="👤" />;
 
-const TAB_ICONS: Record<(typeof TABS)[number]['name'], (props: { focused: boolean }) => React.JSX.Element> = {
+const TAB_ICONS: Record<keyof MainTabsParamList, (props: { focused: boolean }) => React.JSX.Element> = {
   ChatsTab: TabIconChats,
   LearnTab: TabIconLearn,
   MarketplaceTab: TabIconMarketplace,
@@ -232,6 +239,13 @@ const TAB_ICONS: Record<(typeof TABS)[number]['name'], (props: { focused: boolea
 };
 
 export default function MainTabs() {
+  const s = useStrings();
+  const tabs = [
+    { name: 'ChatsTab' as const, component: ChatsTab, label: s.nav.chats },
+    { name: 'LearnTab' as const, component: LearnTab, label: s.nav.learn },
+    { name: 'MarketplaceTab' as const, component: MarketplaceTab, label: s.nav.tutors },
+    { name: 'ProfileTab' as const, component: ProfileTab, label: s.nav.profile },
+  ];
   return (
     <Tab.Navigator
       initialRouteName="ChatsTab"
@@ -245,7 +259,7 @@ export default function MainTabs() {
           fontSize: 12,
         },
       }}>
-      {TABS.map((tab) => (
+      {tabs.map((tab) => (
         <Tab.Screen
           key={tab.name}
           name={tab.name}

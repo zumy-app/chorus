@@ -10,39 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLOR, RADIUS } from '../theme';
-
-// v2 ecosystem - 4 cards exact order per wireframe code.html:186-217
-const ECOSYSTEM_CARDS = [
-  {
-    title: 'AI Deep Dive',
-    icon: 'analytics',
-    desc: 'Instant grammar analysis and CEFR-aligned drills generated from your chat history.',
-    accentBg: 'rgba(0,74,198,0.10)',
-    accentIcon: '#004AC6',
-  },
-  {
-    title: 'Real Talk',
-    icon: 'forum',
-    desc: 'AI-guided roleplays for real-world scenarios. Practice before you have to perform.',
-    accentBg: 'rgba(107,56,212,0.10)',
-    accentIcon: '#6B38D4',
-  },
-  {
-    title: 'Teacher Marketplace',
-    icon: 'school',
-    desc: 'Book 1:1 sessions with professional tutors who can see your progress data and tailor lessons.',
-    accentBg: 'rgba(0,98,66,0.10)',
-    accentIcon: '#006242',
-  },
-  {
-    title: 'Phase 2 Ready',
-    icon: 'video_call',
-    desc: 'High-fidelity voice & video calls with live translated captions and pronunciation feedback.',
-    accentBg: '#D3E4FE',
-    accentIcon: '#434655',
-    badge: 'Coming Soon',
-  },
-];
+import { useStrings } from '../i18n';
 
 const BRAIN_IMAGE_URL =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuDgQhw3sVSThrLEgije7dkEJr4B-KhL_jlmgoT7OCR-tu9Wg0-ZO2dCEUdRRXZtNDF1dZwNu2b_FAx2GdcCxm6CoPp34KNd6PLqadPWRBPd4j59XdYzmvDrD0ZwSt5MdqajfdJTvPtv7l5cJy0RUMrRtxQaYC4KwOAcAgo60N9p5sY_K985F67YZHqu-axUbl3PaATcc56Db3G9uFiF01Mlr7_6otiEFrdiqNS1TChuz0OZhchB31FT';
@@ -50,8 +18,43 @@ const MOCKUP_IMAGE_URL =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuBiIW1Pswg-d9O3dPkH_pRY26cjhtNRzdzPlybhdzB1bWm3ps3BcDeReivUrvxFJJb4cMfNDyX0at7osxAqWO_kXG0pEDgNWdOf2bFRW1RevouA_h6KZB1Zsi8Vs2Rug8O_vFqO_XG0pEDgNWdOf2bFRW1RevouA_h6KZB1Zsi8Vs2Rug8O_vjxj-gCnyzbMaEiyc-C97oVFoNG8qbRqPArY4brforVqA2VZXHQTsTxaSpeQVGJFioF1OmlsYkD44Nn3ONhcNUHnp0FLlg9uU8L_Y8GSjYxxzcuD_XLd';
 
 export default function LandingScreen({ navigation }: any) {
+  const s = useStrings();
   const scrollRef = useRef<ScrollView>(null);
   const sectionY = useRef<Record<string, number>>({});
+
+  // v2 ecosystem - 4 cards exact order per wireframe code.html:186-217.
+  // Built inside render so card copy follows the active UI language.
+  const ECOSYSTEM_CARDS = [
+    {
+      title: s.landing.card1Title,
+      icon: 'analytics',
+      desc: s.landing.card1Desc,
+      accentBg: 'rgba(0,74,198,0.10)',
+      accentIcon: '#004AC6',
+    },
+    {
+      title: s.landing.card2Title,
+      icon: 'forum',
+      desc: s.landing.card2Desc,
+      accentBg: 'rgba(107,56,212,0.10)',
+      accentIcon: '#6B38D4',
+    },
+    {
+      title: s.landing.card3Title,
+      icon: 'school',
+      desc: s.landing.card3Desc,
+      accentBg: 'rgba(0,98,66,0.10)',
+      accentIcon: '#006242',
+    },
+    {
+      title: s.landing.card4Title,
+      icon: 'video_call',
+      desc: s.landing.card4Desc,
+      accentBg: '#D3E4FE',
+      accentIcon: '#434655',
+      badge: s.landing.card4Badge,
+    },
+  ];
 
   const scrollToSection = (key: string) => {
     const y = sectionY.current[key] ?? 0;
@@ -74,18 +77,18 @@ export default function LandingScreen({ navigation }: any) {
             </View>
           </View>
           <TouchableOpacity style={styles.getStartedButton} onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.getStartedButtonText}>Get Started</Text>
+            <Text style={styles.getStartedButtonText}>{s.landing.getStarted}</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.navLinks}>
           <TouchableOpacity onPress={() => scrollToSection('features')}>
-            <Text style={styles.navLink}>Fea{'\u200B'}tures</Text>
+            <Text style={styles.navLink}>{s.landing.features}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => scrollToSection('pricing')}>
-            <Text style={styles.navLink}>Pri{'\u200B'}cing</Text>
+            <Text style={styles.navLink}>{s.landing.pricing}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => scrollToSection('about')}>
-            <Text style={styles.navLink}>Abo{'\u200B'}ut Us</Text>
+            <Text style={styles.navLink}>{s.landing.aboutUs}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -99,20 +102,20 @@ export default function LandingScreen({ navigation }: any) {
         {/* Hero Section */}
         <View style={[styles.section, styles.heroSection]}>
           <Text style={styles.heroTitle}>
-            Communication is Learning.
+            {s.landing.heroTitle1}
             {'\n'}
-            <Text style={styles.heroTitleAccent}>Redefining how we acquire language.</Text>
+            <Text style={styles.heroTitleAccent}>{s.landing.heroTitle2}</Text>
           </Text>
           <Text style={styles.heroSubtitle}>
-            Bridging the gap between messaging apps and learning platforms. We turn your daily conversations into a personalized learning journey, making communication and learning the exact same function.
+            {s.landing.heroSubtitle}
           </Text>
 
           <View style={styles.heroButtons}>
             <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.primaryButtonText}>Start Your Journey</Text>
+              <Text style={styles.primaryButtonText}>{s.landing.startJourney}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.secondaryButton} onPress={() => scrollToSection('features')}>
-              <Text style={styles.secondaryButtonText}>Watch Demo</Text>
+              <Text style={styles.secondaryButtonText}>{s.landing.watchDemo}</Text>
               <Text style={styles.secondaryIcon}>play_circle</Text>
             </TouchableOpacity>
           </View>
@@ -122,37 +125,37 @@ export default function LandingScreen({ navigation }: any) {
             <Image
               source={{ uri: BRAIN_IMAGE_URL }}
               style={styles.brainImage}
-              accessibilityLabel="Brain Neural Pathways"
+              accessibilityLabel={s.landing.a11yBrain}
               accessible
             />
             {/* Text fallback for testID getByText query - native Image alt not found via getByText */}
-            <Text style={styles.altHidden}>Brain Neural Pathways</Text>
+            <Text style={styles.altHidden}>{s.landing.a11yBrain}</Text>
           </View>
         </View>
 
         {/* Bridging Section */}
         <View style={[styles.section, styles.bridgingSection]}>
           <Text style={styles.bridgingTitle}>
-            Bridging Messaging and Learning. <Text style={styles.bridgingAccent}>The Best of Both Worlds.</Text>
+            {s.landing.bridgingTitle1}<Text style={styles.bridgingAccent}>{s.landing.bridgingTitle2}</Text>
           </Text>
           <Text style={styles.bridgingBody}>
-            Why choose between a messenger like WhatsApp and a learning tool like Duolingo? Chorus combines them. We analyze your actual, real-world conversations to build vocabulary and grammar lessons based exclusively on the language <Text style={styles.italic}>you</Text> need, making the act of communicating and learning one seamless experience.
+            {s.landing.bridgingBody}
           </Text>
         </View>
 
         {/* Ecosystem Section - A Complete Language Ecosystem */}
         <View style={[styles.section, styles.altSection]} onLayout={registerSection('features')}>
-          <Text style={styles.sectionTitle}>A Complete Language Ecosystem</Text>
-          <Text style={styles.sectionSubtitle}>Everything you need to go from basic phrases to true fluency.</Text>
+          <Text style={styles.sectionTitle}>{s.landing.ecosystemTitle}</Text>
+          <Text style={styles.sectionSubtitle}>{s.landing.ecosystemSubtitle}</Text>
 
           <View style={styles.mockupWrap}>
             <Image
               source={{ uri: MOCKUP_IMAGE_URL }}
               style={styles.mockupImage}
-              accessibilityLabel="Chorus App Mockup"
+              accessibilityLabel={s.landing.a11yMockup}
               accessible
             />
-            <Text style={styles.altHidden}>Chorus App Mockup</Text>
+            <Text style={styles.altHidden}>{s.landing.a11yMockup}</Text>
           </View>
 
           <View style={styles.featuresGrid}>
@@ -160,7 +163,7 @@ export default function LandingScreen({ navigation }: any) {
               <View key={i} style={styles.featureCard}>
                 {card.badge ? (
                   <View style={styles.comingSoonBadge}>
-                    <Text style={styles.comingSoonText}>Coming Soon</Text>
+                    <Text style={styles.comingSoonText}>{card.badge}</Text>
                   </View>
                 ) : null}
                 <View style={[styles.featureIconCircle, { backgroundColor: card.accentBg }]}>
@@ -175,88 +178,88 @@ export default function LandingScreen({ navigation }: any) {
 
         {/* Pricing Section - 2 tiers */}
         <View style={[styles.section, styles.sectionPlain]} onLayout={registerSection('pricing')}>
-          <Text style={styles.sectionTitle}>Simple, Transparent Pricing</Text>
-          <Text style={styles.sectionSubtitle}>Start for free, upgrade when you&apos;re ready to accelerate.</Text>
+          <Text style={styles.sectionTitle}>{s.landing.pricingTitle}</Text>
+          <Text style={styles.sectionSubtitle}>{s.landing.pricingSubtitle}</Text>
 
           <View style={styles.planCard}>
-            <Text style={styles.planName}>Free</Text>
+            <Text style={styles.planName}>{s.landing.freeName}</Text>
             <View style={styles.priceRow}>
-              <Text style={styles.planPrice}>$0</Text>
-              <Text style={styles.planPer}>/month</Text>
+              <Text style={styles.planPrice}>{s.landing.freePrice}</Text>
+              <Text style={styles.planPer}>{s.landing.freePer}</Text>
             </View>
-            <Text style={styles.planDesc}>Essential features to start your journey.</Text>
-            <Text style={styles.planFeature}>280-character messages</Text>
-            <Text style={styles.planFeature}>Basic AI translations</Text>
-            <Text style={styles.planFeature}>Limited daily AI insights</Text>
+            <Text style={styles.planDesc}>{s.landing.freeDesc}</Text>
+            <Text style={styles.planFeature}>{s.landing.freeF1}</Text>
+            <Text style={styles.planFeature}>{s.landing.freeF2}</Text>
+            <Text style={styles.planFeature}>{s.landing.freeF3}</Text>
             <TouchableOpacity style={[styles.planButton, styles.planButtonLight]} onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.planButtonLightText}>Get Started Free</Text>
+              <Text style={styles.planButtonLightText}>{s.landing.freeButton}</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.planCardPremium}>
             <View style={styles.mostPopularBadge}>
-              <Text style={styles.mostPopularText}>Most Popular</Text>
+              <Text style={styles.mostPopularText}>{s.landing.mostPopular}</Text>
             </View>
-            <Text style={styles.planNamePremium}>Premium</Text>
+            <Text style={styles.planNamePremium}>{s.landing.premiumName}</Text>
             <View style={styles.priceRow}>
-              <Text style={styles.planPricePremium}>$7.99</Text>
-              <Text style={styles.planPerPremium}>/month</Text>
+              <Text style={styles.planPricePremium}>{s.landing.premiumPrice}</Text>
+              <Text style={styles.planPerPremium}>{s.landing.premiumPer}</Text>
             </View>
-            <Text style={styles.planDescPremium}>Unleash the full power of the AI tutor.</Text>
-            <Text style={styles.planFeaturePremium}>1000-character messages</Text>
-            <Text style={styles.planFeaturePremium}>Unlimited AI Deep Dives</Text>
-            <Text style={styles.planFeaturePremium}>Monthly trial credits for live tutors</Text>
-            <Text style={styles.planFeaturePremium}>Reduced marketplace fees</Text>
+            <Text style={styles.planDescPremium}>{s.landing.premiumDesc}</Text>
+            <Text style={styles.planFeaturePremium}>{s.landing.premiumF1}</Text>
+            <Text style={styles.planFeaturePremium}>{s.landing.premiumF2}</Text>
+            <Text style={styles.planFeaturePremium}>{s.landing.premiumF3}</Text>
+            <Text style={styles.planFeaturePremium}>{s.landing.premiumF4}</Text>
             <TouchableOpacity style={styles.planButtonPremium} onPress={() => navigation.navigate('Pricing')}>
-              <Text style={styles.planButtonPremiumText}>Upgrade to Premium</Text>
+              <Text style={styles.planButtonPremiumText}>{s.landing.premiumButton}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Mission Section */}
         <View style={[styles.section, styles.missionSection]} onLayout={registerSection('about')}>
-          <Text style={styles.sectionTitle}>Our Mission</Text>
+          <Text style={styles.sectionTitle}>{s.landing.missionTitle}</Text>
           <Text style={styles.missionBody}>
-            We believe language shouldn&apos;t be a barrier, but a bridge. Chorus was built by a team of linguists and engineers dedicated to bridging global communication gaps through science-based acquisition, not rote memorization.
+            {s.landing.missionBody}
           </Text>
         </View>
 
         {/* Final CTA */}
         <View style={styles.ctaSection}>
           <View style={styles.ctaDotPattern} />
-          <Text style={styles.ctaTitle}>Ready to reach fluency?</Text>
-          <Text style={styles.ctaSubtitle}>Join thousands of learners who have transformed their daily chats into a masterclass.</Text>
+          <Text style={styles.ctaTitle}>{s.landing.ctaTitle}</Text>
+          <Text style={styles.ctaSubtitle}>{s.landing.ctaSubtitle}</Text>
           <TouchableOpacity style={styles.ctaButton} onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.ctaButtonText}>Get Started Now</Text>
+            <Text style={styles.ctaButtonText}>{s.landing.ctaButton}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Footer - 7 links */}
         <View style={styles.footer}>
           <Text style={styles.footerBrand}>Chorus</Text>
-          <Text style={styles.footerRights}>© 2024 Chorus AI. Language learning reimagined.</Text>
+          <Text style={styles.footerRights}>{s.landing.footerRights}</Text>
 
           <View style={styles.footerColumns}>
             <View style={styles.footerCol}>
-              <Text style={styles.footerColTitle}>Product</Text>
+              <Text style={styles.footerColTitle}>{s.landing.footerProduct}</Text>
               <TouchableOpacity onPress={() => scrollToSection('features')}>
-                <Text style={styles.footerLink}>Features</Text>
+                <Text style={styles.footerLink}>{s.landing.features}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => scrollToSection('pricing')}>
-                <Text style={styles.footerLink}>Pricing</Text>
+                <Text style={styles.footerLink}>{s.landing.pricing}</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.footerCol}>
-              <Text style={styles.footerColTitle}>Company</Text>
+              <Text style={styles.footerColTitle}>{s.landing.footerCompany}</Text>
               <TouchableOpacity onPress={() => scrollToSection('about')}>
-                <Text style={styles.footerLink}>About Us</Text>
+                <Text style={styles.footerLink}>{s.landing.aboutUs}</Text>
               </TouchableOpacity>
-              <Text style={styles.footerLink}>Privacy Policy</Text>
-              <Text style={styles.footerLink}>Terms of Service</Text>
+              <Text style={styles.footerLink}>{s.landing.footerPrivacy}</Text>
+              <Text style={styles.footerLink}>{s.landing.footerTerms}</Text>
             </View>
             <View style={styles.footerCol}>
-              <Text style={styles.footerColTitle}>Support</Text>
-              <Text style={styles.footerLink}>Help Center</Text>
+              <Text style={styles.footerColTitle}>{s.landing.footerSupport}</Text>
+              <Text style={styles.footerLink}>{s.landing.footerHelp}</Text>
             </View>
           </View>
         </View>

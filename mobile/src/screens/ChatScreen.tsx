@@ -17,6 +17,7 @@ import {
 import storage from '../utils/storage';
 import apiService from '../services/api';
 import featureFlags from '../utils/featureFlags';
+import { useStrings, t, useAppLocale } from '../i18n';
 import webSocketService from '../services/websocket';
 import { Message, WebSocketMessage, User, apiErrorMessage } from '@chorus/shared';
 import { COLOR, FONTS } from '../theme';
@@ -24,6 +25,8 @@ import RealTalkNudge from '../components/RealTalkNudge';
 
 export default function ChatScreen({ route, navigation }: any) {
   const { chatId, chatName } = route.params;
+  const s = useStrings();
+  const locale = useAppLocale();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
@@ -87,8 +90,8 @@ export default function ChatScreen({ route, navigation }: any) {
           setSparkyLoading(false);
           sparkyJobRef.current = null;
           await storage.removeItem(SPARKY_PENDING_KEY).catch(() => {});
-        } else if (job?.status === 'failed') {
-          const msg = job.error || 'Failed to get answer';
+        } else           if (job?.status === 'failed') {
+          const msg = job.error || t('chat.sparkyFailB');
           setSparkyError(msg);
           setSparkyMessages(prev => [...prev, { role: 'assistant', content: msg }]);
           setSparkyLoading(false);
@@ -180,7 +183,7 @@ export default function ChatScreen({ route, navigation }: any) {
           sparkyJobRef.current = null;
           storage.removeItem(SPARKY_PENDING_KEY).catch(() => {});
         } else if (payload.status === 'failed') {
-          const msg = payload.error || 'Failed to get answer';
+          const msg = payload.error || t('chat.sparkyFailB');
           setSparkyError(msg);
           setSparkyMessages(prev => [...prev, { role: 'assistant', content: msg }]);
           setSparkyLoading(false);
@@ -245,21 +248,21 @@ export default function ChatScreen({ route, navigation }: any) {
     if (!reportTarget) return;
     try {
       await (apiService as any).reportUser({ type: reportTarget.type, reportedUserId: reportTarget.userId, messageId: reportTarget.messageId, chatId: reportTarget.chatId || chatId, reason: reportReason });
-      Alert.alert('Reported', 'Thanks for reporting. Our moderators will review it.');
-    } catch { Alert.alert('Error', 'Could not submit report.'); }
+      Alert.alert(t('chat.reportedT'), t('chat.reportedB'));
+    } catch { Alert.alert(t('common.error'), t('chat.reportFailB')); }
     setReportVisible(false);
   };
   const toggleBlock = async () => {
-    if (!otherUserId) { Alert.alert('Block unavailable', 'Direct chat participant not found.'); return; }
+    if (!otherUserId) { Alert.alert(t('chat.blockUnavailableT'), t('chat.blockUnavailableB')); return; }
     try {
-      if (isBlocked) { await (apiService as any).unblockUser(otherUserId); setIsBlocked(false); Alert.alert('Unblocked', `${otherName || 'User'} has been unblocked.`); }
+      if (isBlocked) { await (apiService as any).unblockUser(otherUserId); setIsBlocked(false); Alert.alert(t('chat.unblockedT'), t('chat.unblockedB', { name: otherName || t('chat.userFallback') })); }
       else {
-        Alert.alert('Block user', `Block ${otherName || 'this user'}? They won't be able to message you.`, [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Block', style: 'destructive', onPress: async () => { await (apiService as any).blockUser(otherUserId); setIsBlocked(true); } },
+        Alert.alert(t('chat.blockUserT'), t('chat.blockUserB', { name: otherName || t('chat.thisUserFallback') }), [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('chat.block'), style: 'destructive', onPress: async () => { await (apiService as any).blockUser(otherUserId); setIsBlocked(true); } },
         ]);
       }
-    } catch { Alert.alert('Error', 'Block action failed.'); }
+    } catch { Alert.alert(t('common.error'), t('chat.blockFailB')); }
   };
   useEffect(() => {
     let mounted = true;
@@ -292,10 +295,10 @@ export default function ChatScreen({ route, navigation }: any) {
           )}
           <TouchableOpacity
             onPress={() => {
-              Alert.alert('Chat actions', `${otherName || 'User'}`, [
-                { text: isBlocked ? 'Unblock' : 'Block', style: isBlocked ? 'default' : 'destructive', onPress: toggleBlock },
-                { text: 'Report user', onPress: () => otherUserId && openReport({ type: 'user', userId: otherUserId, chatId }) },
-                { text: 'Cancel', style: 'cancel' },
+              Alert.alert(t('chat.chatActions'), `${otherName || t('chat.userFallback')}`, [
+                { text: isBlocked ? t('chat.unblock') : t('chat.block'), style: isBlocked ? 'default' : 'destructive', onPress: toggleBlock },
+                { text: t('chat.reportUser'), onPress: () => otherUserId && openReport({ type: 'user', userId: otherUserId, chatId }) },
+                { text: t('common.cancel'), style: 'cancel' },
               ]);
             }}
             style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: COLOR.surfaceContainerHigh, alignItems: 'center', justifyContent: 'center' }}
@@ -355,7 +358,7 @@ export default function ChatScreen({ route, navigation }: any) {
         const msg = await (apiService as any).sendLocation(chatId, { latitude: lat, longitude: lng, label, replyToId: replyTo?.id })
         setMessages((prev) => [msg, ...prev.filter((m:any)=>m.id!==msg.id)])
         setReplyTo(null)
-      } catch (e:any) { Alert.alert('Location failed', e?.response?.data?.error || String(e)) }
+      } catch (e:any) { Alert.alert(t('chat.locFailT'), e?.response?.data?.error || String(e)) }
       finally { setUploading(false) }
     }
     try {
@@ -363,7 +366,7 @@ export default function ChatScreen({ route, navigation }: any) {
       try { Location = require('expo-location') } catch {}
       if (Location?.requestForegroundPermissionsAsync) {
         const { status } = await Location.requestForegroundPermissionsAsync()
-        if (status !== 'granted') { Alert.alert('Permission needed','Location permission is required'); return }
+        if (status !== 'granted') { Alert.alert(t('chat.permT'), t('chat.permB')); return }
         const pos = await Location.getCurrentPositionAsync({})
         await send(pos.coords.latitude, pos.coords.longitude)
         return
@@ -372,10 +375,10 @@ export default function ChatScreen({ route, navigation }: any) {
     if (typeof (globalThis as any).navigator !== 'undefined' && ((globalThis as any).navigator as any).geolocation) {
       ((globalThis as any).navigator as any).geolocation.getCurrentPosition(
         (pos: any) => send(pos.coords.latitude, pos.coords.longitude),
-        () => Alert.alert('Location unavailable','Could not get current location')
+        () => Alert.alert(t('chat.locUnavailableT'), t('chat.locUnavailableB'))
       )
     } else {
-      Alert.alert('Location not available','expo-location is required for native location')
+      Alert.alert(t('chat.locNotAvailT'), t('chat.locNotAvailB'))
     }
   }
 
@@ -387,7 +390,7 @@ export default function ChatScreen({ route, navigation }: any) {
         const res = await DocumentPicker.getDocumentAsync({ type: ['application/pdf','application/msword','application/vnd.openxmlformats-officedocument.*','text/plain'], copyToCacheDirectory: true })
         if (res.canceled || !res.assets?.[0]) return
         const asset = res.assets[0]
-        if (asset.size && asset.size > 50*1024*1024) { Alert.alert('File too large','File exceeds 50 MB limit'); return }
+        if (asset.size && asset.size > 50*1024*1024) { Alert.alert(t('chat.fileTooLargeT'), t('chat.fileTooLargeB')); return }
         setUploading(true)
         try {
           const blob = await (await fetch(asset.uri)).blob()
@@ -396,8 +399,8 @@ export default function ChatScreen({ route, navigation }: any) {
         } finally { setUploading(false) }
         return
       }
-      Alert.alert('Document picker not available','Install expo-document-picker to enable document sharing')
-    } catch (e) { Alert.alert('Upload failed', String(e)) }
+      Alert.alert(t('chat.docPickerT'), t('chat.docPickerB'))
+    } catch (e) { Alert.alert(t('chat.uploadFailT'), String(e)) }
   }
 
   const handleTyping = () => {
@@ -474,8 +477,8 @@ export default function ChatScreen({ route, navigation }: any) {
           <Text style={styles.senderName}>{item.sender?.displayName || 'Unknown'}</Text>
         )}
         <View style={[styles.messageBubble, isOwn ? styles.ownBubble : styles.otherBubble]}>
-          {(item as any).forwarded && <Text style={[styles.forwardLabel, isOwn ? styles.ownLabel : styles.otherLabel]}>↪ Forwarded</Text>}
-          {isPinned && <Text style={[styles.forwardLabel, {color: '#b45309'}]}>📌 Pinned</Text>}
+          {(item as any).forwarded && <Text style={[styles.forwardLabel, isOwn ? styles.ownLabel : styles.otherLabel]}>{s.chat.forwarded}</Text>}
+          {isPinned && <Text style={[styles.forwardLabel, {color: '#b45309'}]}>{s.chat.pinnedLabel}</Text>}
           {replySource && (
             <View style={[styles.replyQuote, isOwn ? styles.replyQuoteOwn : styles.replyQuoteOther]}>
               <Text style={styles.replyQuoteName} numberOfLines={1}>{replySource.sender?.displayName || 'Unknown'}</Text>
@@ -487,12 +490,12 @@ export default function ChatScreen({ route, navigation }: any) {
               <View style={{flexDirection:'row', alignItems:'center', gap:6}}>
                 <Text style={styles.docIcon}>📍</Text>
                 <View style={{flex:1}}>
-                  <Text style={[styles.docName, isOwn?{color:'#fff'}:{}]}>{att.locationName || 'Shared location'}</Text>
+                  <Text style={[styles.docName, isOwn?{color:'#fff'}:{}]}>{att.locationName || s.chat.sharedLocation}</Text>
                   <Text style={[styles.docMeta, isOwn?{color:'rgba(255,255,255,0.7)'}:{}]}>{att.latitude?.toFixed(5)}, {att.longitude?.toFixed(5)}</Text>
                 </View>
                 <Text style={styles.docDownload}>↗</Text>
               </View>
-              <Text style={[styles.docMeta, {color: COLOR.primary, marginTop:4}]}>Open in maps</Text>
+              <Text style={[styles.docMeta, {color: COLOR.primary, marginTop:4}]}>{s.chat.openInMaps}</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity key={att.id} onPress={()=> att.url && Linking.openURL(att.url)} style={[styles.docCard, isOwn ? styles.docCardOwn : styles.docCardOther]}>
@@ -510,7 +513,7 @@ export default function ChatScreen({ route, navigation }: any) {
           {nativeTranslation && (
             <View style={[styles.translationBlock, isOwn ? styles.ownTranslationBlock : styles.otherTranslationBlock]}>
               <Text style={[styles.translationLabel, isOwn ? styles.ownLabel : styles.otherLabel]}>
-                🌐 In your language
+                {s.chat.inYourLang}
               </Text>
               <Text style={[styles.translatedText, isOwn ? styles.ownTranslated : styles.otherTranslated]}>
                 {nativeTranslation}
@@ -524,7 +527,7 @@ export default function ChatScreen({ route, navigation }: any) {
               style={styles.translateButton}
             >
               <Text style={styles.translateButtonText}>
-                {translatingId === item.id ? 'Translating...' : '🌐 Translate'}
+                {translatingId === item.id ? s.chat.translating : s.chat.translateBtn}
               </Text>
             </TouchableOpacity>
           )}
@@ -538,7 +541,7 @@ export default function ChatScreen({ route, navigation }: any) {
                   style={styles.grammarBadge}
                   testID={`grammar-badge-${item.id}`}>
                   <Text style={styles.grammarBadgeText}>
-                    ✨ Grammar · {job.analysis.difficulty || 'analysis ready'}
+                    {job.analysis.difficulty ? t('chat.grammarBadge', { level: job.analysis.difficulty }) : s.chat.grammarBadgeReady}
                   </Text>
                 </TouchableOpacity>
               );
@@ -546,7 +549,7 @@ export default function ChatScreen({ route, navigation }: any) {
             if (busy) {
               return (
                 <View style={styles.grammarBadgeMuted} testID={`grammar-pending-${item.id}`}>
-                  <Text style={styles.grammarBadgeMutedText}>✨ Analyzing grammar…</Text>
+                  <Text style={styles.grammarBadgeMutedText}>{s.chat.grammarAnalyzing}</Text>
                 </View>
               );
             }
@@ -555,7 +558,7 @@ export default function ChatScreen({ route, navigation }: any) {
                 onPress={() => handleGrammarAnalyze(item)}
                 style={styles.grammarRequest}
                 testID={`grammar-request-${item.id}`}>
-                <Text style={styles.grammarRequestText}>✨ Grammar</Text>
+                <Text style={styles.grammarRequestText}>{s.chat.grammarRequest}</Text>
               </TouchableOpacity>
             );
           })()}
@@ -576,7 +579,7 @@ export default function ChatScreen({ route, navigation }: any) {
           })()}
         </View>
         <Text style={[styles.messageTime, isOwn ? styles.ownTime : styles.otherTime]}>
-          {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {new Date(item.timestamp).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
         </Text>
       </View>
       </TouchableOpacity>
@@ -598,14 +601,14 @@ export default function ChatScreen({ route, navigation }: any) {
       keyboardVerticalOffset={90}>
       {pinned.length>0 && (
         <TouchableOpacity onPress={()=>setPinnedOpen(!pinnedOpen)} style={{backgroundColor:'#fef3c7', padding:10, flexDirection:'row', justifyContent:'space-between', alignItems:'center', borderBottomWidth:1, borderBottomColor:'#fde68a'}}>
-          <Text style={{fontSize:13, fontWeight:'600', color:'#92400e'}}>📌 {pinned.length} pinned {pinnedOpen?'▴':'▾'}</Text>
+          <Text style={{fontSize:13, fontWeight:'600', color:'#92400e'}}>{t('chat.pinnedCount', { count: pinned.length })} {pinnedOpen?'▴':'▾'}</Text>
           <Text style={{fontSize:11, color:'#92400e', flex:1, textAlign:'right', marginLeft:8}} numberOfLines={1}>{pinned[0]?.message?.text}</Text>
         </TouchableOpacity>
       )}
       {pinnedOpen && pinned.map((p:any)=>(
         <View key={p.message.id} style={{backgroundColor:'#fef3c7', padding:8, flexDirection:'row', justifyContent:'space-between', alignItems:'center', borderBottomWidth:1, borderBottomColor:'#fde68a'}}>
           <Text style={{flex:1, fontSize:13}} numberOfLines={1}>{p.message.text}</Text>
-          <TouchableOpacity onPress={()=>{apiService.unpinMessage(chatId,p.message.id).catch(()=>{}); setPinned(prev=>prev.filter((x:any)=>x.message.id!==p.message.id))}}><Text style={{color:'#b45309', fontSize:12, marginLeft:8}}>Unpin</Text></TouchableOpacity>
+          <TouchableOpacity onPress={()=>{apiService.unpinMessage(chatId,p.message.id).catch(()=>{}); setPinned(prev=>prev.filter((x:any)=>x.message.id!==p.message.id))}}><Text style={{color:'#b45309', fontSize:12, marginLeft:8}}>{s.chat.unpin}</Text></TouchableOpacity>
         </View>
       ))}
       <FlatList
@@ -617,14 +620,14 @@ export default function ChatScreen({ route, navigation }: any) {
         contentContainerStyle={styles.messageList}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No messages yet</Text>
-            <Text style={styles.emptySubtext}>Start the conversation!</Text>
+            <Text style={styles.emptyText}>{s.chat.emptyTitle}</Text>
+            <Text style={styles.emptySubtext}>{s.chat.emptySub}</Text>
           </View>
         }
       />
       {typing && (
         <View style={styles.typingIndicator}>
-          <Text style={styles.typingText}>Someone is typing...</Text>
+          <Text style={styles.typingText}>{s.chat.typing}</Text>
         </View>
       )}
       <RealTalkNudge chatId={chatId} onSendToInput={setInputText} />
@@ -646,7 +649,7 @@ export default function ChatScreen({ route, navigation }: any) {
             accessibilityState={{ checked: translateAsType }}>
             <Text style={styles.toggleIcon}>🌐</Text>
             <Text style={[styles.toggleText, translateAsType && styles.toggleTextActive]}>
-              Translate as I type
+              {s.chat.translateToggle}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -659,18 +662,18 @@ export default function ChatScreen({ route, navigation }: any) {
         {translateAsType && inputText.trim().length > 0 && (
           <View style={styles.livePreview}>
             <Text style={styles.livePreviewLabel}>
-              ✨ Live translation to {targetLang}
+              {t('chat.livePreview', { lang: targetLang })}
             </Text>
             <Text style={styles.livePreviewText}>{inputText}</Text>
           </View>
         )}
 
-        {uploading && <View style={{padding:6, alignItems:'center'}}><ActivityIndicator size="small" color={COLOR.primary} /><Text style={{fontSize:11, color:COLOR.onSurfaceVariant}}>Uploading...</Text></View>}
+        {uploading && <View style={{padding:6, alignItems:'center'}}><ActivityIndicator size="small" color={COLOR.primary} /><Text style={{fontSize:11, color:COLOR.onSurfaceVariant}}>{s.chat.uploading}</Text></View>}
         <View style={styles.inputRow}>
-          <TouchableOpacity style={styles.iconButton} onPress={handleAttach} accessibilityLabel="Attach document">
+          <TouchableOpacity style={styles.iconButton} onPress={handleAttach} accessibilityLabel={s.chat.attachDoc}>
             <Text style={styles.iconButtonText}>📎</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={handleShareLocation} accessibilityLabel="Share location">
+          <TouchableOpacity style={styles.iconButton} onPress={handleShareLocation} accessibilityLabel={s.chat.shareLocation}>
             <Text style={styles.iconButtonText}>📍</Text>
           </TouchableOpacity>
           <TextInput
@@ -680,7 +683,7 @@ export default function ChatScreen({ route, navigation }: any) {
               setInputText(text);
               handleTyping();
             }}
-            placeholder="Type a message..."
+            placeholder={s.chat.composerPh}
             placeholderTextColor={COLOR.onSurfaceVariant}
             multiline
             maxLength={1000}
@@ -725,7 +728,7 @@ export default function ChatScreen({ route, navigation }: any) {
             <View style={styles.sheetHeader}>
               <View style={styles.sheetTitleRow}>
                 <Text style={styles.sheetTitleIcon}>✨</Text>
-                <Text style={styles.sheetTitle}>AI Deep Dive</Text>
+                <Text style={styles.sheetTitle}>{s.chat.sparkyTitle}</Text>
               </View>
               <TouchableOpacity onPress={() => setDeepDiveVisible(false)}>
                 <Text style={styles.sheetClose}>✕</Text>
@@ -737,12 +740,12 @@ export default function ChatScreen({ route, navigation }: any) {
               keyboardShouldPersistTaps="handled"
               testID="sparky-scroll">
               <View style={styles.sheetIntro}>
-                <Text style={styles.sheetIntroTitle}>Sparky's Insight</Text>
-                <Text style={styles.sheetIntroText}>Let's look at that last sentence.</Text>
+                <Text style={styles.sheetIntroTitle}>{s.chat.sparkyInsight}</Text>
+                <Text style={styles.sheetIntroText}>{s.chat.sparkyInsightSub}</Text>
               </View>
               <View style={styles.sheetTutorBubble}>
                 <Text style={styles.sheetTutorText}>
-                  Ask Sparky about any message for grammar help and practice ideas.
+                  {s.chat.sparkyIntro}
                 </Text>
               </View>
               {sparkyMessages.map((m, i) => (
@@ -754,7 +757,7 @@ export default function ChatScreen({ route, navigation }: any) {
                 sparkyJobRef.current != null &&
                 sparkyMessages.length > 0 &&
                 (sparkyMessages[sparkyMessages.length - 1] as any)?.jobId === sparkyJobRef.current
-              ) && <Text testID="sparky-loading" style={styles.typingText}>Sparky is typing…</Text>}
+              ) && <Text testID="sparky-loading" style={styles.typingText}>{s.chat.sparkyTyping}</Text>}
               {sparkyError ? <Text testID="sparky-error" style={{ color: 'red', fontSize: 12 }}>{sparkyError}</Text> : null}
             </ScrollView>
             <View style={styles.sheetInputRow}>
@@ -762,14 +765,14 @@ export default function ChatScreen({ route, navigation }: any) {
                 style={styles.sheetInput}
                 value={sparkyInput}
                 onChangeText={setSparkyInput}
-                placeholder="Ask Sparky..."
+                placeholder={s.chat.sparkyInputPh}
                 placeholderTextColor={COLOR.onSurfaceVariant}
                 multiline
                 testID="sparky-input"
               />
               <TouchableOpacity
                 testID="sparky-send"
-                accessibilityLabel="Send"
+                accessibilityLabel={s.chat.sparkySendA11y}
                 style={[styles.sheetSend, (!sparkyInput.trim() || sparkyLoading) && styles.sendButtonDisabled]}
                 disabled={!sparkyInput.trim() || sparkyLoading}
                 onPress={async () => {
@@ -811,13 +814,13 @@ export default function ChatScreen({ route, navigation }: any) {
                       const res: any = await (apiService as any).grammarLearn(contextText, lang, nativeLang, 'custom', query);
                       const content = res?.content || 'Done';
                       setSparkyMessages(prev => [...prev, { role: 'assistant', content }]);
-                    } catch (e: any) {
-                      const msg = apiErrorMessage(e, 'Failed to get answer');
-                      setSparkyError(msg);
-                      setSparkyMessages(prev => [...prev, { role: 'assistant', content: msg }]);
-                    } finally {
-                      setSparkyLoading(false);
-                    }
+                  } catch (e: any) {
+                    const msg = apiErrorMessage(e, t('chat.sparkyFailB'));
+                    setSparkyError(msg);
+                    setSparkyMessages(prev => [...prev, { role: 'assistant', content: msg }]);
+                  } finally {
+                    setSparkyLoading(false);
+                  }
                   }
                 }}>
                 <Text style={styles.sheetSendText}>➤</Text>
@@ -833,30 +836,30 @@ export default function ChatScreen({ route, navigation }: any) {
             <View style={styles.sheetHeader}>
               <View style={styles.sheetTitleRow}>
                 <Text style={styles.sheetTitleIcon}>✨</Text>
-                <Text style={styles.sheetTitle}>Grammar analysis{grammarModal?.analysis?.difficulty ? ` · ${grammarModal.analysis.difficulty}` : ''}</Text>
+                <Text style={styles.sheetTitle}>{s.chat.grammarModalTitle}{grammarModal?.analysis?.difficulty ? ` · ${grammarModal.analysis.difficulty}` : ''}</Text>
               </View>
               <TouchableOpacity onPress={()=>setGrammarModal(null)}><Text style={styles.sheetClose}>✕</Text></TouchableOpacity>
             </View>
             <View style={styles.sheetBody}>
               <Text style={styles.grammarBodyText} numberOfLines={2}>{grammarModal?.message?.text}</Text>
               {!!grammarModal?.analysis?.summary && (
-                <><Text style={styles.grammarSectionTitle}>Summary</Text><Text style={styles.grammarBodyText}>{grammarModal.analysis.summary}</Text></>
+                <><Text style={styles.grammarSectionTitle}>{s.chat.grammarSummary}</Text><Text style={styles.grammarBodyText}>{grammarModal.analysis.summary}</Text></>
               )}
               {!!grammarModal?.analysis?.sentenceStructure && (
-                <><Text style={styles.grammarSectionTitle}>Structure</Text><Text style={styles.grammarBodyText}>{grammarModal.analysis.sentenceStructure}</Text></>
+                <><Text style={styles.grammarSectionTitle}>{s.chat.grammarStructure}</Text><Text style={styles.grammarBodyText}>{grammarModal.analysis.sentenceStructure}</Text></>
               )}
               {(grammarModal?.analysis?.keyPhrases || []).length > 0 && (
-                <><Text style={styles.grammarSectionTitle}>Key phrases</Text>{grammarModal.analysis.keyPhrases.slice(0, 4).map((k: any, i: number) => (
+                <><Text style={styles.grammarSectionTitle}>{s.chat.grammarKeyPhrases}</Text>{grammarModal.analysis.keyPhrases.slice(0, 4).map((k: any, i: number) => (
                   <Text key={i} style={styles.grammarBodyText}>• {k.phrase} — {k.translation}</Text>
                 ))}</>
               )}
               {(grammarModal?.analysis?.grammarNotes || []).length > 0 && (
-                <><Text style={styles.grammarSectionTitle}>Notes</Text>{grammarModal.analysis.grammarNotes.slice(0, 3).map((n: any, i: number) => (
+                <><Text style={styles.grammarSectionTitle}>{s.chat.grammarNotes}</Text>{grammarModal.analysis.grammarNotes.slice(0, 3).map((n: any, i: number) => (
                   <Text key={i} style={styles.grammarBodyText}>• {n.title}: {n.explanation}</Text>
                 ))}</>
               )}
               {(grammarModal?.analysis?.detailedBreakdown || []).length > 0 && (
-                <><Text style={styles.grammarSectionTitle}>Breakdown</Text>{grammarModal.analysis.detailedBreakdown.slice(0, 6).map((b: any, i: number) => (
+                <><Text style={styles.grammarSectionTitle}>{s.chat.grammarBreakdown}</Text>{grammarModal.analysis.detailedBreakdown.slice(0, 6).map((b: any, i: number) => (
                   <Text key={i} style={styles.grammarBodyText}>• {b.text} — {b.translation || b.role || ''}</Text>
                 ))}</>
               )}
@@ -872,12 +875,12 @@ export default function ChatScreen({ route, navigation }: any) {
           <View style={styles.sheet}>
             <View style={styles.sheetHandle} />
             <Text style={{fontSize:13, color:COLOR.onSurfaceVariant, marginBottom:8}} numberOfLines={2}>{actionMsg?.text}</Text>
-            <TouchableOpacity style={styles.actionRow} onPress={()=>{setReplyTo(actionMsg); setActionMsg(null)}}><Text style={styles.actionText}>↩ Reply</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.actionRow} onPress={async()=>{ if(!actionMsg) return; const c=actionMsg; setActionMsg(null); try{ const chats=await apiService.getChats(); setForwardChats(chats.filter((x:any)=>x.id!==chatId)); setForwardMsg(c)}catch{}}}><Text style={styles.actionText}>↪ Forward</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.actionRow} onPress={async()=>{ if(!actionMsg) return; const m=actionMsg; const isPinned=pinned.some((p:any)=>p.message.id===m.id); setActionMsg(null); try{ if(isPinned) await apiService.unpinMessage(chatId,m.id); else await apiService.pinMessage(chatId,m.id); const p=await apiService.getPinnedMessages(chatId); setPinned(p)}catch{}}}><Text style={styles.actionText}>📌 {actionMsg && pinned.some((p:any)=>p.message.id===actionMsg.id) ? 'Unpin' : 'Pin'}</Text></TouchableOpacity>
-            {actionMsg?.senderId===currentUser?.id && <TouchableOpacity style={styles.actionRow} onPress={async()=>{ if(!actionMsg) return; const id=actionMsg.id; setActionMsg(null); try{ await apiService.deleteMessage(chatId,id); setMessages(prev=>prev.filter(m=>m.id!==id))}catch{}}}><Text style={[styles.actionText,{color:'red'}]}>🗑 Delete</Text></TouchableOpacity>}
-            {actionMsg && actionMsg.senderId !== currentUser?.id && <TouchableOpacity style={styles.actionRow} onPress={()=>{ const m=actionMsg; setActionMsg(null); if(m) openReport({ type:'message', messageId: m.id, chatId, userId: m.senderId }) }}><Text style={styles.actionText}>🚩 Report message</Text></TouchableOpacity>}
-            <TouchableOpacity style={[styles.actionRow,{marginTop:8}]} onPress={()=>setActionMsg(null)}><Text style={[styles.actionText,{textAlign:'center', color:COLOR.onSurfaceVariant}]}>Cancel</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.actionRow} onPress={()=>{setReplyTo(actionMsg); setActionMsg(null)}}><Text style={styles.actionText}>{s.chat.reply}</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.actionRow} onPress={async()=>{ if(!actionMsg) return; const c=actionMsg; setActionMsg(null); try{ const chats=await apiService.getChats(); setForwardChats(chats.filter((x:any)=>x.id!==chatId)); setForwardMsg(c)}catch{}}}><Text style={styles.actionText}>{s.chat.forward}</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.actionRow} onPress={async()=>{ if(!actionMsg) return; const m=actionMsg; const isPinned=pinned.some((p:any)=>p.message.id===m.id); setActionMsg(null); try{ if(isPinned) await apiService.unpinMessage(chatId,m.id); else await apiService.pinMessage(chatId,m.id); const p=await apiService.getPinnedMessages(chatId); setPinned(p)}catch{}}}><Text style={styles.actionText}>📌 {actionMsg && pinned.some((p:any)=>p.message.id===actionMsg.id) ? s.chat.unpinAction : s.chat.pin}</Text></TouchableOpacity>
+            {actionMsg?.senderId===currentUser?.id && <TouchableOpacity style={styles.actionRow} onPress={async()=>{ if(!actionMsg) return; const id=actionMsg.id; setActionMsg(null); try{ await apiService.deleteMessage(chatId,id); setMessages(prev=>prev.filter(m=>m.id!==id))}catch{}}}><Text style={[styles.actionText,{color:'red'}]}>{s.chat.delete}</Text></TouchableOpacity>}
+            {actionMsg && actionMsg.senderId !== currentUser?.id && <TouchableOpacity style={styles.actionRow} onPress={()=>{ const m=actionMsg; setActionMsg(null); if(m) openReport({ type:'message', messageId: m.id, chatId, userId: m.senderId }) }}><Text style={styles.actionText}>{s.chat.reportMsg}</Text></TouchableOpacity>}
+            <TouchableOpacity style={[styles.actionRow,{marginTop:8}]} onPress={()=>setActionMsg(null)}><Text style={[styles.actionText,{textAlign:'center', color:COLOR.onSurfaceVariant}]}>{s.chat.cancelAction}</Text></TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -885,13 +888,16 @@ export default function ChatScreen({ route, navigation }: any) {
         <View style={styles.sheetOverlay}><TouchableOpacity style={styles.sheetBackdrop} activeOpacity={1} onPress={()=>setReportVisible(false)} />
           <View style={styles.sheet}>
             <View style={styles.sheetHandle} />
-            <View style={styles.sheetHeader}><Text style={styles.sheetTitle}>{reportTarget?.type === 'message' ? 'Report message' : 'Report user'}</Text><TouchableOpacity onPress={()=>setReportVisible(false)}><Text style={styles.sheetClose}>✕</Text></TouchableOpacity></View>
-            {(['spam','harassment','inappropriate','scam','other'] as const).map(r=>(
-              <TouchableOpacity key={r} style={[styles.actionRow, reportReason===r && {backgroundColor: COLOR.primaryContainer}]} onPress={()=>setReportReason(r)}>
-                <Text style={[styles.actionText, reportReason===r && {color: COLOR.onPrimaryContainer, fontWeight:'700'}]}>{r}</Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity style={[styles.actionRow,{backgroundColor: COLOR.error, borderRadius:8, marginTop:8, justifyContent:'center'}]} onPress={submitReport}><Text style={[styles.actionText,{color:'#fff', textAlign:'center'}]}>Submit report</Text></TouchableOpacity>
+            <View style={styles.sheetHeader}><Text style={styles.sheetTitle}>{reportTarget?.type === 'message' ? s.chat.reportTitleMsg : s.chat.reportTitleUser}</Text><TouchableOpacity onPress={()=>setReportVisible(false)}><Text style={styles.sheetClose}>✕</Text></TouchableOpacity></View>
+            {(['spam','harassment','inappropriate','scam','other'] as const).map(r=>{
+              const label = { spam: s.chat.reasonSpam, harassment: s.chat.reasonHarassment, inappropriate: s.chat.reasonInappropriate, scam: s.chat.reasonScam, other: s.chat.reasonOther }[r];
+              return (
+                <TouchableOpacity key={r} style={[styles.actionRow, reportReason===r && {backgroundColor: COLOR.primaryContainer}]} onPress={()=>setReportReason(r)}>
+                  <Text style={[styles.actionText, reportReason===r && {color: COLOR.onPrimaryContainer, fontWeight:'700'}]}>{label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+            <TouchableOpacity style={[styles.actionRow,{backgroundColor: COLOR.error, borderRadius:8, marginTop:8, justifyContent:'center'}]} onPress={submitReport}><Text style={[styles.actionText,{color:'#fff', textAlign:'center'}]}>{s.chat.submitReport}</Text></TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -899,9 +905,9 @@ export default function ChatScreen({ route, navigation }: any) {
         <View style={styles.sheetOverlay}><TouchableOpacity style={styles.sheetBackdrop} activeOpacity={1} onPress={()=>setForwardMsg(null)} />
           <View style={[styles.sheet,{maxHeight:'70%'}]}>
             <View style={styles.sheetHandle} />
-            <View style={styles.sheetHeader}><Text style={styles.sheetTitle}>Forward to</Text><TouchableOpacity onPress={()=>setForwardMsg(null)}><Text style={styles.sheetClose}>✕</Text></TouchableOpacity></View>
+            <View style={styles.sheetHeader}><Text style={styles.sheetTitle}>{s.chat.forwardTo}</Text><TouchableOpacity onPress={()=>setForwardMsg(null)}><Text style={styles.sheetClose}>✕</Text></TouchableOpacity></View>
             <Text style={{fontSize:12, color:COLOR.onSurfaceVariant, marginBottom:8}} numberOfLines={2}>"{forwardMsg?.text.slice(0,80)}"</Text>
-            {forwardChats.length===0 ? <Text style={{textAlign:'center', color:COLOR.onSurfaceVariant, padding:20}}>No other chats</Text> : forwardChats.map((c:any)=>{ const name=c.type==='group'?(c.name||'Group'):(c.participants?.find((p:any)=>p.user)?.user?.displayName||'Chat'); return <TouchableOpacity key={c.id} style={styles.actionRow} onPress={async()=>{ if(!forwardMsg) return; try{ await apiService.forwardMessage(chatId, forwardMsg.id, c.id); setForwardMsg(null)}catch{}}}><Text style={styles.actionText}>{name}</Text></TouchableOpacity>})}
+            {forwardChats.length===0 ? <Text style={{textAlign:'center', color:COLOR.onSurfaceVariant, padding:20}}>{s.chat.noOtherChats}</Text> : forwardChats.map((c:any)=>{ const name=c.type==='group'?(c.name||s.chat.groupFallback):(c.participants?.find((p:any)=>p.user)?.user?.displayName||s.chat.chatFallback); return <TouchableOpacity key={c.id} style={styles.actionRow} onPress={async()=>{ if(!forwardMsg) return; try{ await apiService.forwardMessage(chatId, forwardMsg.id, c.id); setForwardMsg(null)}catch{}}}><Text style={styles.actionText}>{name}</Text></TouchableOpacity>})}
           </View>
         </View>
       </Modal>

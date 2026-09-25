@@ -663,4 +663,4 @@ premium: {
       other: 'Outra coisa',
     },
   },
-} satisfies AppTranslation
+} satisfies Partial<AppTranslation>

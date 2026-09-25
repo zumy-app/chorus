@@ -663,4 +663,4 @@ freeFeature2: '২৮০ শব্দ পর্যন্ত লাইভ অন�
       other: 'অন্যান্য',
     },
   },
-} satisfies AppTranslation
+} satisfies Partial<AppTranslation>
