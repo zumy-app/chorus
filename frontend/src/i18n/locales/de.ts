@@ -664,4 +664,4 @@ export const de = {
       other: 'Sonstiges',
     },
   },
-} satisfies AppTranslation
+} satisfies Partial<AppTranslation>

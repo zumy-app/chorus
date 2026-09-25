@@ -663,4 +663,4 @@ premium: {
       other: 'شيء آخر',
     },
   },
-} satisfies AppTranslation
+} satisfies Partial<AppTranslation>

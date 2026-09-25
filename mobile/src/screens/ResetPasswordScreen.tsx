@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import apiService from '../services/api';
+import { useStrings, t } from '../i18n';
 import AuthLayout from '../components/AuthLayout';
 import { COLOR, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../theme';
 
@@ -18,6 +19,7 @@ interface ResetPasswordScreenProps {
 }
 
 export default function ResetPasswordScreen({ navigation, route }: ResetPasswordScreenProps) {
+  const s = useStrings();
   const token = route?.params?.token || '';
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -25,40 +27,40 @@ export default function ResetPasswordScreen({ navigation, route }: ResetPassword
 
   const handleSubmit = async () => {
     if (!token) {
-      Alert.alert('Invalid link', 'This reset link is missing its token.');
+      Alert.alert(t('auth.invalidLinkT'), t('auth.invalidLinkB'));
       return;
     }
     if (password.length < 8) {
-      Alert.alert('Error', 'Password must be at least 8 characters');
+      Alert.alert(t('common.error'), t('auth.shortPwB'));
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      Alert.alert(t('common.error'), t('auth.pwMismatchB'));
       return;
     }
     setLoading(true);
     try {
       const response = await apiService.resetPassword(token, password);
-      Alert.alert('Password reset', response.message, [
-        { text: 'OK', onPress: () => navigation.replace('Login') },
+      Alert.alert(t('auth.resetDoneT'), response.message, [
+        { text: t('common.ok'), onPress: () => navigation.replace('Login') },
       ]);
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.error || 'This reset link is invalid or has expired.');
+      Alert.alert(t('common.error'), error.response?.data?.error || t('auth.resetExpiredB'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <AuthLayout tagline="Choose a new password for your account.">
+    <AuthLayout tagline={s.auth.resetTagline}>
       <View style={styles.card}>
         <View style={styles.field}>
-          <Text style={styles.label}>New password</Text>
+          <Text style={styles.label}>{s.auth.newPw}</Text>
           <View style={styles.inputWrap}>
             <Text style={styles.inputIcon}>🔒</Text>
             <TextInput
               style={styles.input}
-              placeholder="At least 8 characters"
+              placeholder={s.auth.passwordPhMin}
               placeholderTextColor={COLOR.outlineVariant}
               value={password}
               onChangeText={setPassword}
@@ -70,12 +72,12 @@ export default function ResetPasswordScreen({ navigation, route }: ResetPassword
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>Confirm password</Text>
+          <Text style={styles.label}>{s.auth.confirmPw}</Text>
           <View style={styles.inputWrap}>
             <Text style={styles.inputIcon}>🔒</Text>
             <TextInput
               style={styles.input}
-              placeholder="Re-enter your new password"
+              placeholder={s.auth.confirmPwPh}
               placeholderTextColor={COLOR.outlineVariant}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
@@ -92,12 +94,12 @@ export default function ResetPasswordScreen({ navigation, route }: ResetPassword
           {loading ? (
             <ActivityIndicator color={COLOR.onPrimaryContainer} />
           ) : (
-            <Text style={styles.buttonText}>Reset password</Text>
+            <Text style={styles.buttonText}>{s.auth.resetBtn}</Text>
           )}
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.backLink} onPress={() => navigation.replace('Login')}>
-          <Text style={styles.backLinkText}>← Back to login</Text>
+          <Text style={styles.backLinkText}>{s.auth.backToLogin}</Text>
         </TouchableOpacity>
       </View>
     </AuthLayout>
