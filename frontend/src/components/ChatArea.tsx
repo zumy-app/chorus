@@ -20,6 +20,12 @@ export default function ChatArea() {
   const { t } = useTranslation()
   const { activeChat, messages, user, chats, entitlements, sendMessage, sendAttachment, sendLocation, deleteMessage, forwardMessage, pinMessage, unpinMessage, typingUsers, presence, fetchPresence } = useStore()
   const { enabled: callsEnabled } = useFeatureFlag('video_calls')
+  // Release-gated composer attachments (fail-closed: hidden until flags load).
+  const { enabled: mediaEnabled } = useFeatureFlag('media_sharing')
+  const { enabled: docsEnabled } = useFeatureFlag('document_sharing')
+  const attachmentsEnabled = mediaEnabled || docsEnabled
+  const { enabled: locationEnabled } = useFeatureFlag('location_sharing')
+  const { enabled: voiceEnabled } = useFeatureFlag('voice_message')
   const [inputText, setInputText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [showLangSettings, setShowLangSettings] = useState(false)
@@ -642,26 +648,30 @@ export default function ChatArea() {
 
         <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.md,.odt,.ods,.odp,.rtf,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleAttachment} className="hidden" data-testid="document-input" />
         <form onSubmit={handleSend} className="flex items-end gap-2">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            title={t('chat.attachDocument', { defaultValue: 'Attach document' })}
-            aria-label={t('chat.attachDocument', { defaultValue: 'Attach document' })}
-            className="w-10 h-10 flex items-center justify-center text-primary hover:bg-surface-variant/20 rounded-full transition active:scale-95 shrink-0"
-          >
-            <span className="material-symbols-outlined text-[22px]">attach_file</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleShareLocation}
-            disabled={locating}
-            title="Share location"
-            aria-label="Share location"
-            data-testid="location-button"
-            className="w-10 h-10 flex items-center justify-center text-primary hover:bg-surface-variant/20 rounded-full transition active:scale-95 shrink-0 disabled:opacity-40"
-          >
-            <span className="material-symbols-outlined text-[22px]">{locating ? 'progress_activity' : 'location_on'}</span>
-          </button>
+          {attachmentsEnabled && (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              title={t('chat.attachDocument', { defaultValue: 'Attach document' })}
+              aria-label={t('chat.attachDocument', { defaultValue: 'Attach document' })}
+              className="w-10 h-10 flex items-center justify-center text-primary hover:bg-surface-variant/20 rounded-full transition active:scale-95 shrink-0"
+            >
+              <span className="material-symbols-outlined text-[22px]">attach_file</span>
+            </button>
+          )}
+          {locationEnabled && (
+            <button
+              type="button"
+              onClick={handleShareLocation}
+              disabled={locating}
+              title="Share location"
+              aria-label="Share location"
+              data-testid="location-button"
+              className="w-10 h-10 flex items-center justify-center text-primary hover:bg-surface-variant/20 rounded-full transition active:scale-95 shrink-0 disabled:opacity-40"
+            >
+              <span className="material-symbols-outlined text-[22px]">{locating ? 'progress_activity' : 'location_on'}</span>
+            </button>
+          )}
           <div className="relative shrink-0">
             <button
               type="button"
@@ -696,13 +706,15 @@ export default function ChatArea() {
               }
             }}
           />
-          <button
-            type="button"
-            title={t('chat.settings')}
-            className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-surface-variant/20 rounded-full transition active:scale-95 shrink-0"
-          >
-            <span className="material-symbols-outlined text-[22px]">mic</span>
-          </button>
+          {voiceEnabled && (
+            <button
+              type="button"
+              title={t('chat.settings')}
+              className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-surface-variant/20 rounded-full transition active:scale-95 shrink-0"
+            >
+              <span className="material-symbols-outlined text-[22px]">mic</span>
+            </button>
+          )}
           <button
             type="submit"
             disabled={!inputText.trim() || isOverLimit}

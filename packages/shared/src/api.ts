@@ -21,6 +21,7 @@ import type {
   CurriculumStep,
   EmailOutboxEntry,
   Entitlements,
+  FeatureFlagDefinition,
   GrammarJob,
   GrantPlanRequest,
   LearningDashboard,
@@ -367,6 +368,46 @@ export function createApiClient(options: ApiClientOptions) {
     setUserRole: async (id: string, role: string) => {
       const response = await client.put<{ user: User }>(`/admin/users/${id}/role`, { role })
       return response.data
+    },
+
+    listFlags: async () => {
+      const response = await client.get<{ flags: FeatureFlagDefinition[] }>(
+        '/admin/features'
+      )
+      return response.data.flags
+    },
+
+    updateFlagTiers: async (
+      key: string,
+      tiers: { adminOnly: boolean; betaAccess: boolean; stable: boolean }
+    ) => {
+      const response = await client.put<{ ok: boolean }>(
+        `/admin/features/${key}/tiers`,
+        tiers
+      )
+      return response.data
+    },
+
+    setFlagOverride: async (key: string, userId: string, enabled: boolean) => {
+      const response = await client.post<{ ok: boolean }>(
+        `/admin/features/${key}/overrides/${userId}`,
+        { enabled }
+      )
+      return response.data
+    },
+
+    deleteFlagOverride: async (key: string, userId: string) => {
+      const response = await client.delete<{ ok: boolean }>(
+        `/admin/features/${key}/overrides/${userId}`
+      )
+      return response.data
+    },
+
+    previewUserFlags: async (userId: string) => {
+      const response = await client.get<{ flags: Record<string, boolean> }>(
+        `/admin/features/preview/${userId}`
+      )
+      return response.data.flags
     },
 
     suspendUser: async (id: string) => {

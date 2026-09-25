@@ -7,6 +7,7 @@ import { detectBrowserLanguage, getNativeLanguageName } from '../services/langua
 import AuthShell from '../components/AuthShell'
 import DevAccountSwitcher from '../components/DevAccountSwitcher'
 import { apiErrorMessage } from '@chorus/shared'
+import { useFeatureFlag } from '../hooks/useFeatureFlag'
 
 interface LoginProps {
   onLogin: (tokens: { accessToken: string; refreshToken: string }) => void
@@ -14,6 +15,8 @@ interface LoginProps {
 
 export default function Login({ onLogin }: LoginProps) {
   const { t } = useTranslation()
+  // OAuth buttons are dead until implemented; hidden unless flagged on.
+  const { enabled: oauthEnabled } = useFeatureFlag('google_oauth')
   // Local-dev convenience: prefill the test account when VITE_TEST_USER_* are
   // present in frontend/.env. Falls back to empty fields otherwise.
   const testEmail = import.meta.env.VITE_TEST_USER_EMAIL as string | undefined
@@ -177,13 +180,16 @@ export default function Login({ onLogin }: LoginProps) {
           )}
 
           {/* Divider */}
+          {oauthEnabled && (
           <div className="flex items-center gap-4 my-6">
             <div className="h-px bg-outline-variant/50 flex-grow" />
             <span className="font-label-sm text-label-sm text-outline">{t('auth.orContinueWith')}</span>
             <div className="h-px bg-outline-variant/50 flex-grow" />
           </div>
+          )}
 
-          {/* Social logins */}
+          {/* Social logins (release-gated; hidden until OAuth ships) */}
+          {oauthEnabled && (
           <div className="flex flex-col gap-3">
             <button className="w-full bg-surface border border-outline-variant/50 text-on-surface font-label-md text-label-md py-3.5 rounded-xl flex items-center justify-center gap-3 hover:bg-surface-container-low transition-colors active:scale-[0.98] duration-150 shadow-sm">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -199,6 +205,7 @@ export default function Login({ onLogin }: LoginProps) {
               <span>Apple</span>
             </button>
           </div>
+          )}
         </div>
     </AuthShell>
   )

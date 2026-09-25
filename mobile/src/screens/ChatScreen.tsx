@@ -53,6 +53,11 @@ export default function ChatScreen({ route, navigation }: any) {
   const [reportReason, setReportReason] = useState('spam');
   const [isBlocked, setIsBlocked] = useState(false);
   const [callsEnabled, setCallsEnabled] = useState(featureFlags.isEnabled('video_calls'));
+  // Release-gated composer attachments (fail-closed: hidden until flags load).
+  const [mediaEnabled, setMediaEnabled] = useState(featureFlags.isEnabled('media_sharing'));
+  const [docsEnabled, setDocsEnabled] = useState(featureFlags.isEnabled('document_sharing'));
+  const [locationEnabled, setLocationEnabled] = useState(featureFlags.isEnabled('location_sharing'));
+  const [voiceEnabled, setVoiceEnabled] = useState(featureFlags.isEnabled('voice_message'));
   // Async grammar analysis jobs keyed by messageId. The backend fans out one
   // job per learner per message; results arrive as "grammar_analysis" WS
   // events (or via GET /grammar/analyze/:jobId on resync).
@@ -267,7 +272,12 @@ export default function ChatScreen({ route, navigation }: any) {
   useEffect(() => {
     let mounted = true;
     featureFlags.init().then(() => {
-      if (mounted) setCallsEnabled(featureFlags.isEnabled('video_calls'));
+      if (!mounted) return;
+      setCallsEnabled(featureFlags.isEnabled('video_calls'));
+      setMediaEnabled(featureFlags.isEnabled('media_sharing'));
+      setDocsEnabled(featureFlags.isEnabled('document_sharing'));
+      setLocationEnabled(featureFlags.isEnabled('location_sharing'));
+      setVoiceEnabled(featureFlags.isEnabled('voice_message'));
     });
     apiService.getChat(chatId).then(c => {
       if (!mounted) return;
@@ -670,12 +680,16 @@ export default function ChatScreen({ route, navigation }: any) {
 
         {uploading && <View style={{padding:6, alignItems:'center'}}><ActivityIndicator size="small" color={COLOR.primary} /><Text style={{fontSize:11, color:COLOR.onSurfaceVariant}}>{s.chat.uploading}</Text></View>}
         <View style={styles.inputRow}>
-          <TouchableOpacity style={styles.iconButton} onPress={handleAttach} accessibilityLabel={s.chat.attachDoc}>
-            <Text style={styles.iconButtonText}>📎</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={handleShareLocation} accessibilityLabel={s.chat.shareLocation}>
-            <Text style={styles.iconButtonText}>📍</Text>
-          </TouchableOpacity>
+          {(mediaEnabled || docsEnabled) && (
+            <TouchableOpacity style={styles.iconButton} onPress={handleAttach} accessibilityLabel={s.chat.attachDoc}>
+              <Text style={styles.iconButtonText}>📎</Text>
+            </TouchableOpacity>
+          )}
+          {locationEnabled && (
+            <TouchableOpacity style={styles.iconButton} onPress={handleShareLocation} accessibilityLabel={s.chat.shareLocation}>
+              <Text style={styles.iconButtonText}>📍</Text>
+            </TouchableOpacity>
+          )}
           <TextInput
             style={styles.input}
             value={inputText}
@@ -688,9 +702,11 @@ export default function ChatScreen({ route, navigation }: any) {
             multiline
             maxLength={1000}
           />
-          <TouchableOpacity style={styles.iconButton}>
-            <Text style={styles.iconButtonText}>🎙</Text>
-          </TouchableOpacity>
+          {voiceEnabled && (
+            <TouchableOpacity style={styles.iconButton}>
+              <Text style={styles.iconButtonText}>🎙</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
             onPress={handleSend}
