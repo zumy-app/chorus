@@ -903,6 +903,31 @@ PORT=8080
 VITE_API_URL=/api/v1  # Or http://api.example.com/api/v1
 ```
 
+### Mail Server Isolation (NFR-22)
+
+Prod mail (Mailu) **must not share the same host/network namespace** as the app
+servers. The mail stack is a **separate deployment** from
+`deploy/mail/docker-compose.mail.yml`, run on its own host (or an isolated
+Docker network), and is **not** a service in `docker-compose.prod.yml`.
+
+- The backend reaches Mailu on **587** (SMTP submission / STARTTLS) only. Port
+  `25` is blocked from the public for a relay-only mailbox; webmail/IMAP and
+  implicit-TLS `465` are not open to the app subnet.
+- Mailu lives on an isolated `mailu` bridge network; it never joins
+  `chorus-network`.
+- SMTP credentials are **server-side env vars only** (`MAILU_SMTP_*`), injected
+  from Dokploy secrets, and never prefixed `VITE_` (which would bundle them into
+  the browser). `MAILU_SMTP_PASSWORD` is rotated — prior value is in repo
+  history.
+- Sending domain authentication uses SPF + DKIM + DMARC (per Issue #3).
+- A release-gate policy check `bash deploy/mail/verify-isolation.sh` enforces the
+  above: it blocks promotion if Mailu is co-located, a mail port is published on
+  the app network, a `VITE_*` SMTP secret exists, or a real password is
+  committed.
+
+See `deploy/mail/README.md` for the isolation topology, host firewall rules, and
+SPF/DKIM/DMARC DNS records.
+
 ---
 
 ## Performance Considerations

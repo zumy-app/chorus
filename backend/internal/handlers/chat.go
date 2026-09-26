@@ -1,16 +1,20 @@
 package handlers
 
 import (
+	"context"
+
+	"github.com/chorus/messenger/internal/middleware"
 	"github.com/chorus/messenger/internal/models"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/gin-gonic/gin"
 )
 
 type ChatHandler struct {
-	chatService *services.ChatService
-	userService *services.UserService
-	moderation  *services.ModerationService
-	wsHub       *services.WebSocketHub
+	chatService    *services.ChatService
+	userService    *services.UserService
+	moderation     *services.ModerationService
+	privacyService *services.PrivacyService
+	wsHub          *services.WebSocketHub
 }
 
 func NewChatHandler(chatService *services.ChatService, userService *services.UserService, moderation *services.ModerationService, wsHub *services.WebSocketHub) *ChatHandler {
@@ -22,12 +26,45 @@ func NewChatHandler(chatService *services.ChatService, userService *services.Use
 	}
 }
 
+func (h *ChatHandler) SetPrivacyService(p *services.PrivacyService) { h.privacyService = p }
+
+// hydrateParticipants hydrates each participant's profile (via GetMultiple) and
+// stamps viewer-relative block status so the chat surfaces render
+// Block/Unblock everywhere a user appears (task 7.1).
+func (h *ChatHandler) hydrateParticipants(ctx context.Context, viewerID string, participants []models.ChatParticipant) {
+	userIDs := make([]string, 0, len(participants))
+	for _, p := range participants {
+		if p.UserID != "" {
+			userIDs = append(userIDs, p.UserID)
+		}
+	}
+	users, err := h.userService.GetMultiple(userIDs)
+	if err != nil {
+		return
+	}
+	enriched := make([]*models.User, 0, len(users))
+	for i := range participants {
+		if user, ok := users[participants[i].UserID]; ok {
+			participants[i].User = user
+			enriched = append(enriched, user)
+		}
+	}
+	if h.moderation != nil && len(enriched) > 0 {
+		_ = h.moderation.EnrichUsers(ctx, viewerID, enriched)
+	}
+	if h.privacyService != nil {
+		for _, u := range enriched {
+			h.privacyService.FilterUser(viewerID, u)
+		}
+	}
+}
+
 func (h *ChatHandler) GetUserChats(c *gin.Context) {
 	userID := c.GetString("userID")
 
 	chats, err := h.chatService.GetUserChats(userID)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to fetch chats"})
+		WriteError(c, middleware.ErrInternal("Failed to fetch chats"))
 		return
 	}
 
@@ -50,9 +87,19 @@ func (h *ChatHandler) GetUserChats(c *gin.Context) {
 		}
 
 		// Attach user details to participants
+		enriched := make([]*models.User, 0, len(participants))
 		for j := range participants {
 			if user, ok := users[participants[j].UserID]; ok {
 				participants[j].User = user
+				enriched = append(enriched, user)
+			}
+		}
+		if h.moderation != nil && len(enriched) > 0 {
+			_ = h.moderation.EnrichUsers(c.Request.Context(), userID, enriched)
+		}
+		if h.privacyService != nil {
+			for _, u := range enriched {
+				h.privacyService.FilterUser(userID, u)
 			}
 		}
 
@@ -71,7 +118,7 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 
 	var req models.CreateChatRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": "Invalid request: " + err.Error()})
+		WriteError(c, middleware.ErrValidation("Invalid request"))
 		return
 	}
 
@@ -83,11 +130,11 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 			}
 			blocked, err := h.moderation.IsBlocked(c.Request.Context(), userID, p)
 			if err != nil {
-				c.JSON(500, gin.H{"error": "Failed to check blocked users"})
+				WriteError(c, middleware.ErrInternal("Failed to check blocked users"))
 				return
 			}
 			if blocked {
-				c.JSON(403, gin.H{"error": "You cannot start a chat with this user"})
+				WriteError(c, middleware.ErrForbidden("You cannot start a chat with this user"))
 				return
 			}
 		}
@@ -95,7 +142,7 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 
 	chat, err := h.chatService.Create(userID, req)
 	if err != nil {
-		c.JSON(400, gin.H{"error": "Failed to create chat: " + err.Error()})
+		WriteError(c, middleware.ErrValidation("Failed to create chat"))
 		return
 	}
 
@@ -106,9 +153,19 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 		userIDs[i] = p.UserID
 	}
 	users, _ := h.userService.GetMultiple(userIDs)
+	enriched := make([]*models.User, 0, len(participants))
 	for i := range participants {
 		if user, ok := users[participants[i].UserID]; ok {
 			participants[i].User = user
+			enriched = append(enriched, user)
+		}
+	}
+	if h.moderation != nil && len(enriched) > 0 {
+		_ = h.moderation.EnrichUsers(c.Request.Context(), userID, enriched)
+	}
+	if h.privacyService != nil {
+		for _, u := range enriched {
+			h.privacyService.FilterUser(userID, u)
 		}
 	}
 	chat.Participants = participants
@@ -127,13 +184,13 @@ func (h *ChatHandler) GetChat(c *gin.Context) {
 	// Check if user is a participant
 	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
 	if err != nil || !isParticipant {
-		c.JSON(403, gin.H{"error": "Access denied"})
+		WriteError(c, middleware.ErrForbidden("Access denied"))
 		return
 	}
 
 	chat, err := h.chatService.GetByID(chatID)
 	if err != nil {
-		c.JSON(404, gin.H{"error": "Chat not found"})
+		WriteError(c, middleware.ErrNotFound("Chat not found"))
 		return
 	}
 
@@ -144,9 +201,19 @@ func (h *ChatHandler) GetChat(c *gin.Context) {
 		userIDs[i] = p.UserID
 	}
 	users, _ := h.userService.GetMultiple(userIDs)
+	enriched := make([]*models.User, 0, len(participants))
 	for i := range participants {
 		if user, ok := users[participants[i].UserID]; ok {
 			participants[i].User = user
+			enriched = append(enriched, user)
+		}
+	}
+	if h.moderation != nil && len(enriched) > 0 {
+		_ = h.moderation.EnrichUsers(c.Request.Context(), userID, enriched)
+	}
+	if h.privacyService != nil {
+		for _, u := range enriched {
+			h.privacyService.FilterUser(userID, u)
 		}
 	}
 	chat.Participants = participants
@@ -161,7 +228,7 @@ func (h *ChatHandler) UpdateChat(c *gin.Context) {
 	// Check if user is a participant
 	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
 	if err != nil || !isParticipant {
-		c.JSON(403, gin.H{"error": "Access denied"})
+		WriteError(c, middleware.ErrForbidden("Access denied"))
 		return
 	}
 
@@ -171,7 +238,7 @@ func (h *ChatHandler) UpdateChat(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": "Invalid request"})
+		WriteError(c, middleware.ErrValidation("Invalid request"))
 		return
 	}
 
@@ -182,7 +249,7 @@ func (h *ChatHandler) UpdateChat(c *gin.Context) {
 
 	chat, err := h.chatService.UpdateChat(chatID, name, req.Settings)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to update chat"})
+		WriteError(c, middleware.ErrInternal("Failed to update chat"))
 		return
 	}
 
@@ -196,7 +263,7 @@ func (h *ChatHandler) AddParticipant(c *gin.Context) {
 	// Check if user is a participant
 	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
 	if err != nil || !isParticipant {
-		c.JSON(403, gin.H{"error": "Access denied"})
+		WriteError(c, middleware.ErrForbidden("Access denied"))
 		return
 	}
 
@@ -205,7 +272,7 @@ func (h *ChatHandler) AddParticipant(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": "Invalid request"})
+		WriteError(c, middleware.ErrValidation("Invalid request"))
 		return
 	}
 
@@ -214,7 +281,7 @@ func (h *ChatHandler) AddParticipant(c *gin.Context) {
 	if h.moderation != nil {
 		participants, err := h.chatService.GetParticipants(chatID)
 		if err != nil {
-			c.JSON(500, gin.H{"error": "Failed to load participants"})
+			WriteError(c, middleware.ErrInternal("Failed to load participants"))
 			return
 		}
 		others := []string{userID}
@@ -224,18 +291,18 @@ func (h *ChatHandler) AddParticipant(c *gin.Context) {
 		for _, other := range others {
 			blocked, err := h.moderation.IsBlocked(c.Request.Context(), req.UserID, other)
 			if err != nil {
-				c.JSON(500, gin.H{"error": "Failed to check blocked users"})
+				WriteError(c, middleware.ErrInternal("Failed to check blocked users"))
 				return
 			}
 			if blocked {
-				c.JSON(403, gin.H{"error": "You cannot add this user"})
+				WriteError(c, middleware.ErrForbidden("You cannot add this user"))
 				return
 			}
 		}
 	}
 
 	if err := h.chatService.AddParticipant(chatID, req.UserID, "member"); err != nil {
-		c.JSON(400, gin.H{"error": "Failed to add participant"})
+		WriteError(c, middleware.ErrValidation("Failed to add participant"))
 		return
 	}
 
@@ -250,12 +317,12 @@ func (h *ChatHandler) RemoveParticipant(c *gin.Context) {
 	// Check if user is a participant
 	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
 	if err != nil || !isParticipant {
-		c.JSON(403, gin.H{"error": "Access denied"})
+		WriteError(c, middleware.ErrForbidden("Access denied"))
 		return
 	}
 
 	if err := h.chatService.RemoveParticipant(chatID, targetUserID); err != nil {
-		c.JSON(400, gin.H{"error": "Failed to remove participant"})
+		WriteError(c, middleware.ErrValidation("Failed to remove participant"))
 		return
 	}
 
@@ -267,9 +334,167 @@ func (h *ChatHandler) LeaveChat(c *gin.Context) {
 	chatID := c.Param("chatId")
 
 	if err := h.chatService.RemoveParticipant(chatID, userID); err != nil {
-		c.JSON(400, gin.H{"error": "Failed to leave chat"})
+		WriteError(c, middleware.ErrValidation("Failed to leave chat"))
 		return
 	}
 
 	c.JSON(204, nil)
+}
+
+// ---------------------------------------------------------------------------
+// Archive & mute (task 6.4): per-user, per-chat conversation preferences.
+// ---------------------------------------------------------------------------
+
+// ArchiveChat archives (or, with archived=false, unarchives) a conversation for
+// the calling user. The caller must be a participant. The preference is
+// strictly user-scoped, so no co-participants are notified.
+func (h *ChatHandler) ArchiveChat(c *gin.Context) {
+	userID := c.GetString("userID")
+	chatID := c.Param("chatId")
+
+	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
+	if err != nil || !isParticipant {
+		WriteError(c, middleware.ErrForbidden("Access denied"))
+		return
+	}
+
+	var req models.ArchiveChatRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		WriteError(c, middleware.ErrValidation("Invalid request"))
+		return
+	}
+
+	// Default to archiving when the flag is omitted.
+	archived := true
+	if req.Archived != nil {
+		archived = *req.Archived
+	}
+
+	pref, err := h.chatService.ArchiveChat(c.Request.Context(), userID, chatID, archived)
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to update archive state"))
+		return
+	}
+
+	h.wsHub.SendToUser(userID, "chat_preferences_updated", pref)
+
+	c.JSON(200, pref)
+}
+
+// UnarchiveChat unarchives a conversation for the calling user (task 6.4).
+func (h *ChatHandler) UnarchiveChat(c *gin.Context) {
+	userID := c.GetString("userID")
+	chatID := c.Param("chatId")
+
+	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
+	if err != nil || !isParticipant {
+		WriteError(c, middleware.ErrForbidden("Access denied"))
+		return
+	}
+
+	pref, err := h.chatService.ArchiveChat(c.Request.Context(), userID, chatID, false)
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to update archive state"))
+		return
+	}
+
+	h.wsHub.SendToUser(userID, "chat_preferences_updated", pref)
+
+	c.JSON(200, pref)
+}
+
+// MuteChat mutes (or, with muted=false, unmutes) a conversation for the calling
+// user (task 6.4). Until, when set with muted=true, makes the mute timed; an
+// omitted until with muted=true mutes indefinitely.
+func (h *ChatHandler) MuteChat(c *gin.Context) {
+	userID := c.GetString("userID")
+	chatID := c.Param("chatId")
+
+	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
+	if err != nil || !isParticipant {
+		WriteError(c, middleware.ErrForbidden("Access denied"))
+		return
+	}
+
+	var req models.MuteChatRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		WriteError(c, middleware.ErrValidation("Invalid request"))
+		return
+	}
+
+	// Default to muting when the flag is omitted.
+	muted := true
+	if req.Muted != nil {
+		muted = *req.Muted
+	}
+
+	pref, err := h.chatService.MuteChat(c.Request.Context(), userID, chatID, muted, req.Until)
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to update mute state"))
+		return
+	}
+
+	h.wsHub.SendToUser(userID, "chat_preferences_updated", pref)
+
+	c.JSON(200, pref)
+}
+
+// UnmuteChat unmutes a conversation for the calling user (task 6.4).
+func (h *ChatHandler) UnmuteChat(c *gin.Context) {
+	userID := c.GetString("userID")
+	chatID := c.Param("chatId")
+
+	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
+	if err != nil || !isParticipant {
+		WriteError(c, middleware.ErrForbidden("Access denied"))
+		return
+	}
+
+	pref, err := h.chatService.MuteChat(c.Request.Context(), userID, chatID, false, nil)
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to update mute state"))
+		return
+	}
+
+	h.wsHub.SendToUser(userID, "chat_preferences_updated", pref)
+
+	c.JSON(200, pref)
+}
+
+// GetChatPreferences returns the calling user's per-chat preferences (archive &
+// mute state, task 6.4) across all of their conversations, keyed by chat ID.
+func (h *ChatHandler) GetChatPreferences(c *gin.Context) {
+	userID := c.GetString("userID")
+
+	prefs, err := h.chatService.GetChatPreferences(c.Request.Context(), userID)
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to fetch chat preferences"))
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"preferences": prefs,
+	})
+}
+
+// GetChatPreference returns the calling user's preference row for a single chat
+// (task 6.4). It always returns a default (unarchived, unmuted) preference when
+// the user has never touched this chat.
+func (h *ChatHandler) GetChatPreference(c *gin.Context) {
+	userID := c.GetString("userID")
+	chatID := c.Param("chatId")
+
+	isParticipant, err := h.chatService.IsParticipant(chatID, userID)
+	if err != nil || !isParticipant {
+		WriteError(c, middleware.ErrForbidden("Access denied"))
+		return
+	}
+
+	pref, err := h.chatService.GetChatPreference(c.Request.Context(), userID, chatID)
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to fetch chat preference"))
+		return
+	}
+
+	c.JSON(200, pref)
 }

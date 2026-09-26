@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/chorus/messenger/internal/middleware"
 	"github.com/chorus/messenger/internal/models"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/gin-gonic/gin"
@@ -11,11 +12,33 @@ import (
 
 type SearchHandler struct {
 	searchService *services.SearchService
+	userService   *services.UserService
+	moderation    *services.ModerationService
 }
 
-func NewSearchHandler(ss *services.SearchService) *SearchHandler {
+func NewSearchHandler(ss *services.SearchService, moderation *services.ModerationService) *SearchHandler {
 	return &SearchHandler{
 		searchService: ss,
+		moderation:    moderation,
+	}
+}
+
+func NewSearchHandlerWithUsers(ss *services.SearchService, us *services.UserService, moderation *services.ModerationService) *SearchHandler {
+	return &SearchHandler{
+		searchService: ss,
+		userService:   us,
+		moderation:    moderation,
+	}
+}
+
+// enrichUsers marks which of the surfaced users the caller has blocked so the
+// search results can render Block/Unblock everywhere (task 7.1).
+func (h *SearchHandler) enrichUsers(c *gin.Context, users []*models.User) {
+	if h.moderation == nil || len(users) == 0 {
+		return
+	}
+	if err := h.moderation.EnrichUsers(c.Request.Context(), c.GetString("userID"), users); err != nil {
+		return
 	}
 }
 
@@ -24,19 +47,20 @@ func NewSearchHandler(ss *services.SearchService) *SearchHandler {
 func (h *SearchHandler) SearchMessages(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
 	query := c.Query("q")
 	if query == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Search query required"})
+		WriteError(c, middleware.ErrValidation("Search query required"))
 		return
 	}
 
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 	language := c.Query("language")
+	mediaType := c.Query("type")
 
 	// Parse chat IDs if provided
 	var chatIDs []string
@@ -45,20 +69,81 @@ func (h *SearchHandler) SearchMessages(c *gin.Context) {
 	}
 
 	req := models.SearchRequest{
-		Query:    query,
-		ChatIDs:  chatIDs,
-		Language: language,
-		Limit:    limit,
-		Offset:   offset,
+		Query:     query,
+		ChatIDs:   chatIDs,
+		Language:  language,
+		MediaType: mediaType,
+		Limit:     limit,
+		Offset:    offset,
 	}
 
 	result, err := h.searchService.SearchMessages(userID, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Search failed"})
+		WriteError(c, middleware.ErrInternal("Search failed"))
 		return
 	}
 
+	// Task 7.1: surface block/report status on matched message senders.
+	if h.moderation != nil {
+		senders := make([]*models.User, 0, len(result.Messages))
+		for i := range result.Messages {
+			if result.Messages[i].Sender != nil && result.Messages[i].SenderID != userID {
+				senders = append(senders, result.Messages[i].Sender)
+			}
+		}
+		if err := h.moderation.EnrichUsers(c.Request.Context(), userID, senders); err != nil {
+			WriteError(c, middleware.ErrInternal("Search failed"))
+			return
+		}
+	}
+
 	// Record search for suggestions
+	h.searchService.RecordSearch(userID, query)
+
+	c.JSON(http.StatusOK, result)
+}
+
+// SearchMedia searches media attachments (image/video/audio/document) by
+// file name, mime type, or type, within the user's chats.
+// GET /api/v1/media/search
+func (h *SearchHandler) SearchMedia(c *gin.Context) {
+	userID := c.GetString("userID")
+	if userID == "" {
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
+		return
+	}
+
+	query := c.Query("q")
+	if query == "" {
+		WriteError(c, middleware.ErrValidation("Search query required"))
+		return
+	}
+
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	mediaType := c.Query("type")
+	language := c.Query("language")
+
+	var chatIDs []string
+	if chatID := c.Query("chatId"); chatID != "" {
+		chatIDs = append(chatIDs, chatID)
+	}
+
+	req := models.SearchRequest{
+		Query:     query,
+		ChatIDs:   chatIDs,
+		Language:  language,
+		MediaType: mediaType,
+		Limit:     limit,
+		Offset:    offset,
+	}
+
+	result, err := h.searchService.SearchMedia(userID, req)
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Search failed"))
+		return
+	}
+
 	h.searchService.RecordSearch(userID, query)
 
 	c.JSON(http.StatusOK, result)
@@ -69,19 +154,19 @@ func (h *SearchHandler) SearchMessages(c *gin.Context) {
 func (h *SearchHandler) SearchChats(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
 	query := c.Query("q")
 	if query == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Search query required"})
+		WriteError(c, middleware.ErrValidation("Search query required"))
 		return
 	}
 
 	chats, err := h.searchService.SearchChats(userID, query)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to search chats"})
+		WriteError(c, middleware.ErrInternal("Failed to search chats"))
 		return
 	}
 
@@ -93,20 +178,30 @@ func (h *SearchHandler) SearchChats(c *gin.Context) {
 func (h *SearchHandler) SearchContacts(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
 	query := c.Query("q")
 	if query == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Search query required"})
+		WriteError(c, middleware.ErrValidation("Search query required"))
 		return
 	}
 
 	contacts, err := h.searchService.SearchContacts(userID, query)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to search contacts"})
+		WriteError(c, middleware.ErrInternal("Failed to search contacts"))
 		return
+	}
+	if h.moderation != nil && len(contacts) > 0 {
+		ptrs := make([]*models.User, len(contacts))
+		for i := range contacts {
+			ptrs[i] = &contacts[i]
+		}
+		if err := h.moderation.EnrichUsers(c.Request.Context(), userID, ptrs); err != nil {
+			WriteError(c, middleware.ErrInternal("Failed to search contacts"))
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": contacts})
@@ -117,19 +212,19 @@ func (h *SearchHandler) SearchContacts(c *gin.Context) {
 func (h *SearchHandler) SearchInChat(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
 	chatID := c.Param("chatId")
 	if chatID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Chat ID required"})
+		WriteError(c, middleware.ErrValidation("Chat ID required"))
 		return
 	}
 
 	query := c.Query("q")
 	if query == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Search query required"})
+		WriteError(c, middleware.ErrValidation("Search query required"))
 		return
 	}
 
@@ -138,11 +233,40 @@ func (h *SearchHandler) SearchInChat(c *gin.Context) {
 	messages, err := h.searchService.SearchInChat(userID, chatID, query, limit)
 	if err != nil {
 		if err.Error() == "not a chat participant" {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Not a participant in this chat"})
+			WriteError(c, middleware.ErrForbidden("Not a participant in this chat"))
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Search failed"})
+		WriteError(c, middleware.ErrInternal("Search failed"))
 		return
+	}
+	if h.moderation != nil && h.userService != nil && len(messages) > 0 {
+		ids := make([]string, 0, len(messages))
+		seen := map[string]struct{}{}
+		for _, m := range messages {
+			if m.SenderID == "" || m.SenderID == userID {
+				continue
+			}
+			if _, ok := seen[m.SenderID]; !ok {
+				seen[m.SenderID] = struct{}{}
+				ids = append(ids, m.SenderID)
+			}
+		}
+		if len(ids) > 0 {
+			if users, err := h.userService.GetMultiple(ids); err == nil {
+				senders := make([]*models.User, 0, len(users))
+				userByID := map[string]*models.User{}
+				for _, u := range users {
+					senders = append(senders, u)
+					userByID[u.ID] = u
+				}
+				_ = h.moderation.EnrichUsers(c.Request.Context(), userID, senders)
+				for i := range messages {
+					if u, ok := userByID[messages[i].SenderID]; ok {
+						messages[i].Sender = u
+					}
+				}
+			}
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -155,7 +279,7 @@ func (h *SearchHandler) SearchInChat(c *gin.Context) {
 func (h *SearchHandler) GetSearchSuggestions(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
@@ -164,7 +288,7 @@ func (h *SearchHandler) GetSearchSuggestions(c *gin.Context) {
 
 	suggestions, err := h.searchService.GetSearchSuggestions(userID, prefix, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get suggestions"})
+		WriteError(c, middleware.ErrInternal("Failed to get suggestions"))
 		return
 	}
 
@@ -178,7 +302,7 @@ func (h *SearchHandler) GetSearchSuggestions(c *gin.Context) {
 func (h *SearchHandler) GetRecentSearches(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
@@ -186,7 +310,7 @@ func (h *SearchHandler) GetRecentSearches(c *gin.Context) {
 
 	searches, err := h.searchService.GetRecentSearches(userID, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get recent searches"})
+		WriteError(c, middleware.ErrInternal("Failed to get recent searches"))
 		return
 	}
 
@@ -200,13 +324,13 @@ func (h *SearchHandler) GetRecentSearches(c *gin.Context) {
 func (h *SearchHandler) ClearSearchHistory(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
 	err := h.searchService.ClearSearchHistory(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to clear history"})
+		WriteError(c, middleware.ErrInternal("Failed to clear history"))
 		return
 	}
 
@@ -220,14 +344,14 @@ func (h *SearchHandler) ClearSearchHistory(c *gin.Context) {
 func (h *SearchHandler) SearchVocabulary(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
 	query := c.Query("q")
 	language := c.Query("language")
 	if query == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Search query required"})
+		WriteError(c, middleware.ErrValidation("Search query required"))
 		return
 	}
 
@@ -235,7 +359,7 @@ func (h *SearchHandler) SearchVocabulary(c *gin.Context) {
 
 	entries, err := h.searchService.SearchVocabularyWithLanguage(userID, query, language, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Search failed"})
+		WriteError(c, middleware.ErrInternal("Search failed"))
 		return
 	}
 

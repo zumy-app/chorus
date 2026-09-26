@@ -86,6 +86,13 @@ type Config struct {
 	// (upsell nudges, plan badges, ads) are suppressed entirely.
 	SelfHost bool
 
+	// AllowOpenRegistration, when true, permits registration without an
+	// invitation token. DEVELOPMENT ONLY — production stays invite-gated.
+	// Rescue plan C2: QA/emulator walkthroughs need to create accounts
+	// without email delivery; the mobile/web UIs still surface the
+	// invite-code + waitlist flow.
+	AllowOpenRegistration bool
+
 	// PayPal configuration. Client ID/secret correspond to the env keys
 	// PAYMENT_PROVIDER_PAYPAL_CLIENT_ID / PAYMENT_PROVIDER_PAYPAL_CLIENT_SECRET.
 	PayPalClientID          string
@@ -101,6 +108,20 @@ type Config struct {
 
 	// LogLevel controls verbosity: "debug", "info", "warn", "error"
 	LogLevel string
+
+	// Upload dir + public base URL for file/document sharing (task 6.6).
+	// UploadDir is where attachment bytes are written; MediaBaseURL is the
+	// public URL prefix the client uses to fetch them (e.g. "/media" when the
+	// backend serves them itself, or a CDN origin/base when offloaded).
+	UploadDir      string
+	MediaBaseURL   string
+	MaxUploadBytes int64 // maximum accepted attachment size in bytes
+
+	WhatsAppAPIURL  string
+	WhatsAppToken   string
+	WhatsAppPhoneID string
+
+	ServerID string
 
 	// Provider chain — ordered list of aliases (e.g. ["openrouter", "ollama"]).
 	// Each alias maps into the Providers map.
@@ -134,8 +155,21 @@ func Load() *Config {
 		InviteTTLHours:        getEnvInt("INVITE_TTL_HOURS", 168),
 		AdminEmails:           splitAndTrim(getEnv("WAITLIST_ADMIN_EMAILS", "")),
 		SelfHost:              getEnvBool("SELFHOST", false),
+		AllowOpenRegistration: getEnvBool("ALLOW_OPEN_REGISTRATION", false),
 
 		LogLevel: getEnv("LOG_LEVEL", "info"),
+
+		// Task 6.6 file/document sharing. UploadDir must exist and be
+		// writable; MediaBaseURL is the public URL prefix used to serve
+		// attachments (defaults to the same origin at /media).
+		UploadDir:      getEnv("UPLOAD_DIR", "./uploads"),
+		MediaBaseURL:   getEnv("MEDIA_BASE_URL", "/media"),
+		MaxUploadBytes: int64(getEnvInt("MAX_UPLOAD_MB", 50)) * 1024 * 1024,
+
+		WhatsAppAPIURL:  getEnv("WHATSAPP_API_URL", ""),
+		WhatsAppToken:   getEnv("WHATSAPP_API_TOKEN", ""),
+		WhatsAppPhoneID: getEnv("WHATSAPP_PHONE_ID", ""),
+		ServerID:        getEnv("SERVER_ID", getEnv("HOSTNAME", "chorus-1")),
 
 		PayPalClientID:          getEnv("PAYMENT_PROVIDER_PAYPAL_CLIENT_ID", ""),
 		PayPalClientSecret:      getEnv("PAYMENT_PROVIDER_PAYPAL_CLIENT_SECRET", ""),

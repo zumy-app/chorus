@@ -45,6 +45,15 @@ export const messageAPI = client.message
 export const vocabularyAPI = client.vocabulary
 export const billingAPI = client.billing
 export const grammarAPI = client.grammar
+export const sparkyAPI = client.sparky
 export const translationAPI = client.translation
+export const learningAPI = client.learning
+export const presenceAPI = client.presence
+export const settingsAPI = client.settings
+export const teacherAPI = client.teacher
+export const payoutsAPI = client.payouts
+export const searchAPI = client.search
+export const otpAPI = client.otp
+export const flagsAPI = client.flags
 
 export default api

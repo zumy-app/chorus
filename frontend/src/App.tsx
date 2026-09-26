@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import Landing from './pages/Landing'
 import Pricing from './pages/Pricing'
@@ -9,18 +9,71 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import Waitlist from './pages/Waitlist'
 import AdminWaitlist from './pages/AdminWaitlist'
+import AdminFlags from './pages/AdminFlags'
 import Chat from './pages/Chat'
 import Learn from './pages/Learn'
+import Placement from './pages/Placement'
+import LessonSession from './pages/LessonSession'
+import VocabularyReview from './pages/VocabularyReview'
+import Scenarios from './pages/Scenarios'
+import ScenarioRoleplay from './pages/ScenarioRoleplay'
+import LearningRoadmap from './pages/LearningRoadmap'
+import RealTalkHub from './pages/RealTalkHub'
 import Profile from './pages/Profile'
-import { authAPI } from './services/api'
+import BecomeTeacher from './pages/BecomeTeacher'
+import BrowseTutors from './pages/BrowseTutors'
+import TutorProfile from './pages/TutorProfile'
+import TrialCredits from './pages/TrialCredits'
+import TeacherDashboard from './pages/TeacherDashboard'
+import Payouts from './pages/Payouts'
+import ConfirmBooking from './pages/ConfirmBooking'
+import StreakRecovery from './pages/StreakRecovery'
+import UniversalSearch from './pages/UniversalSearch'
+import TeacherCaptionReview from './pages/TeacherCaptionReview'
+import Dashboard from './pages/Dashboard'
+import { authAPI, presenceAPI } from './services/api'
 import { wsService } from './services/websocket'
 import { useStore } from './store'
+import i18n from './i18n'
+
+// UI language follows the profile's native language unless the user picked one
+// explicitly (persisted `preferredLanguage` wins). Applied on session restore
+// and on login so a Spanish-native user gets a Spanish UI automatically.
+function applyProfileLanguage(nativeLanguage?: string | null) {
+  try {
+    if (localStorage.getItem('preferredLanguage')) return
+  } catch {}
+  const base = (nativeLanguage || '').trim().toLowerCase().split(/[-_]/)[0]
+  if (base) {
+    i18n.changeLanguage(base).catch(() => {})
+  }
+}
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const { isAdmin, isModerator, setUser, setEntitlements, setAdmin, refreshAdminStatus, refreshEntitlements } = useStore()
+  const { isAdmin, isModerator, setUser, setEntitlements, setRolloutFlags, setAdmin, refreshAdminStatus, refreshEntitlements, refreshRolloutFlags } = useStore()
   const navigate = useNavigate()
+  const presenceHeartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Report the web client as online so other users see real presence (FR-9),
+  // and refresh the backend's Redis presence TTL so it doesn't go stale.
+  // The backend expires presence keys after 5 minutes, so we ping every 4.
+  const startPresenceReporting = () => {
+    presenceAPI.update({ status: 'online', deviceType: 'web' }).catch(() => {})
+    if (presenceHeartbeatRef.current) clearInterval(presenceHeartbeatRef.current)
+    presenceHeartbeatRef.current = setInterval(() => {
+      presenceAPI.heartbeat('web').catch(() => {})
+    }, 4 * 60 * 1000)
+  }
+
+  const stopPresenceReporting = () => {
+    if (presenceHeartbeatRef.current) {
+      clearInterval(presenceHeartbeatRef.current)
+      presenceHeartbeatRef.current = null
+    }
+    presenceAPI.update({ status: 'offline' }).catch(() => {})
+  }
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -29,10 +82,13 @@ function App() {
         try {
           const user = await authAPI.getMe()
           setUser(user)
+          applyProfileLanguage(user?.nativeLanguage)
           setIsAuthenticated(true)
           refreshAdminStatus()
           refreshEntitlements()
+          refreshRolloutFlags()
           wsService.connect(token)
+          startPresenceReporting()
         } catch (error) {
           localStorage.removeItem('accessToken')
           localStorage.removeItem('refreshToken')
@@ -44,7 +100,7 @@ function App() {
     }
 
     checkAuth()
-  }, [setUser, setAdmin, refreshAdminStatus, refreshEntitlements])
+  }, [setUser, setAdmin, refreshAdminStatus, refreshEntitlements, refreshRolloutFlags])
 
   const handleLogin = async (tokens: { accessToken: string; refreshToken: string }) => {
     localStorage.setItem('accessToken', tokens.accessToken)
@@ -52,10 +108,13 @@ function App() {
 
     const user = await authAPI.getMe()
     setUser(user)
+    applyProfileLanguage(user?.nativeLanguage)
     setIsAuthenticated(true)
     refreshAdminStatus()
     refreshEntitlements()
+    refreshRolloutFlags()
     wsService.connect(tokens.accessToken)
+    startPresenceReporting()
     navigate('/chat')
   }
 
@@ -64,9 +123,11 @@ function App() {
     localStorage.removeItem('refreshToken')
     setUser(null)
     setEntitlements(null)
+    setRolloutFlags(null)
     setAdmin(false)
     setIsAuthenticated(false)
     wsService.disconnect()
+    stopPresenceReporting()
     navigate('/login')
   }
 
@@ -93,6 +154,14 @@ function App() {
             isAuthenticated && isAdmin
               ? <AdminWaitlist defaultTab="waitlist" />
               : <Navigate to={isAuthenticated ? (isModerator ? '/admin' : '/') : '/login'} />
+          }
+        />
+        <Route
+          path="/admin/flags"
+          element={
+            isAuthenticated && isAdmin
+              ? <AdminFlags />
+              : <Navigate to={isAuthenticated ? '/' : '/login'} />
           }
         />
         <Route
@@ -150,11 +219,69 @@ function App() {
           }
         />
         <Route
+          path="/learn/placement"
+          element={
+            isAuthenticated ? <Placement /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/learn/session"
+          element={
+            isAuthenticated ? <LessonSession /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/learn/vocabulary"
+          element={
+            isAuthenticated ? <VocabularyReview /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/learn/scenarios"
+          element={
+            isAuthenticated ? <Scenarios /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/learn/scenarios/:scenarioId"
+          element={
+            isAuthenticated ? <ScenarioRoleplay /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/learn/roadmap"
+          element={
+            isAuthenticated ? <LearningRoadmap /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/learn/real-talk"
+          element={
+            isAuthenticated ? <RealTalkHub /> : <Navigate to="/login" />
+          }
+        />
+        <Route
           path="/profile"
           element={
             isAuthenticated ? <Profile onLogout={handleLogout} /> : <Navigate to="/login" />
           }
         />
+        <Route
+          path="/become-teacher"
+          element={
+            isAuthenticated ? <BecomeTeacher /> : <Navigate to="/login" />
+          }
+        />
+        <Route path="/tutors" element={isAuthenticated ? <BrowseTutors /> : <Navigate to="/login" />} />
+        <Route path="/tutors/:id" element={isAuthenticated ? <TutorProfile /> : <Navigate to="/login" />} />
+        <Route path="/tutors/:id/confirm" element={isAuthenticated ? <ConfirmBooking /> : <Navigate to="/login" />} />
+        <Route path="/trial-credits" element={isAuthenticated ? <TrialCredits /> : <Navigate to="/login" />} />
+        <Route path="/teacher/dashboard" element={isAuthenticated ? <TeacherDashboard /> : <Navigate to="/login" />} />
+        <Route path="/teacher/payouts" element={isAuthenticated ? <Payouts /> : <Navigate to="/login" />} />
+        <Route path="/teacher/caption-review" element={isAuthenticated ? <TeacherCaptionReview /> : <Navigate to="/login" />} />
+        <Route path="/learn/streak-recovery" element={isAuthenticated ? <StreakRecovery /> : <Navigate to="/login" />} />
+        <Route path="/search" element={isAuthenticated ? <UniversalSearch /> : <Navigate to="/login" />} />
+        <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
       </Routes>
     </>
   )

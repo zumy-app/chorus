@@ -1,6 +1,6 @@
 import { create } from 'zustand'
-import type { User, Chat, Message, Entitlements, TranslationBlocked, GrammarJob } from '@chorus/shared'
-import { chatAPI, messageAPI, adminAPI, authAPI, grammarAPI } from '../services/api'
+import type { User, Chat, Message, Entitlements, RolloutFlags, TranslationBlocked, GrammarJob, PresenceStatus } from '@chorus/shared'
+import { chatAPI, messageAPI, adminAPI, authAPI, grammarAPI, presenceAPI, flagsAPI } from '../services/api'
 import { wsService } from '../services/websocket'
 
 // --- Slug helpers ---
@@ -55,6 +55,7 @@ export function findChatBySlug(chats: Chat[], slug: string, currentUserId?: stri
 interface AppState {
   user: User | null
   entitlements: Entitlements | null
+  rolloutFlags: RolloutFlags | null
   isAdmin: boolean
   isModerator: boolean
   userRole: string
@@ -63,11 +64,15 @@ interface AppState {
   messages: Record<string, Message[]>
   blockedTranslations: Record<string, TranslationBlocked>
   grammarJobs: Record<string, GrammarJob>
+  typingUsers: Record<string, Record<string, boolean>>
+  presence: Record<string, PresenceStatus>
 
   // Actions
   setUser: (user: User | null) => void
   setEntitlements: (entitlements: Entitlements | null) => void
   refreshEntitlements: () => Promise<void>
+  setRolloutFlags: (flags: RolloutFlags | null) => void
+  refreshRolloutFlags: () => Promise<void>
   setAdmin: (isAdmin: boolean) => void
   setRole: (role: string) => void
   refreshAdminStatus: () => Promise<void>
@@ -76,20 +81,47 @@ interface AppState {
   loadMessages: (chatId: string) => Promise<void>
   addMessage: (message: Message) => void
   updateMessage: (message: Message) => void
+  removeMessage: (chatId: string, messageId: string) => void
   updateChatLastMessage: (chatId: string, message: Message) => void
-  sendMessage: (chatId: string, text: string) => Promise<void>
+  sendMessage: (chatId: string, text: string, replyToId?: string) => Promise<void>
+  sendAttachment: (chatId: string, file: File, opts?: { caption?: string; type?: string }) => Promise<void>
+  sendLocation: (chatId: string, latitude: number, longitude: number, label?: string, replyToId?: string) => Promise<void>
+  deleteMessage: (chatId: string, messageId: string) => Promise<void>
+  forwardMessage: (sourceChatId: string, messageId: string, targetChatId: string) => Promise<void>
+  pinMessage: (chatId: string, messageId: string) => Promise<void>
+  unpinMessage: (chatId: string, messageId: string) => Promise<void>
   createChat: (type: 'direct' | 'group', participants: string[], name?: string) => Promise<Chat>
   updateUser: (updates: Partial<User>) => void
   markTranslationBlocked: (blocked: TranslationBlocked) => void
   setGrammarJob: (job: GrammarJob) => void
   resyncGrammarJob: (messageId: string) => Promise<void>
+  setTyping: (chatId: string, userId: string, isTyping: boolean) => void
+  setPresence: (presence: PresenceStatus) => void
+  fetchPresence: (userIds: string[]) => Promise<void>
   // Slug-based navigation
   navigateToSlug: (slug: string) => boolean
+}
+
+// Typing indicators auto-expire if a typing_stop is missed (e.g. the other
+// user's tab crashed), so the UI never shows a stuck "typing…" state.
+const typingExpiryTimers: Record<string, ReturnType<typeof setTimeout>> = {}
+
+// Collects the participant ids of every direct chat so we can fetch presence.
+function directChatParticipantIds(chats: Chat[], currentUserId?: string): string[] {
+  const ids = new Set<string>()
+  for (const chat of chats) {
+    if (chat.type !== 'direct') continue
+    for (const p of chat.participants) {
+      if (p.userId !== currentUserId) ids.add(p.userId)
+    }
+  }
+  return Array.from(ids)
 }
 
 export const useStore = create<AppState>((set, get) => ({
   user: null,
   entitlements: null,
+  rolloutFlags: null,
   isAdmin: false,
   isModerator: false,
   userRole: '',
@@ -98,6 +130,8 @@ export const useStore = create<AppState>((set, get) => ({
   messages: {},
   blockedTranslations: {},
   grammarJobs: {},
+  typingUsers: {},
+  presence: {},
 
   setUser: (user) => set({ user }),
   setEntitlements: (entitlements) => set({ entitlements }),
@@ -107,6 +141,15 @@ export const useStore = create<AppState>((set, get) => ({
       set({ entitlements })
     } catch (error) {
       console.error('Failed to load entitlements:', error)
+    }
+  },
+  setRolloutFlags: (rolloutFlags) => set({ rolloutFlags }),
+  refreshRolloutFlags: async () => {
+    try {
+      const rolloutFlags = await flagsAPI.getMyFlags()
+      set({ rolloutFlags })
+    } catch (error) {
+      console.error('Failed to load rollout flags:', error)
     }
   },
   setAdmin: (isAdmin) => set({ isAdmin }),
@@ -129,6 +172,7 @@ export const useStore = create<AppState>((set, get) => ({
     try {
       const chats = await chatAPI.getChats()
       set({ chats })
+      get().fetchPresence(directChatParticipantIds(chats, get().user?.id))
     } catch (error) {
       console.error('Failed to load chats:', error)
     }
@@ -138,6 +182,26 @@ export const useStore = create<AppState>((set, get) => ({
     set({ activeChat: chat })
     if (chat) {
       get().loadMessages(chat.id)
+      // Sidebar chat objects carry no participants (GET /chats omits them),
+      // but typing indicators, presence and slugs key off participant.user.
+      // Without this, the joiner side of a DM never renders "X is typing…".
+      // Merge enriched participants when the full detail arrives (guarded so
+      // a fast chat-switch can't backfill a stale thread; skips mocked
+      // clients without getChat).
+      const detail = chatAPI.getChat?.(chat.id)
+      if (detail) {
+        detail.then((full) => {
+          if (!full) return
+          set((state) => {
+            if (state.activeChat?.id !== full.id) return state
+            const participants = full.participants ?? state.activeChat?.participants
+            return {
+              activeChat: state.activeChat ? { ...state.activeChat, participants } : state.activeChat,
+              chats: state.chats.map((c) => (c.id === full.id ? { ...c, participants } : c)),
+            }
+          })
+        }).catch(() => {})
+      }
     }
   },
 
@@ -191,6 +255,18 @@ export const useStore = create<AppState>((set, get) => ({
     })
   },
 
+  removeMessage: (chatId, messageId) => {
+    set((state) => {
+      const chatMessages = state.messages[chatId] || []
+      return {
+        messages: {
+          ...state.messages,
+          [chatId]: chatMessages.filter((m) => m.id !== messageId),
+        },
+      }
+    })
+  },
+
   updateChatLastMessage: (chatId, message) => {
     set((state) => {
       const chatIndex = state.chats.findIndex(c => c.id === chatId)
@@ -210,13 +286,71 @@ export const useStore = create<AppState>((set, get) => ({
     })
   },
 
-  sendMessage: async (chatId, text) => {
+  sendAttachment: async (chatId, file, opts) => {
+    const tempId = `pending-${Date.now()}`
+    const optimistic: Message = {
+      id: tempId,
+      chatId,
+      senderId: get().user?.id || '',
+      text: opts?.caption || file.name,
+      deliveryStatus: 'sent',
+      timestamp: new Date().toISOString(),
+      media: [{ id: tempId, messageId: tempId, chatId, type: 'document', fileName: file.name, fileSize: file.size, mimeType: file.type || 'application/octet-stream', url: '', createdAt: new Date().toISOString() } as any],
+    }
+    get().addMessage(optimistic)
+    try {
+      const message = await messageAPI.sendAttachment(chatId, file, file.name, opts)
+      set((state) => {
+        const chatMessages = state.messages[chatId] || []
+        return { messages: { ...state.messages, [chatId]: chatMessages.map(m => m.id === tempId ? message : m) } }
+      })
+      get().updateChatLastMessage(chatId, message)
+    } catch (error) {
+      set((state) => {
+        const chatMessages = state.messages[chatId] || []
+        return { messages: { ...state.messages, [chatId]: chatMessages.filter(m => m.id !== tempId) } }
+      })
+      throw error
+    }
+  },
+
+  sendLocation: async (chatId, latitude, longitude, label, replyToId) => {
+    const tempId = `pending-${Date.now()}`
+    const text = label?.trim() || 'Shared a location'
+    const optimistic: Message = {
+      id: tempId,
+      chatId,
+      senderId: get().user?.id || '',
+      text,
+      deliveryStatus: 'sent',
+      timestamp: new Date().toISOString(),
+      media: [{ id: tempId, messageId: tempId, chatId, type: 'location', fileName: 'location', fileSize: 0, mimeType: 'application/vnd.chorus.location', url: `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=15/${latitude}/${longitude}`, latitude, longitude, locationName: label || '', createdAt: new Date().toISOString() } as any],
+    }
+    get().addMessage(optimistic)
+    try {
+      const message = await messageAPI.sendLocation(chatId, { latitude, longitude, label, replyToId } as any)
+      set((state) => {
+        const chatMessages = state.messages[chatId] || []
+        return { messages: { ...state.messages, [chatId]: chatMessages.map(m => m.id === tempId ? message : m) } }
+      })
+      get().updateChatLastMessage(chatId, message)
+    } catch (error) {
+      set((state) => {
+        const chatMessages = state.messages[chatId] || []
+        return { messages: { ...state.messages, [chatId]: chatMessages.filter(m => m.id !== tempId) } }
+      })
+      throw error
+    }
+  },
+
+  sendMessage: async (chatId, text, replyToId) => {
     const tempId = `pending-${Date.now()}`
     const optimisticMessage: Message = {
       id: tempId,
       chatId,
       senderId: get().user?.id || '',
       text,
+      replyToId: replyToId || undefined,
       deliveryStatus: 'sent',
       timestamp: new Date().toISOString(),
     }
@@ -224,7 +358,7 @@ export const useStore = create<AppState>((set, get) => ({
     get().addMessage(optimisticMessage)
 
     try {
-      const message = await messageAPI.sendMessage(chatId, { text })
+      const message = await messageAPI.sendMessage(chatId, { text, replyToId } as any)
       set((state) => {
         const chatMessages = state.messages[chatId] || []
         const alreadyExists = chatMessages.some(m => m.id === message.id)
@@ -269,6 +403,24 @@ export const useStore = create<AppState>((set, get) => ({
       return true
     }
     return false
+  },
+
+  deleteMessage: async (chatId, messageId) => {
+    await messageAPI.deleteMessage(chatId, messageId)
+    get().removeMessage(chatId, messageId)
+  },
+
+  forwardMessage: async (sourceChatId, messageId, targetChatId) => {
+    const fwd = await messageAPI.forwardMessage(sourceChatId, messageId, targetChatId)
+    get().addMessage(fwd)
+  },
+
+  pinMessage: async (chatId, messageId) => {
+    await messageAPI.pinMessage(chatId, messageId)
+  },
+
+  unpinMessage: async (chatId, messageId) => {
+    await messageAPI.unpinMessage(chatId, messageId)
   },
 
   createChat: async (type, participants, name) => {
@@ -368,19 +520,131 @@ export const useStore = create<AppState>((set, get) => ({
       } catch {}
     }
   },
+
+  setTyping: (chatId, userId, isTyping) => {
+    const key = `${chatId}:${userId}`
+    const existing = typingExpiryTimers[key]
+    if (existing) {
+      clearTimeout(existing)
+      delete typingExpiryTimers[key]
+    }
+    if (isTyping) {
+      typingExpiryTimers[key] = setTimeout(() => {
+        set((state) => {
+          const chatTyping = state.typingUsers[chatId] || {}
+          if (!chatTyping[userId]) return state
+          return {
+            typingUsers: {
+              ...state.typingUsers,
+              [chatId]: { ...chatTyping, [userId]: false },
+            },
+          }
+        })
+        delete typingExpiryTimers[key]
+      }, 5000)
+    }
+    set((state) => {
+      const chatTyping = state.typingUsers[chatId] || {}
+      if ((chatTyping[userId] || false) === isTyping) return state
+      return {
+        typingUsers: {
+          ...state.typingUsers,
+          [chatId]: { ...chatTyping, [userId]: isTyping },
+        },
+      }
+    })
+  },
+
+  setPresence: (presence) => {
+    if (!presence?.userId) return
+    set((state) => ({
+      presence: {
+        ...state.presence,
+        [presence.userId]: { ...state.presence[presence.userId], ...presence },
+      },
+    }))
+  },
+
+  fetchPresence: async (userIds) => {
+    const ids = (userIds || []).filter(Boolean)
+    if (ids.length === 0) return
+    try {
+      const result = await presenceAPI.getMultiple(ids)
+      if (!result) return
+      set((state) => {
+        const next = { ...state.presence }
+        for (const userId of ids) {
+          const p = result[userId]
+          if (p) next[userId] = { ...next[userId], ...p }
+        }
+        return { presence: next }
+      })
+    } catch (error) {
+      // Presence is best-effort; never block chat on a failed snapshot.
+    }
+  },
 }))
 
-// Setup WebSocket listeners
+function applyReceipt(chatId: string, messageId: string, userId: string, status: string) {
+  const s = useStore.getState()
+  const msgs = s.messages[chatId]
+  if (!msgs) return
+  const idx = msgs.findIndex(m => m.id === messageId)
+  if (idx === -1) return
+  const msg = msgs[idx]
+  const existing = msg.receipts || []
+  const receiptStatus = status === 'read' ? 'read' : 'delivered'
+  let found = false
+  const next = existing.map(r => {
+    if (userId && r.userId === userId) {
+      found = true
+      return { ...r, status: receiptStatus as 'sent' | 'delivered' | 'read', deliveredAt: new Date().toISOString(), readAt: receiptStatus === 'read' ? new Date().toISOString() : r.readAt }
+    }
+    return r
+  })
+  if (!found) {
+    next.push({ messageId, chatId, userId: userId || '', status: receiptStatus as 'sent' | 'delivered' | 'read', deliveredAt: new Date().toISOString(), readAt: receiptStatus === 'read' ? new Date().toISOString() : undefined })
+  }
+  s.updateMessage({ ...msg, receipts: next } as Message)
+}
+
 wsService.onMessage((message) => {
   const store = useStore.getState()
-  
+
   switch (message.type) {
-    case 'new_message':
+    case 'new_message': {
       store.addMessage(message.data)
+      const m = message.data as Message
+      if (m && m.senderId !== store.user?.id && m.chatId && m.id) {
+        wsService.sendReceipt(m.chatId, m.id, 'received')
+        if (store.activeChat?.id === m.chatId) {
+          setTimeout(() => wsService.sendReceipt(m.chatId, m.id, 'read'), 300)
+          messageAPI.markAsRead(m.chatId, m.id).catch(() => {})
+        }
+      }
       break
+    }
     case 'message_updated':
       store.updateMessage(message.data)
       break
+    case 'message_deleted': {
+      const d = message.data as { chatId: string; messageId: string }
+      if (d?.chatId && d?.messageId) store.removeMessage(d.chatId, d.messageId)
+      break
+    }
+    case 'message_pinned':
+    case 'message_unpinned':
+      break
+    case 'message_delivered': {
+      const d = message.data as { chatId: string; messageId: string; userId: string; status: string }
+      if (d?.chatId && d?.messageId) applyReceipt(d.chatId, d.messageId, d.userId || '', 'delivered')
+      break
+    }
+    case 'message_read': {
+      const d = message.data as { chatId: string; messageId: string; userId: string; status: string }
+      if (d?.chatId && d?.messageId) applyReceipt(d.chatId, d.messageId, d.userId || '', 'read')
+      break
+    }
     case 'translation_blocked':
       store.markTranslationBlocked(message.data)
       break
@@ -389,6 +653,19 @@ wsService.onMessage((message) => {
       break
     case 'chat_updated':
       store.loadChats()
+      break
+    case 'user_typing': {
+      const data = message.data || {}
+      if (data.chatId && data.userId && data.userId !== store.user?.id) {
+        store.setTyping(data.chatId, data.userId, Boolean(data.isTyping))
+      }
+      break
+    }
+    case 'user_presence':
+    case 'presence_update':
+      if (message.data?.userId) {
+        store.setPresence(message.data)
+      }
       break
   }
 })

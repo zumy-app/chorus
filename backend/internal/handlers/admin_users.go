@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/chorus/messenger/internal/middleware"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/gin-gonic/gin"
 )
@@ -31,7 +32,7 @@ func (h *AdminUsersHandler) List(c *gin.Context) {
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 	users, err := h.users.ListUsers(c.Query("q"), c.Query("role"), c.Query("status"), limit, offset)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to load users"})
+		WriteError(c, middleware.ErrInternal("Unable to load users"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"users": users, "total": len(users)})
@@ -43,31 +44,31 @@ func (h *AdminUsersHandler) SetRole(c *gin.Context) {
 	actorID := c.GetString("userID")
 	targetID := c.Param("id")
 	if actorID == targetID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You cannot change your own role"})
+		WriteError(c, middleware.ErrForbidden("You cannot change your own role"))
 		return
 	}
 	var req struct {
 		Role string `json:"role" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		WriteError(c, middleware.ErrValidation("Invalid request"))
 		return
 	}
 	target, err := h.users.GetByID(targetID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		WriteError(c, middleware.ErrNotFound("User not found"))
 		return
 	}
 	if target.Role == services.RoleAdmin {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You cannot change the role of another admin"})
+		WriteError(c, middleware.ErrForbidden("You cannot change the role of another admin"))
 		return
 	}
 	if err := h.users.SetRole(targetID, req.Role); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			WriteError(c, middleware.ErrNotFound("User not found"))
 			return
 		}
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		WriteError(c, middleware.ErrValidation("Unable to set role"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Role updated", "role": req.Role})
@@ -79,7 +80,7 @@ func (h *AdminUsersHandler) Suspend(c *gin.Context) {
 		return
 	}
 	if err := h.users.SetSuspended(c.Param("id"), true); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		WriteError(c, middleware.ErrNotFound("User not found"))
 		return
 	}
 	// Revoke their existing refresh tokens so sessions end immediately.
@@ -93,7 +94,7 @@ func (h *AdminUsersHandler) Unsuspend(c *gin.Context) {
 		return
 	}
 	if err := h.users.SetSuspended(c.Param("id"), false); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		WriteError(c, middleware.ErrNotFound("User not found"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "User unsuspended"})
@@ -105,20 +106,20 @@ func (h *AdminUsersHandler) Delete(c *gin.Context) {
 	actorID := c.GetString("userID")
 	targetID := c.Param("id")
 	if actorID == targetID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You cannot delete your own account"})
+		WriteError(c, middleware.ErrForbidden("You cannot delete your own account"))
 		return
 	}
 	target, err := h.users.GetByID(targetID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		WriteError(c, middleware.ErrNotFound("User not found"))
 		return
 	}
 	if target.Role == services.RoleAdmin {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You cannot delete another admin"})
+		WriteError(c, middleware.ErrForbidden("You cannot delete another admin"))
 		return
 	}
 	if err := h.users.SetDeleted(targetID); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		WriteError(c, middleware.ErrNotFound("User not found"))
 		return
 	}
 	h.auth.DeleteUserRefreshTokens(targetID)
@@ -130,16 +131,16 @@ func (h *AdminUsersHandler) canModerateTarget(c *gin.Context) bool {
 	actorID := c.GetString("userID")
 	targetID := c.Param("id")
 	if actorID == targetID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You cannot moderate your own account"})
+		WriteError(c, middleware.ErrForbidden("You cannot moderate your own account"))
 		return false
 	}
 	target, err := h.users.GetByID(targetID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		WriteError(c, middleware.ErrNotFound("User not found"))
 		return false
 	}
 	if target.Role == services.RoleAdmin {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You cannot moderate an admin"})
+		WriteError(c, middleware.ErrForbidden("You cannot moderate an admin"))
 		return false
 	}
 	return true

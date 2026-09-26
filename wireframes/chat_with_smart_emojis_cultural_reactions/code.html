@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chorus Expression - Smart Emoji &amp; Reaction Picker</title>
+<!-- Google Fonts: Plus Jakarta Sans, Be Vietnam Pro, Inter -->
+<script type="text/javascript" nonce="b51a197f290b4bbdbe0c9caa828" src="//local.adguard.org?ts=1788756204834&amp;type=content-script&amp;dmn=contribution.usercontent.google.com&amp;url=https%3A%2F%2Fcontribution.usercontent.google.com%2Fdownload%3Fc%3DCgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1YWM1YWI2YjkxYmYwN2M0ZDgxNTFhMWI2ZDkyEgsSBxCYuKrGnx4YAZIBIwoKcHJvamVjdF9pZBIVQhMzNzg0NTk5MDMzNjE4MzE1OTAw%26filename%3D%26opi%3D89354086&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&amp;family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "secondary-fixed": "#e9ddff",
+            "tertiary-fixed": "#6ffbbe",
+            "primary-container": "#2563eb",
+            "inverse-primary": "#b4c5ff",
+            "error": "#ba1a1a",
+            "on-tertiary-fixed-variant": "#005236",
+            "on-secondary": "#ffffff",
+            "on-background": "#0b1c30",
+            "tertiary-container": "#007d55",
+            "surface-bright": "#f8f9ff",
+            "surface-container-high": "#dce9ff",
+            "surface-container-highest": "#d3e4fe",
+            "surface-tint": "#0053db",
+            "error-container": "#ffdad6",
+            "outline": "#737686",
+            "surface-dim": "#cbdbf5",
+            "on-tertiary": "#ffffff",
+            "inverse-surface": "#213145",
+            "outline-variant": "#c3c6d7",
+            "secondary-container": "#8455ef",
+            "secondary-fixed-dim": "#d0bcff",
+            "primary": "#004ac6",
+            "on-primary": "#ffffff",
+            "primary-fixed": "#dbe1ff",
+            "background": "#f8f9ff",
+            "on-error-container": "#93000a",
+            "on-secondary-container": "#fffbff",
+            "inverse-on-surface": "#eaf1ff",
+            "surface-container-low": "#eff4ff",
+            "secondary": "#6b38d4",
+            "on-tertiary-fixed": "#002113",
+            "on-surface-variant": "#434655",
+            "on-primary-fixed": "#00174b",
+            "surface-container": "#e5eeff",
+            "tertiary-fixed-dim": "#4edea3",
+            "on-secondary-fixed-variant": "#5516be",
+            "on-surface": "#0b1c30",
+            "surface-variant": "#d3e4fe",
+            "on-primary-fixed-variant": "#003ea8",
+            "on-tertiary-container": "#bdffdb",
+            "on-secondary-fixed": "#23005c",
+            "on-error": "#ffffff",
+            "tertiary": "#006242",
+            "primary-fixed-dim": "#b4c5ff",
+            "surface-container-lowest": "#ffffff",
+            "surface": "#f8f9ff",
+            "on-primary-container": "#eeefff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "stack-md": "16px",
+            "stack-lg": "24px",
+            "gutter-mobile": "12px",
+            "unit": "4px",
+            "stack-sm": "8px",
+            "margin-mobile": "16px"
+          },
+          "fontFamily": {
+            "body-lg": ["Be Vietnam Pro"],
+            "body-sm": ["Be Vietnam Pro"],
+            "translation-text": ["Be Vietnam Pro"],
+            "label-md": ["Inter"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "headline-lg": ["Plus Jakarta Sans"],
+            "label-sm": ["Inter"],
+            "body-md": ["Be Vietnam Pro"],
+            "headline-sm": ["Plus Jakarta Sans"]
+          },
+          "fontSize": {
+            "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+            "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+            "translation-text": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+            "label-md": ["13px", {"lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+            "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+            "headline-lg": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+            "label-sm": ["11px", {"lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500"}],
+            "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+            "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .custom-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex justify-center selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- Mobile Device Simulation Frame -->
+<div class="w-full max-w-md bg-background min-h-screen relative flex flex-col shadow-2xl overflow-hidden">
+<!-- Top Status Bar & TopAppBar Shared Component -->
+<header class="bg-surface dark:bg-surface sticky top-0 z-40">
+<!-- Device Top Notch/Pill Bar -->
+<div class="px-margin-mobile pt-3 pb-1 flex justify-between items-center text-on-surface text-xs font-semibold">
+<span>9:41</span>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[14px]">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-[14px]">wifi</span>
+<span class="material-symbols-outlined text-[16px]">battery_full</span>
+</div>
+</div>
+<!-- JSON TopAppBar Rendered Strictly -->
+<div class="flex justify-between items-center w-full px-margin-mobile py-2 bg-surface-container-low dark:bg-surface-container transition-colors duration-150">
+<div class="flex items-center gap-2">
+<button class="flex items-center justify-center p-1 rounded-full text-primary dark:text-inverse-primary hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors duration-150 active:scale-95">
+<span class="material-symbols-outlined">keyboard_arrow_down</span>
+</button>
+<div class="flex items-center gap-2">
+<div class="relative">
+<div class="w-9 h-9 rounded-full bg-primary-fixed flex items-center justify-center font-headline-sm text-primary text-sm font-bold border-2 border-surface-container-lowest">
+                S
+              </div>
+<span class="absolute -bottom-1 -right-1 bg-tertiary text-on-tertiary font-label-sm text-label-sm px-1 rounded-full leading-none py-0.5 border border-surface-container-lowest">B2</span>
+</div>
+<div>
+<div class="flex items-center gap-1.5">
+<span class="font-headline-sm text-headline-sm text-on-surface dark:text-inverse-on-surface tracking-tight">Sofia V.</span>
+<span class="w-2 h-2 rounded-full bg-tertiary-fixed-dim inline-block"></span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+<span>Native • Madrid, ES</span>
+<span class="text-secondary font-semibold">Chorus Expression</span>
+</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-1">
+<!-- Streak Pill from Style Guide -->
+<div class="flex items-center gap-1 bg-surface-container-high px-2 py-1 rounded-full">
+<span class="material-symbols-outlined text-secondary text-sm" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<span class="font-label-md text-label-md text-on-surface">14</span>
+</div>
+<button class="p-1.5 rounded-full text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors duration-150 active:scale-95">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Chat Flow Area (Top half of canvas) -->
+<main class="flex-1 overflow-y-auto px-margin-mobile pt-3 pb-4 space-y-4">
+<!-- Date Divider -->
+<div class="flex justify-center">
+<span class="font-label-sm text-label-sm text-outline bg-surface-container px-3 py-0.5 rounded-full">
+          Today • Daily Exchange
+        </span>
+</div>
+<!-- Incoming Message: Sofia -->
+<div class="flex flex-col items-start max-w-[85%] space-y-1">
+<div class="bg-surface-container-lowest border border-outline-variant/40 rounded-2xl rounded-tl-sm p-3 shadow-sm text-on-surface">
+<p class="font-body-md text-body-md">¡Hola Maya! ¿Pudiste probar las tapas tradicionales anoche?</p>
+<div class="mt-2 pt-2 border-t border-surface-container-high/60 flex items-center justify-between text-secondary">
+<span class="font-translation-text text-translation-text italic text-on-surface-variant text-xs">"Did you get to try the traditional tapas last night?"</span>
+<span class="material-symbols-outlined text-sm cursor-pointer ml-2">volume_up</span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-outline px-1">10:14 AM</span>
+</div>
+<!-- Outgoing Message: Maya (Learner) with Level Indicator -->
+<div class="flex flex-col items-end self-end max-w-[85%] space-y-1">
+<div class="bg-primary text-on-primary rounded-2xl rounded-tr-sm p-3 shadow-md">
+<p class="font-body-md text-body-md">¡Sí! Comí tortilla de patatas con pan con tomate. ¡Estaba increíble!</p>
+<div class="mt-1 flex items-center justify-end gap-1.5">
+<span class="font-label-sm text-label-sm text-primary-fixed opacity-90 flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]" style="font-variation-settings: 'FILL' 1;">check_circle</span> Perfect Conjugation
+            </span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-outline px-1 flex items-center gap-1">
+          10:15 AM • <span class="text-tertiary font-semibold">Maya (A2)</span>
+</span>
+</div>
+<!-- Sofia Interlocutor Target Message (Active Reaction Trigger Context) -->
+<div class="relative flex flex-col items-start max-w-[90%] space-y-1 pt-2">
+<!-- Hovering Quick Reaction Bar & Pedagogical Chorus Badges -->
+<div class="w-full mb-1 flex items-center justify-between bg-surface-container-lowest border border-secondary-fixed shadow-lg rounded-full px-2 py-1.5 animate-bounce-subtle z-20">
+<div class="flex items-center space-x-1 sm:space-x-1.5">
+<button class="hover:scale-125 transition-transform p-1 text-base">❤️</button>
+<button class="hover:scale-125 transition-transform p-1 text-base">😂</button>
+<button class="hover:scale-125 transition-transform p-1 text-base">😮</button>
+<button class="hover:scale-125 transition-transform p-1 text-base">👏</button>
+</div>
+<div class="h-4 w-[1px] bg-outline-variant/60 mx-1"></div>
+<!-- Chorus Smart Badges in the Floating Bar -->
+<div class="flex items-center space-x-1">
+<button class="flex items-center gap-1 bg-secondary-fixed/50 text-on-secondary-fixed-variant hover:bg-secondary-fixed font-label-sm text-[10px] px-2 py-0.5 rounded-full transition-colors font-medium active:scale-95" title="Recognize expressive native vocabulary">
+<span>🧠</span>
+<span class="hidden sm:inline">Mind-Blown</span>
+</button>
+<button class="flex items-center gap-1 bg-surface-container text-on-surface font-label-sm text-[10px] px-2 py-0.5 rounded-full transition-colors font-medium border border-outline-variant/50 active:scale-95" title="Local idioms validation">
+<span>🇪🇸</span>
+<span>Slang</span>
+</button>
+<button class="flex items-center gap-1 bg-tertiary-fixed text-on-tertiary-fixed-variant hover:bg-tertiary-fixed-dim font-label-sm text-[10px] px-1.5 py-0.5 rounded-full font-bold active:scale-95">
+<span>🎯</span>
+<span>+5 XP</span>
+</button>
+</div>
+</div>
+<!-- Sofia's Actual Message Card with AI Insights (Purple Glow as per Style Guidance) -->
+<div class="bg-surface-container-lowest border-l-4 border-secondary rounded-2xl rounded-tl-sm p-3.5 shadow-md text-on-surface w-full relative">
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-sm text-label-sm text-secondary font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">auto_awesome</span> Native Phrasing
+            </span>
+<span class="bg-secondary-fixed text-on-secondary-fixed-variant font-label-sm text-[10px] font-semibold px-2 py-0.5 rounded-full">
+              Spain Castilian
+            </span>
+</div>
+<p class="font-body-md text-body-md font-medium text-on-surface">
+            ¡Qué rico! La tortilla auténtica siempre debe ser poco cuajada, ¿a que sí? 🤌🇪🇸
+          </p>
+<!-- Translation Drawer -->
+<div class="mt-2.5 pt-2 border-t border-surface-container flex flex-col gap-0.5">
+<span class="font-translation-text text-translation-text text-on-surface-variant text-xs italic">
+              "So delicious! Authentic Spanish omelette must always be slightly runny, don't you agree?"
+            </span>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-label-sm text-label-sm text-outline">Slang marker:</span>
+<span class="bg-surface-container-high text-primary font-label-sm text-[11px] px-1.5 py-0.5 rounded">¿a que sí? (Right?)</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Half: The Pedagogical Emoji & Reaction Tray Drawer -->
+<div class="bg-surface-container-lowest rounded-t-3xl shadow-[0_-8px_30px_rgba(0,0,0,0.08)] border-t border-surface-container-high z-30 flex flex-col transition-all max-h-[459px]">
+<!-- Drawer Pull Handle & Smart Suggestions Header -->
+<div class="pt-2 px-margin-mobile flex flex-col items-center">
+<div class="w-10 h-1 bg-outline-variant/70 rounded-full mb-2"></div>
+<!-- Smart AI Reaction Suggestions Bar -->
+<div class="w-full bg-surface-container-low rounded-xl p-2 mb-2 flex items-center justify-between border border-surface-container-high">
+<div class="flex items-center gap-1.5 text-secondary">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">psychology</span>
+<span class="font-label-sm text-[11px] font-bold">Chorus AI Suggestions:</span>
+</div>
+<div class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar">
+<button class="bg-surface-container-lowest hover:bg-primary hover:text-on-primary text-on-surface border border-outline-variant/40 rounded-lg px-2 py-1 text-xs font-label-md transition-colors flex items-center gap-1 shadow-sm active:scale-95">
+<span>¡Buenísimo!</span> <span class="text-xs">👌</span>
+</button>
+<button class="bg-surface-container-lowest hover:bg-primary hover:text-on-primary text-on-surface border border-outline-variant/40 rounded-lg px-2 py-1 text-xs font-label-md transition-colors flex items-center gap-1 shadow-sm active:scale-95">
+<span>¡Madre mía!</span> <span class="text-xs">🤯</span>
+</button>
+<button class="bg-surface-container-lowest hover:bg-primary hover:text-on-primary text-on-surface border border-outline-variant/40 rounded-lg px-2 py-1 text-xs font-label-md transition-colors flex items-center gap-1 shadow-sm active:scale-95">
+<span>Exacto</span> <span class="text-xs">🎯</span>
+</button>
+</div>
+</div>
+<!-- Emoji Category Pills Filter -->
+<div class="w-full flex items-center space-x-2 overflow-x-auto custom-scrollbar pb-1 text-xs">
+<button class="bg-primary text-on-primary px-3 py-1 rounded-full font-label-md text-label-sm whitespace-nowrap shadow-sm">
+            Frequently Used
+          </button>
+<button class="bg-surface-container text-on-surface-variant hover:bg-surface-container-high px-3 py-1 rounded-full font-label-md text-label-sm whitespace-nowrap transition-colors">
+            Faces &amp; Gestures
+          </button>
+<button class="bg-surface-container text-on-surface-variant hover:bg-surface-container-high px-3 py-1 rounded-full font-label-md text-label-sm whitespace-nowrap transition-colors">
+            Flags &amp; Culture
+          </button>
+<button class="bg-surface-container text-on-surface-variant hover:bg-surface-container-high px-3 py-1 rounded-full font-label-md text-label-sm whitespace-nowrap transition-colors">
+            Food &amp; Life
+          </button>
+</div>
+</div>
+<!-- Emoji Keyboard Grid with Educational Cultural Tooltips -->
+<div class="px-margin-mobile py-2 overflow-y-auto custom-scrollbar space-y-3 flex-1 pb-16">
+<!-- Active Context Tooltip Card (Interactive Pedagogical Component) -->
+<div class="bg-secondary-fixed/30 border border-secondary-fixed rounded-xl p-2.5 flex items-start gap-2.5">
+<div class="text-2xl bg-surface-container-lowest rounded-lg p-1.5 shadow-sm border border-secondary-fixed">
+            🤌
+          </div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-secondary font-bold">Cultural Gesture: Che Vuoi / Qué dices</span>
+<span class="font-label-sm text-[10px] bg-secondary text-on-secondary rounded px-1">Gesture</span>
+</div>
+<p class="font-body-sm text-xs text-on-surface-variant mt-0.5 leading-snug">
+              Expresses animated emphasis, skepticism, or incredulous interrogation in Southern European &amp; Latin dialogue.
+            </p>
+</div>
+<button class="text-outline hover:text-on-surface">
+<span class="material-symbols-outlined text-sm">close</span>
+</button>
+</div>
+<!-- Section 1: Cultural Gestures & Expressions -->
+<div>
+<div class="flex items-center justify-between mb-1.5">
+<span class="font-label-sm text-label-sm font-semibold text-outline uppercase tracking-wider">Gestures with Linguistic Context</span>
+<span class="font-label-sm text-[11px] text-primary flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px]">info</span> Tap for notes
+            </span>
+</div>
+<div class="grid grid-cols-7 gap-2">
+<!-- Pinched Fingers -->
+<button class="h-10 w-full flex items-center justify-center text-2xl rounded-xl bg-surface-container-high/50 hover:bg-surface-container-highest border border-secondary transition-all active:scale-90 relative" title="Pinched Fingers (Qué dices)">
+              🤌
+              <span class="absolute -top-1 -right-1 w-2 h-2 bg-secondary rounded-full"></span>
+</button>
+<button class="h-10 w-full flex items-center justify-center text-2xl rounded-xl hover:bg-surface-container transition-all active:scale-90 relative" title="Hands Pressed">
+              🙏
+            </button>
+<button class="h-10 w-full flex items-center justify-center text-2xl rounded-xl hover:bg-surface-container transition-all active:scale-90 relative" title="Mind Blown">
+              🤯
+              <span class="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"></span>
+</button>
+<button class="h-10 w-full flex items-center justify-center text-2xl rounded-xl hover:bg-surface-container transition-all active:scale-90 relative" title="Clapping">
+              👏
+            </button>
+<button class="h-10 w-full flex items-center justify-center text-2xl rounded-xl hover:bg-surface-container transition-all active:scale-90 relative" title="Thinking / Duda">
+              🤔
+            </button>
+<button class="h-10 w-full flex items-center justify-center text-2xl rounded-xl hover:bg-surface-container transition-all active:scale-90 relative" title="Relief / Menos mal">
+              😮‍💨
+            </button>
+<button class="h-10 w-full flex items-center justify-center text-2xl rounded-xl hover:bg-surface-container transition-all active:scale-90 relative" title="Salute / A sus órdenes">
+              🫡
+            </button>
+</div>
+</div>
+<!-- Section 2: Cultural Heritage & Regional Foods -->
+<div>
+<div class="flex items-center justify-between mb-1.5">
+<span class="font-label-sm text-label-sm font-semibold text-outline uppercase tracking-wider">Culture &amp; Gastronomy</span>
+<span class="font-label-sm text-[11px] text-tertiary">Real-world practice</span>
+</div>
+<div class="grid grid-cols-7 gap-2">
+<!-- Flamenco Dancer -->
+<button class="h-10 w-full flex items-center justify-center text-2xl rounded-xl bg-surface-container-low hover:bg-surface-container transition-all active:scale-90 group relative" title="Flamenco Dancer: Celebrations &amp; Rhythm">
+              💃
+              <span class="absolute -top-1 -right-1 w-2 h-2 bg-tertiary rounded-full"></span>
+</button>
+<!-- Mate -->
+<button class="h-10 w-full flex items-center justify-center text-2xl rounded-xl bg-surface-container-low hover:bg-surface-container transition-all active:scale-90 relative" title="Mate: Social bonding in South America">
+              🧉
+              <span class="absolute -top-1 -right-1 w-2 h-2 bg-tertiary rounded-full"></span>
+</button>
+<!-- Paella / Tapas -->
+<button class="h-10 w-full flex items-center justify-center text-2xl rounded-xl bg-surface-container-low hover:bg-surface-container transition-all active:scale-90" title="Paella Pan">
+              🥘
+            </button>
+<!-- Wine -->
+<button class="h-10 w-full flex items-center justify-center text-2xl rounded-xl bg-surface-container-low hover:bg-surface-container transition-all active:scale-90" title="Vino Tinto">
+              🍷
+            </button>
+<!-- Churro / Croissant -->
+<button class="h-10 w-full flex items-center justify-center text-2xl rounded-xl bg-surface-container-low hover:bg-surface-container transition-all active:scale-90" title="Desayuno">
+              🥐
+            </button>
+<!-- Spanish Flag -->
+<button class="h-10 w-full flex items-center justify-center text-2xl rounded-xl bg-surface-container-low hover:bg-surface-container transition-all active:scale-90" title="España">
+              🇪🇸
+            </button>
+<!-- Mexican Flag -->
+<button class="h-10 w-full flex items-center justify-center text-2xl rounded-xl bg-surface-container-low hover:bg-surface-container transition-all active:scale-90" title="México">
+              🇲🇽
+            </button>
+</div>
+</div>
+<!-- Interactive Education Mini-Banner inside tray -->
+<div class="bg-surface-container rounded-xl p-2.5 flex items-center justify-between border border-outline-variant/40">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 rounded-lg bg-tertiary text-on-tertiary flex items-center justify-center">
+<span class="material-symbols-outlined text-base">school</span>
+</div>
+<div>
+<p class="font-label-md text-xs font-semibold text-on-surface">Idiomatic Reactions</p>
+<p class="font-body-sm text-[11px] text-on-surface-variant">Earn 2x fluency score by using culturally accurate emojis.</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline text-lg">chevron_right</span>
+</div>
+</div>
+<!-- Quick Message Input Overlay Mock for messenger feel -->
+<div class="px-margin-mobile py-2 bg-surface-container-lowest border-t border-surface-container flex items-center gap-2">
+<button class="p-1.5 text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined">add_circle</span>
+</button>
+<div class="flex-1 bg-surface-container-low rounded-full px-3 py-1.5 flex items-center justify-between border border-surface-container">
+<span class="font-body-sm text-body-sm text-outline">Type a Spanish reply or expression...</span>
+<span class="material-symbols-outlined text-outline text-sm">mic</span>
+</div>
+<button class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center shadow hover:opacity-95 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-base">send</span>
+</button>
+</div>
+<!-- Shared Component: BottomNavBar Execution -->
+<!-- style_component_shape: docked full-width bottom-0 -->
+<!-- destination_count: 3; labels: ["Emojis", "Stickers", "GIFs"] -->
+<!-- style_bg_color: bg-surface-container-lowest dark:bg-surface-container-low -->
+<!-- style_shadows_and_elevation: shadow-sm -->
+<!-- Active navigation item mapped autonomously to: 'Emojis' -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-margin-mobile py-2 bg-surface-container-lowest dark:bg-surface-container-low shadow-sm max-w-md mx-auto right-0">
+<!-- Item 1: Emojis (ACTIVE) -->
+<button class="flex flex-col items-center justify-center bg-primary-container dark:bg-primary-container text-on-primary-container dark:text-on-primary-container rounded-xl px-3 py-1.5 active:scale-95 transition-transform duration-150">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">sentiment_satisfied</span>
+<span class="font-label-sm text-label-sm font-semibold">Emojis</span>
+</button>
+<!-- Item 2: Stickers (INACTIVE) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-3 py-1.5 hover:bg-surface-container dark:hover:bg-surface-container-high rounded-xl active:scale-95 transition-transform duration-150">
+<span class="material-symbols-outlined text-lg">auto_awesome_motion</span>
+<span class="font-label-sm text-label-sm">Stickers</span>
+</button>
+<!-- Item 3: GIFs (INACTIVE) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-3 py-1.5 hover:bg-surface-container dark:hover:bg-surface-container-high rounded-xl active:scale-95 transition-transform duration-150">
+<span class="material-symbols-outlined text-lg">gif_box</span>
+<span class="font-label-sm text-label-sm">GIFs</span>
+</button>
+</nav>
+</div>
+</div>
+</body></html>

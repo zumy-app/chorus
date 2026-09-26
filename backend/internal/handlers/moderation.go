@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/chorus/messenger/internal/middleware"
 	"github.com/chorus/messenger/internal/models"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/gin-gonic/gin"
@@ -27,15 +28,15 @@ func (h *ModerationHandler) Block(c *gin.Context) {
 		Reason        string `json:"reason"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": "Invalid request: " + err.Error()})
+		WriteError(c, middleware.ErrValidation("Invalid request"))
 		return
 	}
 	if err := h.moderation.Block(c.Request.Context(), userID, req.BlockedUserID, req.Reason); err != nil {
-		status := http.StatusBadRequest
 		if err == services.ErrBlockUserNotFound {
-			status = http.StatusNotFound
+			WriteError(c, middleware.ErrNotFound("User not found"))
+			return
 		}
-		c.JSON(status, gin.H{"error": err.Error()})
+		WriteError(c, middleware.ErrValidation("Unable to block user"))
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"message": "User blocked"})
@@ -45,7 +46,7 @@ func (h *ModerationHandler) Unblock(c *gin.Context) {
 	userID := c.GetString("userID")
 	blockedID := c.Param("userId")
 	if err := h.moderation.Unblock(c.Request.Context(), userID, blockedID); err != nil {
-		c.JSON(500, gin.H{"error": "Failed to unblock user"})
+		WriteError(c, middleware.ErrInternal("Failed to unblock user"))
 		return
 	}
 	c.JSON(http.StatusNoContent, nil)
@@ -55,10 +56,24 @@ func (h *ModerationHandler) ListBlocked(c *gin.Context) {
 	userID := c.GetString("userID")
 	blocks, err := h.moderation.GetBlocked(c.Request.Context(), userID)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to load blocked users"})
+		WriteError(c, middleware.ErrInternal("Failed to load blocked users"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"blocks": blocks, "total": len(blocks)})
+}
+
+// GetBlockStatus returns the block relationship between the caller and another
+// user. It is the per-user probe the client uses to render Block/Unblock (and
+// the mutual/ghost state) on every surface the target user appears in.
+// GET /api/v1/blocks/:userId/status
+func (h *ModerationHandler) GetBlockStatus(c *gin.Context) {
+	userID := c.GetString("userID")
+	status, err := h.moderation.BlockStatus(c.Request.Context(), userID, c.Param("userId"))
+	if err != nil {
+		WriteError(c, middleware.ErrInternal("Failed to load block status"))
+		return
+	}
+	c.JSON(http.StatusOK, status)
 }
 
 // Report files a moderation report against a user or message.
@@ -66,17 +81,17 @@ func (h *ModerationHandler) Report(c *gin.Context) {
 	userID := c.GetString("userID")
 	var req models.ReportRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": "Invalid request: " + err.Error()})
+		WriteError(c, middleware.ErrValidation("Invalid request"))
 		return
 	}
 	report, err := h.moderation.Report(c.Request.Context(), userID, req)
 	if err != nil {
-		status := http.StatusBadRequest
 		switch err {
 		case services.ErrBlockUserNotFound, services.ErrReportMessageNotFound:
-			status = http.StatusNotFound
+			WriteError(c, middleware.ErrNotFound("Message not found"))
+		default:
+			WriteError(c, middleware.ErrValidation("Unable to file report"))
 		}
-		c.JSON(status, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusCreated, report)
@@ -92,7 +107,7 @@ func (h *ModerationHandler) ListReports(c *gin.Context) {
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 	reports, total, err := h.moderation.ListReports(c.Request.Context(), status, q, limit, offset)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to load reports"})
+		WriteError(c, middleware.ErrInternal("Failed to load reports"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"reports": reports, "total": total})
@@ -102,7 +117,7 @@ func (h *ModerationHandler) ListReports(c *gin.Context) {
 func (h *ModerationHandler) ReportStats(c *gin.Context) {
 	stats, err := h.moderation.GetReportStats(c.Request.Context())
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to load report stats"})
+		WriteError(c, middleware.ErrInternal("Failed to load report stats"))
 		return
 	}
 	c.JSON(http.StatusOK, stats)
@@ -112,10 +127,10 @@ func (h *ModerationHandler) ResolveReport(c *gin.Context) {
 	resolverID := c.GetString("userID")
 	if err := h.moderation.ResolveReport(c.Request.Context(), resolverID, c.Param("id")); err != nil {
 		if err == services.ErrReportNotFound {
-			c.JSON(404, gin.H{"error": "Open report not found"})
+			WriteError(c, middleware.ErrNotFound("Open report not found"))
 			return
 		}
-		c.JSON(500, gin.H{"error": "Failed to resolve report"})
+		WriteError(c, middleware.ErrInternal("Failed to resolve report"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Report resolved"})
@@ -129,10 +144,10 @@ func (h *ModerationHandler) DismissReport(c *gin.Context) {
 	_ = c.ShouldBindJSON(&req)
 	if err := h.moderation.DismissReport(c.Request.Context(), resolverID, c.Param("id"), req.Note); err != nil {
 		if err == services.ErrReportNotFound {
-			c.JSON(404, gin.H{"error": "Open report not found"})
+			WriteError(c, middleware.ErrNotFound("Open report not found"))
 			return
 		}
-		c.JSON(500, gin.H{"error": "Failed to dismiss report"})
+		WriteError(c, middleware.ErrInternal("Failed to dismiss report"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Report dismissed"})

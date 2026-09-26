@@ -92,6 +92,80 @@ func (s *ModerationService) GetBlocked(ctx context.Context, userID string) ([]mo
 	return blocks, rows.Err()
 }
 
+// BlockStatus returns the block relationship between viewer and target from the
+// viewer's perspective. Blocking yourself or empty ids yields a zero status. It
+// is the per-user probe clients use to render Block/Unblock on every surface a
+// user appears in (task 7.1).
+func (s *ModerationService) BlockStatus(ctx context.Context, viewerID, targetID string) (*models.BlockStatus, error) {
+	status := &models.BlockStatus{}
+	if viewerID == "" || targetID == "" || viewerID == targetID {
+		return status, nil
+	}
+	var isBlocked, blockedBy bool
+	err := s.db.QueryRowContext(ctx, `
+		SELECT
+			COUNT(*) FILTER (WHERE blocker_id = $1 AND blocked_id = $2) > 0 AS is_blocked,
+			COUNT(*) FILTER (WHERE blocker_id = $2 AND blocked_id = $1) > 0 AS blocked_by
+		FROM blocked_users
+		WHERE (blocker_id = $1 AND blocked_id = $2)
+		   OR (blocker_id = $2 AND blocked_id = $1)`, viewerID, targetID).Scan(&isBlocked, &blockedBy)
+	if err != nil {
+		return nil, err
+	}
+	status.Blocked = isBlocked
+	status.BlockedBy = blockedBy
+	status.Mutual = isBlocked && blockedBy
+	return status, nil
+}
+
+// EnrichUsers stamps viewer-relative block status on each provided user so the
+// client can surface Block/Unblock (and hide/ghost) everywhere a user is
+// rendered (task 7.1). Users the viewer has no block edge with are left with
+// IsBlocked/BlockedBy false. The viewer and nil users are skipped.
+func (s *ModerationService) EnrichUsers(ctx context.Context, viewerID string, users []*models.User) error {
+	if viewerID == "" || len(users) == 0 {
+		return nil
+	}
+	targets := make(map[string]*models.User, len(users))
+	for _, u := range users {
+		if u != nil && u.ID != "" && u.ID != viewerID {
+			targets[u.ID] = u
+		}
+	}
+	if len(targets) == 0 {
+		return nil
+	}
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT blocker_id, blocked_id FROM blocked_users
+		WHERE blocker_id = $1 OR blocked_id = $1`, viewerID)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	blocked := make(map[string]bool, len(targets))   // viewer blocked them
+	blockedBy := make(map[string]bool, len(targets)) // they blocked viewer
+	for rows.Next() {
+		var blockerID, blockedID string
+		if err := rows.Scan(&blockerID, &blockedID); err != nil {
+			return err
+		}
+		if blockerID == viewerID && blockedID != viewerID {
+			blocked[blockedID] = true
+		}
+		if blockedID == viewerID && blockerID != viewerID {
+			blockedBy[blockerID] = true
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for id, u := range targets {
+		u.IsBlocked = blocked[id]
+		u.BlockedBy = blockedBy[id]
+	}
+	return nil
+}
+
 // IsBlocked reports whether either direction of a block exists between two
 // users (blocks are mutual for enforcement).
 func (s *ModerationService) IsBlocked(ctx context.Context, userA, userB string) (bool, error) {

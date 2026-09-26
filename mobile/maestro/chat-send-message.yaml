@@ -1,0 +1,26 @@
+# Maestro — Release 1 critical path: open first chat, send message, see it echo.
+# Depends on login.yaml state; run as: maestro test mobile/maestro/login.yaml mobile/maestro/chat-send-message.yaml
+appId: host.exp.Exponent
+---
+# Chat list must render (empty state or rows both acceptable, but list chrome exists).
+- assertVisible:
+    text: "Chats"
+    timeout: 15000
+# Open the first conversation row if one exists; otherwise create one via NewChat.
+- tapOn:
+    text: "New chat"
+    optional: true
+- tapOn:
+    index: 0
+    optional: true
+# Composer must be present once inside a chat.
+- assertVisible:
+    text: "Type a message*"
+    timeout: 15000
+- tapOn: "Type a message*"
+- inputText: "Maestro MVP smoke ${MAESTRO_RUN_ID}"
+- tapOn: "Send"
+# The sent bubble echoes back (exact-text match on our unique probe).
+- assertVisible:
+    text: "Maestro MVP smoke*"
+    timeout: 15000

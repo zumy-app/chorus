@@ -128,10 +128,15 @@ func (s *AuthService) Register(req models.RegisterRequest) (*models.User, error)
 
 	// Insert user
 	user := &models.User{}
+	var firstNameNS, lastNameNS sql.NullString
+	displayName := req.DisplayName
+	if displayName == "" {
+		displayName = ComposeDisplayName(req.FirstName, req.LastName)
+	}
 	query := `
-		INSERT INTO users (username, email, password_hash, display_name, native_language, target_languages)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING id, username, email, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at
+		INSERT INTO users (username, email, password_hash, display_name, first_name, last_name, native_language, target_languages)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		RETURNING id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url, phone, phone_verified, phone_verified_at, two_factor_enabled
 	`
 
 	err = s.db.QueryRow(
@@ -139,7 +144,9 @@ func (s *AuthService) Register(req models.RegisterRequest) (*models.User, error)
 		req.Username,
 		req.Email,
 		passwordHash,
-		req.DisplayName,
+		displayName,
+		nilIfEmpty(req.FirstName),
+		nilIfEmpty(req.LastName),
 		req.NativeLanguage,
 		pq.Array(req.TargetLanguages),
 	).Scan(
@@ -147,6 +154,8 @@ func (s *AuthService) Register(req models.RegisterRequest) (*models.User, error)
 		&user.Username,
 		&user.Email,
 		&user.DisplayName,
+		&firstNameNS,
+		&lastNameNS,
 		&user.NativeLanguage,
 		pq.Array(&user.TargetLanguages),
 		&user.Role,
@@ -163,7 +172,18 @@ func (s *AuthService) Register(req models.RegisterRequest) (*models.User, error)
 		&user.SubscriptionStatus,
 		&user.NextBillingDate,
 		&user.LastPaymentAt,
+		&user.AvatarURL,
+		&user.Phone,
+		&user.PhoneVerified,
+		&user.PhoneVerifiedAt,
+		&user.TwoFactorEnabled,
 	)
+	if firstNameNS.Valid {
+		user.FirstName = firstNameNS.String
+	}
+	if lastNameNS.Valid {
+		user.LastName = lastNameNS.String
+	}
 
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
@@ -182,6 +202,7 @@ func (s *AuthService) Register(req models.RegisterRequest) (*models.User, error)
 		return nil, err
 	}
 
+	user.AvatarColor = DeterministicAvatarColor(user.ID)
 	return user, nil
 }
 
@@ -200,21 +221,32 @@ func (s *AuthService) RegisterWithInvitation(req models.RegisterRequest) (*model
 	sum := sha256.Sum256([]byte(req.InviteToken))
 	var invitationID string
 	err = tx.QueryRow(`UPDATE invitations SET redeemed_at = CURRENT_TIMESTAMP
-		WHERE token_hash = $1 AND email = $2 AND redeemed_at IS NULL AND expires_at > CURRENT_TIMESTAMP
+		WHERE token_hash = $1 AND (email = $2 OR email = '') AND redeemed_at IS NULL AND expires_at > CURRENT_TIMESTAMP
 		RETURNING id`, hex.EncodeToString(sum[:]), strings.ToLower(strings.TrimSpace(req.Email))).Scan(&invitationID)
 	if err != nil {
 		return nil, ErrInvalidInvitation
 	}
 	user := &models.User{}
+	var firstNameNS, lastNameNS sql.NullString
+	displayName := req.DisplayName
+	if displayName == "" {
+		displayName = ComposeDisplayName(req.FirstName, req.LastName)
+	}
 	err = tx.QueryRow(`
-		INSERT INTO users (username, email, password_hash, display_name, native_language, target_languages)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING id, username, email, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at`,
-		req.Username, req.Email, passwordHash, req.DisplayName, req.NativeLanguage, pq.Array(req.TargetLanguages),
-	).Scan(&user.ID, &user.Username, &user.Email, &user.DisplayName, &user.NativeLanguage,
+		INSERT INTO users (username, email, password_hash, display_name, first_name, last_name, native_language, target_languages)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		RETURNING id, username, email, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url, phone, phone_verified, phone_verified_at, two_factor_enabled`,
+		req.Username, req.Email, passwordHash, displayName, nilIfEmpty(req.FirstName), nilIfEmpty(req.LastName), req.NativeLanguage, pq.Array(req.TargetLanguages),
+	).Scan(&user.ID, &user.Username, &user.Email, &user.DisplayName, &firstNameNS, &lastNameNS, &user.NativeLanguage,
 		pq.Array(&user.TargetLanguages), &user.Role, &user.CreatedAt, &user.LastActiveAt, &user.SuspendedAt, &user.DeletedAt,
 		&user.Plan, &user.PlanGraceUntil, &user.PremiumSince, &user.SubscriptionID, &user.SubscriptionProvider,
-		&user.SubscriptionPlanID, &user.SubscriptionStatus, &user.NextBillingDate, &user.LastPaymentAt)
+		&user.SubscriptionPlanID, &user.SubscriptionStatus, &user.NextBillingDate, &user.LastPaymentAt, &user.AvatarURL, &user.Phone, &user.PhoneVerified, &user.PhoneVerifiedAt, &user.TwoFactorEnabled)
+	if firstNameNS.Valid {
+		user.FirstName = firstNameNS.String
+	}
+	if lastNameNS.Valid {
+		user.LastName = lastNameNS.String
+	}
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
 			return nil, ErrEmailAlreadyRegistered
@@ -224,23 +256,27 @@ func (s *AuthService) RegisterWithInvitation(req models.RegisterRequest) (*model
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
+	user.AvatarColor = DeterministicAvatarColor(user.ID)
 	return user, nil
 }
 
 func (s *AuthService) Login(username, password string) (*models.User, error) {
 	user := &models.User{}
 	query := `
-		SELECT id, username, email, password_hash, display_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at
+		SELECT id, username, email, password_hash, display_name, first_name, last_name, native_language, target_languages, role, created_at, last_active_at, suspended_at, deleted_at, plan, plan_grace_until, premium_since, subscription_id, subscription_provider, subscription_plan_id, subscription_status, next_billing_date, last_payment_at, avatar_url, phone, phone_verified, phone_verified_at, two_factor_enabled
 		FROM users
 		WHERE username = $1 OR email = $1
 	`
 
+	var firstNameNS, lastNameNS sql.NullString
 	err := s.db.QueryRow(query, username).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Email,
 		&user.PasswordHash,
 		&user.DisplayName,
+		&firstNameNS,
+		&lastNameNS,
 		&user.NativeLanguage,
 		pq.Array(&user.TargetLanguages),
 		&user.Role,
@@ -257,7 +293,18 @@ func (s *AuthService) Login(username, password string) (*models.User, error) {
 		&user.SubscriptionStatus,
 		&user.NextBillingDate,
 		&user.LastPaymentAt,
+		&user.AvatarURL,
+		&user.Phone,
+		&user.PhoneVerified,
+		&user.PhoneVerifiedAt,
+		&user.TwoFactorEnabled,
 	)
+	if firstNameNS.Valid {
+		user.FirstName = firstNameNS.String
+	}
+	if lastNameNS.Valid {
+		user.LastName = lastNameNS.String
+	}
 
 	if err != nil {
 		return nil, errors.New("invalid credentials")
@@ -271,6 +318,8 @@ func (s *AuthService) Login(username, password string) (*models.User, error) {
 	if user.SuspendedAt != nil || user.DeletedAt != nil {
 		return nil, errors.New("account is disabled")
 	}
+
+	user.AvatarColor = DeterministicAvatarColor(user.ID)
 
 	// Update last active
 	updateQuery := `UPDATE users SET last_active_at = CURRENT_TIMESTAMP WHERE id = $1`
@@ -344,4 +393,40 @@ func (s *AuthService) ResetPassword(token, newPassword string) (string, error) {
 func (s *AuthService) DeleteUserRefreshTokens(userID string) error {
 	_, err := s.db.Exec(`DELETE FROM refresh_tokens WHERE user_id = $1`, userID)
 	return err
+}
+
+type TwoFAClaims struct {
+	UserID string `json:"userId"`
+	Purpose string `json:"purpose"`
+	jwt.RegisteredClaims
+}
+
+func (s *AuthService) Generate2FATempToken(userID string) (string, error) {
+	claims := TwoFAClaims{
+		UserID: userID,
+		Purpose: "2fa",
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(5 * time.Minute)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Subject:   userID,
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(s.jwtSecret))
+}
+
+func (s *AuthService) Validate2FATempToken(tokenString string) (string, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &TwoFAClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(s.jwtSecret), nil
+	})
+	if err != nil {
+		return "", err
+	}
+	if claims, ok := token.Claims.(*TwoFAClaims); ok && token.Valid {
+		if claims.Purpose != "2fa" {
+			return "", errors.New("invalid 2fa token")
+		}
+		return claims.UserID, nil
+	}
+	return "", errors.New("invalid 2fa token")
 }

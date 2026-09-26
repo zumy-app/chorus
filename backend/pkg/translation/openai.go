@@ -52,6 +52,11 @@ func (p *OpenAIProvider) Name() string {
 	return fmt.Sprintf("openai(%s)", p.model)
 }
 
+// ModelName returns the configured model ID for FR-30 lineage attribution.
+func (p *OpenAIProvider) ModelName() string {
+	return p.model
+}
+
 // NeedsKey reports whether this provider requires an API key. Used by the
 // chain's startup health check to flag misconfigured cloud providers.
 func (p *OpenAIProvider) NeedsKey() bool {
@@ -81,6 +86,14 @@ type openAIChatChoice struct {
 // openAIChatResponse is the response from /v1/chat/completions.
 type openAIChatResponse struct {
 	Choices []openAIChatChoice `json:"choices"`
+	Usage   *openAIUsage       `json:"usage,omitempty"`
+}
+
+// openAIUsage is the optional token-count block returned by OpenAI-compatible
+// APIs. Used to attribute cost to a translation for FR-30 lineage.
+type openAIUsage struct {
+	PromptTokens     int `json:"prompt_tokens"`
+	CompletionTokens int `json:"completion_tokens"`
 }
 
 // Translate translates text using the OpenAI-compatible API.
@@ -170,7 +183,16 @@ func (p *OpenAIProvider) Translate(ctx context.Context, req TranslateRequest) (T
 	return TranslateResponse{
 		TranslatedText: translated,
 		Provider:       p.Name(),
+		Usage:          translateUsage(chatResp.Usage),
 	}, nil
+}
+
+// translateUsage maps a provider usage block onto TokenUsage, handling nil.
+func translateUsage(u *openAIUsage) TokenUsage {
+	if u == nil {
+		return TokenUsage{}
+	}
+	return TokenUsage{PromptTokens: u.PromptTokens, CompletionTokens: u.CompletionTokens}
 }
 
 // DetectLanguage identifies the language of text via the same chat model. It

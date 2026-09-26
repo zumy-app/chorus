@@ -1,0 +1,578 @@
+# =============================================================================
+# Chorus CI/CD — NFR-26 Dev environment + quality gates + dev→prod promotion
+#
+# Pushes to `main` (and manual `workflow_dispatch`) build images, deploy them to
+# the isolated `chorus-dev` environment, run the full quality gate suite ON dev,
+# and only then promote the built image to `prod` — by image promotion (re-tag
+# the exact digest), not a rebuild. Pull requests run the static gates only; no
+# deploy.
+#
+# Required repository secrets (never committed — see docs/CI_CD_NFR26.md):
+#   CR_USERNAME, CR_PASSWORD          -> GHCR push (or use GITHUB_TOKEN)
+#   DEV_SSH_HOST, DEV_SSH_USER, DEV_SSH_KEY   -> dev host (chorus-dev project)
+#   PROD_SSH_HOST, PROD_SSH_USER, PROD_SSH_KEY -> prod host (Dokploy)
+#   PROVIDER_OPENROUTER_KEY, PROVIDER_NVIDIA_KEY
+#   SLACK_WEBHOOK_URL (optional, for gate-failure notifications)
+# Repo settings: require a green `test` + `security` workflow before merge/branch
+# protection on `main` (configured in GitHub, not in-file).
+# =============================================================================
+name: CI/CD (NFR-26)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy_dev:
+        description: "Deploy to dev + run gates + promote to prod"
+        type: boolean
+        default: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  CR_REGISTRY: ghcr.io
+  IMAGE_NAME: ghcr.io/zumy-app/chorus
+  GO_VERSION: 1.25
+  NODE_VERSION: 20
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1) Static gates: build + unit/integration + compose validity (PR + main)
+  # ---------------------------------------------------------------------------
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: backend/go.sum
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # Backend build + vet + test
+      # -short skips timing/perf/soak suites (routing, perf, soak) — they run
+      # in full on main via mobile-blackbox. Keeps PR feedback fast + flake-free.
+      - name: Backend build/vet/test (short)
+        working-directory: backend
+        run: |
+          go build ./...
+          go vet ./...
+          go test -short ./...
+
+      # Frontend build + test
+      - name: Frontend build/test
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+          npm test
+
+      # Mobile test (jest, runInBand: parallel workers flake on timer
+      # teardown — see TEST_STRATEGY.md flaky-test policy)
+      - name: Mobile test
+        working-directory: mobile
+        run: |
+          npm ci --no-audit --no-fund
+          npx jest --runInBand --silent
+
+      # Compose stacks valid
+      - name: Validate compose files
+        run: |
+          docker compose -f docker-compose.yml config --quiet
+          docker compose -f docker-compose.dev.yml config --quiet
+          docker compose -f deploy/dev/docker-compose.yml config --quiet
+          docker compose -f docker-compose.prod.yml config --quiet
+          bash -n deploy/ci/*.sh
+          bash -n deploy/mail/*.sh
+
+      - name: Release gate (offline)
+        run: bash deploy/ci/verify-release-gate.sh --offline
+
+      # MVP daily-release gates (all offline, <10s each):
+      # - API contract: backend routes <-> shared client <-> app wiring
+      # - Maestro flows: native e2e YAML valid + selectors live
+      - name: API contract gate (offline)
+        run: bash deploy/ci/verify-api-contract.sh
+
+      - name: Maestro flows gate (offline)
+        run: bash deploy/ci/verify-maestro.sh
+
+  # ---------------------------------------------------------------------------
+  # 1b) Mocked E2E gate — hard-fail learning + Sparky + negative cases (PR + main)
+  #     Uses page.route + page.goto with REAL React UI and mocked API DATA.
+  #     No Docker needed; frontend preview serves on :3000. Blocks merge if green
+  #     tests were fake before (P0/P1). Required for branch protection.
+  # ---------------------------------------------------------------------------
+  e2e-mocked:
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install frontend + e2e deps
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Install e2e deps (root)
+        working-directory: e2e
+        run: npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+      - name: Start frontend preview on :3000
+        working-directory: frontend
+        run: |
+          nohup npm run preview -- --port 3000 --host 0.0.0.0 &
+          for i in $(seq 1 30); do curl -fsS http://localhost:3000 >/dev/null 2>&1 && break; sleep 1; done
+          curl -fsS http://localhost:3000 >/dev/null
+      - name: Run mocked E2E (hard-fail, no Docker)
+        working-directory: e2e
+        env:
+          E2E_SKIP_STARTUP: "true"
+          E2E_PREWARM: "false"
+          E2E_BASE_URL: http://localhost:3000
+          E2E_BACKEND_HEALTH: http://localhost:3000
+        run: npx playwright test --project=chromium tests/qa-scenarios-drills.spec.ts tests/21-learning-journey.spec.ts tests/22-negative-cases.spec.ts --reporter=list
+      - name: Upload mocked E2E report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-mocked-report
+          path: e2e/playwright-report/
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # 1c) Mobile blackbox gate — real backend + Postgres, no mocks (PR + main)
+  #     Runs mobile/tests/*.ts (raw axios vs live API): core auth/chat flow +
+  #     the 17 learning-engine probes. These scripts used to be manual-only,
+  #     exit-0-always, and pointed at stale Gmail creds; they now fail loudly.
+  # ---------------------------------------------------------------------------
+  mobile-blackbox:
+    needs: [test]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: messenger_dev
+          POSTGRES_USER: messenger
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U messenger -d messenger_dev"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgres://messenger:password@localhost:5432/messenger_dev?sslmode=disable
+      REDIS_URL: localhost:6379
+      JWT_SECRET: ci-blackbox-secret-change-me
+      PORT: 8080
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: backend/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Build backend
+        working-directory: backend
+        run: go build ./...
+      - name: Seed deterministic fixtures
+        working-directory: backend
+        run: go run ./cmd/server --seed-dev
+      - name: Start backend
+        working-directory: backend
+        run: |
+          nohup go run ./cmd/server > /tmp/backend.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://localhost:8080/health >/dev/null 2>&1 && break; sleep 2; done
+          curl -fsS http://localhost:8080/health >/dev/null
+      - name: Install mobile deps
+        working-directory: mobile
+        run: npm ci --no-audit --no-fund
+      - name: Run core API blackbox (auth/chat)
+        working-directory: mobile
+        run: npx ts-node --project tsconfig.tests.json tests/functional-tests.ts
+      - name: Run learning-engine blackbox (17 probes)
+        working-directory: mobile
+        run: npx ts-node --project tsconfig.tests.json tests/learning-functional-tests.ts
+      - name: Run acceptance gate (31 hard TCs, green mode)
+        working-directory: e2e/acceptance
+        run: |
+          npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+          npm run acceptance:green
+      # Live migration safety: Migrate() twice against the real Postgres.
+      # Catches non-idempotent migrations before they can break daily deploys.
+      - name: Live migration double-run
+        working-directory: backend
+        env:
+          DATABASE_URL: postgres://messenger:password@localhost:5432/messenger_dev?sslmode=disable
+        run: go test ./internal/database/ -run TestMigrations_DoubleRunLive -v -count=1
+      # Live flags probe: seeded alice (general user) must see stable flags ON
+      # and admin-only flags OFF — the exact Release 1 visibility contract.
+      - name: Live feature-flags probe (general user visibility)
+        env:
+          API: http://localhost:8080/api/v1
+        run: |
+          TOKEN=$(python3 -c "
+          import json, urllib.request
+          req = urllib.request.Request('$API/auth/login',
+              data=json.dumps({'username': 'alice.en-es@chorus.test', 'password': 'ChorusDev123!'}).encode(),
+              headers={'Content-Type': 'application/json'})
+          print(json.load(urllib.request.urlopen(req))['tokens']['accessToken'])
+          ")
+          FLAGS=$(curl -fsS -H "Authorization: Bearer $TOKEN" "$API/users/me/flags")
+          echo "$FLAGS" | python3 -c "
+          import json, sys
+          flags = json.load(sys.stdin)['flags']
+          stable_on = ['grammar_insights', 'word_collector', 'feature_voting']
+          admin_off = ['video_calls', 'teacher_marketplace', 'payout_teacher', 'gdpr_export']
+          bad = [k for k in stable_on if flags.get(k) is not True]
+          bad += [k for k in admin_off if flags.get(k) is not False]
+          if bad:
+              print(f'FLAG VISIBILITY VIOLATION: {bad} in {flags}', file=sys.stderr)
+              sys.exit(1)
+          print('flags visibility OK: stable ON, admin-only OFF for general user')
+          "
+      - name: Dump backend log on failure
+        if: failure()
+        run: tail -n 100 /tmp/backend.log || true
+
+  # ---------------------------------------------------------------------------
+  # 1d) Android native build gate (PR + main) — catches native breakage before
+  #     the Play Store does. assembleDebug is the same artifact Maestro installs.
+  # ---------------------------------------------------------------------------
+  android-build:
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - name: Install mobile deps
+        working-directory: mobile
+        run: npm ci --no-audit --no-fund
+      - name: Assemble Android debug APK
+        working-directory: mobile/android
+        run: ./gradlew assembleDebug --no-daemon -q
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # 1e) Maestro native e2e on emulator (main only + manual dispatch)
+  #     Real APK + real backend + real Postgres: login -> chat -> send -> flags.
+  #     PRs get the offline verify-maestro.sh gate (fast); main gets the full
+  #     emulator run so every daily release is native-verified.
+  # ---------------------------------------------------------------------------
+  mobile-native:
+    needs: [test, android-build, mobile-blackbox]
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: messenger_dev
+          POSTGRES_USER: messenger
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U messenger -d messenger_dev"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgres://messenger:password@localhost:5432/messenger_dev?sslmode=disable
+      REDIS_URL: localhost:6379
+      JWT_SECRET: ci-maestro-secret-change-me
+      PORT: 8080
+      # Emulator reaches the host backend via 10.0.2.2; the app build bakes the
+      # API origin from EXPO_PUBLIC_API_URL at build time.
+      EXPO_PUBLIC_API_URL: http://10.0.2.2:8080
+      MAESTRO_TEST_USER_EMAIL: alice.en-es@chorus.test
+      MAESTRO_TEST_USER_PASSWORD: ChorusDev123!
+      MAESTRO_RUN_ID: ci-${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: backend/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - name: Build backend + seed + start
+        working-directory: backend
+        run: |
+          go build ./...
+          go run ./cmd/server --seed-dev
+          nohup go run ./cmd/server > /tmp/backend.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://localhost:8080/health >/dev/null 2>&1 && break; sleep 2; done
+          curl -fsS http://localhost:8080/health >/dev/null
+      - name: Install mobile deps + build debug APK
+        working-directory: mobile
+        run: |
+          npm ci --no-audit --no-fund
+          ./android/gradlew -p android assembleDebug --no-daemon -q
+      - name: Install Maestro
+        run: |
+          curl -Ls https://get.maestro.mobile.dev | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      - name: Run Maestro flows on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          script: |
+            adb install -r mobile/android/app/build/outputs/apk/debug/app-debug.apk
+            $HOME/.maestro/bin/maestro test mobile/maestro/login.yaml mobile/maestro/chat-send-message.yaml mobile/maestro/flags-gate.yaml
+      - name: Dump backend log on failure
+        if: failure()
+        run: tail -n 100 /tmp/backend.log || true
+
+  # ---------------------------------------------------------------------------
+  # 2) Security scan: govulncheck + npm audit (PR + main)
+  # ---------------------------------------------------------------------------
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: backend/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Security scan
+        run: bash deploy/ci/security-scan.sh
+
+  # ---------------------------------------------------------------------------
+  # 3) Build + push dev snapshot images (main only)
+  # ---------------------------------------------------------------------------
+  images:
+    needs: [test, security, e2e-mocked, mobile-blackbox, android-build]
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_dev == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.CR_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.CR_PASSWORD || secrets.GITHUB_TOKEN }}
+
+      # Backend image
+      - name: Build & push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}/backend:${{ github.run_number }}
+            ${{ env.IMAGE_NAME }}/backend:dev
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      # Frontend image — baked WITHOUT VITE_API_URL so the same image serves dev
+      # and prod behind their respective LBs (client uses a relative /api origin).
+      # NOTE: root context — frontend/Dockerfile needs packages/shared.
+      - name: Build & push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}/frontend:${{ github.run_number }}
+            ${{ env.IMAGE_NAME }}/frontend:dev
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+          build-args: |
+            NGINX_CONFIG=nginx.conf
+
+  # ---------------------------------------------------------------------------
+  # 4) Deploy to dev + run quality gates ON dev (main only)
+  # ---------------------------------------------------------------------------
+  deploy-dev:
+    needs: [images]
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_dev == 'true')
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure SSH to dev host
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s' "${{ secrets.DEV_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.DEV_SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Sync deploy/ + e2e/ to dev host (exclude caches)
+        run: |
+          rsync -az -e ssh --exclude node_modules --exclude playwright-report --exclude test-results \
+            deploy/ e2e/ "${{ secrets.DEV_SSH_USER }}@${{ secrets.DEV_SSH_HOST }}:/opt/chorus/"
+
+      - name: Deploy dev stack
+        env:
+          DEV_HOST: ${{ secrets.DEV_SSH_HOST }}
+          DEV_USER: ${{ secrets.DEV_SSH_USER }}
+          IMAGE_TAG: ${{ github.run_number }}
+        run: |
+          # The dev host holds the GHCR credential (Dokploy registry account), so
+          # `docker compose pull` is authenticated there. We only pass the image
+          # tag (non-secret) and wait for a good /health/ready probe.
+          ssh "$DEV_USER@$DEV_HOST" "IMAGE_TAG='$IMAGE_TAG' bash -s" <<'REMOTE'
+            set -euo pipefail
+            cd /opt/chorus
+            IMAGE_TAG="$IMAGE_TAG" docker compose -f deploy/dev/docker-compose.yml pull
+            IMAGE_TAG="$IMAGE_TAG" docker compose -f deploy/dev/docker-compose.yml up -d
+            for i in $(seq 1 30); do
+              if curl -fsS "https://dev.chorus.talk/health/ready" >/dev/null 2>&1; then break; fi
+              sleep 5
+            done
+            curl -fsS "https://dev.chorus.talk/health/ready" >/dev/null
+            echo "dev stack up"
+          REMOTE
+
+      - name: Run NFR-26 quality gates on dev
+        env:
+          DEV_HOST: ${{ secrets.DEV_SSH_HOST }}
+          DEV_USER: ${{ secrets.DEV_SSH_USER }}
+          E2E_BASE_URL: https://dev.chorus.talk
+          DOCKER_COMPOSE_FILE: deploy/dev/docker-compose.yml
+        run: |
+          # gate-on-dev.sh runs seed + e2e + phoenix-eval + load-smoke on the dev
+          # host, where it can exec into postgres-dev for the phoenix-eval gate.
+          ssh "$DEV_USER@$DEV_HOST" 'cd /opt/chorus && E2E_BASE_URL='"$E2E_BASE_URL"' DOCKER_COMPOSE_FILE='"$DOCKER_COMPOSE_FILE"' bash deploy/ci/gate-on-dev.sh'
+          # Pull the Playwright report back so it can be published (best-effort).
+          rsync -az -e ssh "$DEV_USER@$DEV_HOST:/opt/chorus/e2e/playwright-report/" e2e/playwright-report/ || true
+
+      - name: Upload gate artifacts (e2e report)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: e2e/playwright-report/
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # 5) Promote to prod only if dev gates passed (image promotion, no rebuild)
+  # ---------------------------------------------------------------------------
+  promote-prod:
+    needs: [deploy-dev]
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_dev == 'true')
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+      - name: Promote image dev→prod (re-tag digest, no rebuild)
+        env:
+          CR_REGISTRY: ${{ env.CR_REGISTRY }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          DEV_TAG: ${{ github.run_number }}
+          PROD_TAG: prod
+          CR_USERNAME: ${{ github.actor }}
+          CR_PASSWORD: ${{ secrets.CR_PASSWORD || secrets.GITHUB_TOKEN }}
+        run: bash deploy/ci/promote.sh
+
+      - name: Trigger prod pull on Dokploy host
+        env:
+          PROD_HOST: ${{ secrets.PROD_SSH_HOST }}
+          PROD_USER: ${{ secrets.PROD_SSH_USER }}
+          PROD_SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+        run: |
+          mkdir -p ~/.ssh && printf '%s' "$PROD_SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$PROD_HOST" >> ~/.ssh/known_hosts
+          ssh "$PROD_USER@$PROD_HOST" 'cd /opt/chorus && IMAGE_NAME='"$IMAGE_NAME"' IMAGE_TAG=prod docker compose -f docker-compose.prod.yml pull && IMAGE_NAME='"$IMAGE_NAME"' IMAGE_TAG=prod docker compose -f docker-compose.prod.yml up -d'
+          echo "prod stack pulled :prod and redeployed"
+
+      - name: Verify prod health after promotion
+        env:
+          PROD_URL: https://chorus.talk
+          PROD_HOST: ${{ secrets.PROD_SSH_HOST }}
+          PROD_USER: ${{ secrets.PROD_SSH_USER }}
+          PROD_SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh && printf '%s' "$PROD_SSH_KEY" > ~/.ssh/id_ed25519 2>/dev/null; chmod 600 ~/.ssh/id_ed25519 2>/dev/null || true
+          ssh-keyscan -H "$PROD_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          if ssh "$PROD_USER@$PROD_HOST" "curl -fsS http://localhost:8080/health >/dev/null 2>&1 || curl -fsS http://lb:8080/health >/dev/null 2>&1 || curl -fsS https://chorus.talk/health >/dev/null 2>&1"; then
+            echo "prod health verified"
+          else
+            echo "::warning::prod health probe failed — check Dokploy logs; rollback with: PREV_TAG=<last-good> bash deploy/ci/rollback.sh"
+            exit 1
+          fi
+
+      - name: Record promotion digest
+        if: always()
+        env:
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          DEV_TAG: ${{ github.run_number }}
+        run: |
+          echo "promoted $IMAGE_NAME/*:$DEV_TAG -> :prod" | tee /tmp/promotion.txt
+          cat /tmp/promotion.txt
+
+  # ---------------------------------------------------------------------------
+  # 6) Notify on failure (Slack webhook, optional)
+  # ---------------------------------------------------------------------------
+  notify-failure:
+    needs: [test, security, e2e-mocked, mobile-blackbox, android-build, mobile-native, deploy-dev, promote-prod]
+    if: failure() && (github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack alert
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        run: |
+          curl -fsS -X POST -H 'Content-Type: application/json' \
+            "${{ secrets.SLACK_WEBHOOK_URL }}" \
+            -d "{\"text\":\":x: Chorus CI/CD gate FAILED on run ${{ github.run_number }} — ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"

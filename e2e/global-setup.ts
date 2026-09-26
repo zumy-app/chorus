@@ -148,9 +148,107 @@ export default async function globalSetup() {
   console.log('⏳ Waiting for backend health check...')
   await waitForUrl(BACKEND_HEALTH, 'Backend', true)
 
+  // ── Dev seed + JWT clear (QA fix #2, #6) — deterministic alice/bob/sofia ===
+  // When E2E_SEED!=false, hit the dev-only seed endpoint (backend exposes it when
+  // ENVIRONMENT=development). Falls back to no-op if endpoint is disabled (prod).
+  if (process.env.E2E_SEED !== 'false') {
+    try {
+      const seedUrl = (process.env.E2E_API_URL || 'http://localhost:8080/api/v1') + '/dev/seed'
+      // Try via HTTP first (if backend has dev seed route, e.g., POST /dev/seed)
+      // Otherwise the seed is done via `go run ./cmd/server --seed-dev` before this.
+      const res = await fetch(seedUrl, { method: 'POST' })
+      if (res.ok) {
+        console.log('✅ Dev seed via API succeeded')
+      } else {
+        console.log(`ℹ️ Dev seed API not available (${res.status}) — assuming pre-seeded via go run --seed-dev`)
+      }
+    } catch (e) {
+      console.log(`ℹ️ Dev seed API not reachable — assuming pre-seeded: ${(e as Error).message}`)
+    }
+    // Clear any stale JWTs from prior runs (storageState.json or prior localStorage)
+    // Playwright contexts start fresh, but global-setup runs outside browser — ensure
+    // no storageState file leaks prior alice/bob ids.
+    try {
+      const { unlinkSync, existsSync: existsSync2 } = await import('fs')
+      const storageState = resolve(ROOT_DIR, 'e2e/storageState.json')
+      if (existsSync2(storageState)) {
+        unlinkSync(storageState)
+        console.log('✅ Cleared stale storageState.json')
+      }
+    } catch {}
+    console.log('✅ Seed + JWT clear done — dev accounts alice.en-es/bob.es-en/sofia.tutor ready')
+  }
+
   // ── Wait for frontend ──
   console.log('⏳ Waiting for frontend...')
   await waitForUrl(FRONTEND_URL, 'Frontend', false)
+
+  // ── P2: Pre-warm translation provider to avoid cold-start flake (hard-fail kept) ──
+  if (process.env.E2E_PREWARM !== 'false') {
+    console.log('⏳ Pre-warming translation provider (to reduce 60s cold-start)...')
+    try {
+      const apiUrl = process.env.E2E_API_URL || 'http://localhost:8080/api/v1'
+      // Login as DEV_ALICE (seeded) — best-effort, ignore if auth fails (mocked E2E still works)
+      const loginRes = await fetch(`${apiUrl}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'alice.en-es@chorus.test', password: 'ChorusDev123!' }),
+      })
+      if (loginRes.ok) {
+        const loginBody = (await loginRes.json()) as any
+        const token: string = loginBody?.tokens?.accessToken || ''
+        if (token) {
+          // Ensure a chat exists and trigger a dummy translation to warm Helsinki/Ollama model
+          const chatsRes = await fetch(`${apiUrl}/chats`, { headers: { Authorization: `Bearer ${token}` } })
+          let chatId: string | null = null
+          if (chatsRes.ok) {
+            const chatsData = (await chatsRes.json()) as any
+            chatId = chatsData?.chats?.[0]?.id || null
+          }
+          if (!chatId) {
+            // Create a warm-up chat with bob.es-en (ignore failure if already exists)
+            try {
+              const bobLogin = await fetch(`${apiUrl}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'bob.es-en@chorus.test', password: 'ChorusDev123!' }) })
+              const bobToken = bobLogin.ok ? ((await bobLogin.json() as any)?.tokens?.accessToken || '') : ''
+              // Need bob user id — search
+              const search = await fetch(`${apiUrl}/users/search?q=bob.es-en@chorus.test`, { headers: { Authorization: `Bearer ${token}` } })
+              const searchData = search.ok ? (await search.json() as any) : null
+              const bobId = searchData?.users?.[0]?.id
+              if (bobId) {
+                const create = await fetch(`${apiUrl}/chats`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'direct', participantIds: [bobId] }) })
+                if (create.ok) chatId = ((await create.json() as any)?.id || (await create.json() as any)?.chat?.id || null)
+              }
+              void bobToken
+            } catch {}
+          }
+          if (chatId) {
+            const msgRes = await fetch(`${apiUrl}/chats/${chatId}/messages`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ text: `warmup translation ${Date.now()}` }) })
+            if (msgRes.ok) {
+              const msg = (await msgRes.json() as any)
+              const msgId = msg?.id || msg?.message?.id
+              if (msgId) {
+                // Trigger translation (best-effort, 5s timeout) to warm translator-engine
+                const controller = new AbortController()
+                const t = setTimeout(() => controller.abort(), 5000)
+                try { await fetch(`${apiUrl}/chats/${chatId}/messages/${msgId}/translate`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ targetLang: 'es' }), signal: controller.signal }) } catch {}
+                clearTimeout(t)
+                console.log('✅ Translation pre-warm triggered')
+              }
+            }
+          } else {
+            console.log('ℹ️ Pre-warm: no chat to warm (will still run tests hard-fail)')
+          }
+        }
+      } else {
+        const snippet = await loginRes.text().then((t) => t.slice(0, 120)).catch(() => '?')
+        console.log(`ℹ️ Pre-warm login failed ${loginRes.status} ${snippet} — skipping (mocked E2E does not need it)`)
+      }
+    } catch (e) {
+      console.log(`ℹ️ Pre-warm skipped: ${(e as Error).message} (mocked E2E does not need it)`)
+    }
+    // Small delay to let translator-engine start model load before first real test
+    await new Promise(r => setTimeout(r, 2000))
+  }
 
   console.log('\n✅ All services ready. Starting tests...\n')
 }

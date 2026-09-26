@@ -30,7 +30,7 @@ test.describe('Real-time & WebSocket', () => {
     expect(wsLogs.some((log) => log.includes('connected'))).toBeTruthy()
   })
 
-  test('9.2 — Typing indicator fires', async ({ browser }) => {
+  test('9.2 — Typing indicator appears on the receiver (HARD)', async ({ browser }) => {
     const senderContext = await browser.newContext()
     const receiverContext = await browser.newContext()
     const senderPage = await senderContext.newPage()
@@ -44,24 +44,20 @@ test.describe('Real-time & WebSocket', () => {
       const chatItem = await findChatInSidebar(receiverPage, ENGLISH_USER.displayName)
       await chatItem.click()
 
-      // Sender starts typing
+      // Sender types char-by-char so typing_start stays live while asserting.
       const input = senderPage.locator('textarea[placeholder="Type a message..."]')
-      await input.fill('typing test...')
+      await expect(input).toBeVisible()
+      await input.pressSequentially('typing test...', { delay: 120 })
 
-      // Wait briefly for the typing event to propagate
-      await senderPage.waitForTimeout(1_000)
+      // Receiver must render the typing indicator (locale-agnostic match:
+      // EN "is typing…" / ES "está escribiendo…" / "Someone…"). HARD: the
+      // previous version asserted expect(true) and proved nothing.
+      const indicator = receiverPage.locator('text=/typing…|typing\\.\\.\\.|escribiendo|Someone is typing/i').first()
+      await expect(indicator).toBeVisible({ timeout: 10_000 })
 
-      // The typing indicator is sent via WebSocket.
-      // We can't easily assert the UI shows it (it's transient),
-      // but we can verify the WS message was sent by checking no errors occurred.
-      // The backend receives 'typing_start' event.
-
-      // Clear the input (sends typing_stop)
+      // Clearing the input sends typing_stop; the indicator must disappear.
       await input.fill('')
-      await senderPage.waitForTimeout(500)
-
-      // If we got here without errors, the typing flow works
-      expect(true).toBeTruthy()
+      await expect(indicator).toHaveCount(0, { timeout: 10_000 })
     } finally {
       await senderContext.close()
       await receiverContext.close()
@@ -115,26 +111,24 @@ test.describe('Real-time & WebSocket', () => {
       await loginAsUser(senderPage, ENGLISH_USER)
       await loginAsUser(receiverPage, SPANISH_USER)
 
-      // When sender creates a chat, receiver should see it appear
-      // in their chat list via WebSocket 'chat_updated' event
-      const chatListBefore = receiverPage.locator('.cursor-pointer')
+      // Prefer data-testid but fallback to legacy .cursor-pointer
+      const chatListBefore = receiverPage.getByTestId('chat-list-item').or(receiverPage.locator('.cursor-pointer'))
       const countBefore = await chatListBefore.count()
 
       await createDirectChat(senderPage, SPANISH_USER.displayName)
 
-      // Receiver's chat list should update (new chat appears)
-      // Try via WebSocket first, then fallback to reload
-      let chatItem = receiverPage.locator('.cursor-pointer').filter({ hasText: ENGLISH_USER.displayName })
+      // Receiver's chat list should update (new chat appears) — use data-testid with fallback
+      let chatItem = receiverPage.getByTestId('chat-list-item').filter({ hasText: ENGLISH_USER.displayName }).or(receiverPage.locator('.cursor-pointer').filter({ hasText: ENGLISH_USER.displayName }))
       try {
-        await expect(chatItem).toBeVisible({ timeout: 10_000 })
+        await expect(chatItem.first()).toBeVisible({ timeout: 10_000 })
       } catch {
         await receiverPage.reload()
         await receiverPage.waitForLoadState('networkidle')
-        chatItem = receiverPage.locator('.cursor-pointer').filter({ hasText: ENGLISH_USER.displayName })
-        await expect(chatItem).toBeVisible({ timeout: 10_000 })
+        chatItem = receiverPage.getByTestId('chat-list-item').filter({ hasText: ENGLISH_USER.displayName }).or(receiverPage.locator('.cursor-pointer').filter({ hasText: ENGLISH_USER.displayName }))
+        await expect(chatItem.first()).toBeVisible({ timeout: 10_000 })
       }
 
-      const chatListAfter = receiverPage.locator('.cursor-pointer')
+      const chatListAfter = receiverPage.getByTestId('chat-list-item').or(receiverPage.locator('.cursor-pointer'))
       const countAfter = await chatListAfter.count()
       expect(countAfter).toBeGreaterThanOrEqual(countBefore)
     } finally {

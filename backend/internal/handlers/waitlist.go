@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/chorus/messenger/internal/middleware"
 	"github.com/chorus/messenger/internal/models"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/gin-gonic/gin"
@@ -26,18 +27,18 @@ func NewWaitlistHandler(service *services.WaitlistService, senders ...services.E
 func (h *WaitlistHandler) Submit(c *gin.Context) {
 	var req models.WaitlistRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Please provide your email, spoken languages, and at least one reason."})
+		WriteError(c, middleware.ErrValidation("Please provide your email, spoken languages, and at least one reason."))
 		return
 	}
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
 	entry, alreadyJoined, err := h.service.Submit(req)
 	if err != nil {
 		if err == services.ErrInvalidWaitlistRequest {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			WriteError(c, middleware.ErrValidation("Invalid waitlist request"))
 			return
 		}
 		log.Printf("[Waitlist] submit failed for %q: %v", req.Email, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to join the waitlist. Please try again."})
+		WriteError(c, middleware.ErrInternal("Unable to join the waitlist. Please try again."))
 		return
 	}
 
@@ -61,10 +62,10 @@ func (h *WaitlistHandler) Submit(c *gin.Context) {
 	}
 
 	payload := gin.H{
-		"entry":          entry,
-		"message":        message,
-		"alreadyJoined":  alreadyJoined,
-		"emailSent":      emailSent,
+		"entry":           entry,
+		"message":         message,
+		"alreadyJoined":   alreadyJoined,
+		"emailSent":       emailSent,
 		"checkSpamNotice": !emailSent,
 	}
 	if emailSent {

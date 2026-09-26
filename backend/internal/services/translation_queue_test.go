@@ -29,10 +29,10 @@ func TestTranslationQueue_List(t *testing.T) {
 	q := NewTranslationQueueService(db, nil, nil, nil, nil)
 
 	now := time.Now()
-	mock.ExpectQuery(`SELECT id, message_id, chat_id, text, COALESCE\(source_lang,''\), target_lang, priority, status, COALESCE\(result,''\), attempts, COALESCE\(last_error,''\), created_at, next_attempt_at, completed_at FROM translation_jobs WHERE 1=1 AND status = \$1 ORDER BY created_at DESC LIMIT \$2`).
+	mock.ExpectQuery(`SELECT id, message_id, chat_id, text, COALESCE\(source_lang,''\), target_lang, priority, status, COALESCE\(result,''\), attempts, COALESCE\(last_error,''\), created_at, next_attempt_at, completed_at, COALESCE\(provider,''\), COALESCE\(model,''\), COALESCE\(prompt_version,''\), COALESCE\(latency_ms,0\), COALESCE\(tokens,0\), COALESCE\(cache_hit,false\) FROM translation_jobs WHERE 1=1 AND status = \$1 ORDER BY created_at DESC LIMIT \$2`).
 		WithArgs("failed", 50).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "message_id", "chat_id", "text", "source_lang", "target_lang", "priority", "status", "result", "attempts", "last_error", "created_at", "next_attempt_at", "completed_at"}).
-			AddRow("job-1", "msg-1", "chat-1", "Hola", "en", "es", 1, "failed", "", 6, "provider down", now, now.Add(time.Hour), nil))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "message_id", "chat_id", "text", "source_lang", "target_lang", "priority", "status", "result", "attempts", "last_error", "created_at", "next_attempt_at", "completed_at", "provider", "model", "prompt_version", "latency_ms", "tokens", "cache_hit"}).
+			AddRow("job-1", "msg-1", "chat-1", "Hola", "en", "es", 1, "failed", "", 6, "provider down", now, now.Add(time.Hour), nil, "", "", "v2", 0, 0, false))
 
 	jobs, err := q.List("failed", "", 50)
 	if err != nil {

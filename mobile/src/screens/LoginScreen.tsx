@@ -10,52 +10,94 @@ import {
 } from 'react-native';
 import storage from '../utils/storage';
 import apiService from '../services/api';
+import featureFlags from '../utils/featureFlags';
+import { useStrings, t, applyImplicitLanguage } from '../i18n';
 import AuthLayout from '../components/AuthLayout';
+import DevAccountSwitcher from '../components/DevAccountSwitcher';
 import { COLOR, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../theme';
+import { apiErrorMessage } from '@chorus/shared';
 
 export default function LoginScreen({ navigation }: any) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const s = useStrings();
+  // Local-dev convenience: prefill the test account when
+  // EXPO_PUBLIC_TEST_USER_* are present (mobile/.env or the shell env). Falls
+  // back to empty fields otherwise.
+  const [username, setUsername] = useState(process.env.EXPO_PUBLIC_TEST_USER_EMAIL || '');
+  const [password, setPassword] = useState(process.env.EXPO_PUBLIC_TEST_USER_PASSWORD || '');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [tempToken, setTempToken] = useState('');
+  const [phoneMasked, setPhoneMasked] = useState('');
+  const [code, setCode] = useState('');
+
   const handleLogin = async () => {
     if (!username.trim() || !password) {
-      Alert.alert('Error', 'Please enter username and password');
+      Alert.alert(t('common.error'), t('auth.loginCredsB'));
       return;
     }
-
     setLoading(true);
     try {
-      const response = await apiService.login(username.trim(), password);
-
-      // Store auth tokens and user data
-      await storage.setItem('accessToken', response.tokens.accessToken);
-      await storage.setItem('refreshToken', response.tokens.refreshToken);
-      await storage.setItem('user', JSON.stringify(response.user));
-
-      // Navigate to main app
-      navigation.replace('MainTabs');
+      // Typed login resolves the unwrapped body ({user, tokens} on success,
+      // {requires2FA, tempToken} for 2FA accounts). Single call — no envelope
+      // sniffing, no `as any` on the client.
+      const data = await apiService.login(username.trim(), password) as unknown as {
+        user?: any; tokens?: { accessToken: string; refreshToken: string };
+        requires2FA?: boolean; tempToken?: string; phoneMasked?: string;
+      };
+      if (data?.requires2FA) {
+        setTempToken(data.tempToken || '');
+        setPhoneMasked(data.phoneMasked || '');
+        setRequires2FA(true);
+        return;
+      }
+      if (!data?.tokens?.accessToken || !data?.user) {
+        throw new Error(t('auth.noSessionB'));
+      }
+      const response = data as { tokens: { accessToken: string; refreshToken: string }; user: any };
+      if (response.tokens) {
+        await storage.setItem('accessToken', response.tokens.accessToken);
+        await storage.setItem('refreshToken', response.tokens.refreshToken);
+        await storage.setItem('user', JSON.stringify(response.user));
+        await featureFlags.init();
+        // UI follows the profile's native language (no-op with explicit pick).
+        await applyImplicitLanguage(response.user?.nativeLanguage);
+        navigation.replace('MainTabs');
+      }
     } catch (error: any) {
-      Alert.alert(
-        'Login Failed',
-        error.response?.data?.error || 'Invalid credentials. Please try again.'
-      );
+      Alert.alert(t('auth.loginFailedT'), apiErrorMessage(error, t('auth.loginFailedB')));
     } finally {
       setLoading(false);
     }
   };
 
+  const handleVerify2FA = async () => {
+    if (code.length !== 6) { Alert.alert(t('common.error'), t('auth.enterCode')); return; }
+    setLoading(true);
+    try {
+      const r: any = await apiService.verify2FA(tempToken, code);
+      await storage.setItem('accessToken', r.tokens.accessToken);
+      await storage.setItem('refreshToken', r.tokens.refreshToken);
+      await storage.setItem('user', JSON.stringify(r.user));
+      await featureFlags.init();
+      await applyImplicitLanguage(r.user?.nativeLanguage);
+      navigation.replace('MainTabs');
+    } catch (e: any) { Alert.alert(t('common.failed'), apiErrorMessage(e, t('auth.verify2faFailedB'))) }
+    finally { setLoading(false) }
+  };
+
   return (
-    <AuthLayout tagline="Master new languages through seamless, conversational learning.">
+    <AuthLayout tagline={s.auth.loginTagline}>
       <View style={styles.card}>
+        <DevAccountSwitcher onSelect={({ email, password }) => { setUsername(email); setPassword(password) }} />
         <View style={styles.field}>
-          <Text style={styles.label}>Email Address</Text>
+          <Text style={styles.label}>{s.auth.email}</Text>
           <View style={styles.inputWrap}>
             <Text style={styles.inputIcon}>✉️</Text>
             <TextInput
               style={styles.input}
-              placeholder="you@example.com"
+              placeholder={s.auth.emailPh}
               placeholderTextColor={COLOR.outlineVariant}
               value={username}
               onChangeText={setUsername}
@@ -69,16 +111,16 @@ export default function LoginScreen({ navigation }: any) {
 
         <View style={styles.field}>
           <View style={styles.labelRow}>
-            <Text style={styles.label}>Password</Text>
+            <Text style={styles.label}>{s.auth.password}</Text>
             <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-              <Text style={styles.link}>Forgot password?</Text>
+              <Text style={styles.link}>{s.auth.forgotPw}</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.inputWrap}>
             <Text style={styles.inputIcon}>🔒</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter your password"
+              placeholder={s.auth.passwordPh}
               placeholderTextColor={COLOR.outlineVariant}
               value={password}
               onChangeText={setPassword}
@@ -88,41 +130,60 @@ export default function LoginScreen({ navigation }: any) {
             <TouchableOpacity
               style={styles.visibility}
               onPress={() => setShowPassword(!showPassword)}
-              accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}>
+              accessibilityLabel={showPassword ? s.auth.hidePw : s.auth.showPw}>
               <Text style={styles.visibilityText}>{showPassword ? '🙈' : '👁️'}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleLogin}
-          disabled={loading}>
-          {loading ? (
-            <ActivityIndicator color={COLOR.onPrimaryContainer} />
-          ) : (
-            <Text style={styles.buttonText}>Log In</Text>
-          )}
-        </TouchableOpacity>
+        {requires2FA ? (
+          <>
+            <Text style={{...TYPOGRAPHY.bodySm, color: COLOR.onSurfaceVariant, marginBottom: 8}}>{t('auth.codeSentTo', { phone: phoneMasked })}</Text>
+            <View style={styles.inputWrap}>
+              <TextInput style={styles.input} placeholder="123456" keyboardType="number-pad" maxLength={6} value={code} onChangeText={setCode} />
+            </View>
+            <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleVerify2FA} disabled={loading}>
+              <Text style={styles.buttonText}>{s.auth.verify}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={()=>setRequires2FA(false)} style={{alignItems:'center', marginTop:8}}><Text style={styles.link}>{s.common.back}</Text></TouchableOpacity>
+          </>
+        ) : (
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleLogin}
+            disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color={COLOR.onPrimaryContainer} />
+            ) : (
+              <Text style={styles.buttonText}>{s.auth.loginBtn}</Text>
+            )}
+          </TouchableOpacity>
+        )}
 
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>OR CONTINUE WITH</Text>
-          <View style={styles.dividerLine} />
-        </View>
+        {featureFlags.isEnabled('google_oauth') && (
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>{s.auth.orContinue}</Text>
+            <View style={styles.dividerLine} />
+          </View>
+        )}
 
-        <TouchableOpacity style={styles.googleButton}>
-          <Text style={styles.googleButtonText}>G</Text>
-          <Text style={styles.googleButtonLabel}>Google</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.appleButton}>
-          <Text style={styles.appleButtonText}>Log in with Apple</Text>
-        </TouchableOpacity>
+        {featureFlags.isEnabled('google_oauth') && (
+          <>
+            <TouchableOpacity style={styles.googleButton}>
+              <Text style={styles.googleButtonText}>G</Text>
+              <Text style={styles.googleButtonLabel}>{s.auth.google}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.appleButton}>
+              <Text style={styles.appleButtonText}>{s.auth.apple}</Text>
+            </TouchableOpacity>
+          </>
+        )}
 
         <View style={styles.bottom}>
-          <Text style={styles.bottomText}>New here?</Text>
+          <Text style={styles.bottomText}>{s.auth.newHere}</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.bottomLink}>Create an account</Text>
+            <Text style={styles.bottomLink}>{s.auth.createAccount}</Text>
           </TouchableOpacity>
         </View>
       </View>

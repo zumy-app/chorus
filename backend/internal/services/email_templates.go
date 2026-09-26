@@ -14,7 +14,7 @@ const (
 		<h1 style="color:#fff;margin:0;font-size:22px">Chorus</h1></div>`
 	emailWrapA = `<table cellpadding="0" cellspacing="0" style="width:100%;background:#f4f4f6;padding:24px"><tr><td>
 		<div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:10px;overflow:hidden;font-family:Arial,Helvetica,sans-serif;color:#1f2937">`
-	emailWrapB = `</div></td></tr></table>`
+	emailWrapB  = `</div></td></tr></table>`
 	emailButton = `<p style="margin:18px 0"><a href="%s" style="display:inline-block;background:#6366f1;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">%s</a></p>`
 	emailText   = `<p style="margin:0 0 10px 0">%s</p>`
 	emailFooter = `<div style="padding:18px 24px;color:#6b7280;font-size:12px;border-top:1px solid #eef0f3">Chorus · Break language barriers.<br>Questions? info@chorus.talk · Join us on <a href="` + DiscordInviteURL + `" style="color:#6366f1">Discord</a></div>`
@@ -40,7 +40,7 @@ func WaitlistConfirmationEmail(queuePosition int) (string, string) {
 // and their preferences were refreshed while keeping their queue position.
 func UpdatedWaitlistConfirmationEmail(queuePosition int) (string, string) {
 	subject := "We've updated your Chorus waitlist preferences"
-	content := fmt.Sprintf(emailText, "You recently signed up for the Chorus waitlist again, so we refreshed your preferences. Your spot in line <strong>#" + strconv.Itoa(queuePosition) + "</strong> is still yours.") +
+	content := fmt.Sprintf(emailText, "You recently signed up for the Chorus waitlist again, so we refreshed your preferences. Your spot in line <strong>#"+strconv.Itoa(queuePosition)+"</strong> is still yours.") +
 		fmt.Sprintf(emailText, "No need to do anything — we'll email you a private sign-up link from <strong>info@chorus.talk</strong> when your turn comes. Check your spam/junk folder, and add <strong>info@chorus.talk</strong> to your address book so it never gets missed.") +
 		fmt.Sprintf(emailText, "In the meantime, connect with the Chorus community:") +
 		fmt.Sprintf(emailButton, DiscordInviteURL, "Join the Chorus Discord") +

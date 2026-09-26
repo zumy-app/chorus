@@ -2,6 +2,49 @@
 
 This guide covers how to start all services and test the application.
 
+> ## 🔁 Canonical Run Commands (pipeline-invocable)
+>
+> The autonomous build loop (`orchestrator.py` at the repo root) reads these as the canonical
+> commands for each layer. **Run every command from the repo root** unless it explicitly `cd`s
+> into a sub-project, and treat **exit code `0`** as the only pass. Use `docker compose`
+> (Compose V2); the legacy hyphenated `docker-compose` is deprecated.
+>
+> | Layer | Command (from repo root) | Expect |
+> |-------|--------------------------|--------|
+> | Backend build + vet + test | `cd backend; go build ./...; go vet ./...; go test ./...` | `0` |
+> | Frontend build + test | `cd frontend; npm run build; npm test` | `0` |
+> | Mobile test | `cd mobile; npm test` | `0` |
+> | Docker compose **dev** validates | `docker compose -f docker-compose.dev.yml config --quiet` | `0` |
+> | Docker compose **app** validates | `docker compose -f docker-compose.yml config --quiet` | `0` |
+> | E2E smoke (needs running dev stack) | `cd e2e; npm run install-browsers; npm test` | `0` |
+>
+> **Green gate** — every phase must satisfy all rows below. Each layer reports its own exit
+> code so one failure cannot mask another:
+>
+> ```powershell
+> # Run from repo root
+> Push-Location backend;   go build ./...; go vet ./...; go test ./...; $b=$LASTEXITCODE
+> Pop-Location;            "backend=$b"
+> Push-Location frontend;  npm run build; npm test;                   $f=$LASTEXITCODE
+> Pop-Location;            "frontend=$f"
+> Push-Location mobile;    npm test;                                  $m=$LASTEXITCODE
+> Pop-Location;            "mobile=$m"
+> docker compose -f docker-compose.dev.yml config --quiet;            "compose-dev=$LASTEXITCODE"
+> docker compose -f docker-compose.yml config --quiet;                "compose-app=$LASTEXITCODE"
+> ```
+>
+> **Canonical dev-run commands (hot-reload / local):**
+>
+> | Stack | Command (from repo root) |
+> |-------|--------------------------|
+> | Everything (infra + backend + web) | `.\start-dev.ps1` |
+> | Everything + Android emulator | `.\start-dev.ps1 -Mobile` |
+> | Infra only (Postgres + Redis) | `docker compose -f docker-compose.yml up -d postgres redis` |
+> | Isolated dev/test stack (alt ports) | `docker compose -f docker-compose.dev.yml up -d` |
+> | Backend hot-reload | `cd backend; air -c .air.toml` |
+> | Frontend (Vite HMR) | `cd frontend; npm run dev` |
+> | Mobile (Metro) | `cd mobile; npx react-native start` |
+
 ## 🚀 Quick Start (Docker - Recommended)
 
 The easiest way to run Chorus is with Docker Compose, which sets up PostgreSQL, Redis, Backend, and Frontend automatically.
@@ -10,21 +53,26 @@ The easiest way to run Chorus is with Docker Compose, which sets up PostgreSQL, 
 - Docker Desktop installed and running
 
 ### Start Services
+This is the full app stack (`docker-compose.yml`): Postgres, Redis, Backend, Frontend, Ollama
+and LibreTranslate, all on default ports (`5432/6379/8080/3000`). For the isolated dev/test
+stack on alternate ports (`5433/6380/8081/3001`), use `docker-compose.dev.yml` instead.
 ```powershell
 cd C:\dev\chorus
-docker-compose up -d
+docker compose -f docker-compose.yml up -d --build
 ```
 
 ### Verify Services
 ```powershell
 # Check all containers are running
-docker-compose ps
+docker compose -f docker-compose.yml ps
 
-# You should see 4 containers with status "Up":
+# You should see the Chorus services with status "Up":
 # - chorus-postgres
 # - chorus-redis
 # - chorus-backend
 # - chorus-frontend
+# - chorus-ollama
+# - chorus-libretranslate
 ```
 
 ### Access the Application
@@ -35,7 +83,7 @@ docker-compose ps
 
 ### Stop Services
 ```powershell
-docker-compose down
+docker compose -f docker-compose.yml down
 ```
 
 ---
@@ -354,16 +402,17 @@ Look for:
 
 ### Docker Logs
 ```powershell
-# All services
-docker-compose logs -f
+# All services (dev stack)
+docker compose -f docker-compose.dev.yml logs -f
 
 # Specific service
-docker-compose logs -f backend
-docker-compose logs -f frontend
-docker-compose logs -f postgres
+docker compose -f docker-compose.dev.yml logs -f backend-dev
+docker compose -f docker-compose.dev.yml logs -f frontend-dev
+docker compose -f docker-compose.dev.yml logs -f postgres-dev
+docker compose -f docker-compose.dev.yml logs -f redis-dev
 
 # Recent 50 lines
-docker-compose logs --tail=50 backend
+docker compose -f docker-compose.dev.yml logs --tail=50 backend-dev
 ```
 
 ### Redis Status
@@ -446,7 +495,7 @@ echo $env:DATABASE_URL
 psql -U messenger -d messenger_dev -h localhost
 
 # If using Docker, ensure postgres service is healthy
-docker-compose ps postgres
+docker compose -f docker-compose.dev.yml ps postgres-dev
 # Status should show "Up (healthy)"
 ```
 
@@ -478,7 +527,7 @@ This is normal if Google Translate API key is not configured. The app uses mock 
 # Stop all services first
 
 # Option 1: Docker
-docker-compose down -v  # -v removes volumes too
+docker compose -f docker-compose.yml down -v  # -v removes volumes too
 
 # Option 2: Manual
 psql -U postgres

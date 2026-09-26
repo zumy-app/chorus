@@ -1,0 +1,263 @@
+{
+  "title": "Chorus Backend",
+  "uid": "chorus-backend",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "timezone": "browser",
+  "editable": true,
+  "style": "dark",
+  "tags": ["chorus", "backend", "realtime"],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Request rate (by route)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "sum by (path) (rate(chorus_backend_http_requests_total[5m]))",
+          "legendFormat": "{{path}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Request latency p95 (seconds)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(chorus_backend_http_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "p95",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "WebSocket connections (active)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "expr": "chorus_backend_ws_active_connections", "legendFormat": "connections", "refId": "A" }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Online users",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "expr": "chorus_backend_ws_active_users", "legendFormat": "users", "refId": "A" }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "WS connections accepted / dropped",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "expr": "rate(chorus_backend_ws_connections_total[5m])", "legendFormat": "accepted", "refId": "A" },
+        { "expr": "rate(chorus_backend_ws_fast_dropped_total[5m])", "legendFormat": "dropped", "refId": "B" }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Messages sent (by outcome)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "expr": "sum by (status) (rate(chorus_backend_messages_sent_total[5m]))", "legendFormat": "{{status}}", "refId": "A" }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Translation p95 latency (seconds)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, cache_hit) (rate(chorus_backend_translation_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{cache_hit}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Translation request rate (by status)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "expr": "sum by (status) (rate(chorus_backend_translation_requests_total[5m]))", "legendFormat": "{{status}}", "refId": "A" }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Translation tokens / sec",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "expr": "sum by (provider) (rate(chorus_backend_translation_tokens_total[5m]))", "legendFormat": "{{provider}}", "refId": "A" }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Go goroutines",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 32 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "expr": "go_goroutines", "legendFormat": "goroutines", "refId": "A" }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "Heap in use (bytes)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 32 },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "targets": [
+        { "expr": "go_memstats_heap_inuse_bytes", "legendFormat": "heap", "refId": "A" }
+      ]
+    },
+    {
+      "id": 12,
+      "title": "HTTP status error rate",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 32 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "sum(rate(chorus_backend_http_requests_total{status=~\"5..\"}[5m]))",
+          "legendFormat": "5xx",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(chorus_backend_http_requests_total{status=~\"4..\"}[5m]))",
+          "legendFormat": "4xx",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "title": "Word-mining jobs (by status)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "expr": "sum by (status) (rate(chorus_backend_word_mining_jobs_total[5m]))", "legendFormat": "{{status}}", "refId": "A" },
+        { "expr": "chorus_backend_word_mining_pending_jobs", "legendFormat": "pending gauge", "refId": "B" }
+      ]
+    },
+    {
+      "id": 14,
+      "title": "Word-mining duration p95",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum by (le, status) (rate(chorus_backend_word_mining_duration_seconds_bucket[5m])))", "legendFormat": "{{status}}", "refId": "A" }
+      ]
+    },
+    {
+      "id": 15,
+      "title": "Mined items (by route)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 48 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "expr": "sum by (route) (rate(chorus_backend_word_mining_items_total[5m]))", "legendFormat": "{{route}}", "refId": "A" }
+      ]
+    },
+    {
+      "id": 16,
+      "title": "Word-mining failure rate",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 48 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 0.05 }] } }, "overrides": [] },
+      "targets": [
+        { "expr": "sum(rate(chorus_backend_word_mining_jobs_total{status=\"failed\"}[5m])) / clamp_min(sum(rate(chorus_backend_word_mining_jobs_total[5m])), 0.001)", "legendFormat": "failed ratio", "refId": "A" }
+      ]
+    },
+    {
+      "id": 17,
+      "title": "Practice attempts (by stage)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 56 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "expr": "sum by (stage) (rate(chorus_backend_practice_attempts_total[5m]))", "legendFormat": "{{stage}}", "refId": "A" }
+      ]
+    },
+    {
+      "id": 18,
+      "title": "Practice stage promotions",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 56 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "expr": "sum by (from_stage, to_stage) (rate(chorus_backend_practice_stage_promotions_total[5m]))", "legendFormat": "{{from_stage}}→{{to_stage}}", "refId": "A" }
+      ]
+    },
+    {
+      "id": 19,
+      "title": "Leech / Mastered / Spontaneous rate",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 64 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "expr": "rate(chorus_backend_practice_leech_total[5m])", "legendFormat": "leech", "refId": "A" },
+        { "expr": "rate(chorus_backend_practice_mastered_total[5m])", "legendFormat": "mastered", "refId": "B" },
+        { "expr": "rate(chorus_backend_practice_spontaneous_total[5m])", "legendFormat": "spontaneous", "refId": "C" }
+      ]
+    },
+    {
+      "id": 20,
+      "title": "Practice p95 latency + due gauge",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "chorus-prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 64 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(chorus_backend_practice_duration_seconds_bucket[5m])))", "legendFormat": "p95", "refId": "A" },
+        { "expr": "chorus_backend_practice_due_cards", "legendFormat": "due gauge", "refId": "B" }
+      ]
+    }
+  ],
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "templating": { "list": [] },
+  "annotations": { "list": [] }
+}

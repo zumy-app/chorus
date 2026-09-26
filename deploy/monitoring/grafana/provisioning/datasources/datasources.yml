@@ -1,0 +1,15 @@
+# Prometheus datasource auto-provisioned into Grafana (NFR-18/25).
+# See https://grafana.com/docs/grafana/latest/administration/provisioning/#datasources
+apiVersion: 1
+
+datasources:
+  - name: Chorus Prometheus
+    uid: chorus-prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: 15s
+      httpMethod: POST

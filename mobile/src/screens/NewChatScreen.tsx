@@ -11,8 +11,10 @@ import {
 } from 'react-native';
 import apiService from '../services/api';
 import { User } from '@chorus/shared';
+import { useStrings, t } from '../i18n';
 
 export default function NewChatScreen({ navigation }: any) {
+  const s = useStrings();
   const [query, setQuery] = useState('');
   const [users, setUsers] = useState<User[]>([]);
   const [searching, setSearching] = useState(false);
@@ -47,7 +49,7 @@ export default function NewChatScreen({ navigation }: any) {
       });
       navigation.replace('Chat', { chatId: chat.id, chatName: user.displayName });
     } catch {
-      Alert.alert('Error', 'Could not start a chat with this user.');
+      Alert.alert(t('common.error'), t('newChat.startFailB'));
     } finally {
       setCreating(false);
     }
@@ -58,7 +60,7 @@ export default function NewChatScreen({ navigation }: any) {
       <View style={styles.searchBox}>
         <TextInput
           style={styles.input}
-          placeholder="Search by name or username"
+          placeholder={s.newChat.searchPh}
           value={query}
           onChangeText={handleSearch}
           autoCapitalize="none"
@@ -78,7 +80,7 @@ export default function NewChatScreen({ navigation }: any) {
           !searching ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyText}>
-                {query.trim() ? 'No users found' : 'Search for someone to chat with'}
+                {query.trim() ? s.newChat.emptyNoUsers : s.newChat.emptyIdle}
               </Text>
             </View>
           ) : null

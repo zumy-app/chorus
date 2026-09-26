@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log"
 	"strings"
 
 	"github.com/chorus/messenger/internal/services"
@@ -15,38 +16,37 @@ func AuthMiddleware(authService *services.AuthService, userService *services.Use
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.JSON(401, gin.H{"error": "Authorization header required"})
-			c.Abort()
+			WriteError(c, ErrAuth("Authorization header required"))
 			return
 		}
 
 		// Extract token from "Bearer <token>"
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.JSON(401, gin.H{"error": "Invalid authorization header format"})
-			c.Abort()
+			WriteError(c, ErrAuth("Invalid authorization header format"))
 			return
 		}
 
 		token := parts[1]
 		userID, err := authService.ValidateAccessToken(token)
 		if err != nil {
-			c.JSON(401, gin.H{"error": "Invalid or expired token"})
-			c.Abort()
+			WriteError(c, ErrAuth("Invalid or expired token"))
 			return
 		}
 
 		user, err := userService.GetByID(userID)
 		if err != nil {
-			c.JSON(401, gin.H{"error": "User not found"})
-			c.Abort()
+			// Rescue plan C3: log the underlying error (sql.ErrNoRows vs a
+			// scan/schema failure) so "User not found" is diagnosable
+			// instead of opaque — this masked a DB split-brain issue.
+			log.Printf("[Auth] GetByID(%s) failed: %v", userID, err)
+			WriteError(c, ErrAuth("User not found"))
 			return
 		}
 		// Suspended/deleted accounts are blocked immediately, revoking access
 		// even before their JWT expires.
 		if user.SuspendedAt != nil || user.DeletedAt != nil {
-			c.JSON(403, gin.H{"error": "Account is disabled"})
-			c.Abort()
+			WriteError(c, ErrForbidden("Account is disabled"))
 			return
 		}
 
@@ -57,6 +57,7 @@ func AuthMiddleware(authService *services.AuthService, userService *services.Use
 
 		c.Set("userID", userID)
 		c.Set("userRole", role)
+		c.Set("userBetaAccess", user.BetaAccess)
 		c.Next()
 	}
 }
@@ -68,8 +69,7 @@ func RequireRole(minRole string) gin.HandlerFunc {
 		role, _ := c.Get("userRole")
 		roleStr, _ := role.(string)
 		if !services.RoleAtLeast(roleStr, minRole) {
-			c.JSON(403, gin.H{"error": "You do not have permission to perform this action"})
-			c.Abort()
+			WriteError(c, ErrForbidden("You do not have permission to perform this action"))
 			return
 		}
 		c.Next()

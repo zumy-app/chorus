@@ -13,9 +13,12 @@ import apiService from '../services/api';
 import webSocketService from '../services/websocket';
 import storage from '../utils/storage';
 import { Chat } from '@chorus/shared';
+import { useStrings, t, useAppLocale } from '../i18n';
 import { COLOR, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../theme';
 
 export default function ChatListScreen({ navigation }: any) {
+  const s = useStrings();
+  const locale = useAppLocale();
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -90,7 +93,7 @@ export default function ChatListScreen({ navigation }: any) {
         const other = chat.participants.find((p) => p.user?.id !== currentUserId);
         if (other?.user?.displayName) return other.user.displayName;
       }
-      return 'Group Chat';
+      return t('chatList.groupChat');
     };
     return chats.filter((chat) => {
       const name = nameOf(chat).toLowerCase();
@@ -105,10 +108,10 @@ export default function ChatListScreen({ navigation }: any) {
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
-    return date.toLocaleDateString();
+    if (diffMins < 1) return t('chatList.justNow');
+    if (diffMins < 60) return t('chatList.minsAgo', { n: diffMins });
+    if (diffMins < 1440) return t('chatList.hoursAgo', { n: Math.floor(diffMins / 60) });
+    return date.toLocaleDateString(locale);
   };
 
   const getChatName = (chat: Chat) => {
@@ -118,7 +121,7 @@ export default function ChatListScreen({ navigation }: any) {
       const other = chat.participants.find((p) => p.user?.id !== currentUserId);
       if (other?.user?.displayName) return other.user.displayName;
     }
-    return 'Group Chat';
+    return t('chatList.groupChat');
   };
 
   const getLangCode = (chat: Chat) => {
@@ -180,7 +183,7 @@ export default function ChatListScreen({ navigation }: any) {
               unread && styles.chatPreviewUnread,
             ]}
             numberOfLines={1}>
-            {item.lastMessage?.text || 'No messages yet'}
+            {item.lastMessage?.text || t('chat.noMessagesYet')}
           </Text>
           {unread && (
             <View style={styles.badge}>
@@ -191,7 +194,7 @@ export default function ChatListScreen({ navigation }: any) {
         {langCode && (
           <View style={styles.langRow}>
             <Text style={styles.langLabel}>
-              {item.type === 'group' ? 'Group chat' : `Learning ${langCode.toLowerCase()}`}
+              {item.type === 'group' ? t('chatList.groupChatLabel') : t('chatList.learningLabel', { code: langCode.toLowerCase() })}
             </Text>
           </View>
         )}
@@ -217,41 +220,33 @@ export default function ChatListScreen({ navigation }: any) {
         contentContainerStyle={filteredChats.length === 0 ? styles.emptyContainer : styles.listContent}
         ListHeaderComponent={
           <View>
-            {/* Search Bar */}
-            <View style={styles.searchWrap}>
+            <TouchableOpacity style={styles.searchWrap} onPress={()=>navigation.navigate('UniversalSearch')}>
               <Text style={styles.searchIcon}>🔍</Text>
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search chats or languages..."
-                placeholderTextColor={COLOR.outlineVariant}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoCorrect={false}
-              />
-            </View>
+              <Text style={[styles.searchInput,{color:COLOR.outlineVariant}]}>{s.chatList.searchPh}</Text>
+            </TouchableOpacity>
             {/* Insights bento */}
             <View style={styles.bento}>
               <TouchableOpacity style={styles.bentoPrimary}>
                 <Text style={styles.bentoIcon}>🧠</Text>
-                <Text style={styles.bentoTitle}>Daily Review</Text>
-                <Text style={styles.bentoSubtitle}>3 new vocab words</Text>
+                <Text style={styles.bentoTitle}>{s.chatList.bentoReview}</Text>
+                <Text style={styles.bentoSubtitle}>{t('chatList.bentoReviewSub', { count: 3 })}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.bentoSecondary}>
                 <Text style={styles.bentoIconSecondary}>💬</Text>
-                <Text style={styles.bentoTitle}>Practice Prompt</Text>
-                <Text style={styles.bentoSubtitle}>"Order coffee in Paris"</Text>
+                <Text style={styles.bentoTitle}>{s.chatList.bentoPractice}</Text>
+                <Text style={styles.bentoSubtitle}>{s.chatList.bentoPracticeExample}</Text>
               </TouchableOpacity>
             </View>
-            <Text style={styles.sectionHeader}>ACTIVE CONVERSATIONS</Text>
+            <Text style={styles.sectionHeader}>{s.chatList.sectionActive}</Text>
           </View>
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>
-              {searchQuery ? 'No matching chats' : 'No chats yet'}
+              {searchQuery ? s.chatList.emptyNoMatch : s.chatList.emptyNone}
             </Text>
             <Text style={styles.emptySubtext}>
-              {searchQuery ? 'Try a different search.' : 'Start a conversation!'}
+              {searchQuery ? s.chatList.emptyNoMatchSub : s.chatList.emptyNoneSub}
             </Text>
           </View>
         }

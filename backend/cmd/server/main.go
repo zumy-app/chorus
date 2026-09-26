@@ -2,10 +2,16 @@ package main
 
 import (
 	"context"
+	"database/sql"
+	"errors"
+	"flag"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/chorus/messenger/internal/config"
@@ -13,6 +19,7 @@ import (
 	"github.com/chorus/messenger/internal/handlers"
 	"github.com/chorus/messenger/internal/middleware"
 	"github.com/chorus/messenger/internal/models"
+	"github.com/chorus/messenger/internal/observability"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/chorus/messenger/pkg/logutil"
 	"github.com/chorus/messenger/pkg/translation"
@@ -27,12 +34,34 @@ func main() {
 		log.Println("No .env file found, using system environment variables")
 	}
 
+	// Dev seed mode: `go run ./cmd/server --seed-dev` provisions deterministic
+	// dev fixtures (learners, tutor, marketplace data, dev invitation) after
+	// migrations run, then exits before serving traffic. The acceptance suite
+	// (docs/TEST_SPEC.md) and start scripts rely on these fixtures.
+	seedDev := flag.Bool("seed-dev", false, "seed deterministic dev fixtures and exit")
+	// -port overrides both backend/.env and $PORT (godotenv.Overload gives the
+	// file priority over inherited env, so a flag is the only reliable way to
+	// run a second local instance, e.g. when :8080 belongs to another project).
+	portFlag := flag.String("port", "", "override listen port (default: $PORT or backend/.env PORT or 8080)")
+	flag.Parse()
+
 	// Load configuration
 	cfg := config.Load()
 
 	// Initialize log level
 	logutil.SetLevelFromString(cfg.LogLevel)
 	log.Printf("[Startup] Log level set to %q", cfg.LogLevel)
+
+	// FR-30/NFR-25: export translation + grammar spans to a local Arize Phoenix
+	// over OTLP gRPC. Opt-in via PHOENIX_ENABLED; when disabled this is a no-op
+	// and tracing adds zero overhead (spans go to the global no-op provider).
+	phoenixShutdown := observability.SetupPhoenix()
+	defer phoenixShutdown(context.Background())
+
+	// NFR-18/25: build the Prometheus registry and metric collectors. Idempotent;
+	// the collectors stay registered (and near-zero) whether or not anything is
+	// scraped, so /metrics is always available to Prometheus and Grafana.
+	observability.SetupMetrics()
 
 	// Startup configuration checks: warn about missing/invalid provider keys
 	// so misconfigured cloud providers are obvious before traffic arrives.
@@ -57,6 +86,46 @@ func main() {
 		log.Fatalf("Failed to seed admin roles: %v", err)
 	}
 
+	// Release 1: DB-backed feature flags. defaultOff=true in production so
+	// unknown flags never leak; the env service is superseded and removed.
+	featureFlagService := services.NewFeatureFlagService(db, cfg.Environment == "production")
+	if err := featureFlagService.SeedFlags(context.Background(), services.DefaultFlags()); err != nil {
+		log.Fatalf("Failed to seed feature flags: %v", err)
+	}
+	log.Printf("[Startup] DB-backed feature flags initialized")
+
+	// Seed the learning courses via deploy-synced embedded SQL seeds.
+	// Checksum-gated: unchanged seed files cost exactly one DB lookup on startup.
+	// Multi-pair (V3 Phase 9): every pair directory under seeds/ runs, so adding
+	// a language pair is purely a content change (new seeds/xx_yy/ files).
+	seedRunner := database.NewSeedRunner(db)
+	if applied, err := seedRunner.RunAll(context.Background()); err != nil {
+		log.Fatalf("Failed to run embedded seeds: %v", err)
+	} else if len(applied) > 0 {
+		log.Printf("[Startup] Applied %d new/modified embedded seed files", len(applied))
+	}
+
+	curriculumService := services.NewCurriculumService(db)
+	if err := curriculumService.SeedDefaultCourses(context.Background()); err != nil {
+		log.Fatalf("Failed to seed learning curriculum: %v", err)
+	}
+
+	// Startup diagnostics (rescue plan C3): log which database we actually
+	// reached and how many users it holds so split-brain / wrong-DB issues
+	// are obvious in the console instead of surfacing later as opaque
+	// "User not found" errors on every authenticated screen.
+	logDatabaseDiagnostics(db, cfg.DatabaseURL)
+
+	if *seedDev {
+		if err := services.SeedDevData(db); err != nil {
+			log.Fatalf("Failed to seed dev fixtures: %v", err)
+		}
+		log.Printf("[SeedDev] deterministic dev fixtures ready: %s / %s / %s (password: %s); dev invite code: %s",
+			services.DevLearnerEmail, services.DevLearner2Email, services.DevTutorEmail,
+			services.DevPassword, services.DevInviteToken)
+		return
+	}
+
 	// Initialize Redis (optional in lean local mode)
 	redisClient := database.ConnectRedis(cfg.RedisURL)
 	if redisClient != nil {
@@ -66,6 +135,12 @@ func main() {
 	// Initialize core services
 	authService := services.NewAuthService(db, cfg.JWTSecret)
 	userService := services.NewUserService(db)
+	// FR-25 Feature toggles: per-account settings row including
+	// translation_enabled / grammar_auto / highlights_enabled.
+	settingsService := services.NewSettingsService(db)
+	retentionService := services.NewRetentionService(db)
+	gdprService := services.NewGDPRService(db, retentionService)
+	retentionService.StartScheduler(24 * time.Hour)
 	entitlementService := services.NewEntitlementService(cfg.SelfHost)
 	waitlistService := services.NewWaitlistService(db)
 	invitationService := services.NewInvitationService(db, time.Duration(cfg.InviteTTLHours)*time.Hour)
@@ -81,17 +156,35 @@ func main() {
 		redisClient,
 		time.Duration(cfg.TranslationChainTimeout)*time.Second,
 	)
-	wsHub := services.NewWebSocketHub(redisClient)
+	wsHub := services.NewWebSocketHub(redisClient, cfg.ServerID)
 
 	var pubsubService *services.PubSubService
 	if redisClient != nil {
 		pubsubService = services.NewPubSubService(redisClient, wsHub)
 		pubsubService.Start()
 		defer pubsubService.Stop()
+		wsHub.SetPubSub(pubsubService)
+	}
+
+	var deliveryRouter *services.DeliveryRouter
+	if redisClient != nil {
+		deliveryRouter = services.NewDeliveryRouter(redisClient, wsHub, wsHub.Registry(), messageService, cfg.ServerID)
+		deliveryRouter.Start(context.Background())
+		defer deliveryRouter.Stop()
 	}
 
 	// Phase 2: Initialize Inbox service for offline message delivery
-	_ = services.NewInboxService(db, redisClient)
+	inboxService := services.NewInboxService(db, redisClient)
+	inboxService.StartCleanupScheduler()
+
+	// 10.5 durable per-recipient delivery: inbox backed by message_receipts
+	// is now wired into the hub for reconnect replay (persist before ack).
+	wsHub.SetInboxService(inboxService)
+	wsHub.SetMessageService(messageService)
+
+	// Task 6.1: per-recipient read + delivery receipts. Bridges the receipt
+	// persistence layer with real-time fan-out (local hub + Redis pub/sub).
+	receiptService := services.NewReceiptService(wsHub, pubsubService, messageService, chatService)
 
 	// Durable, near-real-time translation queue: translation_jobs rows are the
 	// source of truth, Redis pub/sub is the trigger, a sweeper retries failures,
@@ -128,6 +221,27 @@ func main() {
 	// Phase 2: Initialize Search service
 	searchService := services.NewSearchService(db, redisClient)
 
+	// Phase 2: Initialize Gallery service (task 6.5 — per-chat media gallery).
+	galleryService := services.NewGalleryService(db)
+
+	// Task 6.6: file/document sharing. Persists uploaded bytes to disk and
+	// records a media_attachments row tied to a new message. Fails fast when the
+	// configured upload directory cannot be created/written.
+	attachmentService, err := services.NewAttachmentService(db, cfg.UploadDir, cfg.MediaBaseURL, cfg.MaxUploadBytes)
+	if err != nil {
+		log.Fatalf("Failed to initialize attachment service: %v", err)
+	}
+
+	// Task 6.7: location sharing. Persists a validated lat/lng pair as a message
+	// with a media_attachments row of type 'location' so the pin flows through
+	// the same read paths (history, gallery, search) as every other attachment.
+	locationService := services.NewLocationService(db)
+
+	// Contacts & Invites epic (REQ 2.4 / FR-22-23): hashed on-platform detection
+	// and single-use invites for off-platform contacts.
+	contactService := services.NewContactService(db)
+	privacyService := services.NewPrivacyService(db)
+
 	// Phase 3: Initialize Grammar service with endpoint chain
 	log.Printf("[Startup] TRANSLATION_FALLBACK_ORDER=%q from env", os.Getenv("TRANSLATION_FALLBACK_ORDER"))
 	grammarService := services.NewGrammarService(redisClient, buildGrammarEndpoints(cfg))
@@ -152,8 +266,103 @@ func main() {
 	grammarQueue.Start()
 	defer grammarQueue.Stop()
 
+	// Sparky async answers (AI-response redesign Phase 1): same durable-outbox
+	// pattern as grammar. POST /sparky/ask returns 202 instantly; answers fan
+	// out per-user as "sparky_result" events (streaming deltas land in Phase 2).
+	sparkyCacheLoad, sparkyCacheStore := services.NewSparkyRedisCache(redisClient)
+	sparkyQueue := services.NewSparkyQueueService(
+		db,
+		redisClient,
+		grammarService,
+		sparkyCacheLoad,
+		sparkyCacheStore,
+		func(userID string, payload *services.SparkyJobResult) {
+			wsHub.SendToUser(userID, "sparky_result", payload)
+			if pubsubService != nil {
+				pubsubService.PublishToUser(userID, "sparky_result", payload)
+			}
+		},
+	)
+	sparkyQueue.Start()
+	defer sparkyQueue.Stop()
+
+	// FR-30 Quality pipeline: cross-model evaluator. Every completed translation /
+	// grammar job is re-scored by a *different* model through the evaluator chain
+	// (same endpoints, but chosen to differ from the producer). Rows are durable
+	// in translation_evals / grammar_evals and processed asynchronously off the
+	// hot path; KPIs are aggregated on read.
+	qualityEvaluator := services.NewQualityEvaluatorService(db, redisClient, buildGrammarEndpoints(cfg))
+	translationQueue.SetOnDone(func(jobID string) { _ = qualityEvaluator.EnqueueTranslation(jobID) })
+	grammarQueue.SetOnDone(func(jobID string) { _ = qualityEvaluator.EnqueueGrammar(jobID) })
+	qualityEvaluator.Start()
+	defer qualityEvaluator.Stop()
+
 	// Phase 3: Initialize Vocabulary service
 	vocabularyService := services.NewVocabularyService(db, redisClient)
+	// FR-26 Learned-word optimization: expose the per-user learned-word set to
+	// the translation pipeline so known words skip redundant LLM calls.
+	translationService.SetKnownWordsResolver(vocabularyService.LearnedWords)
+
+	// Learning engine: pair capability resolution, per-user learning profile,
+	// and the aggregated Learn dashboard.
+	learningCapabilityService := services.NewLearningCapabilityService(db)
+	learningProfileService := services.NewLearningProfileService(db, learningCapabilityService, curriculumService)
+	learningDashboardService := services.NewLearningDashboardService(db, learningCapabilityService, learningProfileService, curriculumService)
+
+	// Learning engine services: practice (stage-aware SRS), word mining,
+	// lessons, sessions, placement, scenarios, and fluency scoring.
+	grammarEndpoints := buildGrammarEndpoints(cfg)
+	learningAIService := services.NewLearningAIService(grammarEndpoints)
+	practiceService := services.NewPracticeService(db)
+	fluencyService := services.NewFluencyScoreService(db)
+	wordMiningService := services.NewWordMiningService(db, learningAIService, translationService, curriculumService, learningCapabilityService)
+	wordMiningQueue := services.NewWordMiningQueueService(db, redisClient, wordMiningService, func(userID string, payload *services.WordMiningJobResult) {
+		wsHub.SendToUser(userID, "word_mining_completed", payload)
+		if pubsubService != nil {
+			pubsubService.PublishToUser(userID, "word_mining_completed", payload)
+		}
+	})
+	wordMiningQueue.Start()
+	defer wordMiningQueue.Stop()
+	lessonService := services.NewLessonService(db, practiceService, learningProfileService, curriculumService, fluencyService)
+	grammarPointService := services.NewGrammarPointService(db, redisClient)
+	sessionComposerService := services.NewSessionComposerService(db, practiceService, curriculumService, learningProfileService, lessonService, grammarPointService)
+	// Transient session state: active 15-item session payloads live in Redis
+	// (1h TTL) so mid-session polls never touch Postgres (plan V3 section B).
+	if redisClient != nil {
+		sessionComposerService.SetSessionCache(services.NewRedisCacheAdapter(redisClient))
+	}
+	placementService := services.NewPlacementService(db, curriculumService, learningProfileService)
+	scenarioService := services.NewScenarioService(db, learningAIService, practiceService, fluencyService, curriculumService)
+
+	// Async grading queue (plan V3 section D): API paths return 202 + job_id
+	// instantly; workers claim rows with FOR UPDATE SKIP LOCKED, grade via the
+	// provider chain, and push "grade_result" over WebSocket + pub/sub. A 60s
+	// sweeper clears workers that died mid-flight.
+	gradingQueue := services.NewGradingQueueService(db, redisClient, learningAIService, func(userID string, payload *models.GradingJobResult) {
+		wsHub.SendToUser(userID, "grade_result", payload)
+		if pubsubService != nil {
+			pubsubService.PublishToUser(userID, "grade_result", payload)
+		}
+	})
+	gradingQueue.Start()
+	defer gradingQueue.Stop()
+
+	// Teacher assignments: submissions flow into the async grading pipeline.
+	teacherAssignmentService := services.NewTeacherAssignmentService(db, gradingQueue)
+
+	// Real-talk daily prompt set, compiled once per day into Redis.
+	var realTalkService *services.RealTalkService
+	if redisClient != nil {
+		realTalkService = services.NewRealTalkService(db, services.NewRedisCacheAdapter(redisClient))
+	} else {
+		realTalkService = services.NewRealTalkService(db, nil)
+	}
+
+	// FR-32: seed path (curriculum lexical items -> learner vocabulary queue)
+	// and the unified SRS queue that interleaves seed + personal + grammar.
+	seedQueueService := services.NewSeedQueueService(db, learningProfileService, learningCapabilityService)
+	srsQueueService := services.NewSRSQueueService(db, practiceService, seedQueueService)
 
 	// Phase 3: Initialize Speech-to-Text service
 	ctx := context.Background()
@@ -162,8 +371,12 @@ func main() {
 		log.Printf("Warning: Speech-to-Text service initialization failed: %v", err)
 	}
 
-	// Phase 3: Initialize Call service
+	// Phase 3: Initialize Call service (8.1 real WebRTC signaling)
 	callService := services.NewCallService(db, translationService, sttService)
+	callService.SetHub(wsHub)
+	if pubsubService != nil {
+		callService.SetPubSub(pubsubService)
+	}
 
 	// Start WebSocket hub
 	go wsHub.Run()
@@ -178,7 +391,24 @@ func main() {
 	notificationService.Start()
 	defer notificationService.Stop()
 
-	authHandler := handlers.NewAuthHandler(authService, userService, invitationService, notificationService, entitlementService, cfg.PasswordResetBaseURL)
+	// Report & Block (REQ §8.2): moderation service enforces blocks on chat
+	// creation and messaging; reports feed the moderator console. Built before
+	// the auth/directory handler so user search can surface block status.
+	moderationService := services.NewModerationService(db)
+
+	var whatsAppSender services.WhatsAppSender
+	if cfg.WhatsAppAPIURL != "" && cfg.WhatsAppToken != "" {
+		whatsAppSender = &services.HTTPWhatsAppSender{APIURL: cfg.WhatsAppAPIURL, Token: cfg.WhatsAppToken, PhoneID: cfg.WhatsAppPhoneID}
+	} else {
+		whatsAppSender = &services.LogWhatsAppSender{}
+	}
+	otpService := services.NewOTPService(db, whatsAppSender)
+
+	authHandler := handlers.NewAuthHandler(authService, userService, invitationService, notificationService, entitlementService, moderationService, cfg.PasswordResetBaseURL, cfg.AllowOpenRegistration)
+	authHandler.SetOTPService(otpService)
+	authHandler.SetPrivacyService(privacyService)
+	featureFlagHandler := handlers.NewFeatureFlagHandler(featureFlagService)
+	settingsHandler := handlers.NewSettingsHandler(settingsService)
 	waitlistHandler := handlers.NewWaitlistHandler(waitlistService, notificationService)
 	adminWaitlistHandler := handlers.NewAdminWaitlistHandler(
 		db, userService, invitationService,
@@ -188,13 +418,32 @@ func main() {
 	)
 	adminUsersHandler := handlers.NewAdminUsersHandler(userService, authService)
 	adminTranslationsHandler := handlers.NewAdminTranslationsHandler(translationQueue, translationService)
+	adminQualityHandler := handlers.NewAdminQualityHandler(qualityEvaluator)
 
-	// Report & Block (REQ §8.2): moderation service enforces blocks on chat
-	// creation and messaging; reports feed the moderator console.
-	moderationService := services.NewModerationService(db)
 	chatHandler := handlers.NewChatHandler(chatService, userService, moderationService, wsHub)
-	messageHandler := handlers.NewMessageHandler(messageService, chatService, userService, entitlementService, translationQueue, moderationService, wsHub, translationService)
+	chatHandler.SetPrivacyService(privacyService)
+	messageHandler := handlers.NewMessageHandler(messageService, chatService, userService, entitlementService, translationQueue, settingsService, moderationService, wsHub, translationService)
+	messageHandler.SetWordMining(wordMiningQueue, learningProfileService)
+	messageHandler.SetGrammarQueue(grammarQueue)
+	messageHandler.SetReceiptService(receiptService)
+	messageHandler.SetInboxService(inboxService)
+	if deliveryRouter != nil {
+		messageHandler.SetRouter(deliveryRouter)
+	}
+
+	// Task 6.6: file/document sharing handler.
+	attachmentHandler := handlers.NewAttachmentHandler(attachmentService, chatService, messageService, inboxService, wsHub)
+	if deliveryRouter != nil {
+		attachmentHandler.SetRouter(deliveryRouter)
+	}
+	// Task 6.7: location sharing handler.
+	locationHandler := handlers.NewLocationHandler(locationService, chatService, messageService, inboxService, wsHub)
+	if deliveryRouter != nil {
+		locationHandler.SetRouter(deliveryRouter)
+	}
 	wsHandler := handlers.NewWebSocketHandler(wsHub, authService)
+	wsHandler.SetReceiptService(receiptService)
+	wsHandler.SetCallService(callService)
 
 	// Monetization (Phase 1.5): PayPal client + billing service + handler.
 	paypalClient := services.NewPayPalClient(cfg)
@@ -223,20 +472,46 @@ func main() {
 	billingHandler := handlers.NewBillingHandler(billingService, paypalClient, entitlementService)
 
 	// Phase 2 & 3 handlers
-	searchHandler := handlers.NewSearchHandler(searchService)
-	presenceHandler := handlers.NewPresenceHandler(presenceService)
+	searchHandler := handlers.NewSearchHandlerWithUsers(searchService, userService, moderationService)
+	galleryHandler := handlers.NewGalleryHandlerWithModeration(galleryService, moderationService)
+	contactsHandler := handlers.NewContactsHandlerWithModeration(contactService, invitationService, notificationService, moderationService, cfg.InviteBaseURL)
+	contactsHandler.SetPrivacyService(privacyService)
+	presenceHandler := handlers.NewPresenceHandlerWithPrivacy(presenceService, privacyService)
 	grammarHandler := handlers.NewGrammarHandler(grammarService, grammarQueue, messageService)
+	sparkyHandler := handlers.NewSparkyHandler(sparkyQueue)
 	vocabularyHandler := handlers.NewVocabularyHandler(vocabularyService, messageService, translationService)
+	captionReviewService := services.NewCaptionReviewService(db)
 	callHandler := handlers.NewCallHandler(callService)
+	callHandler.SetReviewService(captionReviewService)
+	learningHandler := handlers.NewLearningHandlerWithPractice(learningCapabilityService, learningProfileService, learningDashboardService, curriculumService, placementService, lessonService, sessionComposerService, wordMiningService, scenarioService, fluencyService, vocabularyService, seedQueueService, srsQueueService, practiceService).
+		WithV3Engines(grammarPointService, gradingQueue, teacherAssignmentService, realTalkService)
 
 	moderationHandler := handlers.NewModerationHandler(moderationService)
+	otpHandler := handlers.NewOTPHandler(otpService, authService, userService)
+	inboxHandler := handlers.NewInboxHandler(inboxService)
+	gdprHandler := handlers.NewGDPRHandler(gdprService, retentionService)
+	teacherService := services.NewTeacherService(db)
+	teacherSrsService := services.NewTeacherSrsService(db)
+	teacherHandler := handlers.NewTeacherHandlerWithSRS(teacherService, teacherSrsService)
+	payoutService := services.NewPayoutService(db, paypalClient)
+	payoutHandler := handlers.NewPayoutHandler(payoutService)
+	releaseGateService := services.NewReleaseGateService(db)
+	releaseGateHandler := handlers.NewReleaseGateHandler(releaseGateService)
 
 	// Setup Gin router
 	if cfg.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	r := gin.Default()
+	r := gin.New()
+	r.Use(gin.Logger())
+	r.Use(middleware.Recovery())
+	// NFR-18: per-route HTTP request count + latency, by method/route/status.
+	r.Use(observability.MetricsMiddleware())
+
+	// Task 6.6: bound the multipart upload so a single attachment request can
+	// carry at most MAX_UPLOAD_MB (default 50 MB) plus form fields.
+	r.MaxMultipartMemory = cfg.MaxUploadBytes
 
 	// CORS configuration
 	r.Use(cors.New(cors.Config{
@@ -247,21 +522,47 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	// Health check
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "healthy", "version": "2.0.0"})
+	// NFR-18/19: per-server health/readiness. /health is the load balancer's
+	// liveness check (always 200 while the process is up, with a per-dependency
+	// detail map for operators); /health/ready flips to 503 until the DB, Redis
+	// (when configured), and the translation chain are all reachable. This is
+	// the same surface the Docker healthchecks and LB probes hit.
+	appHealth := observability.NewHealth(observability.Version, buildCommit())
+	appHealth.AddCheck("postgres", func(ctx context.Context) error {
+		return db.PingContext(ctx)
 	})
+	if redisClient != nil {
+		appHealth.AddCheck("redis", func(ctx context.Context) error {
+			return redisClient.Ping(ctx).Err()
+		})
+	}
+	appHealth.AddCheck("translation", translationReadinessCheck(translationService))
+
+	// Liveness (LB health check): always 200 while the process is up.
+	r.GET("/health", appHealth.Liveness())
+	// Readiness (traffic gate): 503 until dependencies are reachable.
+	r.GET("/health/ready", appHealth.Readiness())
+	// Prometheus scrape endpoint (NFR-18): consumes the custom registry.
+	r.GET("/metrics", gin.WrapH(observability.MetricsHandler()))
+
+	loginRateLimit := middleware.RateLimiterRedis(redisClient, envIntOr("RATE_LIMIT_LOGIN_MAX", 10), envMinutesOr("RATE_LIMIT_LOGIN_WINDOW", 15), middleware.IPKey, "ratelimit:login:")
+	translationRateLimit := middleware.RateLimiterRedis(redisClient, envIntOr("RATE_LIMIT_TRANSLATION_MAX", 60), envMinutesOr("RATE_LIMIT_TRANSLATION_WINDOW", 1), middleware.UserKey, "ratelimit:translation:")
+	wsRateLimit := middleware.RateLimiterRedis(redisClient, envIntOr("RATE_LIMIT_WS_CONNECT_MAX", 100), envMinutesOr("RATE_LIMIT_WS_CONNECT_WINDOW", 15), middleware.IPKey, "ratelimit:ws:")
 
 	// Public routes
 	public := r.Group("/api/v1")
 	{
-		public.POST("/waitlist", middleware.IPRateLimiter(10, time.Hour), waitlistHandler.Submit)
-		public.POST("/auth/register", middleware.IPRateLimiter(10, time.Hour), authHandler.Register)
+		public.POST("/waitlist", middleware.RateLimiterRedis(redisClient, envIntOr("RATE_LIMIT_WAITLIST_MAX", 10), time.Hour, middleware.IPKey, "ratelimit:waitlist:"), waitlistHandler.Submit)
+		// Register budget is env-tunable (default 10/hr): the acceptance
+		// suite registers ~6 throwaways per run, so dev/test stacks raise
+		// RATE_LIMIT_REGISTER_MAX via env (prod keeps the strict default).
+		public.POST("/auth/register", middleware.RateLimiterRedis(redisClient, envIntOr("RATE_LIMIT_REGISTER_MAX", 10), time.Hour, middleware.IPKey, "ratelimit:register:"), authHandler.Register)
 		public.GET("/auth/invite", authHandler.InviteInfo)
-		public.POST("/auth/login", authHandler.Login)
+		public.POST("/auth/login", loginRateLimit, authHandler.Login)
 		public.POST("/auth/refresh", authHandler.RefreshToken)
-		public.POST("/auth/forgot-password", middleware.IPRateLimiter(5, time.Hour), authHandler.ForgotPassword)
+		public.POST("/auth/forgot-password", middleware.RateLimiterRedis(redisClient, 5, time.Hour, middleware.IPKey, "ratelimit:forgot:"), authHandler.ForgotPassword)
 		public.POST("/auth/reset-password", authHandler.ResetPassword)
+		public.POST("/auth/2fa/verify", otpHandler.Verify2FA)
 		// PayPal webhooks must be reachable without auth; signature verification
 		// happens inside the handler.
 		public.POST("/webhooks/paypal", billingHandler.Webhook)
@@ -270,12 +571,24 @@ func main() {
 	// Protected routes
 	protected := r.Group("/api/v1")
 	protected.Use(middleware.AuthMiddleware(authService, userService))
+	protected.Use(middleware.FlagContextMiddleware(featureFlagService))
 	{
 		// User routes
 		protected.GET("/users/me", authHandler.GetMe)
+		protected.GET("/users/me/flags", featureFlagHandler.GetMyFlags)
 		protected.GET("/users/me/entitlements", authHandler.GetMyEntitlements)
 		protected.PUT("/users/me", authHandler.UpdateMe)
+		protected.PUT("/users/me/onboard", authHandler.OnboardMe)
 		protected.GET("/users/search", authHandler.SearchUsers)
+
+		// FR-25 Feature toggles: read/update the per-account settings row
+		// (auto-translation, auto-grammar, learning highlights).
+		protected.GET("/users/me/settings", settingsHandler.GetSettings)
+		protected.PUT("/users/me/settings", settingsHandler.UpdateSettings)
+
+		protected.GET("/users/me/export", middleware.RequireFlag(featureFlagService, "gdpr_export"), gdprHandler.ExportMyData)
+		protected.DELETE("/users/me", gdprHandler.DeleteMyAccount)
+		protected.GET("/privacy/retention-policy", gdprHandler.GetRetentionPolicy)
 
 		// Subscription routes (Phase 1.5).
 		protected.GET("/users/me/subscription", billingHandler.GetMySubscription)
@@ -285,7 +598,13 @@ func main() {
 		protected.POST("/blocks", moderationHandler.Block)
 		protected.DELETE("/blocks/:userId", moderationHandler.Unblock)
 		protected.GET("/blocks", moderationHandler.ListBlocked)
+		protected.GET("/blocks/:userId/status", moderationHandler.GetBlockStatus)
 		protected.POST("/reports", moderationHandler.Report)
+
+		protected.GET("/users/me/phone", otpHandler.GetStatus)
+		protected.POST("/users/me/phone/request-otp", middleware.UserRateLimiter(5, 15*time.Minute), otpHandler.RequestOTP)
+		protected.POST("/users/me/phone/verify", otpHandler.VerifyPhone)
+		protected.PUT("/users/me/2fa", otpHandler.SetTwoFactor)
 
 		// Non-gated status probe used by the client to learn the caller's role.
 		protected.GET("/admin/status", adminWaitlistHandler.Status)
@@ -294,6 +613,15 @@ func main() {
 		admin := protected.Group("/admin")
 		admin.Use(middleware.RequireRole(services.RoleAdmin))
 		{
+			// Feature flag management (Release 1)
+			admin.GET("/features", featureFlagHandler.ListFlags)
+			admin.PUT("/features/:key/tiers", featureFlagHandler.UpdateFlagTiers)
+			admin.POST("/features/:key/overrides/:userId", featureFlagHandler.SetUserOverride)
+			admin.DELETE("/features/:key/overrides/:userId", featureFlagHandler.DeleteUserOverride)
+			admin.GET("/features/preview/:userId", featureFlagHandler.PreviewUserFlags)
+
+			admin.GET("/quality/kpis", adminQualityHandler.KPIs)
+			admin.POST("/quality/requeue", adminQualityHandler.Requeue)
 			admin.GET("/waitlist", adminWaitlistHandler.List)
 			admin.POST("/waitlist/:id/approve", adminWaitlistHandler.Approve)
 			admin.POST("/waitlist/:id/decline", adminWaitlistHandler.Decline)
@@ -321,12 +649,14 @@ func main() {
 			moderator.GET("/translations", adminTranslationsHandler.List)
 			moderator.POST("/translations/:id/retry", adminTranslationsHandler.Retry)
 			moderator.GET("/translations/health", adminTranslationsHandler.Health)
+			moderator.POST("/retention/purge", gdprHandler.PurgeExpired)
 
 			// Moderation console: reports
 			moderator.GET("/reports", moderationHandler.ListReports)
 			moderator.GET("/reports/stats", moderationHandler.ReportStats)
 			moderator.POST("/reports/:id/resolve", moderationHandler.ResolveReport)
 			moderator.POST("/reports/:id/dismiss", moderationHandler.DismissReport)
+			moderator.GET("/release-readiness", releaseGateHandler.GetReadiness)
 		}
 
 		// Chat routes
@@ -338,21 +668,94 @@ func main() {
 		protected.DELETE("/chats/:chatId/participants/:userId", chatHandler.RemoveParticipant)
 		protected.DELETE("/chats/:chatId/leave", chatHandler.LeaveChat)
 
+		// Archive & mute (task 6.4): per-user, per-chat conversation preferences.
+		protected.POST("/chats/:chatId/archive", chatHandler.ArchiveChat)
+		protected.DELETE("/chats/:chatId/archive", chatHandler.UnarchiveChat)
+		protected.POST("/chats/:chatId/mute", chatHandler.MuteChat)
+		protected.DELETE("/chats/:chatId/mute", chatHandler.UnmuteChat)
+		protected.GET("/chats/:chatId/preferences", chatHandler.GetChatPreference)
+		protected.GET("/chats/preferences", chatHandler.GetChatPreferences)
+
+		// 10.5 durable per-recipient delivery: pending sync + ack (Postgres is source of truth).
+		protected.GET("/inbox/pending", inboxHandler.GetPending)
+		protected.POST("/inbox/ack", inboxHandler.AckPending)
+
 		// Message routes
 		protected.GET("/chats/:chatId/messages", messageHandler.GetMessages)
 		protected.POST("/chats/:chatId/messages", messageHandler.SendMessage)
-		protected.POST("/chats/:chatId/messages/:messageId/translate", messageHandler.TranslateMessage)
+		protected.POST("/chats/:chatId/messages/:messageId/translate", translationRateLimit, messageHandler.TranslateMessage)
+		protected.GET("/chats/:chatId/messages/:messageId/receipts", messageHandler.GetMessageReceipts)
+		protected.GET("/chats/:chatId/unread", messageHandler.GetUnreadCount)
 		protected.PUT("/chats/:chatId/read", messageHandler.MarkAsRead)
 
-		// Phase 2: Search routes
+		// Message actions (task 6.2): forward, delete, and pin.
+		protected.POST("/chats/:chatId/messages/:messageId/forward", messageHandler.ForwardMessage)
+		protected.DELETE("/chats/:chatId/messages/:messageId", messageHandler.DeleteMessage)
+		protected.POST("/chats/:chatId/pins", messageHandler.PinMessage)
+		protected.DELETE("/chats/:chatId/pins/:messageId", messageHandler.UnpinMessage)
+		protected.GET("/chats/:chatId/pins", messageHandler.GetPinnedMessages)
+
+		// Media gallery (task 6.5): photos/videos/audio/documents/links per chat.
+		protected.GET("/chats/:chatId/gallery", galleryHandler.GetChatGallery)
+
+		// File / document sharing (task 6.6): multipart upload → media message.
+		// Release-gated: clients hide the attach button unless media or
+		// document sharing is on; the route enforces the document tier.
+		protected.POST("/chats/:chatId/attachments", middleware.RequireFlag(featureFlagService, "document_sharing"), attachmentHandler.SendAttachment)
+
+		// Location sharing (task 6.7): validated lat/lng → location message.
+		// Release-gated alongside the client 📍 button.
+		protected.POST("/chats/:chatId/location", middleware.RequireFlag(featureFlagService, "location_sharing"), locationHandler.SendLocation)
+
+		// Phase 2: Search routes (task 6.3 — universal message+media search)
 		protected.GET("/messages/search", searchHandler.SearchMessages)
+		protected.GET("/media/search", searchHandler.SearchMedia)
 		protected.GET("/chats/search", searchHandler.SearchChats)
 		protected.GET("/contacts/search", searchHandler.SearchContacts)
+
+		// Contacts & Invites epic (REQ 2.4): hashed contact scan + off-platform
+		// invites with status tracking.
+		protected.POST("/contacts/scan", contactsHandler.ScanContacts)
+		protected.POST("/contacts/invites", contactsHandler.CreateInvite)
+		protected.GET("/contacts/invites", contactsHandler.ListInvites)
 
 		// Phase 2: Presence routes
 		protected.GET("/presence/:userId", presenceHandler.GetPresence)
 		protected.PUT("/presence", presenceHandler.UpdatePresence)
 		protected.POST("/presence/activity", presenceHandler.UpdateActivity)
+
+		// Teacher marketplace + payouts (gated: teacher_marketplace, payout_teacher)
+		protected.GET("/teachers/payouts/overview", middleware.RequireFlag(featureFlagService, "payout_teacher"), payoutHandler.GetOverview)
+		protected.GET("/teachers/payouts/history", middleware.RequireFlag(featureFlagService, "payout_teacher"), payoutHandler.ListHistory)
+		protected.POST("/teachers/payouts/withdraw", middleware.RequireFlag(featureFlagService, "payout_teacher"), payoutHandler.RequestPayout)
+		protected.GET("/teachers/payouts/methods", middleware.RequireFlag(featureFlagService, "payout_teacher"), payoutHandler.ListMethods)
+		protected.POST("/teachers/payouts/methods", middleware.RequireFlag(featureFlagService, "payout_teacher"), payoutHandler.AddMethod)
+		protected.DELETE("/teachers/payouts/methods/:methodId", middleware.RequireFlag(featureFlagService, "payout_teacher"), payoutHandler.RemoveMethod)
+		protected.PUT("/teachers/payouts/methods/:methodId/default", middleware.RequireFlag(featureFlagService, "payout_teacher"), payoutHandler.SetDefaultMethod)
+
+		protected.POST("/teachers/apply", middleware.RequireFlag(featureFlagService, "teacher_marketplace"), teacherHandler.Apply)
+		protected.GET("/teachers/me", middleware.RequireFlag(featureFlagService, "teacher_marketplace"), teacherHandler.GetMe)
+		protected.GET("/teachers/browse", middleware.RequireFlag(featureFlagService, "teacher_marketplace"), teacherHandler.Browse)
+		protected.GET("/teachers/dashboard", middleware.RequireFlag(featureFlagService, "teacher_marketplace"), teacherHandler.GetDashboard)
+		protected.GET("/teachers/trial-credits", middleware.RequireFlag(featureFlagService, "teacher_marketplace"), teacherHandler.GetTrialCredits)
+		protected.GET("/teachers/trial-credits/dashboard", middleware.RequireFlag(featureFlagService, "teacher_marketplace"), teacherHandler.GetTrialCreditDashboard)
+		protected.GET("/teachers/bookings", middleware.RequireFlag(featureFlagService, "teacher_marketplace"), teacherHandler.ListBookings)
+		protected.GET("/teachers/bookings/:id", middleware.RequireFlag(featureFlagService, "teacher_marketplace"), teacherHandler.GetBooking)
+		protected.POST("/teachers/availability", middleware.RequireFlag(featureFlagService, "teacher_marketplace"), teacherHandler.AddAvailability)
+		protected.DELETE("/teachers/availability/:id", middleware.RequireFlag(featureFlagService, "teacher_marketplace"), teacherHandler.RemoveAvailability)
+		protected.POST("/teachers/bookings/:id/cancel", middleware.RequireFlag(featureFlagService, "teacher_marketplace"), teacherHandler.CancelBooking)
+		protected.POST("/teachers/bookings/:id/confirm", middleware.RequireFlag(featureFlagService, "teacher_marketplace"), teacherHandler.ConfirmBooking)
+		protected.POST("/teachers/bookings/:id/complete", middleware.RequireFlag(featureFlagService, "teacher_marketplace"), teacherHandler.CompleteBooking)
+		protected.PUT("/teachers/bookings/:id/review-notes", middleware.RequireFlag(featureFlagService, "teacher_marketplace"), teacherHandler.UpdateReviewNotes)
+		protected.POST("/teachers/srs/push", middleware.RequireFlag(featureFlagService, "teacher_marketplace"), teacherHandler.PushSRS)
+		protected.GET("/teachers/srs/pushes", middleware.RequireFlag(featureFlagService, "teacher_marketplace"), teacherHandler.ListSrsPushes)
+		protected.GET("/teachers/srs/pushes/:id", middleware.RequireFlag(featureFlagService, "teacher_marketplace"), teacherHandler.GetSrsPush)
+		protected.GET("/teachers/srs/sandbox/:studentId", middleware.RequireFlag(featureFlagService, "teacher_marketplace"), teacherHandler.GetSrsSandbox)
+		protected.GET("/teachers/:id", middleware.RequireFlag(featureFlagService, "teacher_marketplace"), teacherHandler.GetProfile)
+		protected.GET("/teachers/:id/reviews", middleware.RequireFlag(featureFlagService, "teacher_marketplace"), teacherHandler.GetReviews)
+		protected.POST("/teachers/:id/reviews", middleware.RequireFlag(featureFlagService, "teacher_marketplace"), teacherHandler.AddReview)
+		protected.GET("/teachers/:id/availability", middleware.RequireFlag(featureFlagService, "teacher_marketplace"), teacherHandler.GetAvailability)
+		protected.POST("/teachers/:id/book", middleware.RequireFlag(featureFlagService, "teacher_marketplace"), teacherHandler.CreateBooking)
 
 		// Phase 3: Grammar analysis routes
 		protected.POST("/grammar/analyze", grammarHandler.AnalyzeMessageGrammar)
@@ -362,6 +765,10 @@ func main() {
 		protected.POST("/grammar/learn", grammarHandler.LearnGrammar)
 		protected.GET("/grammar/suggestions", grammarHandler.GetGrammarSuggestions)
 		protected.GET("/grammar/report", grammarHandler.GetGrammarReport)
+
+		// Sparky async answers (AI-response redesign Phase 1)
+		protected.POST("/sparky/ask", sparkyHandler.AskSparky)
+		protected.GET("/sparky/jobs/:jobId", sparkyHandler.GetSparkyJob)
 
 		// Phase 3: Vocabulary routes
 		protected.POST("/vocabulary", vocabularyHandler.SaveVocabulary)
@@ -373,30 +780,146 @@ func main() {
 		protected.DELETE("/vocabulary/:id", vocabularyHandler.DeleteVocabulary)
 		protected.GET("/vocabulary/search", vocabularyHandler.SearchVocabulary)
 
-		// Phase 3: Call routes
-		protected.POST("/calls/initiate", callHandler.InitiateCall)
-		protected.POST("/calls/:callId/end", callHandler.EndCall)
-		protected.GET("/calls/:callId", callHandler.GetCallSession)
-		protected.GET("/calls/:callId/transcript", callHandler.GetCallTranscript)
-		protected.GET("/calls/history", callHandler.GetCallHistory)
-		protected.DELETE("/calls/:callId/transcript", callHandler.DeleteCallTranscript)
-		protected.GET("/calls/transcripts/search", callHandler.SearchTranscripts)
-		protected.POST("/calls/:callId/signal", callHandler.HandleWebRTCSignaling)
+		// Learning engine routes (pair-aware curriculum, profile, dashboard, path)
+		protected.GET("/learning/capabilities", learningHandler.GetCapabilities)
+		protected.GET("/learning/profile", learningHandler.GetProfile)
+		protected.PUT("/learning/profile", learningHandler.UpdateProfile)
+		protected.GET("/learning/dashboard", learningHandler.GetDashboard)
+		protected.GET("/learning/path", learningHandler.GetPath)
+
+		// Placement
+		protected.POST("/learning/placement/start", learningHandler.StartPlacement)
+		protected.POST("/learning/placement/:attemptId/answer", learningHandler.AnswerPlacement)
+		protected.POST("/learning/placement/:attemptId/skip", learningHandler.SkipPlacement)
+		protected.POST("/learning/placement/skip", learningHandler.SkipPlacement)
+		protected.GET("/learning/placement/:attemptId", learningHandler.GetPlacement)
+
+		// Onboarding level self-selection (task 2.3): seed CEFR from
+		// beginner/intermediate/advanced without running the placement test.
+		protected.POST("/learning/level/select", learningHandler.SelectLevel)
+
+		// Units + lessons
+		protected.GET("/learning/units/:unitId", learningHandler.GetUnit)
+		protected.POST("/learning/lessons/:lessonId/start", learningHandler.StartLesson)
+		protected.POST("/learning/lesson-attempts/:attemptId/steps/:stepId/answer", learningHandler.AnswerLessonStep)
+		protected.POST("/learning/lesson-attempts/:attemptId/complete", learningHandler.CompleteLesson)
+		protected.GET("/learning/lesson-attempts/:attemptId", learningHandler.GetLessonAttempt)
+
+		// Practice sessions
+		protected.POST("/learning/sessions/start", learningHandler.StartSession)
+		protected.GET("/learning/sessions/:sessionId", learningHandler.GetSession)
+		protected.POST("/learning/sessions/:sessionId/items/:itemId/answer", learningHandler.AnswerSessionItem)
+		protected.POST("/learning/sessions/:sessionId/complete", learningHandler.CompleteSession)
+
+		// FR-32 unified SRS queue (seed + personal + grammar).
+		protected.GET("/learning/srs/queue", learningHandler.GetSRSQueue)
+		protected.POST("/learning/vocabulary/:id/review", learningHandler.ReviewVocabulary)
+
+		// Mined vocabulary
+		protected.GET("/learning/vocabulary/mined", learningHandler.GetMinedItems)
+		protected.POST("/learning/vocabulary/mined/:id/accept", learningHandler.AcceptMinedItem)
+		protected.POST("/learning/vocabulary/mined/:id/ignore", learningHandler.IgnoreMinedItem)
+
+		// Scenarios + roleplay
+		protected.GET("/learning/scenarios", learningHandler.ListScenarios)
+		protected.GET("/learning/scenarios/:scenarioId", learningHandler.GetScenario)
+		protected.POST("/learning/scenarios/:scenarioId/start", learningHandler.StartScenario)
+		protected.GET("/learning/scenario-runs/:runId", learningHandler.GetScenarioRun)
+		protected.POST("/learning/scenario-runs/:runId/message", learningHandler.SendScenarioMessage)
+		protected.POST("/learning/scenario-runs/:runId/hint", learningHandler.ScenarioHint)
+		protected.POST("/learning/scenario-runs/:runId/complete", learningHandler.CompleteScenario)
+
+		// Real-talk + streak
+		protected.GET("/learning/real-talk/prompts", middleware.RequireFlag(featureFlagService, "real_talk"), learningHandler.RealTalkPrompts)
+		protected.POST("/learning/real-talk/prompts/:promptId/used", middleware.RequireFlag(featureFlagService, "real_talk"), learningHandler.MarkRealTalkUsed)
+		protected.POST("/learning/nudges/:nudgeId/dismiss", learningHandler.NudgeDismiss)
+		protected.POST("/learning/streak/recover", learningHandler.RecoverStreak)
+
+		// V3 grammar engine: due drills, micro-lessons, attempt recording
+		protected.GET("/learning/grammar/due", learningHandler.GrammarDueDrills)
+		protected.GET("/learning/grammar/points/:pointId", learningHandler.GrammarMicroLesson)
+		protected.POST("/learning/grammar/items/:itemId/attempt", learningHandler.GrammarRecordAttempt)
+
+		// V3 async grading: polling fallback for the 202 + WebSocket push flow
+		protected.GET("/learning/grading-jobs/:jobId", learningHandler.GetGradingJob)
+
+		// V3 teacher assignments: create (teacher), submit (student, 202 +
+		// job_id), review (teacher)
+		protected.POST("/learning/teacher/assignments", learningHandler.CreateAssignment)
+		protected.GET("/learning/teacher/assignments", learningHandler.ListTeacherAssignments)
+		protected.GET("/learning/assignments", learningHandler.ListStudentAssignments)
+		protected.GET("/learning/assignments/:assignmentId", learningHandler.GetAssignment)
+		protected.POST("/learning/assignments/:assignmentId/submit", learningHandler.SubmitAssignment)
+		protected.POST("/learning/assignments/:assignmentId/review", learningHandler.ReviewAssignment)
+
+		// Phase 3: Call routes (gated: video_calls)
+		calls := protected.Group("/calls")
+		calls.Use(middleware.RequireFlag(featureFlagService, "video_calls"))
+		{
+			calls.POST("/initiate", callHandler.InitiateCall)
+			calls.POST("/:callId/end", callHandler.EndCall)
+			calls.GET("/:callId", callHandler.GetCallSession)
+			calls.GET("/:callId/transcript", callHandler.GetCallTranscript)
+			calls.GET("/history", callHandler.GetCallHistory)
+			calls.DELETE("/:callId/transcript", callHandler.DeleteCallTranscript)
+			calls.GET("/transcripts/search", callHandler.SearchTranscripts)
+			calls.POST("/:callId/signal", callHandler.HandleWebRTCSignaling)
+			calls.POST("/:callId/captions", callHandler.PostCaption)
+			calls.GET("/:callId/captions", callHandler.GetCaptions)
+			calls.POST("/:callId/captions/:index/bookmark", callHandler.BookmarkCaption)
+			calls.POST("/:callId/transcribe", callHandler.TranscribeCaption)
+			calls.POST("/:callId/captions/:index/review", callHandler.ReviewCaption)
+			calls.GET("/:callId/captions/:index/reviews", callHandler.GetCaptionReviews)
+		}
+		protected.GET("/captions/review-queue", middleware.RequireFlag(featureFlagService, "video_calls"), callHandler.GetReviewQueue)
+		protected.GET("/captions/quality-stats", middleware.RequireFlag(featureFlagService, "video_calls"), callHandler.GetCaptionQualityStats)
 	}
 
 	// WebSocket endpoint (auth handled inside handler via query param or header)
-	r.GET("/ws", wsHandler.HandleWebSocket)
+	r.GET("/ws", wsRateLimit, wsHandler.HandleWebSocket)
 
-	// Start server
-	port := os.Getenv("PORT")
+	// Task 6.6: serve stored attachments at their public URL (default /media).
+	// This keeps the file bytes reachable for download/preview from the same
+	// origin the attachment URLs point at. The protected /api/v1/media/search
+	// route lives under a different prefix, so there is no conflict.
+	r.Static("/media", cfg.UploadDir)
+
+	port := *portFlag
+	if port == "" {
+		port = os.Getenv("PORT")
+	}
 	if port == "" {
 		port = "8080"
 	}
 
-	log.Printf("Server starting on port %s (Phase 2 & 3 features enabled)", port)
-	if err := r.Run(":" + port); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+	srv := &http.Server{
+		Addr:    ":" + port,
+		Handler: r,
 	}
+
+	go func() {
+		log.Printf("Server starting on port %s (stateless, SERVER_ID=%s)", port, cfg.ServerID)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("Failed to start server: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Printf("[Shutdown] signal received, draining (SERVER_ID=%s)...", cfg.ServerID)
+	ctxShutdown, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	if deliveryRouter != nil {
+		deliveryRouter.Stop()
+	}
+	if pubsubService != nil {
+		pubsubService.Stop()
+	}
+	if err := srv.Shutdown(ctxShutdown); err != nil {
+		log.Printf("[Shutdown] forced: %v", err)
+	}
+	log.Printf("[Shutdown] server stopped (SERVER_ID=%s)", cfg.ServerID)
 }
 
 // buildTranslationProviderChain constructs a provider chain from config.
@@ -445,6 +968,25 @@ func buildTranslationProviderChain(cfg *config.Config) translation.Provider {
 		return providers[0]
 	}
 	return translation.NewChainProvider(providers)
+}
+
+// translationReadinessCheck returns a health CheckFunc that passes when at least
+// one provider in the translation chain is ready and fails otherwise. It reports
+// an unavailable state without blocking: readiness is a light probe, not a
+// full chain exercise, so a single slow provider cannot stall /health/ready.
+func translationReadinessCheck(svc *services.TranslationService) observability.CheckFunc {
+	return func(ctx context.Context) error {
+		health := svc.ProviderHealth()
+		for _, p := range health {
+			if p.Ready {
+				return nil
+			}
+		}
+		if len(health) == 0 {
+			return errors.New("no translation providers configured")
+		}
+		return errors.New("no translation provider is ready")
+	}
 }
 
 // missingProviderEnvKeys returns the canonical env var names that must be set
@@ -588,4 +1130,57 @@ func startupPullTimeout() time.Duration {
 		}
 	}
 	return time.Duration(secs) * time.Second
+}
+
+// envIntOr reads a positive integer env var, returning def when it is unset,
+// unparseable, or non-positive. Used for the NFR-24 rate-limit tuning knobs.
+func envIntOr(key string, def int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			return n
+		}
+	}
+	return def
+}
+
+// envMinutesOr reads a minutes integer env var and converts it to a Duration.
+func envMinutesOr(key string, def int) time.Duration {
+	return time.Duration(envIntOr(key, def)) * time.Minute
+}
+
+// logDatabaseDiagnostics prints the host the backend actually connected to and
+// how many users that database holds (rescue plan C3). A zero user count on a
+// dev box almost always means the process reached the wrong Postgres (e.g. a
+// stray WSL/local instance shadowing the Docker container on :5432), which
+// previously surfaced only as opaque "User not found" errors in the app.
+func logDatabaseDiagnostics(db *sql.DB, dsn string) {
+	host := dsn
+	if i := strings.Index(host, "@"); i >= 0 {
+		host = host[i+1:]
+	}
+	if i := strings.Index(host, "/"); i >= 0 {
+		host = host[:i]
+	}
+	var count int
+	if err := db.QueryRow(`SELECT count(*) FROM users`).Scan(&count); err != nil {
+		log.Printf("[Startup] WARNING: could not count users on %s: %v", host, err)
+		return
+	}
+	if count == 0 {
+		log.Printf("[Startup] WARNING: connected to %s but the users table is EMPTY — "+
+			"wrong database? Run `go run ./cmd/server --seed-dev` to provision dev fixtures.", host)
+		return
+	}
+	log.Printf("[Startup] Database %s reachable; %d user(s) present", host, count)
+}
+
+// buildCommit returns the git commit this backend was built from, used by the
+// /health payload so start scripts can verify the served binary matches HEAD.
+// Set CHORUS_BUILD_COMMIT at build/start time (start-android-avd.ps1 does this);
+// falls back to "dev" when unknown (plain `go run`).
+func buildCommit() string {
+	if c := os.Getenv("CHORUS_BUILD_COMMIT"); c != "" {
+		return c
+	}
+	return "dev"
 }

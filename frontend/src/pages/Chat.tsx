@@ -256,15 +256,18 @@ export default function Chat({ onLogout }: ChatProps) {
                 <input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onClick={()=>navigate('/search')}
+                  onFocus={()=>navigate('/search')}
                   placeholder={t('chat.searchPlaceholder')}
-                  className="flex-1 bg-transparent border-none p-0 font-body-md text-body-md text-on-surface placeholder:text-outline focus:ring-0 focus:outline-none"
+                  className="flex-1 bg-transparent border-none p-0 font-body-md text-body-md text-on-surface placeholder:text-outline focus:ring-0 focus:outline-none cursor-pointer"
+                  readOnly
                 />
                 <button
                   aria-label={t('chat.searchMessages')}
                   onClick={() => setShowSearch(true)}
                   className="text-primary hover:bg-surface-container-low rounded-full p-1 transition"
                 >
-                  <span className="material-symbols-outlined text-[20px]">mic</span>
+                  <span className="material-symbols-outlined text-[20px]">search</span>
                 </button>
               </div>
             </div>
@@ -279,7 +282,10 @@ export default function Chat({ onLogout }: ChatProps) {
                 <p className="font-body-sm text-body-sm text-on-primary-container/80 line-clamp-1">{t('chat.dailyReviewDesc')}</p>
               </div>
             </button>
-            <button className="bg-surface-container-high text-on-surface rounded-xl p-4 flex flex-col gap-2 items-start justify-between elevation-1 hover:bg-surface-container-highest transition-all duration-200 active:scale-95 text-left h-28 insight-glow relative overflow-hidden">
+            <button
+              onClick={() => navigate('/learn/scenarios')}
+              className="bg-surface-container-high text-on-surface rounded-xl p-4 flex flex-col gap-2 items-start justify-between elevation-1 hover:bg-surface-container-highest transition-all duration-200 active:scale-95 text-left h-28 insight-glow relative overflow-hidden"
+            >
               <div className="absolute top-0 right-0 w-16 h-16 bg-secondary/10 rounded-bl-full" />
               <span className="material-symbols-outlined text-secondary">forum</span>
               <div>

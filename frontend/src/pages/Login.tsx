@@ -1,9 +1,13 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { authAPI } from '../services/api'
+import { otpAPI } from '../services/api'
+import { api } from '../services/api'
 import { detectBrowserLanguage, getNativeLanguageName } from '../services/language'
 import AuthShell from '../components/AuthShell'
+import DevAccountSwitcher from '../components/DevAccountSwitcher'
+import { apiErrorMessage } from '@chorus/shared'
+import { useFeatureFlag } from '../hooks/useFeatureFlag'
 
 interface LoginProps {
   onLogin: (tokens: { accessToken: string; refreshToken: string }) => void
@@ -11,11 +15,21 @@ interface LoginProps {
 
 export default function Login({ onLogin }: LoginProps) {
   const { t } = useTranslation()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  // OAuth buttons are dead until implemented; hidden unless flagged on.
+  const { enabled: oauthEnabled } = useFeatureFlag('google_oauth')
+  // Local-dev convenience: prefill the test account when VITE_TEST_USER_* are
+  // present in frontend/.env. Falls back to empty fields otherwise.
+  const testEmail = import.meta.env.VITE_TEST_USER_EMAIL as string | undefined
+  const testPassword = import.meta.env.VITE_TEST_USER_PASSWORD as string | undefined
+  const [email, setEmail] = useState(testEmail || '')
+  const [password, setPassword] = useState(testPassword || '')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [requires2FA, setRequires2FA] = useState(false)
+  const [tempToken, setTempToken] = useState('')
+  const [phoneMasked, setPhoneMasked] = useState('')
+  const [code, setCode] = useState('')
   const [selectedLang, setSelectedLang] = useState(() => localStorage.getItem('preferredLanguage') || detectBrowserLanguage())
 
   const nativeLangName = getNativeLanguageName(selectedLang)
@@ -29,18 +43,31 @@ export default function Login({ onLogin }: LoginProps) {
     e.preventDefault()
     setError('')
     setIsLoading(true)
-
     try {
-      const response = await authAPI.login({
-        username: email.trim().toLowerCase(),
-        password,
-      })
-      onLogin(response.tokens)
+      const raw = await api.post('/auth/login', { username: email.trim().toLowerCase(), password })
+      if (raw.data.requires2FA) {
+        setTempToken(raw.data.tempToken)
+        setPhoneMasked(raw.data.phoneMasked || '')
+        setRequires2FA(true)
+      } else {
+        onLogin(raw.data.tokens)
+      }
     } catch (err: any) {
-      setError(err.response?.data?.error || t('auth.loginFailed'))
+      setError(apiErrorMessage(err, t('auth.loginFailed')))
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleVerify2FA = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(''); setIsLoading(true)
+    try {
+      const r = await otpAPI.verify2FA(tempToken, code)
+      onLogin(r.tokens)
+    } catch (err: any) {
+      setError(apiErrorMessage(err, 'Invalid code'))
+    } finally { setIsLoading(false) }
   }
 
   return (
@@ -75,6 +102,15 @@ export default function Login({ onLogin }: LoginProps) {
             </div>
           )}
 
+          <DevAccountSwitcher onSelect={({ email: e, password: p }) => { setEmail(e); setPassword(p); setError('') }} />
+          {requires2FA ? (
+            <form onSubmit={handleVerify2FA} className="flex flex-col gap-5">
+              <p className="text-sm text-on-surface-variant">Code sent to {phoneMasked}</p>
+              <input value={code} onChange={e=>setCode(e.target.value)} placeholder="123456" maxLength={6} className="w-full bg-surface text-on-surface px-4 py-3.5 rounded-xl text-center tracking-widest text-lg" />
+              <button type="submit" disabled={isLoading || code.length!==6} className="w-full bg-primary-container text-on-primary-container py-4 rounded-xl disabled:opacity-50">Verify</button>
+              <button type="button" onClick={()=>setRequires2FA(false)} className="text-sm text-primary">Back</button>
+            </form>
+          ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             {/* Email field */}
             <div className="flex flex-col gap-1.5">
@@ -141,15 +177,19 @@ export default function Login({ onLogin }: LoginProps) {
               <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
             </button>
           </form>
+          )}
 
           {/* Divider */}
+          {oauthEnabled && (
           <div className="flex items-center gap-4 my-6">
             <div className="h-px bg-outline-variant/50 flex-grow" />
             <span className="font-label-sm text-label-sm text-outline">{t('auth.orContinueWith')}</span>
             <div className="h-px bg-outline-variant/50 flex-grow" />
           </div>
+          )}
 
-          {/* Social logins */}
+          {/* Social logins (release-gated; hidden until OAuth ships) */}
+          {oauthEnabled && (
           <div className="flex flex-col gap-3">
             <button className="w-full bg-surface border border-outline-variant/50 text-on-surface font-label-md text-label-md py-3.5 rounded-xl flex items-center justify-center gap-3 hover:bg-surface-container-low transition-colors active:scale-[0.98] duration-150 shadow-sm">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -165,6 +205,7 @@ export default function Login({ onLogin }: LoginProps) {
               <span>Apple</span>
             </button>
           </div>
+          )}
         </div>
     </AuthShell>
   )

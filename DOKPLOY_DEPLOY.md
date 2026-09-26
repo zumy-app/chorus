@@ -85,10 +85,12 @@ INVITE_BASE_URL=https://chorus.talk/register
 INVITE_TTL_HOURS=168
 
 # ─── Mailu SMTP (REQUIRED to deliver waitlist confirmations + invites) ──────
-MAILU_SMTP_HOST=mail.your-domain.com
-MAILU_SMTP_PORT=465
+# NFR-22 isolation: Mailu runs on a SEPARATE host/network (see
+# deploy/mail/README.md). The app reaches it on SUBMISSION port 587 only.
+MAILU_SMTP_HOST=mail.your-domain.com     # mail host private IP / hostname
+MAILU_SMTP_PORT=587                       # submission (STARTTLS), NOT 465
 MAILU_SMTP_USERNAME=your-mailbox@your-domain.com
-MAILU_SMTP_PASSWORD=...
+MAILU_SMTP_PASSWORD=...                   # Dokploy SECRET, never VITE_*, never committed
 MAILU_SMTP_FROM=your-mailbox@your-domain.com
 ```
 
@@ -98,6 +100,10 @@ MAILU_SMTP_FROM=your-mailbox@your-domain.com
 > `docker-compose.prod.yml` references them (e.g. `- WAITLIST_ADMIN_EMAILS=${WAITLIST_ADMIN_EMAILS:-}`).
 > If you add a new variable in Dokploy but the compose file doesn't list it under
 > the backend service's `environment:`, the backend never sees it.
+>
+> ⚠️ **Secrets (NFR-22)**: `MAILU_SMTP_PASSWORD` must be set as a Dokploy
+> **secret**, never as a plain env var or in `.env.*`, never prefixed `VITE_`,
+> and never committed to the repo.
 
 ---
 
@@ -260,6 +266,11 @@ VPS (Dokploy)
     ├─ chorus-backend  (Go, port 8080)
     ├─ chorus-postgres (PostgreSQL, port 5432)
     └─ chorus-redis    (Redis, port 6379)
+
+SEPARATE MAIL HOST (NFR-22 — NOT on the Dokploy VPS)
+    │
+    └─ Mailu (deploy/mail/docker-compose.mail.yml)
+         └─ port 587 (submission) ← only reachable from the app subnet
 ```
 
 ### Service Network
@@ -356,6 +367,31 @@ If a deployment fails or breaks the site:
 
 ---
 
+## Mail Server Isolation (NFR-22)
+
+Prod mail (Mailu) **must not share the same host/network namespace** as the app
+servers. Deploy Mailu from `deploy/mail/docker-compose.mail.yml` on a **separate
+host** (or an isolated Docker network), never inside `docker-compose.prod.yml`.
+
+- **Ingress**: the app reaches Mailu on **587** (submission / STARTTLS) only;
+  `25`, `465`, webmail, IMAP/POP3 are not open from the app subnet.
+- **Secrets**: rotate `MAILU_SMTP_PASSWORD` (prior value is in repo history),
+  store it as a Dokploy **secret**, no `VITE_` prefix. The backend consumes it
+  from `MAILU_SMTP_*` env vars only.
+- **Envelope auth**: SPF + DKIM + DMARC per Issue #3 — see
+  `deploy/mail/README.md` for the exact DNS records.
+- **Release gate**: run `bash deploy/mail/verify-isolation.sh` pre-deploy / in
+  CI; it blocks the gate if Mailu is co-located, mail ports are published, a
+  `VITE_*` SMTP secret exists, or a real password is committed.
+
+```yaml
+# .github/workflows/ci.yml (or the promotion gate)
+- name: NFR-22 mail isolation check
+  run: bash deploy/mail/verify-isolation.sh
+```
+
+---
+
 ## Security Checklist
 
 - [ ] JWT_SECRET is a long (>64 chars) random string
@@ -366,6 +402,11 @@ If a deployment fails or breaks the site:
 - [ ] CORS only allows known origins
 - [ ] Production env vars not committed to git
 - [ ] Regular backups configured for `postgres_data` volume
+- [ ] **NFR-22: Mailu runs on a separate host/network** (`deploy/mail/`), never in the app compose
+- [ ] **NFR-22: App reaches Mailu on 587 (submission) only**; `25` blocked from public
+- [ ] **NFR-22: `MAILU_SMTP_PASSWORD` rotated + in Dokploy secrets** (no `VITE_*`, not committed)
+- [ ] **NFR-22: SPF + DKIM + DMARC published and mail-tester passes (≥9/10)**
+- [ ] **NFR-22: `bash deploy/mail/verify-isolation.sh` returns PASS**
 
 ---
 

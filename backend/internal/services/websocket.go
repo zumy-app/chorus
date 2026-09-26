@@ -1,31 +1,62 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/chorus/messenger/internal/models"
+	"github.com/chorus/messenger/internal/observability"
 	"github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
 )
 
+// WebSocket message throttle bounds (NFR-24): at most wsMessageLimit inbound
+// messages per wsMessageWindow per connection. A client that floods the hub
+// with typing/join events is disconnected with a policy-violation close.
+const (
+	wsMessageLimit  = 60
+	wsMessageWindow = 10 * time.Second
+)
+
 type Client struct {
-	ID     string
-	UserID string
-	Conn   *websocket.Conn
-	Send   chan []byte
-	Hub    *WebSocketHub
+	ID       string
+	UserID   string
+	Conn     *websocket.Conn
+	Send     chan []byte
+	Hub      *WebSocketHub
+	Receipts *ReceiptService
+	Calls    *CallService
+	msgLimit *FixedWindowLimiter
+}
+
+// MessageLimiter returns the per-connection throttle, creating it lazily so the
+// handler does not need to construct it. It is only touched from the client's
+// single read goroutine.
+func (c *Client) MessageLimiter() *FixedWindowLimiter {
+	if c.msgLimit == nil {
+		c.msgLimit = NewFixedWindowLimiter(wsMessageLimit, wsMessageWindow, 1)
+	}
+	return c.msgLimit
 }
 
 type WebSocketHub struct {
-	clients    map[string]*Client // clientID -> Client
+	clients    map[string]*Client            // clientID -> Client
 	userConns  map[string]map[string]*Client // userID -> clientID -> Client
 	Register   chan *Client
 	Unregister chan *Client
 	Broadcast  chan *BroadcastMessage
 	redis      *redis.Client
+	registry   *ConnectionRegistry
+	pubsub     *PubSubService
+	serverID   string
+	heartbeats map[string]context.CancelFunc
+	hbMu       sync.Mutex
 	mu         sync.RWMutex
+	inbox      *InboxService
+	msgService *MessageService
 }
 
 type BroadcastMessage struct {
@@ -35,15 +66,60 @@ type BroadcastMessage struct {
 	ChatID     string // For chat-specific broadcasts
 }
 
-func NewWebSocketHub(redis *redis.Client) *WebSocketHub {
-	return &WebSocketHub{
+func NewWebSocketHub(redis *redis.Client, serverID ...string) *WebSocketHub {
+	h := &WebSocketHub{
 		clients:    make(map[string]*Client),
 		userConns:  make(map[string]map[string]*Client),
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 		Broadcast:  make(chan *BroadcastMessage, 256),
 		redis:      redis,
+		heartbeats: make(map[string]context.CancelFunc),
 	}
+	if len(serverID) > 0 && serverID[0] != "" && redis != nil {
+		h.serverID = serverID[0]
+		h.registry = NewConnectionRegistry(redis, serverID[0])
+	}
+	return h
+}
+
+func (h *WebSocketHub) SetRegistry(r *ConnectionRegistry) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.registry = r
+	if r != nil {
+		h.serverID = r.serverID
+	}
+}
+
+func (h *WebSocketHub) SetPubSub(ps *PubSubService) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.pubsub = ps
+}
+
+func (h *WebSocketHub) SetInboxService(s *InboxService) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.inbox = s
+}
+
+func (h *WebSocketHub) SetMessageService(s *MessageService) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.msgService = s
+}
+
+func (h *WebSocketHub) Registry() *ConnectionRegistry {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.registry
+}
+
+func (h *WebSocketHub) ServerID() string {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.serverID
 }
 
 func (h *WebSocketHub) Run() {
@@ -72,7 +148,19 @@ func (h *WebSocketHub) registerClient(client *Client) {
 	}
 	h.userConns[client.UserID][client.ID] = client
 
+	observability.IncWSConnections()
+	observability.SetWSConnections(len(h.clients), len(h.userConns))
+
 	log.Printf("Client registered: %s (user: %s)", client.ID, client.UserID)
+
+	if h.registry != nil && h.redis != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		_ = h.registry.Register(ctx, client.UserID, client.ID)
+		cancel()
+		h.startHeartbeat(client.UserID, client.ID)
+	}
+	uid := client.UserID
+	go h.deliverPending(uid)
 }
 
 func (h *WebSocketHub) unregisterClient(client *Client) {
@@ -90,7 +178,82 @@ func (h *WebSocketHub) unregisterClient(client *Client) {
 			}
 		}
 
+		observability.SetWSConnections(len(h.clients), len(h.userConns))
+
 		log.Printf("Client unregistered: %s (user: %s)", client.ID, client.UserID)
+
+		if h.registry != nil && h.redis != nil {
+			h.stopHeartbeat(client.ID)
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			_ = h.registry.Unregister(ctx, client.UserID, client.ID)
+			cancel()
+		}
+	}
+}
+
+func (h *WebSocketHub) startHeartbeat(userID, connID string) {
+	h.hbMu.Lock()
+	defer h.hbMu.Unlock()
+	if _, exists := h.heartbeats[connID]; exists {
+		return
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	h.heartbeats[connID] = cancel
+	registry := h.registry
+	go func() {
+		ticker := time.NewTicker(RegistryHeartbeatInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				c, ccancel := context.WithTimeout(context.Background(), 2*time.Second)
+				_ = registry.Refresh(c, userID, connID)
+				ccancel()
+			}
+		}
+	}()
+}
+
+func (h *WebSocketHub) stopHeartbeat(connID string) {
+	h.hbMu.Lock()
+	defer h.hbMu.Unlock()
+	if cancel, ok := h.heartbeats[connID]; ok {
+		cancel()
+		delete(h.heartbeats, connID)
+	}
+}
+
+func (h *WebSocketHub) deliverPending(userID string) {
+	if h.inbox == nil || userID == "" {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	msgs, err := h.inbox.GetPendingMessagesForUser(ctx, userID, 100)
+	if err != nil || len(msgs) == 0 {
+		return
+	}
+	if h.msgService != nil {
+		byChat := map[string][]models.Message{}
+		idx := map[string][]int{}
+		for i, m := range msgs {
+			byChat[m.ChatID] = append(byChat[m.ChatID], m)
+			idx[m.ChatID] = append(idx[m.ChatID], i)
+		}
+		for chatID, batch := range byChat {
+			_ = h.msgService.AttachMedia(ctx, chatID, batch)
+			for j, pos := range idx[chatID] {
+				msgs[pos].Media = batch[j].Media
+			}
+		}
+	}
+	for _, m := range msgs {
+		h.SendToUser(userID, "new_message", m)
+		if h.msgService != nil {
+			_, _ = h.msgService.MarkDelivered(m.ChatID, m.ID, userID)
+		}
 	}
 }
 
@@ -109,12 +272,12 @@ func (h *WebSocketHub) broadcastMessage(msg *BroadcastMessage) {
 	defer h.mu.RUnlock()
 
 	if msg.TargetUser != "" {
-		// Send to specific user's all connections
 		if userConns, ok := h.userConns[msg.TargetUser]; ok {
 			for _, client := range userConns {
 				select {
 				case client.Send <- data:
 				default:
+					observability.IncWSFastDropped()
 					close(client.Send)
 					delete(h.clients, client.ID)
 					delete(userConns, client.ID)
@@ -122,11 +285,11 @@ func (h *WebSocketHub) broadcastMessage(msg *BroadcastMessage) {
 			}
 		}
 	} else {
-		// Broadcast to all clients
 		for _, client := range h.clients {
 			select {
 			case client.Send <- data:
 			default:
+				observability.IncWSFastDropped()
 				close(client.Send)
 				delete(h.clients, client.ID)
 			}
@@ -190,6 +353,17 @@ func (c *Client) ReadPump() {
 			break
 		}
 
+		// NFR-24: throttle inbound messages per connection so a single client
+		// cannot flood the hub and burn CPU/bandwidth. Over-the-limit clients
+		// are closed with a policy-violation frame.
+		if !c.MessageLimiter().Allow(c.ID) {
+			log.Printf("WebSocket client %s (user %s) exceeded message rate limit", c.ID, c.UserID)
+			_ = c.Conn.WriteControl(websocket.CloseMessage,
+				websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "message rate limit exceeded"),
+				time.Now().Add(time.Second))
+			return
+		}
+
 		// Handle incoming messages (typing indicators, etc.)
 		var wsMsg models.WebSocketMessage
 		if err := json.Unmarshal(message, &wsMsg); err != nil {
@@ -201,9 +375,47 @@ func (c *Client) ReadPump() {
 		switch wsMsg.Type {
 		case "typing_start", "typing_stop":
 			c.handleTypingEvent(wsMsg)
+		case "message_ack":
+			c.handleMessageAck(wsMsg)
+		case "webrtc_signal", "call_signal":
+			c.handleCallSignal(wsMsg)
+		case "live_caption", "caption":
+			c.handleLiveCaption(wsMsg)
 		case "join_chat":
 			// Handle join chat event
 		}
+	}
+}
+
+// handleMessageAck processes an inbound delivered/read acknowledgment (task
+// 6.1). The recipient's client acks each message it receives ("received") and,
+// when opened, "read"; the server records the per-recipient tick and notifies
+// the participants through the ReceiptService.
+func (c *Client) handleMessageAck(msg models.WebSocketMessage) {
+	if c.Receipts == nil {
+		return
+	}
+
+	var ack models.MessageAck
+	data, err := json.Marshal(msg.Data)
+	if err != nil {
+		return
+	}
+	if err := json.Unmarshal(data, &ack); err != nil {
+		return
+	}
+	if ack.MessageID == "" {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	switch ack.Status {
+	case "received":
+		_ = c.Receipts.AcknowledgeReceived(ctx, ack.ChatID, ack.MessageID, c.UserID)
+	case "read":
+		_ = c.Receipts.AcknowledgeRead(ctx, ack.ChatID, ack.MessageID, c.UserID)
 	}
 }
 
@@ -218,6 +430,64 @@ func (c *Client) WritePump() {
 	}
 }
 
+func (c *Client) handleLiveCaption(msg models.WebSocketMessage) {
+	if c.Calls == nil {
+		return
+	}
+	data, ok := msg.Data.(map[string]interface{})
+	if !ok {
+		return
+	}
+	callID, _ := data["callId"].(string)
+	if callID == "" {
+		callID, _ = data["call_id"].(string)
+	}
+	text, _ := data["text"].(string)
+	if text == "" {
+		text, _ = data["originalText"].(string)
+	}
+	lang, _ := data["language"].(string)
+	if lang == "" {
+		lang, _ = data["originalLanguage"].(string)
+	}
+	if callID == "" || text == "" {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, _ = c.Calls.PublishLiveCaption(ctx, callID, c.UserID, text, lang)
+}
+
+func (c *Client) handleCallSignal(msg models.WebSocketMessage) {
+	if c.Calls == nil {
+		return
+	}
+	data, ok := msg.Data.(map[string]interface{})
+	if !ok {
+		return
+	}
+	callID, _ := data["callId"].(string)
+	if callID == "" {
+		callID, _ = data["call_id"].(string)
+	}
+	sigType, _ := data["type"].(string)
+	sdp, _ := data["sdp"].(string)
+	candidate, _ := data["candidate"].(string)
+	if candidate == "" {
+		if v, ok := data["candidate"]; ok && v != nil {
+			if b, err := json.Marshal(v); err == nil {
+				candidate = string(b)
+			}
+		}
+	}
+	if callID == "" || sigType == "" {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_ = c.Calls.HandleSignal(ctx, callID, c.UserID, sigType, sdp, candidate, data)
+}
+
 func (c *Client) handleTypingEvent(msg models.WebSocketMessage) {
 	data, ok := msg.Data.(map[string]interface{})
 	if !ok {
@@ -227,14 +497,17 @@ func (c *Client) handleTypingEvent(msg models.WebSocketMessage) {
 	chatID, _ := data["chatId"].(string)
 	isTyping := msg.Type == "typing_start"
 
-	// Broadcast typing event to other users in the chat
+	evt := models.TypingEvent{
+		ChatID:   chatID,
+		UserID:   c.UserID,
+		IsTyping: isTyping,
+	}
 	c.Hub.Broadcast <- &BroadcastMessage{
 		Type: "user_typing",
-		Data: models.TypingEvent{
-			ChatID:   chatID,
-			UserID:   c.UserID,
-			IsTyping: isTyping,
-		},
+		Data: evt,
 		ChatID: chatID,
+	}
+	if c.Hub.pubsub != nil && chatID != "" {
+		_ = c.Hub.pubsub.PublishTypingEvent(chatID, c.UserID, isTyping)
 	}
 }

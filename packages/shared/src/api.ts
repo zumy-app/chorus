@@ -7,31 +7,73 @@ import axios, { AxiosInstance } from 'axios'
 import type {
   AdminStatus,
   AdminStats,
+  AnswerSessionItemResponse,
   AuthTokens,
   Block,
   Chat,
+  ChatPreference,
   CheckoutResponse,
+  ContactInvite,
+  ContactInviteRequest,
+  ContactMatch,
+  ContactScanRequest,
   CreateChatRequest,
+  CurriculumStep,
   EmailOutboxEntry,
   Entitlements,
+  FeatureFlagDefinition,
   GrammarJob,
   GrantPlanRequest,
+  LearningDashboard,
+  LearningPairCapability,
+  LearningPath,
+  LearningProfileUpdateRequest,
+  LearningSession,
+  LessonAttempt,
+  LessonStartResponse,
+  LessonStepResult,
   LoginRequest,
   Message,
+  MinedItem,
+  OnboardRequest,
+  PinnedMessage,
   PlanChange,
+  PlacementResult,
   PremiumAnalytics,
   PremiumUserRow,
+  PresenceStatus,
   ProviderHealth,
+  RealTalkPrompt,
   RegisterRequest,
   Report,
   ReportRequest,
   ReportStats,
+  ScenarioAIReply,
+  ScenarioChunk,
+  ScenarioRun,
+  ScenarioScript,
+  ScenarioStartResponse,
+  SendLocationRequest,
   SendMessageRequest,
+  SessionAnswerRequest,
+  StartPlacementResponse,
+  StartSessionRequest,
+  StartSessionResponse,
+  StreakRecoverResult,
   SubscriptionInfo,
   TranslationJob,
+  UnitProgressSummary,
   User,
+  UserLanguageProfile,
+  VocabularyCard,
   WaitlistEntry,
   WaitlistRequest,
+  GrammarDrillItem,
+  GrammarMicroLesson,
+  GradingJob,
+  TeacherAssignment,
+  AssignmentSubmission,
+  CreateTeacherAssignmentRequest,
 } from './types'
 
 export interface StorageAdapter {
@@ -55,6 +97,43 @@ function qs(params: Record<string, string | number | boolean | null | undefined>
     parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
   }
   return parts.length ? `?${parts.join('&')}` : ''
+}
+
+/**
+ * Extracts a render-safe message from an API failure. The backend envelope is
+ * `{error: {kind, message}}`, but screens historically read
+ * `err.response?.data?.error` and stash it in state — handing a raw OBJECT
+ * to React, which unmounts the tree ("Objects are not valid as a React
+ * child"). Always pass errors for display through here.
+ *
+ * Contract: server message wins; a request that never got a response (server
+ * unreachable, wrong base URL, airplane mode) returns dedicated connectivity
+ * copy so screens never misreport it as e.g. "invalid credentials"; other
+ * HTTP-ish failures fall back to curated copy; plain thrown Errors (e.g.
+ * typed client helpers) keep their message.
+ */
+export const NETWORK_UNREACHABLE_MESSAGE =
+  "Couldn't reach the server. Check your connection and API URL, then try again."
+
+export function apiErrorMessage(err: unknown, fallback = 'Something went wrong'): string {
+  const data = (err as any)?.response?.data
+  const raw = data?.error ?? data?.message
+  if (typeof raw === 'string' && raw) return raw
+  if (raw && typeof (raw as any).message === 'string' && (raw as any).message) {
+    return (raw as any).message
+  }
+  // Axios populates `request` when the request was sent but no response came
+  // back (DNS/timeout/refused). That is always connectivity, never credentials.
+  if ((err as any)?.isAxiosError === true && (err as any)?.request && !(err as any)?.response) {
+    return NETWORK_UNREACHABLE_MESSAGE
+  }
+  const httpLike =
+    !!(err as any)?.response || !!(err as any)?.request || (err as any)?.isAxiosError === true
+  if (!httpLike) {
+    if (err instanceof Error && err.message) return err.message
+    if (typeof err === 'string' && err) return err
+  }
+  return fallback
 }
 
 declare module 'axios' {
@@ -162,11 +241,20 @@ export function createApiClient(options: ApiClientOptions) {
     },
 
     updateMe: async (data: {
+      firstName?: string
+      lastName?: string
       displayName?: string
       nativeLanguage?: string
       targetLanguages?: string[]
     }) => {
       const response = await client.put<User>('/users/me', data)
+      return response.data
+    },
+
+    // Onboarding name capture (REQ 2.1): composes displayName from first + last
+    // unless an explicit displayName override is provided.
+    onboard: async (data: OnboardRequest) => {
+      const response = await client.put<User>('/users/me/onboard', data)
       return response.data
     },
 
@@ -191,6 +279,25 @@ export function createApiClient(options: ApiClientOptions) {
         emailSent?: boolean
       }>('/waitlist', data)
       return response.data
+    },
+  }
+
+  // Contacts & Invites epic (REQ 2.4 / FR-22-23): hashed on-platform scan and
+  // single-use off-platform invites (email dispatched, sms/whatsapp link).
+  const contacts = {
+    scan: async (data: ContactScanRequest) => {
+      const response = await client.post<{ data: ContactMatch[] }>('/contacts/scan', data)
+      return response.data.data
+    },
+    createInvite: async (data: ContactInviteRequest) => {
+      const response = await client.post<{ data: ContactInvite }>('/contacts/invites', data)
+      return response.data.data
+    },
+    listInvites: async (params?: { limit?: number; offset?: number }) => {
+      const response = await client.get<{ data: ContactInvite[] }>(
+        `/contacts/invites${qs({ limit: params?.limit, offset: params?.offset })}`
+      )
+      return response.data.data
     },
   }
 
@@ -261,6 +368,46 @@ export function createApiClient(options: ApiClientOptions) {
     setUserRole: async (id: string, role: string) => {
       const response = await client.put<{ user: User }>(`/admin/users/${id}/role`, { role })
       return response.data
+    },
+
+    listFlags: async () => {
+      const response = await client.get<{ flags: FeatureFlagDefinition[] }>(
+        '/admin/features'
+      )
+      return response.data.flags
+    },
+
+    updateFlagTiers: async (
+      key: string,
+      tiers: { adminOnly: boolean; betaAccess: boolean; stable: boolean }
+    ) => {
+      const response = await client.put<{ ok: boolean }>(
+        `/admin/features/${key}/tiers`,
+        tiers
+      )
+      return response.data
+    },
+
+    setFlagOverride: async (key: string, userId: string, enabled: boolean) => {
+      const response = await client.post<{ ok: boolean }>(
+        `/admin/features/${key}/overrides/${userId}`,
+        { enabled }
+      )
+      return response.data
+    },
+
+    deleteFlagOverride: async (key: string, userId: string) => {
+      const response = await client.delete<{ ok: boolean }>(
+        `/admin/features/${key}/overrides/${userId}`
+      )
+      return response.data
+    },
+
+    previewUserFlags: async (userId: string) => {
+      const response = await client.get<{ flags: Record<string, boolean> }>(
+        `/admin/features/preview/${userId}`
+      )
+      return response.data.flags
     },
 
     suspendUser: async (id: string) => {
@@ -376,6 +523,11 @@ export function createApiClient(options: ApiClientOptions) {
       return response.data.blocks
     },
 
+    getBlockStatus: async (userId: string) => {
+      const response = await client.get<import('./types').BlockStatus>(`/blocks/${userId}/status`)
+      return response.data
+    },
+
     report: async (data: ReportRequest) => {
       const response = await client.post<Report>('/reports', data)
       return response.data
@@ -414,6 +566,42 @@ export function createApiClient(options: ApiClientOptions) {
     leaveChat: async (chatId: string) => {
       await client.delete(`/chats/${chatId}/leave`)
     },
+
+    // Task 6.4 (archive & mute): per-user, per-chat conversation preferences.
+    archiveChat: async (chatId: string, archived = true) => {
+      const response = await client.post<ChatPreference>(`/chats/${chatId}/archive`, { archived })
+      return response.data
+    },
+
+    unarchiveChat: async (chatId: string) => {
+      const response = await client.delete<ChatPreference>(`/chats/${chatId}/archive`)
+      return response.data
+    },
+
+    muteChat: async (chatId: string, until?: string) => {
+      const response = await client.post<ChatPreference>(`/chats/${chatId}/mute`, {
+        muted: true,
+        until: until ?? null,
+      })
+      return response.data
+    },
+
+    unmuteChat: async (chatId: string) => {
+      const response = await client.delete<ChatPreference>(`/chats/${chatId}/mute`)
+      return response.data
+    },
+
+    getChatPreference: async (chatId: string) => {
+      const response = await client.get<ChatPreference>(`/chats/${chatId}/preferences`)
+      return response.data
+    },
+
+    getChatPreferences: async () => {
+      const response = await client.get<{ preferences: Record<string, ChatPreference> }>(
+        '/chats/preferences'
+      )
+      return response.data.preferences
+    },
   }
 
   const message = {
@@ -429,6 +617,27 @@ export function createApiClient(options: ApiClientOptions) {
       return response.data
     },
 
+    // Task 6.6: file/document sharing. Multipart upload that creates a media
+    // message; the returned message carries media[0] with the public URL.
+    sendAttachment: async (chatId: string, file: Blob, fileName: string, opts?: { caption?: string; type?: string }) => {
+      const form = new FormData()
+      ;(form as any).append('file', file, fileName)
+      if (opts?.caption) form.append('caption', opts.caption)
+      if (opts?.type) form.append('type', opts.type)
+      const response = await client.post<Message>(`/chats/${chatId}/attachments`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      return response.data
+    },
+
+    // Task 6.7: location sharing. A validated lat/lng (plus optional label) that
+    // creates a location message; the returned message carries media[0] with the
+    // pin's coordinates + map URL.
+    sendLocation: async (chatId: string, data: SendLocationRequest) => {
+      const response = await client.post<Message>(`/chats/${chatId}/location`, data)
+      return response.data
+    },
+
     markAsRead: async (chatId: string, messageId: string) => {
       await client.put(`/chats/${chatId}/read`, { messageId })
     },
@@ -438,6 +647,47 @@ export function createApiClient(options: ApiClientOptions) {
         `/messages/search${qs({ q: query, chatId })}`
       )
       return response.data.messages
+    },
+
+    universalSearch: async (query: string, params?: { chatId?: string; type?: string; limit?: number; offset?: number }) => {
+      const response = await client.get<import('./types').SearchResult>(
+        `/messages/search${qs({ q: query, chatId: params?.chatId, type: params?.type, limit: params?.limit, offset: params?.offset })}`
+      )
+      return response.data
+    },
+
+    searchMedia: async (query: string, params?: { type?: string; chatId?: string; limit?: number; offset?: number }) => {
+      const response = await client.get<import('./types').MediaSearchResult>(
+        `/media/search${qs({ q: query, ...params })}`
+      )
+      return response.data
+    },
+
+    // Message actions (task 6.2).
+    forwardMessage: async (chatId: string, messageId: string, targetChatId: string) => {
+      const response = await client.post<Message>(
+        `/chats/${chatId}/messages/${messageId}/forward`,
+        { targetChatId }
+      )
+      return response.data
+    },
+
+    deleteMessage: async (chatId: string, messageId: string) => {
+      await client.delete(`/chats/${chatId}/messages/${messageId}`)
+    },
+
+    pinMessage: async (chatId: string, messageId: string) => {
+      const response = await client.post(`/chats/${chatId}/pins`, { messageId })
+      return response.data
+    },
+
+    unpinMessage: async (chatId: string, messageId: string) => {
+      await client.delete(`/chats/${chatId}/pins/${messageId}`)
+    },
+
+    getPinnedMessages: async (chatId: string) => {
+      const response = await client.get<{ pins: PinnedMessage[] }>(`/chats/${chatId}/pins`)
+      return response.data.pins
     },
   }
 
@@ -526,13 +776,20 @@ export function createApiClient(options: ApiClientOptions) {
       action: string,
       customQuery?: string
     ) => {
-      const response = await client.post('/grammar/learn', {
-        text,
-        language,
-        nativeLanguage,
-        action,
-        customQuery,
-      })
+      // Synchronous LLM call: ~8s typical, 10s global timeout is marginal
+      // (on a phone over USB reverse + Metro dev it exceeds 10s and surfaces
+      // as a misleading "couldn't reach the server"). Dedicated 60s budget.
+      const response = await client.post(
+        '/grammar/learn',
+        {
+          text,
+          language,
+          nativeLanguage,
+          action,
+          customQuery,
+        },
+        { timeout: 60000 }
+      )
       return response.data.data
     },
 
@@ -543,6 +800,38 @@ export function createApiClient(options: ApiClientOptions) {
 
     getReport: async (language: string) => {
       const response = await client.get(`/grammar/report${qs({ language })}`)
+      return response.data
+    },
+  }
+
+  // Sparky async answers (AI-response redesign Phase 1). POST /sparky/ask
+  // returns 202 + job id instantly; the answer arrives per-user over the
+  // WebSocket "sparky_result" event (streaming deltas in Phase 2) and is
+  // resyncable via getJob after reconnect/backgrounding.
+  const sparky = {
+    ask: async (data: {
+      context: string
+      query: string
+      language: string
+      nativeLanguage: string
+      chatId?: string
+    }) => {
+      const response = await client.post<{ jobId: string; status: string }>(
+        '/sparky/ask',
+        data
+      )
+      return response.data
+    },
+
+    getJob: async (jobId: string) => {
+      const response = await client.get<{
+        jobId: string
+        chatId: string
+        status: string
+        content?: string
+        providerUsed?: string
+        error?: string
+      }>(`/sparky/jobs/${jobId}`)
       return response.data
     },
   }
@@ -559,11 +848,528 @@ export function createApiClient(options: ApiClientOptions) {
     },
   }
 
+  // Pair-aware learning engine. Structured courses exist only for curated
+  // native->target pairs (launch: en -> es); unseeded pairs return vocab_only.
+  const learning = {
+    getCapabilities: async (nativeLanguage: string, targetLanguage: string) => {
+      const response = await client.get<{ data: LearningPairCapability }>(
+        `/learning/capabilities${qs({ nativeLanguage, targetLanguage })}`
+      )
+      return response.data.data
+    },
+
+    getProfile: async (targetLanguage: string, nativeLanguage?: string) => {
+      const response = await client.get<{ data: UserLanguageProfile }>(
+        `/learning/profile${qs({ targetLanguage, nativeLanguage })}`
+      )
+      return response.data.data
+    },
+
+    updateProfile: async (data: LearningProfileUpdateRequest) => {
+      const response = await client.put<{ data: UserLanguageProfile }>('/learning/profile', data)
+      return response.data.data
+    },
+
+    getDashboard: async (targetLanguage: string, nativeLanguage?: string) => {
+      const response = await client.get<{ data: LearningDashboard }>(
+        `/learning/dashboard${qs({ targetLanguage, nativeLanguage })}`
+      )
+      return response.data.data
+    },
+
+    getPath: async (targetLanguage: string, nativeLanguage?: string) => {
+      const response = await client.get<{ data: LearningPath }>(
+        `/learning/path${qs({ targetLanguage, nativeLanguage })}`
+      )
+      return response.data.data
+    },
+
+    // Placement
+    startPlacement: async (targetLanguage: string, nativeLanguage?: string) => {
+      const response = await client.post<{ data: StartPlacementResponse }>(
+        `/learning/placement/start${qs({ targetLanguage, nativeLanguage })}`
+      )
+      return response.data.data
+    },
+    answerPlacement: async (attemptId: string, answer: string) => {
+      const response = await client.post<{ data: PlacementResult | StartPlacementResponse }>(
+        `/learning/placement/${attemptId}/answer`,
+        { answer }
+      )
+      return response.data.data
+    },
+    skipPlacement: async (targetLanguage: string, nativeLanguage?: string) => {
+      const response = await client.post<{ data: PlacementResult }>(
+        `/learning/placement/skip${qs({ targetLanguage, nativeLanguage })}`
+      )
+      return response.data.data
+    },
+    selectLevel: async (level: 'beginner' | 'intermediate' | 'advanced', targetLanguage: string, nativeLanguage?: string) => {
+      const response = await client.post<{ data: PlacementResult }>(
+        '/learning/level/select',
+        { level, targetLanguage, nativeLanguage }
+      )
+      return response.data.data
+    },
+    getPlacement: async (attemptId: string) => {
+      const response = await client.get<{ data: StartPlacementResponse }>(
+        `/learning/placement/${attemptId}`
+      )
+      return response.data.data
+    },
+
+    // Lessons
+    getUnit: async (unitId: string) => {
+      const response = await client.get<{ data: UnitProgressSummary }>(`/learning/units/${unitId}`)
+      return response.data.data
+    },
+    startLesson: async (lessonId: string, targetLanguage: string, nativeLanguage?: string) => {
+      const response = await client.post<{ data: LessonStartResponse }>(
+        `/learning/lessons/${lessonId}/start${qs({ targetLanguage, nativeLanguage })}`
+      )
+      return response.data.data
+    },
+    answerLessonStep: async (attemptId: string, stepId: string, answer: string) => {
+      const response = await client.post<{ data: LessonStepResult }>(
+        `/learning/lesson-attempts/${attemptId}/steps/${stepId}/answer`,
+        { answer }
+      )
+      return response.data.data
+    },
+    completeLesson: async (attemptId: string) => {
+      const response = await client.post<{ data: LessonAttempt }>(
+        `/learning/lesson-attempts/${attemptId}/complete`
+      )
+      return response.data.data
+    },
+    getLessonAttempt: async (attemptId: string) => {
+      const response = await client.get<{ data: { attempt: LessonAttempt; steps: CurriculumStep[] } }>(
+        `/learning/lesson-attempts/${attemptId}`
+      )
+      return response.data.data
+    },
+
+    // Sessions
+    startSession: async (data: StartSessionRequest) => {
+      const response = await client.post<{ data: StartSessionResponse }>('/learning/sessions/start', data)
+      return response.data.data
+    },
+    getSession: async (sessionId: string) => {
+      const response = await client.get<{ data: LearningSession }>(`/learning/sessions/${sessionId}`)
+      return response.data.data
+    },
+    answerSessionItem: async (sessionId: string, itemId: string, answer: SessionAnswerRequest, latencyMs?: number) => {
+      const response = await client.post<{ data: AnswerSessionItemResponse }>(
+        `/learning/sessions/${sessionId}/items/${itemId}/answer`,
+        { answer, latencyMs }
+      )
+      return response.data.data
+    },
+    completeSession: async (sessionId: string) => {
+      const response = await client.post<{ data: LearningSession }>(`/learning/sessions/${sessionId}/complete`)
+      return response.data.data
+    },
+
+    // V3 grammar engine: due drills, micro-lessons, attempt recording
+    getGrammarDueDrills: async (targetLanguage: string, limit?: number) => {
+      const response = await client.get<{ data: GrammarDrillItem[] }>(
+        `/learning/grammar/due${qs({ targetLanguage, limit })}`
+      )
+      return response.data.data
+    },
+    getGrammarMicroLesson: async (pointId: string) => {
+      const response = await client.get<{ data: GrammarMicroLesson }>(`/learning/grammar/points/${pointId}`)
+      return response.data.data
+    },
+    recordGrammarAttempt: async (itemId: string, correct: boolean, quality: number, latencyMs?: number) => {
+      const response = await client.post<{ data: { ok: boolean } }>(`/learning/grammar/items/${itemId}/attempt`, {
+        correct, quality, latencyMs,
+      })
+      return response.data.data
+    },
+
+    // V3 async grading: polling fallback for the 202 + WebSocket push flow
+    getGradingJob: async (jobId: string) => {
+      const response = await client.get<{ data: GradingJob }>(`/learning/grading-jobs/${jobId}`)
+      return response.data.data
+    },
+
+    // V3 teacher assignments
+    createAssignment: async (data: CreateTeacherAssignmentRequest) => {
+      const response = await client.post<{ data: TeacherAssignment }>('/learning/teacher/assignments', data)
+      return response.data.data
+    },
+    listTeacherAssignments: async () => {
+      const response = await client.get<{ data: TeacherAssignment[] }>('/learning/teacher/assignments')
+      return response.data.data ?? []
+    },
+    listStudentAssignments: async () => {
+      const response = await client.get<{ data: TeacherAssignment[] }>('/learning/assignments')
+      return response.data.data ?? []
+    },
+    getAssignment: async (assignmentId: string) => {
+      const response = await client.get<{ data: TeacherAssignment }>(`/learning/assignments/${assignmentId}`)
+      return response.data.data
+    },
+    submitAssignment: async (assignmentId: string, content: any) => {
+      const response = await client.post<{ data: { submission: AssignmentSubmission; gradingJobId: string } }>(
+        `/learning/assignments/${assignmentId}/submit`,
+        { content }
+      )
+      return response.data.data
+    },
+    reviewAssignment: async (assignmentId: string, teacherFeedback: any, score?: number) => {
+      const response = await client.post<{ data: { ok: boolean } }>(
+        `/learning/assignments/${assignmentId}/review`,
+        { teacherFeedback, score }
+      )
+      return response.data.data
+    },
+
+    // Mined vocabulary
+    getMinedItems: async (targetLanguage: string, status?: string) => {
+      const response = await client.get<{ data: MinedItem[] | null }>(
+        `/learning/vocabulary/mined${qs({ targetLanguage, status })}`
+      )
+      return response.data.data ?? []
+    },
+    acceptMinedItem: async (id: string) => {
+      const response = await client.post<{ data: VocabularyCard }>(`/learning/vocabulary/mined/${id}/accept`)
+      return response.data.data
+    },
+    ignoreMinedItem: async (id: string) => {
+      const response = await client.post<{ data: { ok: boolean } }>(`/learning/vocabulary/mined/${id}/ignore`)
+      return response.data.data
+    },
+    reviewVocabulary: async (id: string, answer: string, latencyMs?: number) => {
+      const response = await client.post<{ data: { card: VocabularyCard; correct: boolean; quality: number } }>(`/learning/vocabulary/${id}/review`, { answer, latencyMs })
+      return response.data.data
+    },
+
+    // Scenarios
+    getScenarios: async (targetLanguage: string, nativeLanguage?: string) => {
+      const response = await client.get<{ data: ScenarioScript[] }>(
+        `/learning/scenarios${qs({ targetLanguage, nativeLanguage })}`
+      )
+      return response.data.data
+    },
+    getScenario: async (scenarioId: string) => {
+      const response = await client.get<{ data: ScenarioScript }>(`/learning/scenarios/${scenarioId}`)
+      return response.data.data
+    },
+    startScenario: async (scenarioId: string, targetLanguage: string, nativeLanguage?: string) => {
+      const response = await client.post<{ data: ScenarioStartResponse }>(
+        `/learning/scenarios/${scenarioId}/start${qs({ targetLanguage, nativeLanguage })}`
+      )
+      return response.data.data
+    },
+    getScenarioRun: async (runId: string) => {
+      const response = await client.get<{ data: ScenarioRun }>(`/learning/scenario-runs/${runId}`)
+      return response.data.data
+    },
+    sendScenarioMessage: async (runId: string, message: string) => {
+      const response = await client.post<{ data: ScenarioAIReply }>(
+        `/learning/scenario-runs/${runId}/message`,
+        { message }
+      )
+      return response.data.data
+    },
+    requestScenarioHint: async (runId: string) => {
+      const response = await client.post<{ data: ScenarioChunk[] }>(`/learning/scenario-runs/${runId}/hint`)
+      return response.data.data
+    },
+    completeScenario: async (runId: string) => {
+      const response = await client.post<{ data: ScenarioAIReply }>(`/learning/scenario-runs/${runId}/complete`)
+      return response.data.data
+    },
+
+    // Real talk + streak
+    getRealTalkPrompts: async (targetLanguage: string, nativeLanguage?: string, chatId?: string) => {
+      const response = await client.get<{ data: RealTalkPrompt[] }>(
+        `/learning/real-talk/prompts${qs({ targetLanguage, nativeLanguage, chatId })}`
+      )
+      return response.data.data
+    },
+    markRealTalkUsed: async (promptId: string) => {
+      const response = await client.post<{ data: { ok: boolean } }>(`/learning/real-talk/prompts/${promptId}/used`)
+      return response.data.data
+    },
+    recoverStreak: async (targetLanguage: string, nativeLanguage?: string) => {
+      const response = await client.post<{ data: StreakRecoverResult }>(
+        `/learning/streak/recover${qs({ targetLanguage, nativeLanguage })}`
+      )
+      return response.data.data
+    },
+  }
+
+  const payouts = {
+    overview: async () => {
+      const response = await client.get<{ overview: import('./types').PayoutOverview }>('/teachers/payouts/overview')
+      return response.data.overview
+    },
+    methods: async () => {
+      const response = await client.get<{ methods: import('./types').PayoutMethod[] }>('/teachers/payouts/methods')
+      return response.data.methods
+    },
+    addMethod: async (data: { type: 'paypal' | 'bank'; label: string; details: string; isDefault?: boolean }) => {
+      const response = await client.post<{ method: import('./types').PayoutMethod }>('/teachers/payouts/methods', data)
+      return response.data.method
+    },
+    removeMethod: async (id: string) => {
+      await client.delete(`/teachers/payouts/methods/${id}`)
+    },
+    setDefaultMethod: async (id: string) => {
+      await client.put(`/teachers/payouts/methods/${id}/default`)
+    },
+    history: async (params?: { limit?: number; offset?: number }) => {
+      const response = await client.get<{ payouts: import('./types').PayoutRecord[]; total: number; hasMore: boolean }>(`/teachers/payouts/history${qs({ limit: params?.limit, offset: params?.offset })}`)
+      return response.data
+    },
+    withdraw: async (data: { amountCents: number; methodId?: string }) => {
+      const response = await client.post<{ payout: import('./types').PayoutRecord }>('/teachers/payouts/withdraw', data)
+      return response.data.payout
+    },
+  }
+
   const health = async () => {
     // The health endpoint sits at <origin>/health, outside the /api/v1 prefix.
     const healthUrl = baseURL.replace('/api/v1', '/health')
     const response = await axios.get(healthUrl)
     return response.data
+  }
+
+  const otp = {
+    getPhoneStatus: async () => {
+      const response = await client.get<import('./types').PhoneStatus>('/users/me/phone')
+      return response.data
+    },
+    requestOTP: async (phone: string) => {
+      const response = await client.post<{ phoneMasked: string }>('/users/me/phone/request-otp', { phone })
+      return response.data
+    },
+    verifyPhone: async (phone: string, code: string) => {
+      const response = await client.post<{ status: import('./types').PhoneStatus }>('/users/me/phone/verify', { phone, code })
+      return response.data
+    },
+    setTwoFactor: async (enabled: boolean) => {
+      const response = await client.put<import('./types').PhoneStatus>('/users/me/2fa', { enabled })
+      return response.data
+    },
+    verify2FA: async (tempToken: string, code: string) => {
+      const response = await client.post<{ user: User; tokens: AuthTokens }>('/auth/2fa/verify', { tempToken, code })
+      return response.data
+    },
+  }
+
+  const captionReview = {
+    getQueue: async (params?: { limit?: number; offset?: number }) => {
+      const r = await client.get<{ items: import('./types').CaptionReviewQueueItem[]; total: number; hasMore: boolean }>(`/captions/review-queue${qs({ limit: params?.limit, offset: params?.offset })}`)
+      return r.data
+    },
+    getStats: async () => {
+      const r = await client.get<import('./types').CaptionQualityStats>('/captions/quality-stats')
+      return r.data
+    },
+    review: async (callId: string, index: number, data: { rating: number; correctedText?: string; feedback?: string; targetLanguage?: string }) => {
+      const r = await client.post<import('./types').CaptionReview>(`/calls/${callId}/captions/${index}/review`, data)
+      return r.data
+    },
+    getReviews: async (callId: string, index: number) => {
+      const r = await client.get<{ reviews: import('./types').CaptionReview[] }>(`/calls/${callId}/captions/${index}/reviews`)
+      return r.data.reviews
+    },
+  }
+  const call = {
+    initiate: async (chatId: string, type: 'audio' | 'video' = 'audio') => {
+      const response = await client.post<{ session: import('./types').CallSession; offer: import('./types').WebRTCOffer }>('/calls/initiate', { chatId, type })
+      return response.data
+    },
+    getSession: async (callId: string) => {
+      const response = await client.get<import('./types').CallSession>(`/calls/${callId}`)
+      return response.data
+    },
+    end: async (callId: string) => {
+      const response = await client.post<{ message: string }>(`/calls/${callId}/end`)
+      return response.data
+    },
+    getCaptions: async (callId: string, params?: { limit?: number; offset?: number }) => {
+      const response = await client.get<{ segments: import('./types').TranscriptSegment[]; total: number; hasMore: boolean }>(`/calls/${callId}/captions${qs({ limit: params?.limit, offset: params?.offset })}`)
+      return response.data
+    },
+    postCaption: async (callId: string, data: { text: string; language?: string }) => {
+      const response = await client.post<import('./types').TranscriptSegment>(`/calls/${callId}/captions`, data)
+      return response.data
+    },
+    bookmarkCaption: async (callId: string, index: number, phrase?: string) => {
+      const response = await client.post(`/calls/${callId}/captions/${index}/bookmark`, phrase ? { phrase } : {})
+      return response.data
+    },
+    transcribe: async (callId: string, data: { audio: string; language?: string }) => {
+      const response = await client.post<import('./types').TranscriptSegment>(`/calls/${callId}/transcribe`, data)
+      return response.data
+    },
+    signal: async (callId: string, data: { type: string; sdp?: string; candidate?: string; data?: Record<string, unknown> }) => {
+      const response = await client.post(`/calls/${callId}/signal`, data)
+      return response.data
+    },
+    getTranscript: async (callId: string) => {
+      const response = await client.get<import('./types').CallTranscript>(`/calls/${callId}/transcript`)
+      return response.data
+    },
+    getHistory: async (params?: { limit?: number; offset?: number }) => {
+      const response = await client.get<import('./types').CallSession[]>(`/calls/history${qs({ limit: params?.limit, offset: params?.offset })}`)
+      return response.data
+    },
+    searchTranscripts: async (query: string, language?: string) => {
+      const response = await client.get<import('./types').CallTranscript[]>(`/calls/transcripts/search${qs({ q: query, language })}`)
+      return response.data
+    },
+  }
+
+  const search = {
+    universal: async (query: string, params?: { chatId?: string; type?: string; limit?: number; offset?: number; language?: string }) => {
+      const r = await client.get<import('./types').SearchResult>(`/messages/search${qs({ q: query, chatId: params?.chatId, type: params?.type, limit: params?.limit, offset: params?.offset, language: params?.language })}`)
+      return r.data
+    },
+    media: async (query: string, params?: { chatId?: string; type?: string; limit?: number; offset?: number }) => {
+      const r = await client.get<import('./types').MediaSearchResult>(`/media/search${qs({ q: query, chatId: params?.chatId, type: params?.type, limit: params?.limit, offset: params?.offset })}`)
+      return r.data
+    },
+    chats: async (query: string) => {
+      const r = await client.get<{ data: import('./types').Chat[] }>(`/chats/search${qs({ q: query })}`)
+      return r.data.data
+    },
+    contacts: async (query: string) => {
+      const r = await client.get<{ data: import('./types').User[] }>(`/contacts/search${qs({ q: query })}`)
+      return r.data.data
+    },
+  }
+
+  const presence = {
+    get: async (userId: string) => {
+      const response = await client.get<{ data: PresenceStatus }>(`/presence/${userId}`)
+      return response.data.data
+    },
+
+    getMultiple: async (userIds: string[]) => {
+      const response = await client.post<{ data: Record<string, PresenceStatus> }>(
+        '/presence/batch',
+        { userIds }
+      )
+      return response.data.data
+    },
+
+    update: async (data: { status: PresenceStatus['status']; deviceType?: string }) => {
+      return client.put('/presence', data)
+    },
+
+    heartbeat: async (deviceType?: string) => {
+      return client.post(`/presence/heartbeat${qs({ deviceType })}`)
+    },
+
+    activity: async () => {
+      return client.post('/presence/activity')
+    },
+  }
+
+  const settings = {
+    getSettings: async () => {
+      const response = await client.get<import('./types').UserSettings>('/users/me/settings')
+      return response.data
+    },
+    updateSettings: async (data: Partial<Record<'translationEnabled' | 'grammarAuto' | 'highlightsEnabled', boolean>> & Partial<Record<'lastSeenVisibility' | 'profilePhotoVisibility' | 'contactsVisibility', import('./types').PrivacyVisibility>>) => {
+      const response = await client.put<import('./types').UserSettings>('/users/me/settings', data)
+      return response.data
+    },
+  }
+
+  const flags = {
+    getMyFlags: async () => {
+      const response = await client.get<{ flags: import('./types').RolloutFlags }>('/users/me/flags')
+      return response.data.flags
+    },
+  }
+
+  const teacher = {
+    getMyApplication: async () => {
+      const response = await client.get<{ application: import('./types').TeacherApplication | null }>('/teachers/me')
+      return response.data.application
+    },
+    apply: async (data: import('./types').TeacherApplyRequest) => {
+      const response = await client.post<{ application: import('./types').TeacherApplication }>('/teachers/apply', data)
+      return response.data.application
+    },
+    browse: async (params?: { language?: string; search?: string; verified?: boolean; minRating?: number; maxRate?: number; minRate?: number; sort?: string; limit?: number; offset?: number }) => {
+      const response = await client.get<{ tutors: import('./types').TutorProfile[]; total: number; hasMore: boolean }>(`/teachers/browse${qs({ language: params?.language, search: params?.search, verified: params?.verified, minRating: params?.minRating, maxRate: params?.maxRate, minRate: params?.minRate, sort: params?.sort, limit: params?.limit, offset: params?.offset })}`)
+      return response.data
+    },
+    getProfile: async (userId: string) => {
+      const response = await client.get<{ tutor: import('./types').TutorProfile }>(`/teachers/${userId}`)
+      return response.data.tutor
+    },
+    getTrialCredits: async () => {
+      const response = await client.get<{ trialCredits: import('./types').TrialCredit }>('/teachers/trial-credits')
+      return response.data.trialCredits
+    },
+    getReviews: async (userId: string, params?: { limit?: number; offset?: number }) => {
+      const response = await client.get<{ reviews: import('./types').TutorReview[]; total: number; hasMore: boolean }>(`/teachers/${userId}/reviews${qs({ limit: params?.limit, offset: params?.offset })}`)
+      return response.data
+    },
+    addReview: async (userId: string, data: { rating: number; comment?: string }) => {
+      const response = await client.post<{ review: import('./types').TutorReview }>(`/teachers/${userId}/reviews`, data)
+      return response.data.review
+    },
+    getAvailability: async (userId: string) => {
+      const response = await client.get<{ availability: import('./types').TutorAvailability[] }>(`/teachers/${userId}/availability`)
+      return response.data.availability
+    },
+    addAvailability: async (data: { startTime: string; endTime: string }) => {
+      const response = await client.post<{ availability: import('./types').TutorAvailability }>('/teachers/availability', data)
+      return response.data.availability
+    },
+    removeAvailability: async (id: string) => {
+      await client.delete(`/teachers/availability/${id}`)
+    },
+    book: async (userId: string, data: { startTime: string; endTime: string; isTrial?: boolean; note?: string }) => {
+      const response = await client.post<{ booking: import('./types').TutorBooking }>(`/teachers/${userId}/book`, data)
+      return response.data.booking
+    },
+    listBookings: async (params?: { role?: string; limit?: number; offset?: number }) => {
+      const response = await client.get<{ bookings: import('./types').TutorBooking[]; total: number; hasMore: boolean }>(`/teachers/bookings${qs({ role: params?.role, limit: params?.limit, offset: params?.offset })}`)
+      return response.data
+    },
+    cancelBooking: async (id: string) => {
+      const response = await client.post<{ booking: import('./types').TutorBooking }>(`/teachers/bookings/${id}/cancel`)
+      return response.data.booking
+    },
+    confirmBooking: async (id: string) => {
+      const response = await client.post<{ booking: import('./types').TutorBooking }>(`/teachers/bookings/${id}/confirm`)
+      return response.data.booking
+    },
+    completeBooking: async (id: string) => {
+      const response = await client.post<{ booking: import('./types').TutorBooking }>(`/teachers/bookings/${id}/complete`)
+      return response.data.booking
+    },
+    updateReviewNotes: async (id: string, notes: string) => {
+      const response = await client.put<{ booking: import('./types').TutorBooking }>(`/teachers/bookings/${id}/review-notes`, { notes })
+      return response.data.booking
+    },
+    pushSrs: async (data: import('./types').TeacherSrsPushRequest) => {
+      const response = await client.post<{ push: import('./types').TeacherSrsPush }>('/teachers/srs/push', data)
+      return response.data.push
+    },
+    listSrsPushes: async (params?: { role?: string; peerId?: string; limit?: number; offset?: number }) => {
+      const response = await client.get<{ pushes: import('./types').TeacherSrsPush[]; total: number; hasMore: boolean }>(`/teachers/srs/pushes${qs({ role: params?.role, peerId: params?.peerId, limit: params?.limit, offset: params?.offset })}`)
+      return response.data
+    },
+    getSrsPush: async (id: string) => {
+      const response = await client.get<{ push: import('./types').TeacherSrsPush }>(`/teachers/srs/pushes/${id}`)
+      return response.data.push
+    },
+    getSrsSandbox: async (studentId: string) => {
+      const response = await client.get<{ pushes: import('./types').TeacherSrsPush[] }>(`/teachers/srs/sandbox/${studentId}`)
+      return response.data.pushes
+    },
   }
 
   return {
@@ -577,7 +1383,19 @@ export function createApiClient(options: ApiClientOptions) {
     vocabulary,
     billing,
     grammar,
+    sparky,
     translation,
+    learning,
+    contacts,
+    otp,
+    presence,
+    settings,
+    call,
+    captionReview,
+    teacher,
+    payouts,
+    search,
     health,
+    flags,
   }
 }

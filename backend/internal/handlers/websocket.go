@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/chorus/messenger/internal/middleware"
 	"github.com/chorus/messenger/internal/services"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -19,8 +20,10 @@ var upgrader = websocket.Upgrader{
 }
 
 type WebSocketHandler struct {
-	hub         *services.WebSocketHub
-	authService *services.AuthService
+	hub            *services.WebSocketHub
+	authService    *services.AuthService
+	receiptService *services.ReceiptService
+	callService    *services.CallService
 }
 
 func NewWebSocketHandler(hub *services.WebSocketHub, authService *services.AuthService) *WebSocketHandler {
@@ -28,6 +31,14 @@ func NewWebSocketHandler(hub *services.WebSocketHub, authService *services.AuthS
 		hub:         hub,
 		authService: authService,
 	}
+}
+
+func (h *WebSocketHandler) SetReceiptService(rs *services.ReceiptService) {
+	h.receiptService = rs
+}
+
+func (h *WebSocketHandler) SetCallService(cs *services.CallService) {
+	h.callService = cs
 }
 
 func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
@@ -41,14 +52,14 @@ func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
 			var err error
 			userID, err = h.authService.ValidateAccessToken(token)
 			if err != nil {
-				c.JSON(401, gin.H{"error": "Invalid token"})
+				WriteError(c, middleware.ErrAuth("Invalid token"))
 				return
 			}
 		}
 	}
 
 	if userID == "" {
-		c.JSON(401, gin.H{"error": "Unauthorized"})
+		WriteError(c, middleware.ErrAuth("Unauthorized"))
 		return
 	}
 
@@ -59,11 +70,13 @@ func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
 	}
 
 	client := &services.Client{
-		ID:     uuid.New().String(),
-		UserID: userID,
-		Conn:   conn,
-		Send:   make(chan []byte, 256),
-		Hub:    h.hub,
+		ID:       uuid.New().String(),
+		UserID:   userID,
+		Conn:     conn,
+		Send:     make(chan []byte, 256),
+		Hub:      h.hub,
+		Receipts: h.receiptService,
+		Calls:    h.callService,
 	}
 
 	h.hub.Register <- client

@@ -9,41 +9,43 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import apiService from '../services/api';
+import { useStrings, t } from '../i18n';
 import AuthLayout from '../components/AuthLayout';
 import { COLOR, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../theme';
 
 export default function ForgotPasswordScreen({ navigation }: any) {
+  const s = useStrings();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
   const handleSubmit = async () => {
     if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email');
+      Alert.alert(t('common.error'), t('auth.enterEmailB'));
       return;
     }
     setLoading(true);
     try {
       const response = await apiService.forgotPassword(email.trim().toLowerCase());
       setSent(true);
-      Alert.alert('Check your inbox', response.message);
+      Alert.alert(t('auth.inboxT'), response.message);
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.error || 'Something went wrong. Please try again.');
+      Alert.alert(t('common.error'), error.response?.data?.error || t('auth.genericErrB'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <AuthLayout tagline="Enter your email and we'll send you a link to reset your password.">
+    <AuthLayout tagline={s.auth.forgotTagline}>
       <View style={styles.card}>
         <View style={styles.field}>
-          <Text style={styles.label}>Email Address</Text>
+          <Text style={styles.label}>{s.auth.email}</Text>
           <View style={styles.inputWrap}>
             <Text style={styles.inputIcon}>✉️</Text>
             <TextInput
               style={styles.input}
-              placeholder="you@example.com"
+              placeholder={s.auth.emailPh}
               placeholderTextColor={COLOR.outlineVariant}
               value={email}
               onChangeText={setEmail}
@@ -62,12 +64,12 @@ export default function ForgotPasswordScreen({ navigation }: any) {
           {loading ? (
             <ActivityIndicator color={COLOR.onPrimaryContainer} />
           ) : (
-            <Text style={styles.buttonText}>{sent ? 'Resend reset link' : 'Send reset link'}</Text>
+            <Text style={styles.buttonText}>{sent ? s.auth.resendLink : s.auth.sendLink}</Text>
           )}
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.backLink} onPress={() => navigation.goBack()}>
-          <Text style={styles.backLinkText}>← Back to login</Text>
+          <Text style={styles.backLinkText}>{s.auth.backToLogin}</Text>
         </TouchableOpacity>
       </View>
     </AuthLayout>

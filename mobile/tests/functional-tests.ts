@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8080/api/v1';
+// Same-host backend by default; override with CHORUS_API_BASE_URL for CI or
+// remote hosts (e.g. the dev PC from a physical device).
+const API_BASE_URL = process.env.CHORUS_API_BASE_URL || 'http://localhost:8080/api/v1';
+const HEALTH_URL = (process.env.CHORUS_API_BASE_URL || 'http://localhost:8080') + '/health';
 
 interface TestResult {
   name: string;
@@ -33,6 +36,10 @@ class TestRunner {
     this.printSummary();
   }
 
+  failedCount(): number {
+    return this.results.filter((r) => !r.passed).length;
+  }
+
   private async runTest(name: string, testFn: () => Promise<void>): Promise<void> {
     const startTime = Date.now();
     try {
@@ -51,48 +58,60 @@ class TestRunner {
   }
 
   private async testHealthCheck(): Promise<void> {
-    const response = await axios.get('http://localhost:8080/health');
+    const response = await axios.get(HEALTH_URL);
     if (response.data.status !== 'healthy') {
       throw new Error('Health check failed');
     }
   }
 
-  private async testRegistration(): Promise<void> {
-    const timestamp = Date.now();
+  /**
+   * Registers a throwaway user through the real invite gate (registration is
+   * invite-gated by default): mint an open SMS invite as the seeded fixture,
+   * then register with its single-use token.
+   */
+  private async registerThrowaway(prefix: string): Promise<{ token: string; userId: string; email: string }> {
+    const fixture = await axios.post(`${API_BASE_URL}/auth/login`, {
+      username: 'alice.en-es@chorus.test',
+      password: 'ChorusDev123!',
+    });
+    const fixtureToken = fixture.data.tokens.accessToken;
+    const email = `${prefix}_${Date.now()}@chorus.test`;
+    const invite = await axios.post(
+      `${API_BASE_URL}/contacts/invites`,
+      { channel: 'sms', contact: { name: prefix, phone: `+1555${String(Date.now()).slice(-7)}` } },
+      { headers: { Authorization: `Bearer ${fixtureToken}` } }
+    );
+    const inviteToken = invite.data?.data?.token;
+    if (!inviteToken) throw new Error('invite mint did not return a token');
     const response = await axios.post(`${API_BASE_URL}/auth/register`, {
-      username: `testuser_${timestamp}`,
-      email: `testuser_${timestamp}@example.com`,
+      username: email,
+      email,
       password: 'TestPass123!',
       displayName: 'Test User',
       nativeLanguage: 'en',
       targetLanguages: ['es', 'fr'],
+      inviteToken,
     });
 
     if (!response.data.user || !response.data.tokens || !response.data.tokens.accessToken) {
       throw new Error('Registration did not return user or token');
     }
 
-    this.testUserId = response.data.user.id;
-    this.testAccessToken = response.data.tokens.accessToken;
+    return { token: response.data.tokens.accessToken, userId: response.data.user.id, email };
+  }
+
+  private async testRegistration(): Promise<void> {
+    const { token, userId } = await this.registerThrowaway('testuser');
+    this.testUserId = userId;
+    this.testAccessToken = token;
   }
 
   private async testLogin(): Promise<void> {
-    const timestamp = Date.now();
-    const username = `logintest_${timestamp}`;
+    // Register a throwaway, then prove the same credentials log in.
+    const { email } = await this.registerThrowaway('logintest');
 
-    // First register a user
-    await axios.post(`${API_BASE_URL}/auth/register`, {
-      username,
-      email: `${username}@example.com`,
-      password: 'TestPass123!',
-      displayName: 'Login Test User',
-      nativeLanguage: 'en',
-      targetLanguages: ['es'],
-    });
-
-    // Then login
     const response = await axios.post(`${API_BASE_URL}/auth/login`, {
-      username,
+      username: email,
       password: 'TestPass123!',
     });
 
@@ -112,11 +131,19 @@ class TestRunner {
   }
 
   private async testCreateChat(): Promise<void> {
+    // Direct chats need a peer: resolve the seeded ES learner via search.
+    const search = await axios.get(`${API_BASE_URL}/users/search`, {
+      params: { q: 'bob.es-en@chorus.test' },
+      headers: { Authorization: `Bearer ${this.testAccessToken}` },
+    });
+    const users = search.data.users || search.data.data || [];
+    const bob = users.find((u: any) => u.email === 'bob.es-en@chorus.test');
+    if (!bob?.id) throw new Error('could not resolve peer user for DM (is the dev DB seeded?)');
     const response = await axios.post(
       `${API_BASE_URL}/chats`,
       {
         type: 'direct',
-        participants: [this.testUserId],
+        participants: [bob.id],
       },
       {
         headers: { Authorization: `Bearer ${this.testAccessToken}` },
@@ -217,7 +244,7 @@ const runner = new TestRunner();
 runner.runAllTests()
   .then(() => {
     console.log('All tests completed!');
-    process.exit(0);
+    process.exit(runner.failedCount() > 0 ? 1 : 0);
   })
   .catch((error) => {
     console.error('Test runner failed:', error);

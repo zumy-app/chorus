@@ -11,10 +11,12 @@ import {
 import storage from '../utils/storage';
 import apiService from '../services/api';
 import { SUPPORTED_LANGUAGES } from '@chorus/shared';
+import { useStrings, t, applyImplicitLanguage } from '../i18n';
 import AuthLayout from '../components/AuthLayout';
 import { COLOR, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '../theme';
 
 export default function RegisterScreen({ navigation }: any) {
+  const s = useStrings();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,12 +27,12 @@ export default function RegisterScreen({ navigation }: any) {
 
   const handleRegister = async () => {
     if (!username.trim() || !email.trim() || !password || !displayName.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert(t('common.error'), t('auth.emptyFieldsB'));
       return;
     }
 
     if (password.length < 8) {
-      Alert.alert('Error', 'Password must be at least 8 characters');
+      Alert.alert(t('common.error'), t('auth.shortPwB'));
       return;
     }
 
@@ -49,14 +51,16 @@ export default function RegisterScreen({ navigation }: any) {
       await storage.setItem('accessToken', response.tokens.accessToken);
       await storage.setItem('refreshToken', response.tokens.refreshToken);
       await storage.setItem('user', JSON.stringify(response.user));
+      // Fresh account: UI follows the just-chosen native language immediately.
+      await applyImplicitLanguage(nativeLanguage);
 
-      Alert.alert('Success', 'Account created successfully!', [
-        { text: 'OK', onPress: () => navigation.replace('MainTabs') },
+      Alert.alert(t('common.success'), t('auth.regSuccessB'), [
+        { text: t('common.ok'), onPress: () => navigation.replace('MainTabs') },
       ]);
     } catch (error: any) {
       Alert.alert(
-        'Registration Failed',
-        error.response?.data?.error || 'Failed to create account. Please try again.'
+        t('auth.regFailedT'),
+        error.response?.data?.error || t('auth.regFailedB')
       );
     } finally {
       setLoading(false);
@@ -64,13 +68,13 @@ export default function RegisterScreen({ navigation }: any) {
   };
 
   return (
-    <AuthLayout title="Join Chorus" tagline="Set up your account and start learning.">
+    <AuthLayout title={s.auth.registerTitle} tagline={s.auth.registerTagline}>
       <View style={styles.card}>
         <View style={styles.field}>
-          <Text style={styles.label}>Username</Text>
+          <Text style={styles.label}>{s.auth.username}</Text>
           <TextInput
             style={styles.input}
-            placeholder="Choose a username"
+            placeholder={s.auth.usernamePh}
             placeholderTextColor={COLOR.outlineVariant}
             value={username}
             onChangeText={setUsername}
@@ -80,10 +84,10 @@ export default function RegisterScreen({ navigation }: any) {
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>Email Address</Text>
+          <Text style={styles.label}>{s.auth.email}</Text>
           <TextInput
             style={styles.input}
-            placeholder="you@example.com"
+            placeholder={s.auth.emailPh}
             placeholderTextColor={COLOR.outlineVariant}
             value={email}
             onChangeText={setEmail}
@@ -94,10 +98,10 @@ export default function RegisterScreen({ navigation }: any) {
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>Display Name</Text>
+          <Text style={styles.label}>{s.auth.displayName}</Text>
           <TextInput
             style={styles.input}
-            placeholder="How friends see you"
+            placeholder={s.auth.displayNamePh}
             placeholderTextColor={COLOR.outlineVariant}
             value={displayName}
             onChangeText={setDisplayName}
@@ -106,12 +110,12 @@ export default function RegisterScreen({ navigation }: any) {
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>Password</Text>
+          <Text style={styles.label}>{s.auth.password}</Text>
           <View style={styles.inputWrap}>
             <Text style={styles.inputIcon}>🔒</Text>
             <TextInput
               style={styles.inputInner}
-              placeholder="Min 8 characters"
+              placeholder={s.auth.passwordPhMin}
               placeholderTextColor={COLOR.outlineVariant}
               value={password}
               onChangeText={setPassword}
@@ -121,14 +125,14 @@ export default function RegisterScreen({ navigation }: any) {
             <TouchableOpacity
               style={styles.visibility}
               onPress={() => setShowPassword(!showPassword)}
-              accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}>
+              accessibilityLabel={showPassword ? s.auth.hidePw : s.auth.showPw}>
               <Text style={styles.visibilityText}>{showPassword ? '🙈' : '👁️'}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.languageSection}>
-          <Text style={styles.label}>Native Language</Text>
+          <Text style={styles.label}>{s.auth.nativeLangLabel}</Text>
           <View style={styles.languageGrid}>
             {SUPPORTED_LANGUAGES.slice(0, 3).map((lang) => (
               <TouchableOpacity
@@ -157,14 +161,14 @@ export default function RegisterScreen({ navigation }: any) {
           {loading ? (
             <ActivityIndicator color={COLOR.onPrimaryContainer} />
           ) : (
-            <Text style={styles.buttonText}>Create Account</Text>
+            <Text style={styles.buttonText}>{s.auth.createAccount}</Text>
           )}
         </TouchableOpacity>
 
         <View style={styles.bottom}>
-          <Text style={styles.bottomText}>Already have an account?</Text>
+          <Text style={styles.bottomText}>{s.auth.haveAccount}</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-            <Text style={styles.bottomLink}>Sign In</Text>
+            <Text style={styles.bottomLink}>{s.auth.signIn}</Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -1,17 +1,17 @@
 // HTTP API client. The implementation (interceptors, token refresh, endpoint
 // groups) lives in the shared package (@chorus/shared); this file wires it to
 // the mobile storage adapter (src/utils/storage.ts) and platform-specific URLs.
-import { createApiClient, resolveApiConfig, type ApiPlatform } from '@chorus/shared';
+import { createApiClient, resolveApiConfig, type ApiPlatform, type AuthTokens, type User } from '@chorus/shared';
 import { Platform } from 'react-native';
 import storage from '../utils/storage';
 
 // Same-host /api/{version} by default; override with EXPO_PUBLIC_API_URL /
 // EXPO_PUBLIC_API_VERSION to reach a remote backend (e.g. the dev PC from a
 // physical device: EXPO_PUBLIC_API_URL=http://<lan-ip>:8080).
-// EXPO_PUBLIC_* is only inlined by Expo tooling; under the plain react-native
-// CLI, process.env.* stays undefined at runtime, so API_ORIGIN also falls back
-// to the dev machine's LAN address to keep physical devices working.
-export const API_ORIGIN = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.0.30:8080';
+// In development live reload (react-native start), no EXPO_PUBLIC_* is baked in,
+// so we pass an empty origin and let @chorus/shared resolveApiConfig pick the
+// emulator/simulator host alias (10.0.2.2 for Android, localhost for iOS).
+export const API_ORIGIN = process.env.EXPO_PUBLIC_API_URL || '';
 
 const { baseURL } = resolveApiConfig({
   platform: Platform.OS as ApiPlatform,
@@ -25,11 +25,33 @@ const client = createApiClient({
   storage,
 });
 
-// Kept default-exported as an object to preserve the previous ApiService API.
+export const api = client.api;
+export const callAPI = client.call;
 const apiService = {
   register: client.auth.register,
   login: (username: string, password: string) =>
     client.auth.login({ username, password }),
+  // Typed full re-login (dev quick-switch, test flows). Screens must use
+  // this instead of reaching into response envelopes: auth.login resolves
+  // the unwrapped body ({user, tokens} on success). Throws a plain Error
+  // with a human message when the shape is anything else (e.g. 2FA
+  // challenge), so callers can surface it instead of crashing on
+  // `undefined.data`.
+  switchUser: async (
+    username: string,
+    password: string
+  ): Promise<{ tokens: AuthTokens; user: User }> => {
+    const data = (await client.auth.login({ username, password })) as unknown as
+      | { tokens?: AuthTokens; user?: User; requires2FA?: boolean }
+      | undefined;
+    if (!data?.tokens?.accessToken || !data?.user) {
+      if (data?.requires2FA) {
+        throw new Error('Target account requires two-factor verification — log in manually');
+      }
+      throw new Error('Login did not return session tokens');
+    }
+    return { tokens: data.tokens, user: data.user };
+  },
   refreshToken: client.auth.refreshToken,
   logout: client.auth.logout,
   getMe: client.auth.getMe,
@@ -43,9 +65,109 @@ const apiService = {
   getMessages: client.message.getMessages,
   sendMessage: (chatId: string, text: string, replyToId?: string) =>
     client.message.sendMessage(chatId, { text, replyToId }),
+  deleteMessage: client.message.deleteMessage,
+  forwardMessage: client.message.forwardMessage,
+  pinMessage: client.message.pinMessage,
+  unpinMessage: client.message.unpinMessage,
+  getPinnedMessages: client.message.getPinnedMessages,
+  sendAttachment: client.message.sendAttachment,
+  sendLocation: client.message.sendLocation,
   markAsRead: client.message.markAsRead,
   translateMessage: client.translation.translateMessage,
   healthCheck: client.health,
+  getSettings: client.settings.getSettings,
+  updateSettings: client.settings.updateSettings,
+  getLearningDashboard: client.learning.getDashboard,
+  getLearningProfile: client.learning.getProfile,
+  getLearningCapabilities: client.learning.getCapabilities,
+  getLearningPath: client.learning.getPath,
+  updateLearningProfile: client.learning.updateProfile,
+  startPlacement: client.learning.startPlacement,
+  answerPlacement: client.learning.answerPlacement,
+  skipPlacement: client.learning.skipPlacement,
+  selectLevel: client.learning.selectLevel,
+  getPlacement: client.learning.getPlacement,
+  getUnit: client.learning.getUnit,
+  startLesson: client.learning.startLesson,
+  answerLessonStep: client.learning.answerLessonStep,
+  completeLesson: client.learning.completeLesson,
+  startSession: client.learning.startSession,
+  getSession: client.learning.getSession,
+  answerSessionItem: client.learning.answerSessionItem,
+  completeSession: client.learning.completeSession,
+  getGrammarDueDrills: client.learning.getGrammarDueDrills,
+  getGrammarMicroLesson: client.learning.getGrammarMicroLesson,
+  recordGrammarAttempt: client.learning.recordGrammarAttempt,
+  getGradingJob: client.learning.getGradingJob,
+  createAssignment: client.learning.createAssignment,
+  listTeacherAssignments: client.learning.listTeacherAssignments,
+  listStudentAssignments: client.learning.listStudentAssignments,
+  getAssignment: client.learning.getAssignment,
+  submitAssignment: client.learning.submitAssignment,
+  reviewAssignment: client.learning.reviewAssignment,
+  getMinedItems: client.learning.getMinedItems,
+  acceptMinedItem: client.learning.acceptMinedItem,
+  ignoreMinedItem: client.learning.ignoreMinedItem,
+  getScenarios: client.learning.getScenarios,
+  getScenario: client.learning.getScenario,
+  startScenario: client.learning.startScenario,
+  getScenarioRun: client.learning.getScenarioRun,
+  sendScenarioMessage: client.learning.sendScenarioMessage,
+  requestScenarioHint: client.learning.requestScenarioHint,
+  completeScenario: client.learning.completeScenario,
+  getRealTalkPrompts: client.learning.getRealTalkPrompts,
+  markRealTalkUsed: client.learning.markRealTalkUsed,
+  recoverStreak: client.learning.recoverStreak,
+  initiateCall: client.call.initiate,
+  getCallSession: client.call.getSession,
+  endCall: client.call.end,
+  getCaptions: client.call.getCaptions,
+  postCaption: client.call.postCaption,
+  bookmarkCaption: (callId: string, index: number, phrase?: string) => client.call.bookmarkCaption(callId, index, phrase),
+  sendSignal: (callId: string, data: { type: string; sdp?: string; candidate?: string; data?: Record<string, unknown> }) => client.call.signal(callId, data),
+  browseTutors: client.teacher.browse,
+  getTutorProfile: client.teacher.getProfile,
+  getTutorReviews: client.teacher.getReviews,
+  getTutorAvailability: client.teacher.getAvailability,
+  bookTutor: client.teacher.book,
+  listBookings: client.teacher.listBookings,
+  getTeacherApplication: client.teacher.getMyApplication,
+  applyTeacher: client.teacher.apply,
+  getTrialCredits: client.teacher.getTrialCredits,
+  getTrialCreditsDashboard: async () => {
+    const r = await client.api.get('/teachers/trial-credits/dashboard');
+    return r.data;
+  },
+  getTeacherDashboard: async () => {
+    const r = await client.api.get('/teachers/dashboard');
+    return r.data;
+  },
+  getPayoutOverview: client.payouts.overview,
+  getPayoutMethods: client.payouts.methods,
+  addPayoutMethod: client.payouts.addMethod,
+  removePayoutMethod: client.payouts.removeMethod,
+  getPayoutHistory: client.payouts.history,
+  requestPayout: client.payouts.withdraw,
+  universalSearch: client.search.universal,
+  searchMedia: client.search.media,
+  searchChats: client.search.chats,
+  searchContacts: client.search.contacts,
+  grammarLearn: client.grammar.learn,
+  grammarAnalyzeAI: client.grammar.analyzeAI,
+  grammarJob: client.grammar.getAnalysis,
+  sparkyAsk: client.sparky.ask,
+  sparkyJob: client.sparky.getJob,
+  blockUser: client.moderation.block,
+  unblockUser: client.moderation.unblock,
+  getBlocked: client.moderation.getBlocked,
+  getBlockStatus: client.moderation.getBlockStatus,
+  reportUser: client.moderation.report,
+  getPhoneStatus: client.otp.getPhoneStatus,
+  requestOTP: client.otp.requestOTP,
+  verifyPhone: client.otp.verifyPhone,
+  setTwoFactor: client.otp.setTwoFactor,
+  verify2FA: client.otp.verify2FA,
+  featureFlags: client.flags.getMyFlags,
 };
 
 export default apiService;
